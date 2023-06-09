@@ -1,6 +1,7 @@
 [package]
 name = "walkers"
 version = "0.1.0"
+repository = "https://github.com/podusowski/walkers"
 description = "slippy map widget for egui"
 keywords = ["gis", "geography", "gui"]
 categories = ["gui", "science::geo"]
