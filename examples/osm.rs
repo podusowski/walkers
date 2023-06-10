@@ -1,7 +1,7 @@
 use std::{sync::Arc, thread::JoinHandle};
 
 use egui::{Align2, FontId, RichText, Window};
-use walkers::{MapMemory, Zoom};
+use walkers::MapMemory;
 
 fn main() -> Result<(), eframe::Error> {
     env_logger::init();
@@ -110,9 +110,7 @@ impl eframe::App for Osm {
                             .button(RichText::new("➖").font(FontId::proportional(20.)))
                             .clicked()
                         {
-                            if let Ok(zoom) = Zoom::try_from(*self.map_memory.zoom - 1) {
-                                self.map_memory.zoom = zoom;
-                            }
+                            let _ = self.map_memory.zoom.zoom_out();
                         }
                     });
                 });
