@@ -101,6 +101,7 @@ impl Default for MapMemory {
         }
     }
 }
+
 fn draw_tiles(
     painter: &Painter,
     tile_id: TileId,
