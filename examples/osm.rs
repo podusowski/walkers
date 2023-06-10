@@ -96,6 +96,7 @@ impl eframe::App for Osm {
                 .title_bar(false)
                 .anchor(Align2::LEFT_BOTTOM, [10., -10.])
                 .show(ui.ctx(), |ui| {
+                    ui.label(format!("current zoom: {}", self.map_memory.zoom));
                     ui.horizontal(|ui| {
                         if ui
                             .button(RichText::new("➕").font(FontId::proportional(20.)))
