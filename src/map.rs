@@ -105,10 +105,11 @@ impl Default for MapMemory {
     }
 }
 
-#[derive(thiserror::Error, Debug)]
+#[derive(thiserror::Error, Debug, PartialEq, Eq)]
 #[error("{0} is invalid zoom level")]
 struct InvalidZoom(u8);
 
+#[derive(Debug)]
 struct Zoom(u8);
 
 impl TryFrom<u8> for Zoom {
@@ -141,6 +142,7 @@ mod tests {
     fn test_zoom() {
         assert_eq!(16, *Zoom::default());
         assert_eq!(17, *Zoom::try_from(17).unwrap());
+        assert_eq!(Err(InvalidZoom(21)), Zoom::try_from(21));
     }
 }
 
