@@ -12,7 +12,9 @@ use std::f64::consts::PI;
 
 pub trait PositionExt {
     fn project_with_zoom(&self, zoom: u8) -> (f32, f32);
-    fn tile(&self, zoom: u8) -> TileId;
+
+    /// Tile this position is on.
+    fn tile_id(&self, zoom: u8) -> TileId;
 }
 
 /// Size of the tiles used by the services like the OSM.
@@ -37,7 +39,7 @@ impl PositionExt for Position {
         (x as f32, y as f32)
     }
 
-    fn tile(&self, zoom: u8) -> TileId {
+    fn tile_id(&self, zoom: u8) -> TileId {
         let number_of_tiles = 2u32.pow(zoom as u32);
 
         // Project into Mercator (cylindrical map projection).
@@ -136,12 +138,12 @@ mod tests {
                 y: 21569,
                 zoom: 16
             },
-            citadel.tile(16)
+            citadel.tile_id(16)
         );
 
         assert_eq!(
             Pos2::new(36590. * 256., 21569. * 256.),
-            citadel.tile(16).position_on_world_bitmap()
+            citadel.tile_id(16).position_on_world_bitmap()
         );
     }
 

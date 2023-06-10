@@ -44,7 +44,7 @@ impl Widget for Map<'_, '_> {
             let mut shapes = Default::default();
             draw_tiles(
                 &painter,
-                map_center.tile(self.memory.zoom),
+                map_center.tile_id(self.memory.zoom),
                 map_center_projected_position,
                 self.tiles,
                 ui,
