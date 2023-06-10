@@ -145,7 +145,7 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test_zoom() {
+    fn test_constructing_zoom() {
         assert_eq!(16, *Zoom::default());
         assert_eq!(19, *Zoom::try_from(19).unwrap());
         assert_eq!(Err(InvalidZoom(20)), Zoom::try_from(20));
