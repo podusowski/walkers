@@ -141,7 +141,7 @@ impl Deref for Zoom {
 }
 
 impl Zoom {
-    pub fn try_zoom_in(&mut self) -> Result<(), InvalidZoom> {
+    pub fn zoom_in(&mut self) -> Result<(), InvalidZoom> {
         *self = Self::try_from(self.0 + 1)?;
         Ok(())
     }
@@ -161,8 +161,8 @@ mod tests {
     #[test]
     fn test_zooming_in_and_out() {
         let mut zoom = Zoom::try_from(18).unwrap();
-        assert!(zoom.try_zoom_in().is_ok());
-        assert_eq!(Err(InvalidZoom), zoom.try_zoom_in());
+        assert!(zoom.zoom_in().is_ok());
+        assert_eq!(Err(InvalidZoom), zoom.zoom_in());
     }
 }
 

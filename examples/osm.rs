@@ -103,7 +103,7 @@ impl eframe::App for Osm {
                             .button(RichText::new("➕").font(FontId::proportional(20.)))
                             .clicked()
                         {
-                            let _ = self.map_memory.zoom.try_zoom_in();
+                            let _ = self.map_memory.zoom.zoom_in();
                         }
 
                         if ui
