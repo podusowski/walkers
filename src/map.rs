@@ -33,7 +33,7 @@ impl Widget for Map<'_, '_> {
 
         self.memory
             .center_mode
-            .screen_drag(&response, self.my_position, self.memory.zoom);
+            .screen_drag(&response, self.my_position, *self.memory.zoom);
 
         let map_center = self.memory.center_mode.position(self.my_position);
         let painter = ui.painter().with_clip_rect(rect);
@@ -42,8 +42,8 @@ impl Widget for Map<'_, '_> {
             let mut meshes = Default::default();
             draw_tiles(
                 &painter,
-                map_center.tile_id(self.memory.zoom),
-                map_center.project_with_zoom(self.memory.zoom).into(),
+                map_center.tile_id(*self.memory.zoom),
+                map_center.project_with_zoom(*self.memory.zoom).into(),
                 self.tiles,
                 ui,
                 &mut meshes,
@@ -92,7 +92,7 @@ impl MapCenterMode {
 pub struct MapMemory {
     pub center_mode: MapCenterMode,
     pub osm: bool,
-    pub zoom: u8,
+    pub zoom: Zoom,
 }
 
 impl Default for MapMemory {
@@ -100,17 +100,17 @@ impl Default for MapMemory {
         Self {
             center_mode: MapCenterMode::MyPosition,
             osm: false,
-            zoom: 16,
+            zoom: Default::default(),
         }
     }
 }
 
 #[derive(thiserror::Error, Debug, PartialEq, Eq)]
 #[error("{0} is invalid zoom level")]
-struct InvalidZoom(u8);
+pub struct InvalidZoom(u8);
 
-#[derive(Debug, PartialEq, Eq)]
-struct Zoom(u8);
+#[derive(Debug, PartialEq, Eq, Clone, Copy)]
+pub struct Zoom(u8);
 
 impl TryFrom<u8> for Zoom {
     type Error = InvalidZoom;
