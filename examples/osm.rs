@@ -1,5 +1,5 @@
 use egui::{Align2, FontId, RichText, Window};
-use walkers::{MapMemory, Tiles};
+use walkers::{Map, MapMemory, Position, Tiles};
 
 fn main() -> Result<(), eframe::Error> {
     env_logger::init();
@@ -26,6 +26,12 @@ impl Osm {
     }
 }
 
+/// Main train station of the city of Wrocław.
+/// https://en.wikipedia.org/wiki/Wroc%C5%82aw_G%C5%82%C3%B3wny_railway_station
+fn wroclaw_glowny() -> Position {
+    Position::new(17.03664, 51.09916)
+}
+
 impl eframe::App for Osm {
     fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
         egui::CentralPanel::default().show(ctx, |ui| {
@@ -36,10 +42,10 @@ impl eframe::App for Osm {
                 ui.hyperlink("https://donate.openstreetmap.org/");
             });
 
-            ui.add(walkers::Map::new(
+            ui.add(Map::new(
                 &mut self.tiles,
                 &mut self.map_memory,
-                walkers::Position::new(17.03664, 51.09916),
+                wroclaw_glowny(),
             ));
 
             Window::new("Map")
