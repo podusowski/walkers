@@ -33,25 +33,20 @@ impl Widget for Map<'_, '_> {
             .screen_drag(&response, self.my_position, self.memory.zoom);
 
         let map_center = self.memory.center_mode.position(self.my_position);
-
-        // Projected means layed on a huge world bitmap using Mercator.
-        let map_center_projected_position: Pos2 =
-            map_center.project_with_zoom(self.memory.zoom).into();
-
         let painter = ui.painter().with_clip_rect(rect);
 
         if self.memory.osm {
-            let mut shapes = Default::default();
+            let mut meshes = Default::default();
             draw_tiles(
                 &painter,
                 map_center.tile_id(self.memory.zoom),
-                map_center_projected_position,
+                map_center.project_with_zoom(self.memory.zoom).into(),
                 self.tiles,
                 ui,
-                &mut shapes,
+                &mut meshes,
             );
 
-            for (_, shape) in shapes {
+            for (_, shape) in meshes {
                 painter.add(shape);
             }
         }
