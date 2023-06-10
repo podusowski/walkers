@@ -78,9 +78,10 @@ async fn download(
 
             log::debug!("Tile downloaded: {:?}.", image.status());
 
-            let image = image.bytes().await.unwrap();
-
-            cache.lock().unwrap().insert(requested, Tile::new(&image));
+            if image.status().is_success() {
+                let image = image.bytes().await.unwrap();
+                cache.lock().unwrap().insert(requested, Tile::new(&image));
+            }
         }
     }
 }
