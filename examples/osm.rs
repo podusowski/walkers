@@ -4,6 +4,7 @@ use egui::{Align2, FontId, RichText, Window};
 use walkers::MapMemory;
 
 fn main() -> Result<(), eframe::Error> {
+    env_logger::init();
     eframe::run_native(
         "OpenStreetMap",
         Default::default(),

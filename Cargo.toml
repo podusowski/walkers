@@ -28,3 +28,4 @@ tokio = { version = "1.28", features = [
 
 [dev-dependencies]
 eframe = "0.22"
+env_logger = "0.10"
