@@ -106,8 +106,8 @@ impl Default for MapMemory {
 }
 
 #[derive(thiserror::Error, Debug, PartialEq, Eq)]
-#[error("{0} is invalid zoom level")]
-pub struct InvalidZoom(u8);
+#[error("invalid zoom level")]
+pub struct InvalidZoom;
 
 #[derive(Debug, PartialEq, Eq, Clone, Copy)]
 pub struct Zoom(u8);
@@ -119,7 +119,7 @@ impl TryFrom<u8> for Zoom {
         // OSM wiki has level 20 listed https://wiki.openstreetmap.org/wiki/Zoom_levels,
         // but when requested, server responds with 400: Bad Request.
         if value > 19 {
-            Err(InvalidZoom(value))
+            Err(InvalidZoom)
         } else {
             Ok(Self(value))
         }
@@ -140,6 +140,13 @@ impl Deref for Zoom {
     }
 }
 
+impl Zoom {
+    pub fn try_zoom_in(&mut self) -> Result<(), InvalidZoom> {
+        *self = Self::try_from(self.0 + 1)?;
+        Ok(())
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -148,7 +155,14 @@ mod tests {
     fn test_constructing_zoom() {
         assert_eq!(16, *Zoom::default());
         assert_eq!(19, *Zoom::try_from(19).unwrap());
-        assert_eq!(Err(InvalidZoom(20)), Zoom::try_from(20));
+        assert_eq!(Err(InvalidZoom), Zoom::try_from(20));
+    }
+
+    #[test]
+    fn test_zooming_in_and_out() {
+        let mut zoom = Zoom::try_from(18).unwrap();
+        assert!(zoom.try_zoom_in().is_ok());
+        assert_eq!(Err(InvalidZoom), zoom.try_zoom_in());
     }
 }
 
