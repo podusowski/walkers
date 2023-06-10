@@ -1,4 +1,7 @@
-use std::collections::{hash_map::Entry, HashMap};
+use std::{
+    collections::{hash_map::Entry, HashMap},
+    ops::Deref,
+};
 
 use egui::{Mesh, Painter, Pos2, Response, Sense, Ui, Widget};
 
@@ -99,6 +102,45 @@ impl Default for MapMemory {
             osm: false,
             zoom: 16,
         }
+    }
+}
+
+#[derive(thiserror::Error, Debug)]
+#[error("{0} is invalid zoom level")]
+struct InvalidZoom(u8);
+
+struct Zoom(u8);
+
+impl TryFrom<u8> for Zoom {
+    type Error = InvalidZoom;
+
+    fn try_from(value: u8) -> Result<Self, Self::Error> {
+        Ok(Self(value))
+    }
+}
+
+impl Default for Zoom {
+    fn default() -> Self {
+        Self(16)
+    }
+}
+
+impl Deref for Zoom {
+    type Target = u8;
+
+    fn deref(&self) -> &Self::Target {
+        &self.0
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_zoom() {
+        assert_eq!(16, *Zoom::default());
+        assert_eq!(17, *Zoom::try_from(17).unwrap());
     }
 }
 

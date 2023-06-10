@@ -10,6 +10,7 @@ license = "MIT"
 edition = "2021"
 
 [dependencies]
+thiserror = "1"
 log = "0.4"
 egui = { version = "0.22" }
 egui_extras = { version = "0.22", features = ["image"] }
