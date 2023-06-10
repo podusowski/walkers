@@ -1,6 +1,5 @@
-use std::sync::Arc;
-
 ///! Managed thread for Tokio runtime.
+use std::sync::Arc;
 
 pub struct TokioRuntimeThread {
     join_handle: Option<std::thread::JoinHandle<()>>,

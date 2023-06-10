@@ -49,6 +49,7 @@ pub struct Tiles {
     /// Tiles to be downloaded by the IO thread.
     requests: tokio::sync::mpsc::Sender<TileId>,
 
+    #[allow(dead_code)] // Significant Drop
     tokio_runtime_thread: TokioRuntimeThread,
 }
 
@@ -89,7 +90,7 @@ async fn download(
 }
 
 impl Tiles {
-    pub fn new(runtime: Arc<tokio::runtime::Runtime>) -> Self {
+    pub fn new() -> Self {
         let tokio_runtime_thread = TokioRuntimeThread::new();
         let (tx, rx) = tokio::sync::mpsc::channel(5);
         let cache = Arc::new(Mutex::new(HashMap::<TileId, Tile>::new()));
