@@ -145,6 +145,11 @@ impl Zoom {
         *self = Self::try_from(self.0 + 1)?;
         Ok(())
     }
+
+    pub fn zoom_out(&mut self) -> Result<(), InvalidZoom> {
+        *self = Self::try_from(self.0 - 1)?;
+        Ok(())
+    }
 }
 
 #[cfg(test)]
@@ -159,10 +164,19 @@ mod tests {
     }
 
     #[test]
-    fn test_zooming_in_and_out() {
+    fn test_zooming_in() {
         let mut zoom = Zoom::try_from(18).unwrap();
         assert!(zoom.zoom_in().is_ok());
+        assert_eq!(19, *zoom);
         assert_eq!(Err(InvalidZoom), zoom.zoom_in());
+    }
+
+    #[test]
+    fn test_zooming_out() {
+        let mut zoom = Zoom::try_from(1).unwrap();
+        assert!(zoom.zoom_out().is_ok());
+        assert_eq!(0, *zoom);
+        assert_eq!(Err(InvalidZoom), zoom.zoom_out());
     }
 }
 
