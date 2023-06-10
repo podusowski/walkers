@@ -65,14 +65,13 @@ impl MapCenterMode {
     fn screen_drag(&mut self, response: &Response, my_position: Position, zoom: u8) {
         if response.dragged_by(egui::PointerButton::Primary) {
             *self = match *self {
+                // This makes it "detach" from the "my position".
                 MapCenterMode::MyPosition => MapCenterMode::Exact(my_position),
-                MapCenterMode::Exact(position) => MapCenterMode::Exact({
-                    let position_delta = screen_to_position(response.drag_delta(), zoom);
-                    Position::new(
-                        position.x() - position_delta.x(),
-                        position.y() - position_delta.y(),
-                    )
-                }),
+
+                // Just shift already "detached" position.
+                MapCenterMode::Exact(position) => {
+                    MapCenterMode::Exact(position - screen_to_position(response.drag_delta(), zoom))
+                }
             };
         }
     }
