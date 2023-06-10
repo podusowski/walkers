@@ -1,4 +1,4 @@
-use egui::{Align2, FontId, RichText, Window};
+use egui::{Align2, RichText, Window};
 use walkers::{Map, MapMemory, Position, Tiles};
 
 fn main() -> Result<(), eframe::Error> {
@@ -54,19 +54,13 @@ impl eframe::App for Osm {
                 .title_bar(false)
                 .anchor(Align2::LEFT_BOTTOM, [10., -10.])
                 .show(ui.ctx(), |ui| {
-                    ui.label(format!("current zoom: {}", *self.map_memory.zoom));
+                    ui.label(format!("zoom: {}", *self.map_memory.zoom));
                     ui.horizontal(|ui| {
-                        if ui
-                            .button(RichText::new("➕").font(FontId::proportional(20.)))
-                            .clicked()
-                        {
+                        if ui.button(RichText::new("➕").heading()).clicked() {
                             let _ = self.map_memory.zoom.zoom_in();
                         }
 
-                        if ui
-                            .button(RichText::new("➖").font(FontId::proportional(20.)))
-                            .clicked()
-                        {
+                        if ui.button(RichText::new("➖").heading()).clicked() {
                             let _ = self.map_memory.zoom.zoom_out();
                         }
                     });
