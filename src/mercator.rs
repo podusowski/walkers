@@ -3,8 +3,6 @@
 //! https://wiki.openstreetmap.org/wiki/Slippy_map_tilenames
 //! https://www.netzwolf.info/osm/tilebrowser.html?lat=51.157800&lon=6.865500&zoom=14
 
-// TODO: Change it to external crate like https://crates.io/crates/geo
-//use common::Position;
 pub type Position = geo_types::Point;
 
 use egui::{Pos2, Vec2};
