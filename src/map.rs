@@ -109,14 +109,19 @@ impl Default for MapMemory {
 #[error("{0} is invalid zoom level")]
 struct InvalidZoom(u8);
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq, Eq)]
 struct Zoom(u8);
 
 impl TryFrom<u8> for Zoom {
     type Error = InvalidZoom;
 
     fn try_from(value: u8) -> Result<Self, Self::Error> {
-        Ok(Self(value))
+        // https://wiki.openstreetmap.org/wiki/Zoom_levels
+        if value > 20 {
+            Err(InvalidZoom(value))
+        } else {
+            Ok(Self(value))
+        }
     }
 }
 
