@@ -1,5 +1,5 @@
 use egui::{Align2, FontId, RichText, Window};
-use walkers::MapMemory;
+use walkers::{MapMemory, Tiles};
 
 fn main() -> Result<(), eframe::Error> {
     env_logger::init();
@@ -11,7 +11,7 @@ fn main() -> Result<(), eframe::Error> {
 }
 
 struct Osm {
-    tiles: walkers::Tiles,
+    tiles: Tiles,
     map_memory: MapMemory,
 }
 
@@ -20,7 +20,7 @@ impl Osm {
         let mut map_memory = MapMemory::default();
         map_memory.osm = true;
         Self {
-            tiles: walkers::Tiles::new(),
+            tiles: Tiles::new(),
             map_memory,
         }
     }
