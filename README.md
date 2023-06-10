@@ -13,5 +13,7 @@ particularly affected by some and I will try to prioritize.
 * It uses `reqwests`/`tokio` stack which does not work on WASM.
 * Example for Android is missing, but it does work there.
 
+Other suggestions are welcomed as well.
+
 
 ![Screenshot](screenshot.png)
