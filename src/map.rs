@@ -147,7 +147,7 @@ impl Zoom {
     }
 
     pub fn zoom_out(&mut self) -> Result<(), InvalidZoom> {
-        *self = Self::try_from(self.0 - 1)?;
+        *self = Self::try_from(self.0.checked_sub(1).ok_or(InvalidZoom)?)?;
         Ok(())
     }
 }
