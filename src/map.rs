@@ -116,8 +116,9 @@ impl TryFrom<u8> for Zoom {
     type Error = InvalidZoom;
 
     fn try_from(value: u8) -> Result<Self, Self::Error> {
-        // https://wiki.openstreetmap.org/wiki/Zoom_levels
-        if value > 20 {
+        // OSM wiki has level 20 listed https://wiki.openstreetmap.org/wiki/Zoom_levels,
+        // but when requested, server responds with 400: Bad Request.
+        if value > 19 {
             Err(InvalidZoom(value))
         } else {
             Ok(Self(value))
@@ -146,8 +147,8 @@ mod tests {
     #[test]
     fn test_zoom() {
         assert_eq!(16, *Zoom::default());
-        assert_eq!(17, *Zoom::try_from(17).unwrap());
-        assert_eq!(Err(InvalidZoom(21)), Zoom::try_from(21));
+        assert_eq!(19, *Zoom::try_from(19).unwrap());
+        assert_eq!(Err(InvalidZoom(20)), Zoom::try_from(20));
     }
 }
 

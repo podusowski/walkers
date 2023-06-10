@@ -74,10 +74,11 @@ async fn download(
                 .header(USER_AGENT, "Walkers")
                 .send()
                 .await
-                .unwrap()
-                .bytes()
-                .await
                 .unwrap();
+
+            log::debug!("Tile downloaded: {:?}.", image.status());
+
+            let image = image.bytes().await.unwrap();
 
             cache.lock().unwrap().insert(requested, Tile::new(&image));
         }
