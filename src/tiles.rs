@@ -6,6 +6,7 @@ use egui_extras::RetainedImage;
 use reqwest::header::USER_AGENT;
 
 use crate::mercator::TileId;
+use crate::tokio::TokioRuntimeThread;
 
 #[derive(Clone)]
 pub struct Tile {
@@ -42,12 +43,13 @@ impl Tile {
     }
 }
 
-#[derive(Clone)]
 pub struct Tiles {
     cache: Arc<Mutex<HashMap<TileId, Tile>>>,
 
     /// Tiles to be downloaded by the IO thread.
     requests: tokio::sync::mpsc::Sender<TileId>,
+
+    tokio_runtime_thread: TokioRuntimeThread,
 }
 
 async fn download(
@@ -88,12 +90,16 @@ async fn download(
 
 impl Tiles {
     pub fn new(runtime: Arc<tokio::runtime::Runtime>) -> Self {
+        let tokio_runtime_thread = TokioRuntimeThread::new();
         let (tx, rx) = tokio::sync::mpsc::channel(5);
         let cache = Arc::new(Mutex::new(HashMap::<TileId, Tile>::new()));
-        runtime.spawn(download(rx, cache.clone()));
+        tokio_runtime_thread
+            .runtime
+            .spawn(download(rx, cache.clone()));
         Self {
             cache,
             requests: tx,
+            tokio_runtime_thread,
         }
     }
 
