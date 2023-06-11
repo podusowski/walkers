@@ -58,9 +58,12 @@ fn draw_custom_shapes(ui: &Ui, painter: Painter, map_memory: &MapMemory, my_posi
         + (Vec2::from(projected_position) - Vec2::from(map_center_projected_position));
 
     // Now we can just use Painter to draw stuff.
-    let text_background = |text: &Shape| {
-        let bg = text.visual_bounding_rect().expand(5.);
-        Shape::rect_filled(bg, 5., ui.visuals().extreme_bg_color)
+    let background = |text: &Shape| {
+        Shape::rect_filled(
+            text.visual_bounding_rect().expand(5.),
+            5.,
+            ui.visuals().extreme_bg_color,
+        )
     };
 
     let text = ui.fonts(|fonts| {
@@ -73,7 +76,7 @@ fn draw_custom_shapes(ui: &Ui, painter: Painter, map_memory: &MapMemory, my_posi
             ui.visuals().text_color(),
         )
     });
-    painter.add(text_background(&text));
+    painter.add(background(&text));
     painter.add(text);
 }
 
