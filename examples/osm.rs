@@ -1,4 +1,4 @@
-use egui::{Align2, Painter, RichText, Shape, Ui, Vec2, Window};
+use egui::{Align2, Context, Painter, RichText, Shape, Ui, Vec2, Window};
 use walkers::{Map, MapMemory, Position, PositionExt, Tiles};
 
 fn main() -> Result<(), eframe::Error> {
@@ -6,7 +6,7 @@ fn main() -> Result<(), eframe::Error> {
     eframe::run_native(
         "OpenStreetMap",
         Default::default(),
-        Box::new(|_cc| Box::new(Osm::new())),
+        Box::new(|cc| Box::new(Osm::new(cc.egui_ctx.clone()))),
     )
 }
 
@@ -16,11 +16,11 @@ struct Osm {
 }
 
 impl Osm {
-    fn new() -> Self {
+    fn new(egui_ctx: Context) -> Self {
         let mut map_memory = MapMemory::default();
         map_memory.osm = true;
         Self {
-            tiles: Tiles::new(),
+            tiles: Tiles::new(egui_ctx),
             map_memory,
         }
     }

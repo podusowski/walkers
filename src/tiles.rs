@@ -52,6 +52,7 @@ pub struct Tiles {
 async fn download(
     mut requests: tokio::sync::mpsc::Receiver<TileId>,
     cache: Arc<Mutex<HashMap<TileId, Tile>>>,
+    egui_ctx: Context,
 ) {
     let client = reqwest::Client::new();
     loop {
@@ -80,19 +81,20 @@ async fn download(
             if image.status().is_success() {
                 let image = image.bytes().await.unwrap();
                 cache.lock().unwrap().insert(requested, Tile::new(&image));
+                egui_ctx.request_repaint();
             }
         }
     }
 }
 
 impl Tiles {
-    pub fn new() -> Self {
+    pub fn new(egui_ctx: Context) -> Self {
         let tokio_runtime_thread = TokioRuntimeThread::new();
         let (tx, rx) = tokio::sync::mpsc::channel(5);
         let cache = Arc::new(Mutex::new(HashMap::<TileId, Tile>::new()));
         tokio_runtime_thread
             .runtime
-            .spawn(download(rx, cache.clone()));
+            .spawn(download(rx, cache.clone(), egui_ctx));
         Self {
             cache,
             requests: tx,
