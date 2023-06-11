@@ -18,19 +18,24 @@ pub trait PositionExt {
 /// Size of the tiles used by the services like the OSM.
 const TILE_SIZE: u32 = 256;
 
+fn mercator_normalized((x, y): (f64, f64)) -> (f64, f64) {
+    // Project into Mercator (cylindrical map projection).
+    let x = x.to_radians();
+    let y = y.to_radians().tan().asinh();
+
+    // Scale both x and y to 0-1 range.
+    let x = (1. + (x / PI)) / 2.;
+    let y = (1. - (y / PI)) / 2.;
+
+    (x, y)
+}
+
 impl PositionExt for Position {
     fn project_with_zoom(&self, zoom: u8) -> (f32, f32) {
-        let number_of_pixels = 2u32.pow(zoom as u32) * TILE_SIZE;
-
-        // Project into Mercator (cylindrical map projection).
-        let x = self.x().to_radians();
-        let y = self.y().to_radians().tan().asinh();
-
-        // Scale both x and y to 0-1 range.
-        let x = (1. + (x / PI)) / 2.;
-        let y = (1. - (y / PI)) / 2.;
+        let (x, y) = mercator_normalized((*self).into());
 
         // Map that into a big bitmap made out of web tiles.
+        let number_of_pixels = 2u32.pow(zoom as u32) * TILE_SIZE;
         let x = x * number_of_pixels as f64;
         let y = y * number_of_pixels as f64;
 
@@ -38,17 +43,10 @@ impl PositionExt for Position {
     }
 
     fn tile_id(&self, zoom: u8) -> TileId {
-        let number_of_tiles = 2u32.pow(zoom as u32);
-
-        // Project into Mercator (cylindrical map projection).
-        let x = self.x().to_radians();
-        let y = self.y().to_radians().tan().asinh();
-
-        // Scale both x and y to 0-1 range.
-        let x = (1. + (x / PI)) / 2.;
-        let y = (1. - (y / PI)) / 2.;
+        let (x, y) = mercator_normalized((*self).into());
 
         // Map that into a big bitmap made out of web tiles.
+        let number_of_tiles = 2u32.pow(zoom as u32);
         let x = (x * number_of_tiles as f64).floor() as u32;
         let y = (y * number_of_tiles as f64).floor() as u32;
 
