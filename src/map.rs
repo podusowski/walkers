@@ -84,7 +84,6 @@ impl MapCenterMode {
     }
 }
 
-#[derive(Clone)]
 pub struct MapMemory {
     pub center_mode: MapCenterMode,
     pub osm: bool,
