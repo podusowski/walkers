@@ -1,4 +1,4 @@
-use egui::{Align2, Color32, Painter, RichText, Shape, Ui, Vec2, Window};
+use egui::{Align2, Painter, RichText, Shape, Ui, Vec2, Window};
 use walkers::{Map, MapMemory, Position, PositionExt, Tiles};
 
 fn main() -> Result<(), eframe::Error> {
@@ -39,6 +39,7 @@ fn dworcowa_bus_stop() -> Position {
     Position::new(17.03940, 51.10005)
 }
 
+/// Shows how to draw various things in the map.
 fn draw_custom_shapes(ui: &Ui, painter: Painter, map_memory: &MapMemory, my_position: Position) {
     // Geographical position of the point we want to put our shapes.
     let position = dworcowa_bus_stop();
@@ -86,8 +87,10 @@ impl eframe::App for Osm {
                 ui.hyperlink("https://donate.openstreetmap.org/");
             });
 
+            // Typically this would be a GPS acquired position which is tracked by the map.
             let my_position = wroclaw_glowny();
 
+            // Draw the actual map.
             let response = ui.add(Map::new(
                 &mut self.tiles,
                 &mut self.map_memory,
@@ -98,6 +101,7 @@ impl eframe::App for Osm {
             let painter = ui.painter().with_clip_rect(response.rect);
             draw_custom_shapes(ui, painter, &self.map_memory, my_position);
 
+            // Simple GUI to zoom in and out.
             Window::new("Map")
                 .collapsible(false)
                 .resizable(false)
