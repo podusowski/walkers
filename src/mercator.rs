@@ -107,10 +107,10 @@ impl TileId {
     }
 }
 
-/// Transforms vector of screen pixels into position.
+/// Transforms screen pixels into position.
 ///
-/// Used for example for calculating by how much the position should be shifted
-/// when screen is dragged.
+/// Particularly useful for determining the amount by which the geographical position should be
+/// shifted when the screen is dragged.
 pub fn screen_to_position(pixels: Vec2, zoom: u8) -> Position {
     let number_of_tiles = 2u32.pow(zoom as u32) as f64 * TILE_SIZE as f64;
     let lat = 1. - (2. * pixels.y as f64 / number_of_tiles);
