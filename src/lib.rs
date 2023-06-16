@@ -1,8 +1,8 @@
 mod map;
 mod mercator;
 mod tiles;
-mod zoom;
 mod tokio;
+mod zoom;
 
 pub use map::{Map, MapCenterMode, MapMemory};
 pub use mercator::{Position, PositionExt};
