@@ -3,7 +3,7 @@ use std::collections::{hash_map::Entry, HashMap};
 use egui::{Mesh, Painter, Pos2, Response, Sense, Ui, Widget};
 
 use crate::{
-    mercator::{screen_to_position, Pixels, PositionExt, TileId},
+    mercator::{screen_to_position, PositionExt, TileId},
     Position, Tiles, Zoom,
 };
 
@@ -69,16 +69,10 @@ impl MapCenterMode {
                 MapCenterMode::MyPosition => MapCenterMode::Exact(my_position),
 
                 // Just shift already "detached" position.
-                MapCenterMode::Exact(position) => {
-                    let p  = position.project(zoom).to_vec2() - response.drag_delta();
-                    let p = screen_to_position(p, zoom);
-
-                    //let zero = screen_to_position(Pixels::new(0., 0.).to_vec2(), zoom);
-                    //let delta = zero - screen_to_position(response.drag_delta(), zoom);
-                    //MapCenterMode::Exact(position + dbg!(delta))
-
-                    MapCenterMode::Exact(p)
-                }
+                MapCenterMode::Exact(position) => MapCenterMode::Exact(screen_to_position(
+                    position.project(zoom).to_vec2() - response.drag_delta(),
+                    zoom,
+                )),
             };
         }
     }
