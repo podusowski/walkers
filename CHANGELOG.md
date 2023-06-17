@@ -11,7 +11,7 @@ All notable changes to this project will be documented in this file.
 
 ### Fixed
 
- * Mam did not get repainted when a tile got downloaded in the background, unless some mouse
+ * Map did not get repainted when a tile got downloaded in the background, unless some mouse
    movement was made.
 
 ## 0.3.0
