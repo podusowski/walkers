@@ -117,11 +117,14 @@ impl TileId {
 /// Particularly useful for determining the amount by which the geographical position should be
 /// shifted when the screen is dragged.
 pub fn screen_to_position(pixels: Vec2, zoom: u8) -> Position {
-    let number_of_tiles = 2u32.pow(zoom as u32) as f64 * TILE_SIZE as f64;
-    let lat = 1. - (2. * pixels.y as f64 / number_of_tiles);
+    let number_of_pixels = 2u32.pow(zoom as u32) as f64 * TILE_SIZE as f64;
+
+    let lat = 1. - (2. * pixels.y as f64 / number_of_pixels);
     let lat = PI * lat - PI;
     let lat = lat.sinh().atan().to_degrees();
-    let lon = pixels.x as f64 / number_of_tiles * 360.;
+
+    let lon = pixels.x as f64 / number_of_pixels * 360.;
+
     Position::new(lon, lat)
 }
 
