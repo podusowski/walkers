@@ -45,13 +45,13 @@ fn draw_custom_shapes(ui: &Ui, painter: Painter, map_memory: &MapMemory, my_posi
     let position = dworcowa_bus_stop();
 
     // Turn that into a flat, mercator projection.
-    let projected_position = position.project_with_zoom(*map_memory.zoom);
+    let projected_position = position.project(*map_memory.zoom);
 
     // We also need to know where the map center is.
     let map_center_projected_position = map_memory
         .center_mode
         .position(my_position)
-        .project_with_zoom(*map_memory.zoom);
+        .project(*map_memory.zoom);
 
     // From the two points above we can calculate the actual point on the screen.
     let screen_position =

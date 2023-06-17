@@ -13,7 +13,7 @@ use egui::{Pos2, Vec2};
 use std::f64::consts::PI;
 
 pub trait PositionExt {
-    fn project_with_zoom(&self, zoom: u8) -> Pixels;
+    fn project(&self, zoom: u8) -> Pixels;
 
     /// Tile this position is on.
     fn tile_id(&self, zoom: u8) -> TileId;
@@ -35,7 +35,7 @@ fn mercator_normalized((x, y): (f64, f64)) -> (f64, f64) {
 }
 
 impl PositionExt for Position {
-    fn project_with_zoom(&self, zoom: u8) -> Pixels {
+    fn project(&self, zoom: u8) -> Pixels {
         let (x, y) = mercator_normalized((*self).into());
 
         // Map that into a big bitmap made out of web tiles.
@@ -153,7 +153,7 @@ mod tests {
         // position on the tile.
         assert_eq!(
             Pixels::new(36590. * 256. + 252., 21569. * 256. + 7.5),
-            citadel.project_with_zoom(zoom)
+            citadel.project(zoom)
         );
     }
 

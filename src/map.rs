@@ -40,7 +40,7 @@ impl Widget for Map<'_, '_> {
             draw_tiles(
                 &painter,
                 map_center.tile_id(*self.memory.zoom),
-                map_center.project_with_zoom(*self.memory.zoom),
+                map_center.project(*self.memory.zoom),
                 self.tiles,
                 ui,
                 &mut meshes,
