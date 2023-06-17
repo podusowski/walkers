@@ -6,11 +6,14 @@
 /// Geographical position with latitude and longitude.
 pub type Position = geo_types::Point;
 
+/// Location projected on the screen or an abstract bitmap.
+pub type Pixels = Pos2;
+
 use egui::{Pos2, Vec2};
 use std::f64::consts::PI;
 
 pub trait PositionExt {
-    fn project_with_zoom(&self, zoom: u8) -> (f32, f32);
+    fn project_with_zoom(&self, zoom: u8) -> Pixels;
 
     /// Tile this position is on.
     fn tile_id(&self, zoom: u8) -> TileId;
@@ -32,7 +35,7 @@ fn mercator_normalized((x, y): (f64, f64)) -> (f64, f64) {
 }
 
 impl PositionExt for Position {
-    fn project_with_zoom(&self, zoom: u8) -> (f32, f32) {
+    fn project_with_zoom(&self, zoom: u8) -> Pixels {
         let (x, y) = mercator_normalized((*self).into());
 
         // Map that into a big bitmap made out of web tiles.
@@ -40,7 +43,7 @@ impl PositionExt for Position {
         let x = x * number_of_pixels as f64;
         let y = y * number_of_pixels as f64;
 
-        (x as f32, y as f32)
+        Pixels::new(x as f32, y as f32)
     }
 
     fn tile_id(&self, zoom: u8) -> TileId {
@@ -149,7 +152,7 @@ mod tests {
         // Projected Citadel position should be somewhere near projected tile, shifted only by the
         // position on the tile.
         assert_eq!(
-            (36590. * 256. + 252., 21569. * 256. + 7.5),
+            Pixels::new(36590. * 256. + 252., 21569. * 256. + 7.5),
             citadel.project_with_zoom(zoom)
         );
     }
