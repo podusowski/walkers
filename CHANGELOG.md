@@ -6,7 +6,7 @@ All notable changes to this project will be documented in this file.
 
 ### Breaking
 
- * Tiles::new() has now a single parameter - egui_ctx. It can be obtained from egui's
+ * `Tiles::new()` has now a single parameter - `egui_ctx`. It can be obtained from egui's
    CreationContext (see the example).
 
 ### Fixed
@@ -18,5 +18,5 @@ All notable changes to this project will be documented in this file.
 
 ### Added
 
-* Tokio runtime is now managed by the MapMemory so constructing it by hand is no longer necessary.
+* Tokio runtime is now managed by the `MapMemory` so constructing it by hand is no longer necessary.
 * Example updated with drawing custom shapes on the map.
