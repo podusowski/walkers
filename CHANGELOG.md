@@ -6,9 +6,10 @@ All notable changes to this project will be documented in this file.
 
 ### Breaking
 
- * `PositionExt::project_with_zoom` is now called `project` and it returns `Pixels` .
+ * `TileId::position_on_world_bitmap` is now called `project` and it returns `Pixels`.
+ * `PositionExt::project_with_zoom` is now called `project` and it returns `Pixels`.
  * `Tiles::new()` has now a single parameter - `egui_ctx` . It can be obtained from egui's
-   CreationContext (see the example).
+   `CreationContext` (see the example).
 
 ### Fixed
 

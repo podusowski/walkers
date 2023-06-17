@@ -74,8 +74,8 @@ pub struct TileId {
 
 impl TileId {
     /// Tile position (in pixels) on the "World bitmap".
-    pub fn position_on_world_bitmap(&self) -> Pos2 {
-        Pos2::new((self.x * TILE_SIZE) as f32, (self.y * TILE_SIZE) as f32)
+    pub fn project(&self) -> Pixels {
+        Pixels::new((self.x * TILE_SIZE) as f32, (self.y * TILE_SIZE) as f32)
     }
 
     pub fn east(&self) -> TileId {
@@ -146,7 +146,7 @@ mod tests {
         // Projected tile is just its x, y multiplied by the size of tiles.
         assert_eq!(
             Pos2::new(36590. * 256., 21569. * 256.),
-            citadel.tile_id(zoom).position_on_world_bitmap()
+            citadel.tile_id(zoom).project()
         );
 
         // Projected Citadel position should be somewhere near projected tile, shifted only by the

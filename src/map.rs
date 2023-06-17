@@ -108,7 +108,7 @@ fn draw_tiles(
     ui: &mut Ui,
     meshes: &mut HashMap<TileId, Mesh>,
 ) {
-    let tile_projected = tile_id.position_on_world_bitmap();
+    let tile_projected = tile_id.project();
     let tile_screen_position = painter.clip_rect().center().to_vec2() + tile_projected.to_vec2()
         - map_center_projected_position.to_vec2();
 
