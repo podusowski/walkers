@@ -13,6 +13,7 @@ use egui::{Pos2, Vec2};
 use std::f64::consts::PI;
 
 pub trait PositionExt {
+    /// Project geographical position into a 2D plane using Mercator.
     fn project(&self, zoom: u8) -> Pixels;
 
     /// Tile this position is on.
