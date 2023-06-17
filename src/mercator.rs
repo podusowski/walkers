@@ -3,6 +3,11 @@
 //! https://wiki.openstreetmap.org/wiki/Slippy_map_tilenames
 //! https://www.netzwolf.info/osm/tilebrowser.html?lat=51.157800&lon=6.865500&zoom=14
 
+// zoom level   tile coverage  number of tiles  tile size(*) in degrees
+// 0            1 tile         1 tile           360° x 170.1022°
+// 1            2 × 2 tiles    4 tiles          180° x 85.0511°
+// 2            4 × 4 tiles    16 tiles         90° x [variable]
+
 /// Geographical position with latitude and longitude.
 pub type Position = geo_types::Point;
 
