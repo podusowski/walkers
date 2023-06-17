@@ -3,6 +3,7 @@
 //! https://wiki.openstreetmap.org/wiki/Slippy_map_tilenames
 //! https://www.netzwolf.info/osm/tilebrowser.html?lat=51.157800&lon=6.865500&zoom=14
 
+/// Geographical position with latitude and longitude.
 pub type Position = geo_types::Point;
 
 use egui::{Pos2, Vec2};
