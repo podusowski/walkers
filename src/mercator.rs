@@ -125,21 +125,31 @@ mod tests {
     use super::*;
 
     #[test]
-    fn tile_of_warsaw_citadel() {
+    fn projecting_position_and_tile() {
         let citadel = Position::new(21.00027, 52.26470);
+
+        let zoom = 16;
 
         assert_eq!(
             TileId {
                 x: 36590,
                 y: 21569,
-                zoom: 16
+                zoom
             },
-            citadel.tile_id(16)
+            citadel.tile_id(zoom)
         );
 
+        // Projected tile is just its x, y multiplied by the size of tiles.
         assert_eq!(
             Pos2::new(36590. * 256., 21569. * 256.),
-            citadel.tile_id(16).position_on_world_bitmap()
+            citadel.tile_id(zoom).position_on_world_bitmap()
+        );
+
+        // Projected Citadel position should be somewhere near projected tile, shifted only by the
+        // position on the tile.
+        assert_eq!(
+            (36590. * 256. + 252., 21569. * 256. + 7.5),
+            citadel.project_with_zoom(zoom)
         );
     }
 
