@@ -130,6 +130,33 @@ pub fn screen_to_position(pixels: Vec2, zoom: u8) -> Position {
 
     let lon = pixels.x as f64 / number_of_pixels * 360.;
 
+    let p1 = Position::new(lon, lat);
+    let p2 = screen_to_position2(pixels, zoom);
+
+    //println!("{:?} -> {:?} {:?}", pixels, p1, p2);
+
+    p2
+}
+
+pub fn screen_to_position2(pixels: Vec2, zoom: u8) -> Position {
+    let number_of_pixels = 2u32.pow(zoom as u32) * TILE_SIZE;
+    let number_of_pixels: f64 = number_of_pixels.into();
+
+    let lon = pixels.x as f64;
+    let lon = lon / number_of_pixels;
+    let lon = (lon * 2. - 1.) * PI;
+    let lon = lon.to_degrees();
+
+    // r = (1 + (x / PI)) / 2
+    // r*2 = (1 + (x / PI))
+    // r*2 - 1 = x / PI
+    // (r*2 - 1) * PI = x
+
+    let lat = pixels.y as f64;
+    let lat = lat / number_of_pixels;
+    let lat = (-lat * 2. + 1.) * PI;
+    let lat = lat.sinh().atan().to_degrees();
+
     Position::new(lon, lat)
 }
 
@@ -163,6 +190,17 @@ mod tests {
         assert_eq!(
             Pixels::new(36590. * 256. + 252., 21569. * 256. + 7.5),
             citadel.project(zoom)
+        );
+    }
+
+    #[test]
+    fn project_there_and_back() {
+        let citadel = Position::new(21.00027, 52.26470);
+        let zoom = 16;
+
+        assert_eq!(
+            citadel,
+            screen_to_position2(citadel.project(zoom).to_vec2(), zoom)
         );
     }
 
