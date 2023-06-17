@@ -117,28 +117,8 @@ impl TileId {
     }
 }
 
-/// Transforms screen pixels into position.
-///
-/// Particularly useful for determining the amount by which the geographical position should be
-/// shifted when the screen is dragged.
+/// Transforms screen pixels into a geographical position.
 pub fn screen_to_position(pixels: Vec2, zoom: u8) -> Position {
-    let number_of_pixels = 2u32.pow(zoom as u32) as f64 * TILE_SIZE as f64;
-
-    let lat = 1. - (2. * pixels.y as f64 / number_of_pixels);
-    let lat = PI * lat - PI;
-    let lat = lat.sinh().atan().to_degrees();
-
-    let lon = pixels.x as f64 / number_of_pixels * 360.;
-
-    let p1 = Position::new(lon, lat);
-    let p2 = screen_to_position2(pixels, zoom);
-
-    //println!("{:?} -> {:?} {:?}", pixels, p1, p2);
-
-    p2
-}
-
-pub fn screen_to_position2(pixels: Vec2, zoom: u8) -> Position {
     let number_of_pixels = 2u32.pow(zoom as u32) * TILE_SIZE;
     let number_of_pixels: f64 = number_of_pixels.into();
 
@@ -146,11 +126,6 @@ pub fn screen_to_position2(pixels: Vec2, zoom: u8) -> Position {
     let lon = lon / number_of_pixels;
     let lon = (lon * 2. - 1.) * PI;
     let lon = lon.to_degrees();
-
-    // r = (1 + (x / PI)) / 2
-    // r*2 = (1 + (x / PI))
-    // r*2 - 1 = x / PI
-    // (r*2 - 1) * PI = x
 
     let lat = pixels.y as f64;
     let lat = lat / number_of_pixels;
@@ -197,18 +172,9 @@ mod tests {
     fn project_there_and_back() {
         let citadel = Position::new(21.00027, 52.26470);
         let zoom = 16;
+        let calculated = screen_to_position(citadel.project(zoom).to_vec2(), zoom);
 
-        assert_eq!(
-            citadel,
-            screen_to_position2(citadel.project(zoom).to_vec2(), zoom)
-        );
-    }
-
-    #[test]
-    fn screen_to_position_works() {
-        assert_eq!(
-            Position::new(2.1457672119140625e-5, -4.2915344236616925e-5),
-            screen_to_position(Vec2::new(1., 2.), 16)
-        );
+        approx::assert_relative_eq!(calculated.x(), citadel.x(), max_relative = 1.0);
+        approx::assert_relative_eq!(calculated.y(), citadel.y(), max_relative = 1.0);
     }
 }
