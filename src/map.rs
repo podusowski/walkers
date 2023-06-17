@@ -70,7 +70,7 @@ impl MapCenterMode {
 
                 // Just shift already "detached" position.
                 MapCenterMode::Exact(position) => MapCenterMode::Exact(screen_to_position(
-                    position.project(zoom).to_vec2() - response.drag_delta(),
+                    position.project(zoom) - response.drag_delta(),
                     zoom,
                 )),
             };

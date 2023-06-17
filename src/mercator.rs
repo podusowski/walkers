@@ -14,7 +14,7 @@ pub type Position = geo_types::Point;
 /// Location projected on the screen or an abstract bitmap.
 pub type Pixels = Pos2;
 
-use egui::{Pos2, Vec2};
+use egui::Pos2;
 use std::f64::consts::PI;
 
 pub trait PositionExt {
@@ -118,7 +118,7 @@ impl TileId {
 }
 
 /// Transforms screen pixels into a geographical position.
-pub fn screen_to_position(pixels: Vec2, zoom: u8) -> Position {
+pub fn screen_to_position(pixels: Pixels, zoom: u8) -> Position {
     let number_of_pixels = 2u32.pow(zoom as u32) * TILE_SIZE;
     let number_of_pixels: f64 = number_of_pixels.into();
 
@@ -172,7 +172,7 @@ mod tests {
     fn project_there_and_back() {
         let citadel = Position::new(21.00027, 52.26470);
         let zoom = 16;
-        let calculated = screen_to_position(citadel.project(zoom).to_vec2(), zoom);
+        let calculated = screen_to_position(citadel.project(zoom), zoom);
 
         approx::assert_relative_eq!(calculated.x(), citadel.x(), max_relative = 1.0);
         approx::assert_relative_eq!(calculated.y(), citadel.y(), max_relative = 1.0);
