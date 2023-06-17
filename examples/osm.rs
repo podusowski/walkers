@@ -1,4 +1,4 @@
-use egui::{Align2, Context, Painter, RichText, Shape, Ui, Vec2, Window};
+use egui::{Align2, Context, Painter, RichText, Shape, Ui, Window};
 use walkers::{Map, MapMemory, Position, PositionExt, Tiles};
 
 fn main() -> Result<(), eframe::Error> {
@@ -45,17 +45,17 @@ fn draw_custom_shapes(ui: &Ui, painter: Painter, map_memory: &MapMemory, my_posi
     let position = dworcowa_bus_stop();
 
     // Turn that into a flat, mercator projection.
-    let projected_position = position.project_with_zoom(*map_memory.zoom);
+    let projected_position = position.project(*map_memory.zoom);
 
     // We also need to know where the map center is.
     let map_center_projected_position = map_memory
         .center_mode
         .position(my_position)
-        .project_with_zoom(*map_memory.zoom);
+        .project(*map_memory.zoom);
 
     // From the two points above we can calculate the actual point on the screen.
-    let screen_position = painter.clip_rect().center()
-        + (Vec2::from(projected_position) - Vec2::from(map_center_projected_position));
+    let screen_position =
+        painter.clip_rect().center() + projected_position.to_vec2() - map_center_projected_position;
 
     // Now we can just use Painter to draw stuff.
     let background = |text: &Shape| {
@@ -69,7 +69,7 @@ fn draw_custom_shapes(ui: &Ui, painter: Painter, map_memory: &MapMemory, my_posi
     let text = ui.fonts(|fonts| {
         Shape::text(
             fonts,
-            screen_position,
+            screen_position.to_pos2(),
             Align2::LEFT_CENTER,
             "⬉ Here you can board the 106 line\nwhich goes to the airport.",
             Default::default(),

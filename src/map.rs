@@ -40,7 +40,7 @@ impl Widget for Map<'_, '_> {
             draw_tiles(
                 &painter,
                 map_center.tile_id(*self.memory.zoom),
-                map_center.project_with_zoom(*self.memory.zoom).into(),
+                map_center.project(*self.memory.zoom),
                 self.tiles,
                 ui,
                 &mut meshes,
@@ -69,9 +69,10 @@ impl MapCenterMode {
                 MapCenterMode::MyPosition => MapCenterMode::Exact(my_position),
 
                 // Just shift already "detached" position.
-                MapCenterMode::Exact(position) => {
-                    MapCenterMode::Exact(position - screen_to_position(response.drag_delta(), zoom))
-                }
+                MapCenterMode::Exact(position) => MapCenterMode::Exact(screen_to_position(
+                    position.project(zoom).to_vec2() - response.drag_delta(),
+                    zoom,
+                )),
             };
         }
     }
@@ -108,7 +109,7 @@ fn draw_tiles(
     ui: &mut Ui,
     meshes: &mut HashMap<TileId, Mesh>,
 ) {
-    let tile_projected = tile_id.position_on_world_bitmap();
+    let tile_projected = tile_id.project();
     let tile_screen_position = painter.clip_rect().center().to_vec2() + tile_projected.to_vec2()
         - map_center_projected_position.to_vec2();
 

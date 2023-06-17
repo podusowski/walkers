@@ -3,13 +3,23 @@
 //! https://wiki.openstreetmap.org/wiki/Slippy_map_tilenames
 //! https://www.netzwolf.info/osm/tilebrowser.html?lat=51.157800&lon=6.865500&zoom=14
 
+// zoom level   tile coverage  number of tiles  tile size(*) in degrees
+// 0            1 tile         1 tile           360° x 170.1022°
+// 1            2 × 2 tiles    4 tiles          180° x 85.0511°
+// 2            4 × 4 tiles    16 tiles         90° x [variable]
+
+/// Geographical position with latitude and longitude.
 pub type Position = geo_types::Point;
+
+/// Location projected on the screen or an abstract bitmap.
+pub type Pixels = Pos2;
 
 use egui::{Pos2, Vec2};
 use std::f64::consts::PI;
 
 pub trait PositionExt {
-    fn project_with_zoom(&self, zoom: u8) -> (f32, f32);
+    /// Project geographical position into a 2D plane using Mercator.
+    fn project(&self, zoom: u8) -> Pixels;
 
     /// Tile this position is on.
     fn tile_id(&self, zoom: u8) -> TileId;
@@ -31,7 +41,7 @@ fn mercator_normalized((x, y): (f64, f64)) -> (f64, f64) {
 }
 
 impl PositionExt for Position {
-    fn project_with_zoom(&self, zoom: u8) -> (f32, f32) {
+    fn project(&self, zoom: u8) -> Pixels {
         let (x, y) = mercator_normalized((*self).into());
 
         // Map that into a big bitmap made out of web tiles.
@@ -39,7 +49,7 @@ impl PositionExt for Position {
         let x = x * number_of_pixels as f64;
         let y = y * number_of_pixels as f64;
 
-        (x as f32, y as f32)
+        Pixels::new(x as f32, y as f32)
     }
 
     fn tile_id(&self, zoom: u8) -> TileId {
@@ -70,8 +80,8 @@ pub struct TileId {
 
 impl TileId {
     /// Tile position (in pixels) on the "World bitmap".
-    pub fn position_on_world_bitmap(&self) -> Pos2 {
-        Pos2::new((self.x * TILE_SIZE) as f32, (self.y * TILE_SIZE) as f32)
+    pub fn project(&self) -> Pixels {
+        Pixels::new((self.x * TILE_SIZE) as f32, (self.y * TILE_SIZE) as f32)
     }
 
     pub fn east(&self) -> TileId {
@@ -107,16 +117,21 @@ impl TileId {
     }
 }
 
-/// Transforms screen pixels into position.
-///
-/// Particularly useful for determining the amount by which the geographical position should be
-/// shifted when the screen is dragged.
+/// Transforms screen pixels into a geographical position.
 pub fn screen_to_position(pixels: Vec2, zoom: u8) -> Position {
-    let number_of_tiles = 2u32.pow(zoom as u32) as f64 * TILE_SIZE as f64;
-    let lat = 1. - (2. * pixels.y as f64 / number_of_tiles);
-    let lat = PI * lat - PI;
+    let number_of_pixels = 2u32.pow(zoom as u32) * TILE_SIZE;
+    let number_of_pixels: f64 = number_of_pixels.into();
+
+    let lon = pixels.x as f64;
+    let lon = lon / number_of_pixels;
+    let lon = (lon * 2. - 1.) * PI;
+    let lon = lon.to_degrees();
+
+    let lat = pixels.y as f64;
+    let lat = lat / number_of_pixels;
+    let lat = (-lat * 2. + 1.) * PI;
     let lat = lat.sinh().atan().to_degrees();
-    let lon = pixels.x as f64 / number_of_tiles * 360.;
+
     Position::new(lon, lat)
 }
 
@@ -125,29 +140,41 @@ mod tests {
     use super::*;
 
     #[test]
-    fn tile_of_warsaw_citadel() {
+    fn projecting_position_and_tile() {
         let citadel = Position::new(21.00027, 52.26470);
+
+        let zoom = 16;
 
         assert_eq!(
             TileId {
                 x: 36590,
                 y: 21569,
-                zoom: 16
+                zoom
             },
-            citadel.tile_id(16)
+            citadel.tile_id(zoom)
         );
 
+        // Projected tile is just its x, y multiplied by the size of tiles.
         assert_eq!(
             Pos2::new(36590. * 256., 21569. * 256.),
-            citadel.tile_id(16).position_on_world_bitmap()
+            citadel.tile_id(zoom).project()
+        );
+
+        // Projected Citadel position should be somewhere near projected tile, shifted only by the
+        // position on the tile.
+        assert_eq!(
+            Pixels::new(36590. * 256. + 252., 21569. * 256. + 7.5),
+            citadel.project(zoom)
         );
     }
 
     #[test]
-    fn screen_to_position_works() {
-        assert_eq!(
-            Position::new(2.1457672119140625e-5, -4.2915344236616925e-5),
-            screen_to_position(Vec2::new(1., 2.), 16)
-        );
+    fn project_there_and_back() {
+        let citadel = Position::new(21.00027, 52.26470);
+        let zoom = 16;
+        let calculated = screen_to_position(citadel.project(zoom).to_vec2(), zoom);
+
+        approx::assert_relative_eq!(calculated.x(), citadel.x(), max_relative = 1.0);
+        approx::assert_relative_eq!(calculated.y(), citadel.y(), max_relative = 1.0);
     }
 }
