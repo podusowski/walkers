@@ -1,4 +1,3 @@
-use std::sync::Mutex;
 use std::{collections::HashMap, sync::Arc};
 
 use egui::{pos2, Color32, Context, Mesh, Rect, Vec2};
