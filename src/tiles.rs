@@ -1,3 +1,4 @@
+use std::collections::hash_map::Entry;
 use std::{collections::HashMap, sync::Arc};
 
 use egui::{pos2, Color32, Context, Mesh, Rect, Vec2};
@@ -43,7 +44,7 @@ pub struct Tiles {
     cache: HashMap<TileId, Option<Tile>>,
 
     /// Tiles to be downloaded by the IO thread.
-    requests: tokio::sync::mpsc::Sender<TileId>,
+    request_tx: tokio::sync::mpsc::Sender<TileId>,
 
     /// Tiles that got downloaded and should be put in the cache.
     tile_rx: tokio::sync::mpsc::Receiver<(TileId, Tile)>,
@@ -55,28 +56,33 @@ pub struct Tiles {
 impl Tiles {
     pub fn new(egui_ctx: Context) -> Self {
         let tokio_runtime_thread = TokioRuntimeThread::new();
-        let (tx, rx) = tokio::sync::mpsc::channel(5);
-        let (tile_tx, tile_rx) = tokio::sync::mpsc::channel(5);
+
+        // Minimum value which didn't cause any stalls while testing.
+        let channel_size = 20;
+
+        let (request_tx, request_rx) = tokio::sync::mpsc::channel(channel_size);
+        let (tile_tx, tile_rx) = tokio::sync::mpsc::channel(channel_size);
         tokio_runtime_thread
             .runtime
-            .spawn(download(rx, tile_tx, egui_ctx));
+            .spawn(download(request_rx, tile_tx, egui_ctx));
         Self {
             cache: Default::default(),
-            requests: tx,
+            request_tx,
             tile_rx,
             tokio_runtime_thread,
         }
     }
 
     pub fn at(&mut self, tile_id: TileId) -> Option<Tile> {
+        // Just take one at the time.
         if let Ok((tile_id, tile)) = self.tile_rx.try_recv() {
             self.cache.insert(tile_id, Some(tile));
         }
 
         match self.cache.entry(tile_id) {
-            std::collections::hash_map::Entry::Occupied(entry) => entry.get().clone(),
-            std::collections::hash_map::Entry::Vacant(entry) => {
-                if let Ok(()) = self.requests.try_send(tile_id) {
+            Entry::Occupied(entry) => entry.get().clone(),
+            Entry::Vacant(entry) => {
+                if let Ok(()) = self.request_tx.try_send(tile_id) {
                     log::debug!("Requested tile: {:?}", tile_id);
                     entry.insert(None);
                 } else {
@@ -96,7 +102,7 @@ async fn download(
     let client = reqwest::Client::new();
     loop {
         if let Some(requested) = requests.recv().await {
-            log::debug!("Tile requested: {:?}.", requested);
+            log::debug!("Starting the download of {:?}.", requested);
 
             let url = format!(
                 "https://tile.openstreetmap.org/{}/{}/{}.png",
@@ -109,7 +115,7 @@ async fn download(
                 .await
                 .unwrap();
 
-            log::debug!("Tile downloaded: {:?}.", image.status());
+            log::debug!("Downloaded {:?}.", image.status());
 
             if image.status().is_success() {
                 let image = image.bytes().await.unwrap();
