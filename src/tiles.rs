@@ -58,7 +58,6 @@ impl Tiles {
         let tokio_runtime_thread = TokioRuntimeThread::new();
         let (tx, rx) = tokio::sync::mpsc::channel(5);
         let (tile_tx, tile_rx) = tokio::sync::mpsc::channel(5);
-        let cache = Arc::new(Mutex::new(HashMap::<TileId, Tile>::new()));
         tokio_runtime_thread
             .runtime
             .spawn(download(rx, tile_tx, egui_ctx));
@@ -71,7 +70,6 @@ impl Tiles {
     }
 
     pub fn at(&mut self, tile_id: TileId) -> Option<Tile> {
-        // TODO: get tiles
         if let Ok((tile_id, tile)) = self.tile_rx.try_recv() {
             self.cache.insert(tile_id, Some(tile));
         }
