@@ -39,6 +39,7 @@ impl Tile {
     }
 }
 
+/// Downloads and keeps cache of the tiles. It must persist between frames.
 pub struct Tiles {
     cache: Arc<Mutex<HashMap<TileId, Tile>>>,
 

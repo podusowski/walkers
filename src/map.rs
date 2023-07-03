@@ -85,6 +85,7 @@ impl MapCenterMode {
     }
 }
 
+/// State of the map widget which must persist between frames.
 pub struct MapMemory {
     pub center_mode: MapCenterMode,
     pub osm: bool,

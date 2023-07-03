@@ -2,6 +2,38 @@
 
 Slippy maps widget for [egui](https://github.com/emilk/egui).
 
+# Quick start
+
+Walkers widget needs two objects which are stored somewhere in the application.
+
+```rust
+struct Osm {
+    tiles: Tiles,
+    map_memory: MapMemory,
+}
+
+impl Osm {
+    fn new(egui_ctx: Context) -> Self {
+        let mut map_memory = MapMemory::default();
+        map_memory.osm = true; // It's false by default.
+        Self {
+            tiles: Tiles::new(egui_ctx),
+            map_memory,
+        }
+    }
+}
+```
+
+Once this is done, you can simply add `Map` widget to the `update` method:
+
+```rust
+ui.add(Map::new(
+    &mut self.tiles,
+    &mut self.map_memory,
+    my_position,
+));
+```
+
 # Limitations
 
 There are couple of limitations when using this library. Some of them will
@@ -14,6 +46,5 @@ particularly affected by some and I will try to prioritize.
 * Example for Android is missing, but it does work there.
 
 Other suggestions are welcomed as well.
-
 
 ![Screenshot](screenshot.png)
