@@ -76,15 +76,18 @@ impl Tiles {
             self.cache.insert(tile_id, Some(tile));
         }
 
-        self.cache
-            .entry(tile_id)
-            .or_insert_with(|| {
-                if let Err(error) = self.requests.try_send(tile_id) {
-                    log::debug!("Could not request a tile: {:?}, reason: {}", tile_id, error);
-                };
+        match self.cache.entry(tile_id) {
+            std::collections::hash_map::Entry::Occupied(entry) => entry.get().clone(),
+            std::collections::hash_map::Entry::Vacant(entry) => {
+                if let Ok(()) = self.requests.try_send(tile_id) {
+                    log::debug!("Requested tile: {:?}", tile_id);
+                    entry.insert(None);
+                } else {
+                    log::debug!("Request queue is full.");
+                }
                 None
-            })
-            .clone()
+            }
+        }
     }
 }
 
