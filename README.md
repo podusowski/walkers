@@ -14,11 +14,9 @@ struct Osm {
 
 impl Osm {
     fn new(egui_ctx: Context) -> Self {
-        let mut map_memory = MapMemory::default();
-        map_memory.osm = true; // It's false by default.
         Self {
             tiles: Tiles::new(egui_ctx),
-            map_memory,
+            map_memory: MapMemory::default(),
         }
     }
 }
@@ -28,7 +26,7 @@ Once this is done, you can simply add `Map` widget to the `update` method:
 
 ```rust
 ui.add(Map::new(
-    &mut self.tiles,
+    Some(&mut self.tiles),
     &mut self.map_memory,
     my_position,
 ));

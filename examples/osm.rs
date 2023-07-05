@@ -17,11 +17,9 @@ struct Osm {
 
 impl Osm {
     fn new(egui_ctx: Context) -> Self {
-        let mut map_memory = MapMemory::default();
-        map_memory.osm = true;
         Self {
-            tiles: Tiles::new(egui_ctx),
-            map_memory,
+            tiles: Tiles::new(walkers::openstreetmap, egui_ctx),
+            map_memory: MapMemory::default(),
         }
     }
 }
@@ -95,7 +93,7 @@ impl eframe::App for Osm {
 
             // Draw the actual map.
             let response = ui.add(Map::new(
-                &mut self.tiles,
+                Some(&mut self.tiles),
                 &mut self.map_memory,
                 wroclaw_glowny(),
             ));

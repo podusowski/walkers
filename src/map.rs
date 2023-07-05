@@ -9,13 +9,17 @@ use crate::{
 
 /// Slippy map widget.
 pub struct Map<'a, 'b> {
-    tiles: &'b mut Tiles,
+    tiles: Option<&'b mut Tiles>,
     memory: &'a mut MapMemory,
     my_position: Position,
 }
 
 impl<'a, 'b> Map<'a, 'b> {
-    pub fn new(tiles: &'b mut Tiles, memory: &'a mut MapMemory, my_position: Position) -> Self {
+    pub fn new(
+        tiles: Option<&'b mut Tiles>,
+        memory: &'a mut MapMemory,
+        my_position: Position,
+    ) -> Self {
         Self {
             tiles,
             memory,
@@ -35,13 +39,13 @@ impl Widget for Map<'_, '_> {
         let map_center = self.memory.center_mode.position(self.my_position);
         let painter = ui.painter().with_clip_rect(rect);
 
-        if self.memory.osm {
+        if let Some(tiles) = self.tiles {
             let mut meshes = Default::default();
             draw_tiles(
                 &painter,
                 map_center.tile_id(*self.memory.zoom),
                 map_center.project(*self.memory.zoom),
-                self.tiles,
+                tiles,
                 ui,
                 &mut meshes,
             );
@@ -88,7 +92,6 @@ impl MapCenterMode {
 /// State of the map widget which must persist between frames.
 pub struct MapMemory {
     pub center_mode: MapCenterMode,
-    pub osm: bool,
     pub zoom: Zoom,
 }
 
@@ -96,7 +99,6 @@ impl Default for MapMemory {
     fn default() -> Self {
         Self {
             center_mode: MapCenterMode::MyPosition,
-            osm: false,
             zoom: Default::default(),
         }
     }

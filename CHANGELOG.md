@@ -4,6 +4,15 @@ All notable changes to this project will be documented in this file.
 
 ## Unreleased
 
+### Breaking
+
+ * `Tiles::new()` has now two parameters. First, called `source`, being a function transforming
+   `TileId` into an URL of a tile provider. This means that it's now possible to specify other
+   servers. `openstreeetmap` is a builtin function returning OSM's URL.
+ * `MapMemory` no longer has `osm` member. Instead, `Map::new`'s `tiles` parameter is now `Option`.
+
+### Fixed
+
  * Optimized how GUI and IO thread talk to each other.
 
 ## 0.4.0
