@@ -14,11 +14,9 @@ struct Osm {
 
 impl Osm {
     fn new(egui_ctx: Context) -> Self {
-        let mut map_memory = MapMemory::default();
-        map_memory.osm = true; // It's false by default.
         Self {
             tiles: Tiles::new(egui_ctx),
-            map_memory,
+            map_memory: MapMemory::default(),
         }
     }
 }

@@ -17,11 +17,9 @@ struct Osm {
 
 impl Osm {
     fn new(egui_ctx: Context) -> Self {
-        let mut map_memory = MapMemory::default();
-        map_memory.osm = true;
         Self {
             tiles: Tiles::new(walkers::openstreetmap, egui_ctx),
-            map_memory,
+            map_memory: MapMemory::default(),
         }
     }
 }

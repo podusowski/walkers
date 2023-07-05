@@ -92,7 +92,6 @@ impl MapCenterMode {
 /// State of the map widget which must persist between frames.
 pub struct MapMemory {
     pub center_mode: MapCenterMode,
-    pub osm: bool,
     pub zoom: Zoom,
 }
 
@@ -100,7 +99,6 @@ impl Default for MapMemory {
     fn default() -> Self {
         Self {
             center_mode: MapCenterMode::MyPosition,
-            osm: false,
             zoom: Default::default(),
         }
     }
