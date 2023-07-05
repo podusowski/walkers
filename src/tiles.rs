@@ -151,10 +151,9 @@ mod tests {
         let _ = env_logger::try_init();
 
         let mut server = mockito::Server::new();
-        let valid_png = include_bytes!("valid.png");
         let tile_mock = server
             .mock("GET", "/3/1/2.png")
-            .with_body(valid_png)
+            .with_body(include_bytes!("valid.png"))
             .create();
 
         let tile_id = TileId {
