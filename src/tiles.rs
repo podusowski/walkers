@@ -53,8 +53,18 @@ pub struct Tiles {
     tokio_runtime_thread: TokioRuntimeThread,
 }
 
+pub fn openstreetmap(tile_id: TileId) -> String {
+    format!(
+        "https://tile.openstreetmap.org/{}/{}/{}.png",
+        tile_id.zoom, tile_id.x, tile_id.y
+    )
+}
+
 impl Tiles {
-    pub fn new(egui_ctx: Context) -> Self {
+    pub fn new<S>(source: S, egui_ctx: Context) -> Self
+    where
+        S: Fn(TileId) -> String + Send + 'static,
+    {
         let tokio_runtime_thread = TokioRuntimeThread::new();
 
         // Minimum value which didn't cause any stalls while testing.
@@ -64,7 +74,7 @@ impl Tiles {
         let (tile_tx, tile_rx) = tokio::sync::mpsc::channel(channel_size);
         tokio_runtime_thread
             .runtime
-            .spawn(download(request_rx, tile_tx, egui_ctx));
+            .spawn(download(source, request_rx, tile_tx, egui_ctx));
         Self {
             cache: Default::default(),
             request_tx,
@@ -94,20 +104,21 @@ impl Tiles {
     }
 }
 
-async fn download(
-    mut requests: tokio::sync::mpsc::Receiver<TileId>,
+async fn download<S>(
+    source: S,
+    mut request_rx: tokio::sync::mpsc::Receiver<TileId>,
     tile_tx: tokio::sync::mpsc::Sender<(TileId, Tile)>,
     egui_ctx: Context,
-) {
+) where
+    S: Fn(TileId) -> String + Send + 'static,
+{
     let client = reqwest::Client::new();
     loop {
-        if let Some(requested) = requests.recv().await {
+        if let Some(requested) = request_rx.recv().await {
             log::debug!("Starting the download of {:?}.", requested);
 
-            let url = format!(
-                "https://tile.openstreetmap.org/{}/{}/{}.png",
-                requested.zoom, requested.x, requested.y
-            );
+            let url = source(requested);
+
             let image = client
                 .get(url)
                 .header(USER_AGENT, "Walkers")
@@ -126,5 +137,29 @@ async fn download(
                 egui_ctx.request_repaint();
             }
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use egui::Context;
+
+    use crate::{mercator::TileId, tiles::openstreetmap, Tiles};
+
+    #[test]
+    fn download_single_tile() {
+        let mut server = mockito::Server::new();
+        server.mock("GET", "/1/2/3.png").create();
+
+        let tile_id = TileId {
+            x: 1,
+            y: 2,
+            zoom: 3,
+        };
+
+        let mut tiles = Tiles::new(openstreetmap, Context::default());
+
+        // First query start the download, but it will always return None.
+        assert!(tiles.at(tile_id).is_none());
     }
 }
