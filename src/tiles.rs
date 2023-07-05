@@ -142,9 +142,7 @@ async fn download<S>(
 
 #[cfg(test)]
 mod tests {
-    use egui::Context;
-
-    use crate::{mercator::TileId, tiles::openstreetmap, Tiles};
+    use super::*;
 
     #[test]
     fn download_single_tile() {
