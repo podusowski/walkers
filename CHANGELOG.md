@@ -2,6 +2,10 @@
 
 All notable changes to this project will be documented in this file.
 
+## Unreleased
+
+ * Optimized how GUI and IO thread talk to each other.
+
 ## 0.4.0
 
 ### Breaking
