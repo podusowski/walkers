@@ -148,8 +148,10 @@ mod tests {
 
     #[test]
     fn download_single_tile() {
+        let _ = env_logger::try_init();
+
         let mut server = mockito::Server::new();
-        server.mock("GET", "/1/2/3.png").create();
+        let tile_mock = server.mock("GET", "/3/1/2.png").create();
 
         let tile_id = TileId {
             x: 1,
@@ -157,9 +159,20 @@ mod tests {
             zoom: 3,
         };
 
-        let mut tiles = Tiles::new(openstreetmap, Context::default());
+        let url = server.url();
+
+        let source = move |tile_id: TileId| {
+            format!("{}/{}/{}/{}.png", url, tile_id.zoom, tile_id.x, tile_id.y)
+        };
+
+        let mut tiles = Tiles::new(source, Context::default());
 
         // First query start the download, but it will always return None.
         assert!(tiles.at(tile_id).is_none());
+
+        // Eventually it gets downloaded and become available in cache.
+        while tiles.at(tile_id).is_none() {}
+
+        tile_mock.assert();
     }
 }
