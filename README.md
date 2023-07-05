@@ -28,7 +28,7 @@ Once this is done, you can simply add `Map` widget to the `update` method:
 
 ```rust
 ui.add(Map::new(
-    &mut self.tiles,
+    Some(&mut self.tiles),
     &mut self.map_memory,
     my_position,
 ));

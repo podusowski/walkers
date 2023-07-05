@@ -95,7 +95,7 @@ impl eframe::App for Osm {
 
             // Draw the actual map.
             let response = ui.add(Map::new(
-                &mut self.tiles,
+                Some(&mut self.tiles),
                 &mut self.map_memory,
                 wroclaw_glowny(),
             ));

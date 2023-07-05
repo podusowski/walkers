@@ -4,6 +4,12 @@ All notable changes to this project will be documented in this file.
 
 ## Unreleased
 
+### Breaking
+
+ * `Map::new`'s `tiles` parameter is now `Option`.
+
+### Fixed
+
  * Optimized how GUI and IO thread talk to each other.
 
 ## 0.4.0
