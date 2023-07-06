@@ -40,5 +40,7 @@ impl Drop for TokioRuntimeThread {
             // Not much to do if it's an error.
             _ = join_handle.join();
         }
+
+        log::debug!("Tokio thread is down.");
     }
 }
