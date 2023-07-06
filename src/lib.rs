@@ -1,3 +1,5 @@
+#![doc = include_str!("../README.md")]
+
 mod map;
 mod mercator;
 mod tiles;
