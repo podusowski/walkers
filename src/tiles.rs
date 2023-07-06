@@ -159,21 +159,30 @@ mod tests {
         zoom: 3,
     };
 
-    #[test]
-    fn download_single_tile() {
-        let _ = env_logger::try_init();
+    type Source = Box<dyn Fn(TileId) -> String + Send>;
 
-        let mut server = mockito::Server::new();
-        let tile_mock = server
-            .mock("GET", "/3/1/2.png")
-            .with_body(include_bytes!("valid.png"))
-            .create();
-
+    /// Creates `mockito::Server` and function mapping `TileId` to this
+    /// server's URL.
+    fn mockito_server() -> (mockito::ServerGuard, Source) {
+        let server = mockito::Server::new();
         let url = server.url();
 
         let source = move |tile_id: TileId| {
             format!("{}/{}/{}/{}.png", url, tile_id.zoom, tile_id.x, tile_id.y)
         };
+
+        (server, Box::new(source))
+    }
+
+    #[test]
+    fn download_single_tile() {
+        let _ = env_logger::try_init();
+
+        let (mut server, source) = mockito_server();
+        let tile_mock = server
+            .mock("GET", "/3/1/2.png")
+            .with_body(include_bytes!("valid.png"))
+            .create();
 
         let mut tiles = Tiles::new(source, Context::default());
 
@@ -190,14 +199,8 @@ mod tests {
     fn tile_is_empty_forever_if_http_returns_error() {
         let _ = env_logger::try_init();
 
-        let mut server = mockito::Server::new();
+        let (mut server, source) = mockito_server();
         let tile_mock = server.mock("GET", "/3/1/2.png").with_status(404).create();
-
-        let url = server.url();
-
-        let source = move |tile_id: TileId| {
-            format!("{}/{}/{}/{}.png", url, tile_id.zoom, tile_id.x, tile_id.y)
-        };
 
         let mut tiles = Tiles::new(source, Context::default());
 
