@@ -15,10 +15,10 @@ pub struct Tile {
 }
 
 impl Tile {
-    fn new(image: &[u8]) -> Self {
-        Self {
-            image: Arc::new(RetainedImage::from_image_bytes("debug_name", image).unwrap()),
-        }
+    fn from_image_bytes(image: &[u8]) -> Result<Self, String> {
+        Ok(Self {
+            image: Arc::new(RetainedImage::from_image_bytes("debug_name", image)?),
+        })
     }
 
     pub fn rect(&self, screen_position: Vec2) -> Rect {
@@ -137,7 +137,16 @@ async fn download<S>(
 
             if image.status().is_success() {
                 let image = image.bytes().await.unwrap();
-                if tile_tx.send((requested, Tile::new(&image))).await.is_err() {
+                let image = Tile::from_image_bytes(&image);
+
+                if image.is_err() {
+                    log::debug!("Bad image.");
+                    continue;
+                }
+
+                let image = image.unwrap();
+
+                if tile_tx.send((requested, image)).await.is_err() {
                     log::debug!("GUI thread died.");
                     break;
                 }
@@ -195,6 +204,15 @@ mod tests {
         tile_mock.assert();
     }
 
+    fn assert_tile_is_empty_forever(tiles: &mut Tiles) {
+        // First query start the download, but it will always return None.
+        assert!(tiles.at(TILE_ID).is_none());
+
+        // Should stay None forever.
+        std::thread::sleep(Duration::from_secs(1));
+        assert!(tiles.at(TILE_ID).is_none());
+    }
+
     #[test]
     fn tile_is_empty_forever_if_http_returns_error() {
         let _ = env_logger::try_init();
@@ -211,6 +229,19 @@ mod tests {
         std::thread::sleep(Duration::from_secs(1));
         assert!(tiles.at(TILE_ID).is_none());
 
+        tile_mock.assert();
+    }
+
+    #[test]
+    fn tile_is_empty_forever_if_http_returns_no_body() {
+        let _ = env_logger::try_init();
+
+        let (mut server, source) = mockito_server();
+        let mut tiles = Tiles::new(source, Context::default());
+
+        let tile_mock = server.mock("GET", "/3/1/2.png").create();
+
+        assert_tile_is_empty_forever(&mut tiles);
         tile_mock.assert();
     }
 }
