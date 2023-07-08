@@ -84,6 +84,7 @@ impl Tiles {
         }
     }
 
+    /// Return a tile if already in cache, schedule a download otherwise.
     pub fn at(&mut self, tile_id: TileId) -> Option<Tile> {
         // Just take one at the time.
         match self.tile_rx.try_recv() {
