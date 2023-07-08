@@ -111,6 +111,29 @@ impl Tiles {
     }
 }
 
+#[derive(Debug, thiserror::Error)]
+#[error("tile could not be downloaded")]
+struct Error;
+
+async fn download_single(client: &reqwest::Client, url: String) -> Result<Tile, Error> {
+    let image = client
+        .get(url)
+        .header(USER_AGENT, "Walkers")
+        .send()
+        .await
+        .unwrap();
+
+    log::debug!("Downloaded {:?}.", image.status());
+
+    if image.status().is_success() {
+        let image = image.bytes().await.unwrap();
+        let image = Tile::from_image_bytes(&image).map_err(|e| Error)?;
+        Ok(image)
+    } else {
+        Err(Error {})
+    }
+}
+
 async fn download<S>(
     source: S,
     mut request_rx: tokio::sync::mpsc::Receiver<TileId>,
@@ -125,27 +148,7 @@ async fn download<S>(
             log::debug!("Starting the download of {:?}.", requested);
 
             let url = source(requested);
-
-            let image = client
-                .get(url)
-                .header(USER_AGENT, "Walkers")
-                .send()
-                .await
-                .unwrap();
-
-            log::debug!("Downloaded {:?}.", image.status());
-
-            if image.status().is_success() {
-                let image = image.bytes().await.unwrap();
-                let image = Tile::from_image_bytes(&image);
-
-                if image.is_err() {
-                    log::debug!("Bad image.");
-                    continue;
-                }
-
-                let image = image.unwrap();
-
+            if let Ok(image) = download_single(&client, url).await {
                 if tile_tx.send((requested, image)).await.is_err() {
                     log::debug!("GUI thread died.");
                     break;
