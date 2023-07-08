@@ -115,7 +115,7 @@ impl Tiles {
 #[error("tile could not be downloaded")]
 struct Error;
 
-async fn download_single(client: &reqwest::Client, url: String) -> Result<Tile, Error> {
+async fn download_single(client: &reqwest::Client, url: &str) -> Result<Tile, Error> {
     let image = client
         .get(url)
         .header(USER_AGENT, "Walkers")
@@ -152,9 +152,11 @@ where
 
         log::debug!("Getting {:?} from {}.", request, url);
 
-        if let Ok(image) = download_single(&client, url).await {
+        if let Ok(image) = download_single(&client, &url).await {
             tile_tx.send((request, image)).await.map_err(|_| ())?;
             egui_ctx.request_repaint();
+        } else {
+            log::warn!("Could not download '{}'.", &url);
         }
     }
 }
