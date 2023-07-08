@@ -243,6 +243,21 @@ mod tests {
     }
 
     #[test]
+    fn tile_is_empty_forever_if_http_returns_garbage() {
+        let _ = env_logger::try_init();
+
+        let (mut server, source) = mockito_server();
+        let mut tiles = Tiles::new(source, Context::default());
+        let tile_mock = server
+            .mock("GET", "/3/1/2.png")
+            .with_body("definitely not an image")
+            .create();
+
+        assert_tile_is_empty_forever(&mut tiles);
+        tile_mock.assert();
+    }
+
+    #[test]
     fn tile_is_empty_forever_if_http_can_not_even_connect() {
         let _ = env_logger::try_init();
 
