@@ -211,10 +211,8 @@ mod tests {
     }
 
     fn assert_tile_is_empty_forever(tiles: &mut Tiles) {
-        // First query start the download, but it will always return None.
+        // Should be None now, and forever.
         assert!(tiles.at(TILE_ID).is_none());
-
-        // Should stay None forever.
         std::thread::sleep(Duration::from_secs(1));
         assert!(tiles.at(TILE_ID).is_none());
     }
