@@ -125,13 +125,14 @@ async fn download_single(client: &reqwest::Client, url: &str) -> Result<Tile, Er
 
     log::debug!("Downloaded {:?}.", image.status());
 
-    if image.status().is_success() {
-        let image = image.bytes().await.unwrap();
-        let image = Tile::from_image_bytes(&image).map_err(|_| Error)?;
-        Ok(image)
-    } else {
-        Err(Error {})
-    }
+    let image = image
+        .error_for_status()
+        .map_err(|_| Error)?
+        .bytes()
+        .await
+        .unwrap();
+    let image = Tile::from_image_bytes(&image).map_err(|_| Error)?;
+    Ok(image)
 }
 
 async fn download<S>(
