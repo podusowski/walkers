@@ -148,10 +148,11 @@ where
 
     loop {
         let request = request_rx.recv().await.ok_or(())?;
+        let url = source(request);
 
-        log::debug!("Starting the download of {:?}.", request);
+        log::debug!("Getting {:?} from {}.", request, url);
 
-        if let Ok(image) = download_single(&client, source(request)).await {
+        if let Ok(image) = download_single(&client, url).await {
             tile_tx.send((request, image)).await.map_err(|_| ())?;
             egui_ctx.request_repaint();
         }
