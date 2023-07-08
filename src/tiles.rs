@@ -16,8 +16,8 @@ pub struct Tile {
 
 impl Tile {
     fn from_image_bytes(image: &[u8]) -> Result<Self, String> {
-        Ok(Self {
-            image: Arc::new(RetainedImage::from_image_bytes("debug_name", image)?),
+        RetainedImage::from_image_bytes("debug_name", image).map(|image| Self {
+            image: Arc::new(image),
         })
     }
 
