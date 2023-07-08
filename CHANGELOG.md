@@ -14,6 +14,8 @@ All notable changes to this project will be documented in this file.
 ### Fixed
 
  * Optimized how GUI and IO thread talk to each other.
+ * Handle tile download errors (HTTP statuses, garbage content, etc.) more gracefully. Application
+   will remain alive (no `unwrap` or `expect`), but downloads of the failed tiles won't be repeated.
 
 ## 0.4.0
 

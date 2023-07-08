@@ -84,6 +84,7 @@ impl Tiles {
         }
     }
 
+    /// Return a tile if already in cache, schedule a download otherwise.
     pub fn at(&mut self, tile_id: TileId) -> Option<Tile> {
         // Just take one at the time.
         match self.tile_rx.try_recv() {
@@ -121,7 +122,7 @@ async fn download_single(client: &reqwest::Client, url: &str) -> Result<Tile, Er
         .header(USER_AGENT, "Walkers")
         .send()
         .await
-        .unwrap();
+        .map_err(|_| Error)?;
 
     log::debug!("Downloaded {:?}.", image.status());
 
@@ -130,7 +131,7 @@ async fn download_single(client: &reqwest::Client, url: &str) -> Result<Tile, Er
         .map_err(|_| Error)?
         .bytes()
         .await
-        .unwrap();
+        .map_err(|_| Error)?;
 
     Tile::from_image_bytes(&image).map_err(|_| Error)
 }
@@ -239,5 +240,30 @@ mod tests {
 
         assert_tile_is_empty_forever(&mut tiles);
         tile_mock.assert();
+    }
+
+    #[test]
+    fn tile_is_empty_forever_if_http_returns_garbage() {
+        let _ = env_logger::try_init();
+
+        let (mut server, source) = mockito_server();
+        let mut tiles = Tiles::new(source, Context::default());
+        let tile_mock = server
+            .mock("GET", "/3/1/2.png")
+            .with_body("definitely not an image")
+            .create();
+
+        assert_tile_is_empty_forever(&mut tiles);
+        tile_mock.assert();
+    }
+
+    #[test]
+    fn tile_is_empty_forever_if_http_can_not_even_connect() {
+        let _ = env_logger::try_init();
+
+        let source = |_| "totally invalid url".to_string();
+        let mut tiles = Tiles::new(source, Context::default());
+
+        assert_tile_is_empty_forever(&mut tiles);
     }
 }
