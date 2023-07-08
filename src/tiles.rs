@@ -122,7 +122,7 @@ async fn download_single(client: &reqwest::Client, url: &str) -> Result<Tile, Er
         .header(USER_AGENT, "Walkers")
         .send()
         .await
-        .unwrap();
+        .map_err(|_| Error)?;
 
     log::debug!("Downloaded {:?}.", image.status());
 
@@ -240,5 +240,15 @@ mod tests {
 
         assert_tile_is_empty_forever(&mut tiles);
         tile_mock.assert();
+    }
+
+    #[test]
+    fn tile_is_empty_forever_if_http_can_not_even_connect() {
+        let _ = env_logger::try_init();
+
+        let source = |_| "totally invalid url".to_string();
+        let mut tiles = Tiles::new(source, Context::default());
+
+        assert_tile_is_empty_forever(&mut tiles);
     }
 }
