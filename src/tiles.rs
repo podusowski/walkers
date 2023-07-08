@@ -142,19 +142,27 @@ async fn download<S>(
 ) where
     S: Fn(TileId) -> String + Send + 'static,
 {
-    let client = reqwest::Client::new();
-    loop {
-        if let Some(requested) = request_rx.recv().await {
-            log::debug!("Starting the download of {:?}.", requested);
+    macro_rules! gui_dead {
+        () => {
+            log::debug!("GUI thread died. Bailing out.");
+            break;
+        };
+    }
 
-            let url = source(requested);
-            if let Ok(image) = download_single(&client, url).await {
-                if tile_tx.send((requested, image)).await.is_err() {
-                    log::debug!("GUI thread died.");
-                    break;
-                }
-                egui_ctx.request_repaint();
+    // Keep outside the loop to reuse it as much as possible.
+    let client = reqwest::Client::new();
+
+    loop {
+        let Some(request) = request_rx.recv().await else { gui_dead!(); };
+
+        log::debug!("Starting the download of {:?}.", request);
+
+        let url = source(request);
+        if let Ok(image) = download_single(&client, url).await {
+            if tile_tx.send((request, image)).await.is_err() {
+                gui_dead!();
             }
+            egui_ctx.request_repaint();
         }
     }
 }
