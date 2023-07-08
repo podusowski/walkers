@@ -93,7 +93,7 @@ impl Tiles {
             Err(TryRecvError::Empty) => {
                 // Just ignore. It means that no new tile was downloaded.
             }
-            Err(TryRecvError::Disconnected) => todo!(),
+            Err(TryRecvError::Disconnected) => panic!("IO thread is dead"),
         }
 
         match self.cache.entry(tile_id) {
