@@ -4,6 +4,7 @@ use std::{collections::HashMap, sync::Arc};
 use egui::{pos2, Color32, Context, Mesh, Rect, Vec2};
 use egui_extras::RetainedImage;
 use reqwest::header::USER_AGENT;
+use tokio::sync::mpsc::error::TryRecvError;
 
 use crate::mercator::TileId;
 use crate::tokio::TokioRuntimeThread;
@@ -14,10 +15,10 @@ pub struct Tile {
 }
 
 impl Tile {
-    fn new(image: &[u8]) -> Self {
-        Self {
-            image: Arc::new(RetainedImage::from_image_bytes("debug_name", image).unwrap()),
-        }
+    fn from_image_bytes(image: &[u8]) -> Result<Self, String> {
+        RetainedImage::from_image_bytes("debug_name", image).map(|image| Self {
+            image: Arc::new(image),
+        })
     }
 
     pub fn rect(&self, screen_position: Vec2) -> Rect {
@@ -85,8 +86,14 @@ impl Tiles {
 
     pub fn at(&mut self, tile_id: TileId) -> Option<Tile> {
         // Just take one at the time.
-        if let Ok((tile_id, tile)) = self.tile_rx.try_recv() {
-            self.cache.insert(tile_id, Some(tile));
+        match self.tile_rx.try_recv() {
+            Ok((tile_id, tile)) => {
+                self.cache.insert(tile_id, Some(tile));
+            }
+            Err(TryRecvError::Empty) => {
+                // Just ignore. It means that no new tile was downloaded.
+            }
+            Err(TryRecvError::Disconnected) => panic!("IO thread is dead"),
         }
 
         match self.cache.entry(tile_id) {
@@ -104,76 +111,133 @@ impl Tiles {
     }
 }
 
+#[derive(Debug, thiserror::Error)]
+#[error("tile could not be downloaded")]
+struct Error;
+
+async fn download_single(client: &reqwest::Client, url: &str) -> Result<Tile, Error> {
+    let image = client
+        .get(url)
+        .header(USER_AGENT, "Walkers")
+        .send()
+        .await
+        .unwrap();
+
+    log::debug!("Downloaded {:?}.", image.status());
+
+    let image = image
+        .error_for_status()
+        .map_err(|_| Error)?
+        .bytes()
+        .await
+        .unwrap();
+
+    Tile::from_image_bytes(&image).map_err(|_| Error)
+}
+
 async fn download<S>(
     source: S,
     mut request_rx: tokio::sync::mpsc::Receiver<TileId>,
     tile_tx: tokio::sync::mpsc::Sender<(TileId, Tile)>,
     egui_ctx: Context,
-) where
+) -> Result<(), ()>
+where
     S: Fn(TileId) -> String + Send + 'static,
 {
+    // Keep outside the loop to reuse it as much as possible.
     let client = reqwest::Client::new();
+
     loop {
-        if let Some(requested) = request_rx.recv().await {
-            log::debug!("Starting the download of {:?}.", requested);
+        let request = request_rx.recv().await.ok_or(())?;
+        let url = source(request);
 
-            let url = source(requested);
+        log::debug!("Getting {:?} from {}.", request, url);
 
-            let image = client
-                .get(url)
-                .header(USER_AGENT, "Walkers")
-                .send()
-                .await
-                .unwrap();
-
-            log::debug!("Downloaded {:?}.", image.status());
-
-            if image.status().is_success() {
-                let image = image.bytes().await.unwrap();
-                if tile_tx.send((requested, Tile::new(&image))).await.is_err() {
-                    // GUI thread died.
-                    break;
-                }
-                egui_ctx.request_repaint();
-            }
+        if let Ok(image) = download_single(&client, &url).await {
+            tile_tx.send((request, image)).await.map_err(|_| ())?;
+            egui_ctx.request_repaint();
+        } else {
+            log::warn!("Could not download '{}'.", &url);
         }
     }
 }
 
 #[cfg(test)]
 mod tests {
+    use std::time::Duration;
+
     use super::*;
 
-    #[test]
-    fn download_single_tile() {
-        let _ = env_logger::try_init();
+    static TILE_ID: TileId = TileId {
+        x: 1,
+        y: 2,
+        zoom: 3,
+    };
 
-        let mut server = mockito::Server::new();
-        let tile_mock = server
-            .mock("GET", "/3/1/2.png")
-            .with_body(include_bytes!("valid.png"))
-            .create();
+    type Source = Box<dyn Fn(TileId) -> String + Send>;
 
-        let tile_id = TileId {
-            x: 1,
-            y: 2,
-            zoom: 3,
-        };
-
+    /// Creates `mockito::Server` and function mapping `TileId` to this
+    /// server's URL.
+    fn mockito_server() -> (mockito::ServerGuard, Source) {
+        let server = mockito::Server::new();
         let url = server.url();
 
         let source = move |tile_id: TileId| {
             format!("{}/{}/{}/{}.png", url, tile_id.zoom, tile_id.x, tile_id.y)
         };
 
+        (server, Box::new(source))
+    }
+
+    #[test]
+    fn download_single_tile() {
+        let _ = env_logger::try_init();
+
+        let (mut server, source) = mockito_server();
+        let tile_mock = server
+            .mock("GET", "/3/1/2.png")
+            .with_body(include_bytes!("valid.png"))
+            .create();
+
         let mut tiles = Tiles::new(source, Context::default());
 
         // First query start the download, but it will always return None.
-        assert!(tiles.at(tile_id).is_none());
+        assert!(tiles.at(TILE_ID).is_none());
 
         // Eventually it gets downloaded and become available in cache.
-        while tiles.at(tile_id).is_none() {}
+        while tiles.at(TILE_ID).is_none() {}
 
+        tile_mock.assert();
+    }
+
+    fn assert_tile_is_empty_forever(tiles: &mut Tiles) {
+        // Should be None now, and forever.
+        assert!(tiles.at(TILE_ID).is_none());
+        std::thread::sleep(Duration::from_secs(1));
+        assert!(tiles.at(TILE_ID).is_none());
+    }
+
+    #[test]
+    fn tile_is_empty_forever_if_http_returns_error() {
+        let _ = env_logger::try_init();
+
+        let (mut server, source) = mockito_server();
+        let mut tiles = Tiles::new(source, Context::default());
+        let tile_mock = server.mock("GET", "/3/1/2.png").with_status(404).create();
+
+        assert_tile_is_empty_forever(&mut tiles);
+        tile_mock.assert();
+    }
+
+    #[test]
+    fn tile_is_empty_forever_if_http_returns_no_body() {
+        let _ = env_logger::try_init();
+
+        let (mut server, source) = mockito_server();
+        let mut tiles = Tiles::new(source, Context::default());
+        let tile_mock = server.mock("GET", "/3/1/2.png").create();
+
+        assert_tile_is_empty_forever(&mut tiles);
         tile_mock.assert();
     }
 }
