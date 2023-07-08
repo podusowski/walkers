@@ -223,17 +223,10 @@ mod tests {
         let _ = env_logger::try_init();
 
         let (mut server, source) = mockito_server();
+        let mut tiles = Tiles::new(source, Context::default());
         let tile_mock = server.mock("GET", "/3/1/2.png").with_status(404).create();
 
-        let mut tiles = Tiles::new(source, Context::default());
-
-        // First query start the download, but it will always return None.
-        assert!(tiles.at(TILE_ID).is_none());
-
-        // Should stay None forever.
-        std::thread::sleep(Duration::from_secs(1));
-        assert!(tiles.at(TILE_ID).is_none());
-
+        assert_tile_is_empty_forever(&mut tiles);
         tile_mock.assert();
     }
 
@@ -243,7 +236,6 @@ mod tests {
 
         let (mut server, source) = mockito_server();
         let mut tiles = Tiles::new(source, Context::default());
-
         let tile_mock = server.mock("GET", "/3/1/2.png").create();
 
         assert_tile_is_empty_forever(&mut tiles);
