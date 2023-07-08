@@ -139,29 +139,20 @@ async fn download<S>(
     mut request_rx: tokio::sync::mpsc::Receiver<TileId>,
     tile_tx: tokio::sync::mpsc::Sender<(TileId, Tile)>,
     egui_ctx: Context,
-) where
+) -> Result<(), ()>
+where
     S: Fn(TileId) -> String + Send + 'static,
 {
-    macro_rules! gui_dead {
-        () => {
-            log::debug!("GUI thread died. Bailing out.");
-            break;
-        };
-    }
-
     // Keep outside the loop to reuse it as much as possible.
     let client = reqwest::Client::new();
 
     loop {
-        let Some(request) = request_rx.recv().await else { gui_dead!(); };
+        let request = request_rx.recv().await.ok_or(())?;
 
         log::debug!("Starting the download of {:?}.", request);
 
-        let url = source(request);
-        if let Ok(image) = download_single(&client, url).await {
-            if tile_tx.send((request, image)).await.is_err() {
-                gui_dead!();
-            }
+        if let Ok(image) = download_single(&client, source(request)).await {
+            tile_tx.send((request, image)).await.map_err(|_| ())?;
             egui_ctx.request_repaint();
         }
     }
