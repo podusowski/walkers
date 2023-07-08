@@ -22,4 +22,4 @@ jobs:
     - name: Check rust formatting
       run:  cargo fmt --all --check
     - name: Clippy
-      run:  cargo clippy --all-features 
+      run:  cargo clippy --all-features -- -D warnings 
