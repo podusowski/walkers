@@ -131,7 +131,7 @@ async fn download_single(client: &reqwest::Client, url: &str) -> Result<Tile, Er
         .map_err(|_| Error)?
         .bytes()
         .await
-        .unwrap();
+        .map_err(|_| Error)?;
 
     Tile::from_image_bytes(&image).map_err(|_| Error)
 }
