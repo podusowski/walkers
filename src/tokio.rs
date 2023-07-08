@@ -1,4 +1,4 @@
-///! Managed thread for Tokio runtime.
+//! Managed thread for Tokio runtime.
 use std::sync::Arc;
 
 pub struct TokioRuntimeThread {
