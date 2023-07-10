@@ -16,29 +16,34 @@ impl TokioRuntimeThread {
             let runtime = tokio::runtime::Builder::new_current_thread()
                 .enable_all()
                 .build()
-                .unwrap();
+                .expect("could not create the Tokio runtime, downloads will not work");
 
             let rt = Arc::new(runtime);
-            rt_tx.send(rt.clone()).unwrap();
+            rt_tx
+                .send(rt.clone())
+                .expect("could not return the Tokio runtime to the main thread");
             rt.block_on(quit_rx.recv());
         });
 
         Self {
             join_handle: Some(join_handle),
             quit_tx,
-            runtime: rt_rx.blocking_recv().unwrap(),
+            runtime: rt_rx
+                .blocking_recv()
+                .expect("Tokio thread died before returning the Tokio runtime"),
         }
     }
 }
 
 impl Drop for TokioRuntimeThread {
     fn drop(&mut self) {
-        self.quit_tx.send(()).unwrap();
+        // Tokio thread might be dead, nothing to do in this case.
+        let _ = self.quit_tx.send(());
 
         if let Some(join_handle) = self.join_handle.take() {
             log::debug!("Waiting for the Tokio thread to exit.");
-            // Not much to do if it's an error.
-            _ = join_handle.join();
+            // Again, Tokio thread might be already dead, nothing to do in this case.
+            let _ = join_handle.join();
         }
 
         log::debug!("Tokio thread is down.");

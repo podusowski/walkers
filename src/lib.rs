@@ -1,4 +1,5 @@
 #![doc = include_str!("../README.md")]
+#![deny(clippy::unwrap_used)]
 
 mod map;
 mod mercator;
