@@ -87,6 +87,10 @@ impl MapCenterMode {
             MapCenterMode::Exact(position) => *position,
         }
     }
+
+    pub fn set_position(&mut self, position: Position) {
+        *self = MapCenterMode::Exact(position);
+    }
 }
 
 /// State of the map widget which must persist between frames.
