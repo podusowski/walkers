@@ -8,6 +8,6 @@ mod tokio;
 mod zoom;
 
 pub use map::{Map, MapCenterMode, MapMemory};
-pub use mercator::{Position, PositionExt};
+pub use mercator::{Position, PositionExt, screen_to_position};
 pub use zoom::Zoom;
 pub use {tiles::openstreetmap, tiles::Tiles};
