@@ -8,7 +8,7 @@ use crate::{
 };
 
 /// The actual map widget. Instances are to be created on each frame, as all necessary state is
-/// stored in `Tiles` and `MapMemory` structs.
+/// stored in [`Tiles`] and [`MapMemory`].
 ///
 /// # Examples
 ///
@@ -76,7 +76,8 @@ impl Widget for Map<'_, '_> {
 
 /// Position of the map's center. Initially, the map follows `my_position` argument which typically
 /// is meant to be fed by a GPS sensor or other geo-localization method. If user drags the map,
-/// it becomes "detached" and stays this way until `center_mode` is changed back to `MyPosition`.
+/// it becomes "detached" and stays this way until [`MapMemory::center_mode`] is changed back to
+/// [`MapCenterMode::MyPosition`].
 #[derive(Clone, PartialEq)]
 pub enum MapCenterMode {
     /// Center at `my_position` argument of the [`Map::new()`] function.
