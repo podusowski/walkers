@@ -7,7 +7,7 @@ mod tiles;
 mod tokio;
 mod zoom;
 
-pub use map::{Map, Center, MapMemory};
+pub use map::{Center, Map, MapMemory};
 pub use mercator::{screen_to_position, Position, PositionExt};
 pub use zoom::Zoom;
 pub use {tiles::openstreetmap, tiles::Tiles};
