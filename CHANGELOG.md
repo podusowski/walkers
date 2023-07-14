@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## Unreleased
+
+### Breaking
+
+ * `MapCenterMode` is now called `Center`.
+
 ## 0.5.0
 
 ### Breaking
