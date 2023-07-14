@@ -77,7 +77,7 @@ impl Widget for Map<'_, '_> {
 /// Position at the map's center. Initially, the map follows `my_position` argument which typically
 /// is meant to be fed by a GPS sensor or other geo-localization method. If user drags the map,
 /// it becomes "detached" and stays this way until [`MapMemory::center_mode`] is changed back to
-/// [`MapCenterMode::MyPosition`].
+/// [`Center::MyPosition`].
 #[derive(Clone, PartialEq)]
 pub enum Center {
     /// Center at `my_position` argument of the [`Map::new()`] function.
