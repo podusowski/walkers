@@ -7,7 +7,22 @@ use crate::{
     Position, Tiles, Zoom,
 };
 
-/// Slippy map widget.
+/// The actual map widget. Instances are to be created on each frame, as all necessary state is
+/// stored in [`Tiles`] and [`MapMemory`].
+///
+/// # Examples
+///
+/// ```
+/// # use walkers::{Map, Tiles, MapMemory, Position};
+///
+/// fn update(ui: &mut egui::Ui, tiles: &mut Tiles, map_memory: &mut MapMemory) {
+///     ui.add(Map::new(
+///         Some(tiles), // `None`, if you don't want to show any tiles.
+///         map_memory,
+///         Position::new(17.03664, 51.09916)
+///     ));
+/// }
+/// ```
 pub struct Map<'a, 'b> {
     tiles: Option<&'b mut Tiles>,
     memory: &'a mut MapMemory,
@@ -59,46 +74,49 @@ impl Widget for Map<'_, '_> {
     }
 }
 
+/// Position at the map's center. Initially, the map follows `my_position` argument which typically
+/// is meant to be fed by a GPS sensor or other geo-localization method. If user drags the map,
+/// it becomes "detached" and stays this way until [`MapMemory::center_mode`] is changed back to
+/// [`Center::MyPosition`].
 #[derive(Clone, PartialEq)]
-pub enum MapCenterMode {
+pub enum Center {
+    /// Center at `my_position` argument of the [`Map::new()`] function.
     MyPosition,
+
+    /// Center at the exact position.
     Exact(Position),
 }
 
-impl MapCenterMode {
+impl Center {
     fn screen_drag(&mut self, response: &Response, my_position: Position, zoom: u8) {
         if response.dragged_by(egui::PointerButton::Primary) {
-            *self = match *self {
-                // This makes it "detach" from the "my position".
-                MapCenterMode::MyPosition => MapCenterMode::Exact(my_position),
-
-                // Just shift already "detached" position.
-                MapCenterMode::Exact(position) => MapCenterMode::Exact(screen_to_position(
-                    position.project(zoom) - response.drag_delta(),
-                    zoom,
-                )),
-            };
+            // We always end up in some exact, "detached" position, regardless of the current mode.
+            *self = Center::Exact(screen_to_position(
+                self.position(my_position).project(zoom) - response.drag_delta(),
+                zoom,
+            ));
         }
     }
 
+    /// Get the real position at the map's center.
     pub fn position(&self, my_position: Position) -> Position {
         match self {
-            MapCenterMode::MyPosition => my_position,
-            MapCenterMode::Exact(position) => *position,
+            Center::MyPosition => my_position,
+            Center::Exact(position) => *position,
         }
     }
 }
 
 /// State of the map widget which must persist between frames.
 pub struct MapMemory {
-    pub center_mode: MapCenterMode,
+    pub center_mode: Center,
     pub zoom: Zoom,
 }
 
 impl Default for MapMemory {
     fn default() -> Self {
         Self {
-            center_mode: MapCenterMode::MyPosition,
+            center_mode: Center::MyPosition,
             zoom: Default::default(),
         }
     }
