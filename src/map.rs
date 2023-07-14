@@ -7,7 +7,22 @@ use crate::{
     Position, Tiles, Zoom,
 };
 
-/// Slippy map widget.
+/// The actual map widget. Instances are to be created on each frame, as all necessary state is
+/// stored in `Tiles` and `MapMemory` structs.
+///
+/// # Examples
+///
+/// ```
+/// # use walkers::{Map, Tiles, MapMemory, Position};
+///
+/// fn update(ui: &mut egui::Ui, tiles: &mut Tiles, map_memory: &mut MapMemory) {
+///     ui.add(Map::new(
+///         Some(tiles), // `None`, if you don't want to show any tiles.
+///         map_memory,
+///         Position::new(17.03664, 51.09916)
+///     ));
+/// }
+/// ```
 pub struct Map<'a, 'b> {
     tiles: Option<&'b mut Tiles>,
     memory: &'a mut MapMemory,
