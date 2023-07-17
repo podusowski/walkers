@@ -11,7 +11,7 @@ impl TryFrom<f32> for Zoom {
     fn try_from(value: f32) -> Result<Self, Self::Error> {
         // Mapnik supports zooms up to 19.
         // https://wiki.openstreetmap.org/wiki/Slippy_map_tilenames#Zoom_levels
-        if value > 19. || value < 0. {
+        if !(0. ..=19.).contains(&value) {
             Err(InvalidZoom)
         } else {
             Ok(Self(value))
