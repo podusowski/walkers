@@ -36,7 +36,7 @@ impl Widget for Map<'_, '_> {
             let zoom_delta = ui.input(|input| input.zoom_delta());
             if zoom_delta > 1.01 || zoom_delta < 0.99 {
                 // Shift by 1 because of the values given by zoom_delta(). Multiple by 2, because
-                // then mouse wheel felt right.
+                // then it felt right with both mouse wheel, and an Android phone.
                 self.memory.zoom.zoom_by((zoom_delta - 1.) * 2.);
             } else {
                 self.memory.center_mode.screen_drag(
