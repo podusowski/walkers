@@ -7,6 +7,12 @@ All notable changes to this project will be documented in this file.
 ### Breaking
 
  * `MapCenterMode` is now called `Center`.
+ * `Zoom` can no longer be dereferenced to `u8`. To obtain a previous value, use `Zoom::round()`.
+ * Also, `Zoom` is no longer `PartialEq`, nor `Eq`.
+
+### Added
+
+ * Zooming using CTRL + mouse wheel or pinch gesture.
 
 ## 0.5.0
 
