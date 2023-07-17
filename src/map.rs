@@ -32,9 +32,16 @@ impl Widget for Map<'_, '_> {
     fn ui(self, ui: &mut Ui) -> Response {
         let (rect, response) = ui.allocate_exact_size(ui.available_size(), Sense::drag());
 
+        // Inputs.
         self.memory
             .center_mode
             .screen_drag(&response, self.my_position, *self.memory.zoom);
+
+        if response.hovered() {
+            let zoom_delta = ui.input(|input| input.zoom_delta_2d());
+            println!("{:?}", zoom_delta);
+            log::info!("{:?}", zoom_delta);
+        }
 
         let map_center = self.memory.center_mode.position(self.my_position);
         let painter = ui.painter().with_clip_rect(rect);
