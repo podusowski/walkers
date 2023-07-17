@@ -4,7 +4,7 @@ use std::ops::Deref;
 #[error("invalid zoom level")]
 pub struct InvalidZoom;
 
-#[derive(Debug, PartialEq, Eq, Clone, Copy)]
+#[derive(Debug, Clone, Copy)]
 pub struct Zoom(u8);
 
 impl TryFrom<u8> for Zoom {
@@ -55,7 +55,7 @@ mod tests {
     fn test_constructing_zoom() {
         assert_eq!(16, *Zoom::default());
         assert_eq!(19, *Zoom::try_from(19).unwrap());
-        assert_eq!(Err(InvalidZoom), Zoom::try_from(20));
+        assert_eq!(InvalidZoom, Zoom::try_from(20).unwrap_err());
     }
 
     #[test]
