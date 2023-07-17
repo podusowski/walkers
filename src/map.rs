@@ -49,13 +49,19 @@ impl Widget for Map<'_, '_> {
 
         if response.hovered() {
             let zoom_delta = ui.input(|input| input.zoom_delta());
-            if zoom_delta > 1.01 || zoom_delta < 0.99 {
-                println!("{:?}", zoom_delta);
-                log::info!("{:?}", zoom_delta);
+
+            // Zooming and dragging need to be exclusive, otherwise the map will get dragged when
+            // pinch gesture is used.
+            if !(0.99..=1.01).contains(&zoom_delta) {
+                // Shift by 1 because of the values given by zoom_delta(). Multiple by 2, because
+                // then it felt right with both mouse wheel, and an Android phone.
+                self.memory.zoom.zoom_by((zoom_delta - 1.) * 2.);
             } else {
-                self.memory
-                    .center_mode
-                    .screen_drag(&response, self.my_position, *self.memory.zoom);
+                self.memory.center_mode.screen_drag(
+                    &response,
+                    self.my_position,
+                    self.memory.zoom.round(),
+                );
             }
         }
 
@@ -66,8 +72,8 @@ impl Widget for Map<'_, '_> {
             let mut meshes = Default::default();
             draw_tiles(
                 &painter,
-                map_center.tile_id(*self.memory.zoom),
-                map_center.project(*self.memory.zoom),
+                map_center.tile_id(self.memory.zoom.round()),
+                map_center.project(self.memory.zoom.round()),
                 tiles,
                 ui,
                 &mut meshes,

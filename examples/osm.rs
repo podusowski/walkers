@@ -43,13 +43,13 @@ fn draw_custom_shapes(ui: &Ui, painter: Painter, map_memory: &MapMemory, my_posi
     let position = dworcowa_bus_stop();
 
     // Turn that into a flat, mercator projection.
-    let projected_position = position.project(*map_memory.zoom);
+    let projected_position = position.project(map_memory.zoom.round());
 
     // We also need to know where the map center is.
     let map_center_projected_position = map_memory
         .center_mode
         .position(my_position)
-        .project(*map_memory.zoom);
+        .project(map_memory.zoom.round());
 
     // From the two points above we can calculate the actual point on the screen.
     let screen_position =
@@ -109,7 +109,7 @@ impl eframe::App for Osm {
                 .title_bar(false)
                 .anchor(Align2::LEFT_BOTTOM, [10., -10.])
                 .show(ui.ctx(), |ui| {
-                    ui.label(format!("zoom: {}", *self.map_memory.zoom));
+                    ui.label(format!("zoom: {}", self.map_memory.zoom.round()));
                     ui.horizontal(|ui| {
                         if ui.button(RichText::new("➕").heading()).clicked() {
                             let _ = self.map_memory.zoom.zoom_in();
