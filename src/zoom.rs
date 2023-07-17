@@ -11,8 +11,8 @@ impl TryFrom<u8> for Zoom {
     type Error = InvalidZoom;
 
     fn try_from(value: u8) -> Result<Self, Self::Error> {
-        // OSM wiki has level 20 listed https://wiki.openstreetmap.org/wiki/Zoom_levels,
-        // but when requested, server responds with 400: Bad Request.
+        // Mapnik supports up to 19.
+        // https://wiki.openstreetmap.org/wiki/Slippy_map_tilenames#Zoom_levels
         if value > 19 {
             Err(InvalidZoom)
         } else {
