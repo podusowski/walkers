@@ -57,11 +57,9 @@ impl Widget for Map<'_, '_> {
                 // then it felt right with both mouse wheel, and an Android phone.
                 self.memory.zoom.zoom_by((zoom_delta - 1.) * 2.);
             } else {
-                self.memory.center_mode.screen_drag(
-                    &response,
-                    self.my_position,
-                    self.memory.zoom.round(),
-                );
+                self.memory
+                    .center_mode
+                    .drag(&response, self.my_position, self.memory.zoom.round());
             }
         }
 
@@ -102,7 +100,7 @@ pub enum Center {
 }
 
 impl Center {
-    fn screen_drag(&mut self, response: &Response, my_position: Position, zoom: u8) {
+    fn drag(&mut self, response: &Response, my_position: Position, zoom: u8) {
         if response.dragged_by(egui::PointerButton::Primary) {
             // We always end up in some exact, "detached" position, regardless of the current mode.
             *self = Center::Exact(screen_to_position(
