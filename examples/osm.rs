@@ -120,6 +120,7 @@ impl eframe::App for Osm {
                     });
                 });
 
+            // When map is "detached", show a windows with an option to go back to my position.
             if let Center::Exact(position) = self.map_memory.center_mode {
                 Window::new("Center")
                     .collapsible(false)
