@@ -1,5 +1,5 @@
 use egui::{Align2, Context, Painter, RichText, Shape, Ui, Window};
-use walkers::{Map, MapMemory, Position, PositionExt, Tiles};
+use walkers::{Center, Map, MapMemory, Position, PositionExt, Tiles};
 
 fn main() -> Result<(), eframe::Error> {
     env_logger::init();
@@ -109,7 +109,6 @@ impl eframe::App for Osm {
                 .title_bar(false)
                 .anchor(Align2::LEFT_BOTTOM, [10., -10.])
                 .show(ui.ctx(), |ui| {
-                    ui.label(format!("zoom: {}", self.map_memory.zoom.round()));
                     ui.horizontal(|ui| {
                         if ui.button(RichText::new("➕").heading()).clicked() {
                             let _ = self.map_memory.zoom.zoom_in();
@@ -120,6 +119,23 @@ impl eframe::App for Osm {
                         }
                     });
                 });
+
+            if let Center::Exact(position) = self.map_memory.center_mode {
+                Window::new("Center")
+                    .collapsible(false)
+                    .resizable(false)
+                    .title_bar(false)
+                    .anchor(Align2::RIGHT_BOTTOM, [-10., -10.])
+                    .show(ui.ctx(), |ui| {
+                        ui.label(format!("{:.04} {:.04}", position.x(), position.y()));
+                        if ui
+                            .button(RichText::new("go to my (fake) position ").heading())
+                            .clicked()
+                        {
+                            self.map_memory.center_mode = Center::MyPosition;
+                        }
+                    });
+            }
         });
     }
 }
