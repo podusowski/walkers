@@ -6,16 +6,16 @@ fn main() -> Result<(), eframe::Error> {
     eframe::run_native(
         "OpenStreetMap",
         Default::default(),
-        Box::new(|cc| Box::new(Osm::new(cc.egui_ctx.clone()))),
+        Box::new(|cc| Box::new(MyApp::new(cc.egui_ctx.clone()))),
     )
 }
 
-struct Osm {
+struct MyApp {
     tiles: Tiles,
     map_memory: MapMemory,
 }
 
-impl Osm {
+impl MyApp {
     fn new(egui_ctx: Context) -> Self {
         Self {
             tiles: Tiles::new(walkers::openstreetmap, egui_ctx),
@@ -24,7 +24,7 @@ impl Osm {
     }
 }
 
-impl eframe::App for Osm {
+impl eframe::App for MyApp {
     fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
         egui::CentralPanel::default().show(ctx, |ui| {
             ui.horizontal(|ui| {
