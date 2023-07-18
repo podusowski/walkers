@@ -146,9 +146,7 @@ fn draw_tiles(
     let tile_screen_position = painter.clip_rect().center().to_vec2() + tile_projected.to_vec2()
         - map_center_projected_position.to_vec2();
 
-    let image = if let Some(image) = tiles.at(tile_id) {
-        image
-    } else {
+    let Some(image) = tiles.at(tile_id) else {
         return;
     };
 
