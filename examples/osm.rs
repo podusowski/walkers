@@ -41,7 +41,7 @@ impl eframe::App for MyApp {
             let response = ui.add(Map::new(
                 Some(&mut self.tiles),
                 &mut self.map_memory,
-                wroclaw_glowny(),
+                my_position,
             ));
 
             // Draw custom shapes.
