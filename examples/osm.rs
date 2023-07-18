@@ -24,6 +24,36 @@ impl Osm {
     }
 }
 
+impl eframe::App for Osm {
+    fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
+        egui::CentralPanel::default().show(ctx, |ui| {
+            ui.horizontal(|ui| {
+                ui.label("following map uses data from");
+                ui.hyperlink("https://www.openstreetmap.org");
+                ui.label(", please consider donating at");
+                ui.hyperlink("https://donate.openstreetmap.org/");
+            });
+
+            // Typically this would be a GPS acquired position which is tracked by the map.
+            let my_position = wroclaw_glowny();
+
+            // Draw the actual map.
+            let response = ui.add(Map::new(
+                Some(&mut self.tiles),
+                &mut self.map_memory,
+                wroclaw_glowny(),
+            ));
+
+            // Draw custom shapes.
+            let painter = ui.painter().with_clip_rect(response.rect);
+            draw_custom_shapes(ui, painter, &self.map_memory, my_position);
+
+            zoom_window(ui, &mut self.map_memory);
+            go_to_my_position_window(ui, &mut self.map_memory);
+        });
+    }
+}
+
 /// Main train station of the city of Wrocław.
 /// https://en.wikipedia.org/wiki/Wroc%C5%82aw_G%C5%82%C3%B3wny_railway_station
 fn wroclaw_glowny() -> Position {
@@ -78,65 +108,42 @@ fn draw_custom_shapes(ui: &Ui, painter: Painter, map_memory: &MapMemory, my_posi
     painter.add(text);
 }
 
-impl eframe::App for Osm {
-    fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
-        egui::CentralPanel::default().show(ctx, |ui| {
+/// Simple GUI to zoom in and out.
+fn zoom_window(ui: &Ui, map_memory: &mut MapMemory) {
+    Window::new("Map")
+        .collapsible(false)
+        .resizable(false)
+        .title_bar(false)
+        .anchor(Align2::LEFT_BOTTOM, [10., -10.])
+        .show(ui.ctx(), |ui| {
             ui.horizontal(|ui| {
-                ui.label("following map uses data from");
-                ui.hyperlink("https://www.openstreetmap.org");
-                ui.label(", please consider donating at");
-                ui.hyperlink("https://donate.openstreetmap.org/");
+                if ui.button(RichText::new("➕").heading()).clicked() {
+                    let _ = map_memory.zoom.zoom_in();
+                }
+
+                if ui.button(RichText::new("➖").heading()).clicked() {
+                    let _ = map_memory.zoom.zoom_out();
+                }
             });
-
-            // Typically this would be a GPS acquired position which is tracked by the map.
-            let my_position = wroclaw_glowny();
-
-            // Draw the actual map.
-            let response = ui.add(Map::new(
-                Some(&mut self.tiles),
-                &mut self.map_memory,
-                wroclaw_glowny(),
-            ));
-
-            // Draw custom shapes.
-            let painter = ui.painter().with_clip_rect(response.rect);
-            draw_custom_shapes(ui, painter, &self.map_memory, my_position);
-
-            // Simple GUI to zoom in and out.
-            Window::new("Map")
-                .collapsible(false)
-                .resizable(false)
-                .title_bar(false)
-                .anchor(Align2::LEFT_BOTTOM, [10., -10.])
-                .show(ui.ctx(), |ui| {
-                    ui.horizontal(|ui| {
-                        if ui.button(RichText::new("➕").heading()).clicked() {
-                            let _ = self.map_memory.zoom.zoom_in();
-                        }
-
-                        if ui.button(RichText::new("➖").heading()).clicked() {
-                            let _ = self.map_memory.zoom.zoom_out();
-                        }
-                    });
-                });
-
-            // When map is "detached", show a windows with an option to go back to my position.
-            if let Center::Exact(position) = self.map_memory.center_mode {
-                Window::new("Center")
-                    .collapsible(false)
-                    .resizable(false)
-                    .title_bar(false)
-                    .anchor(Align2::RIGHT_BOTTOM, [-10., -10.])
-                    .show(ui.ctx(), |ui| {
-                        ui.label(format!("{:.04} {:.04}", position.x(), position.y()));
-                        if ui
-                            .button(RichText::new("go to my (fake) position ").heading())
-                            .clicked()
-                        {
-                            self.map_memory.center_mode = Center::MyPosition;
-                        }
-                    });
-            }
         });
+}
+
+/// When map is "detached", show a windows with an option to go back to my position.
+fn go_to_my_position_window(ui: &Ui, map_memory: &mut MapMemory) {
+    if let Center::Exact(position) = map_memory.center_mode {
+        Window::new("Center")
+            .collapsible(false)
+            .resizable(false)
+            .title_bar(false)
+            .anchor(Align2::RIGHT_BOTTOM, [-10., -10.])
+            .show(ui.ctx(), |ui| {
+                ui.label(format!("{:.04} {:.04}", position.x(), position.y()));
+                if ui
+                    .button(RichText::new("go to my (fake) position ").heading())
+                    .clicked()
+                {
+                    map_memory.center_mode = Center::MyPosition;
+                }
+            });
     }
 }
