@@ -53,4 +53,4 @@ particularly affected by some and I will try to prioritize.
 
 Other suggestions are welcomed as well.
 
-![Screenshot](screenshot.png)
+![Screenshot](https://raw.githubusercontent.com/podusowski/walkers/main/screenshot.png)
