@@ -84,36 +84,36 @@ impl TileId {
         Pixels::new((self.x * TILE_SIZE) as f32, (self.y * TILE_SIZE) as f32)
     }
 
-    pub fn east(&self) -> TileId {
-        TileId {
+    pub fn east(&self) -> Option<TileId> {
+        Some(TileId {
             x: self.x + 1,
             y: self.y,
             zoom: self.zoom,
-        }
+        })
     }
 
-    pub fn west(&self) -> TileId {
-        TileId {
-            x: self.x - 1,
+    pub fn west(&self) -> Option<TileId> {
+        Some(TileId {
+            x: self.x.checked_sub(1)?,
             y: self.y,
             zoom: self.zoom,
-        }
+        })
     }
 
-    pub fn north(&self) -> TileId {
-        TileId {
+    pub fn north(&self) -> Option<TileId> {
+        Some(TileId {
             x: self.x,
-            y: self.y - 1,
+            y: self.y.checked_sub(1)?,
             zoom: self.zoom,
-        }
+        })
     }
 
-    pub fn south(&self) -> TileId {
-        TileId {
+    pub fn south(&self) -> Option<TileId> {
+        Some(TileId {
             x: self.x,
             y: self.y + 1,
             zoom: self.zoom,
-        }
+        })
     }
 }
 

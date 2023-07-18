@@ -14,6 +14,10 @@ All notable changes to this project will be documented in this file.
 
  * Zooming using CTRL + mouse wheel or pinch gesture.
 
+### Fixed
+
+ * Fixed panic when dragging out of the map's boundaries.
+
 ## 0.5.0
 
 ### Breaking
