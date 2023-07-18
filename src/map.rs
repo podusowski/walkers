@@ -162,10 +162,13 @@ fn draw_tiles(
                 tile_id.east(),
                 tile_id.south(),
                 tile_id.west(),
-            ] {
+            ]
+            .iter()
+            .flatten()
+            {
                 draw_tiles(
                     painter,
-                    coordinates,
+                    *coordinates,
                     map_center_projected_position,
                     tiles,
                     ui,
