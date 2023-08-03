@@ -1,4 +1,4 @@
-use egui::{Align2, Context, Painter, RichText, Shape, Ui, Window};
+use egui::{Align2, Context, Painter, RichText, Shape, Ui, Vec2, Window};
 use walkers::{Center, Map, MapMemory, Position, PositionExt, Tiles};
 
 fn main() -> Result<(), eframe::Error> {
@@ -67,11 +67,13 @@ fn dworcowa_bus_stop() -> Position {
     Position::new(17.03940, 51.10005)
 }
 
-/// Shows how to draw various things in the map.
-fn draw_custom_shapes(ui: &Ui, painter: Painter, map_memory: &MapMemory, my_position: Position) {
-    // Geographical position of the point we want to put our shapes.
-    let position = dworcowa_bus_stop();
-
+/// Turn geographical position into location on the screen.
+fn screen_position(
+    position: Position,
+    painter: &Painter,
+    map_memory: &MapMemory,
+    my_position: Position,
+) -> Vec2 {
     // Turn that into a flat, mercator projection.
     let projected_position = position.project(map_memory.zoom.round());
 
@@ -82,8 +84,14 @@ fn draw_custom_shapes(ui: &Ui, painter: Painter, map_memory: &MapMemory, my_posi
         .project(map_memory.zoom.round());
 
     // From the two points above we can calculate the actual point on the screen.
-    let screen_position =
-        painter.clip_rect().center() + projected_position.to_vec2() - map_center_projected_position;
+    painter.clip_rect().center() + projected_position.to_vec2() - map_center_projected_position
+}
+
+/// Shows how to draw various things in the map.
+fn draw_custom_shapes(ui: &Ui, painter: Painter, map_memory: &MapMemory, my_position: Position) {
+    // Position of the point we want to put our shapes.
+    let position = dworcowa_bus_stop();
+    let screen_position = screen_position(position, &painter, map_memory, my_position);
 
     // Now we can just use Painter to draw stuff.
     let background = |text: &Shape| {
