@@ -138,7 +138,7 @@ async fn download_single(client: &reqwest::Client, url: &str) -> Result<Tile, Er
         .await
         .map_err(Error::from)?;
 
-    Tile::from_image_bytes(&image).map_err(|e| Error::Image(e))
+    Tile::from_image_bytes(&image).map_err(Error::Image)
 }
 
 async fn download<S>(
