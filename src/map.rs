@@ -90,9 +90,10 @@ impl Widget for Map<'_, '_> {
 /// is meant to be fed by a GPS sensor or other geo-localization method. If user drags the map,
 /// it becomes "detached" and stays this way until [`MapMemory::center_mode`] is changed back to
 /// [`Center::MyPosition`].
-#[derive(Clone, PartialEq)]
+#[derive(Clone, PartialEq, Default)]
 pub enum Center {
     /// Center at `my_position` argument of the [`Map::new()`] function.
+    #[default]
     MyPosition,
 
     /// Center at the exact position.
@@ -120,18 +121,10 @@ impl Center {
 }
 
 /// State of the map widget which must persist between frames.
+#[derive(Default)]
 pub struct MapMemory {
     pub center_mode: Center,
     pub zoom: Zoom,
-}
-
-impl Default for MapMemory {
-    fn default() -> Self {
-        Self {
-            center_mode: Center::MyPosition,
-            zoom: Default::default(),
-        }
-    }
 }
 
 fn draw_tiles(
