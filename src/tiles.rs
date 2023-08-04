@@ -113,8 +113,13 @@ impl Tiles {
 }
 
 #[derive(Debug, thiserror::Error)]
-#[error("tile could not be downloaded")]
-struct Error;
+enum Error {
+    #[error(transparent)]
+    Http(#[from] reqwest::Error),
+
+    #[error("error while decoding the image: {0}")]
+    Image(String),
+}
 
 async fn download_single(client: &reqwest::Client, url: &str) -> Result<Tile, Error> {
     let image = client
@@ -122,18 +127,18 @@ async fn download_single(client: &reqwest::Client, url: &str) -> Result<Tile, Er
         .header(USER_AGENT, "Walkers")
         .send()
         .await
-        .map_err(|_| Error)?;
+        .map_err(Error::from)?;
 
     log::debug!("Downloaded {:?}.", image.status());
 
     let image = image
         .error_for_status()
-        .map_err(|_| Error)?
+        .map_err(Error::from)?
         .bytes()
         .await
-        .map_err(|_| Error)?;
+        .map_err(Error::from)?;
 
-    Tile::from_image_bytes(&image).map_err(|_| Error)
+    Tile::from_image_bytes(&image).map_err(Error::Image)
 }
 
 async fn download<S>(
@@ -154,11 +159,14 @@ where
 
         log::debug!("Getting {:?} from {}.", request, url);
 
-        if let Ok(image) = download_single(&client, &url).await {
-            tile_tx.send((request, image)).await.map_err(|_| ())?;
-            egui_ctx.request_repaint();
-        } else {
-            log::warn!("Could not download '{}'.", &url);
+        match download_single(&client, &url).await {
+            Ok(tile) => {
+                tile_tx.send((request, tile)).await.map_err(|_| ())?;
+                egui_ctx.request_repaint();
+            }
+            Err(e) => {
+                log::warn!("Could not download '{}': {}", &url, e);
+            }
         }
     }
 }
