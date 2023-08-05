@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## Unreleased
+
+### Breaking
+
+ * `openstreetmap` is now in `walkers::providers` module.
+
 ## 0.6.0
 
 ### Breaking
