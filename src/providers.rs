@@ -17,7 +17,6 @@ pub fn geoportal(tile_id: TileId) -> String {
         &REQUEST=GetTile\
         &VERSION=1.0.0\
         &LAYER=ORTOFOTOMAPA\
-        &STYLE=default\
         &TILEMATRIXSET=EPSG:3857\
         &TILEMATRIX=EPSG:3857:{}\
         &TILEROW={}\
