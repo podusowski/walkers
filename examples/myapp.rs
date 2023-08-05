@@ -50,6 +50,7 @@ impl eframe::App for MyApp {
 
             zoom_window(ui, &mut self.map_memory);
             go_to_my_position_window(ui, &mut self.map_memory);
+            orthophotomap_window(ui, &mut self.tiles, &mut self.map_memory, my_position);
         });
     }
 }
@@ -114,6 +115,23 @@ fn draw_custom_shapes(ui: &Ui, painter: Painter, map_memory: &MapMemory, my_posi
     });
     painter.add(background(&text));
     painter.add(text);
+}
+
+fn orthophotomap_window(
+    ui: &Ui,
+    tiles: &mut Tiles,
+    map_memory: &mut MapMemory,
+    my_position: Position,
+) {
+    Window::new("Orthophotomap")
+        .collapsible(false)
+        .resizable(false)
+        .title_bar(false)
+        .anchor(Align2::RIGHT_TOP, [-10., 10.])
+        .fixed_size([150., 150.])
+        .show(ui.ctx(), |ui| {
+            let response = ui.add(Map::new(Some(tiles), map_memory, my_position));
+        });
 }
 
 /// Simple GUI to zoom in and out.
