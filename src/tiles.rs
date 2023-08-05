@@ -54,13 +54,6 @@ pub struct Tiles {
     tokio_runtime_thread: TokioRuntimeThread,
 }
 
-pub fn openstreetmap(tile_id: TileId) -> String {
-    format!(
-        "https://tile.openstreetmap.org/{}/{}/{}.png",
-        tile_id.zoom, tile_id.x, tile_id.y
-    )
-}
-
 impl Tiles {
     pub fn new<S>(source: S, egui_ctx: Context) -> Self
     where
