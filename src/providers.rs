@@ -2,7 +2,7 @@
 
 use crate::mercator::TileId;
 
-/// https://www.openstreetmap.org/about
+/// <https://www.openstreetmap.org/about>
 pub fn openstreetmap(tile_id: TileId) -> String {
     format!(
         "https://tile.openstreetmap.org/{}/{}/{}.png",
