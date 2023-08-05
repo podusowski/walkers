@@ -4,7 +4,7 @@ use walkers::{Center, Map, MapMemory, Position, PositionExt, Tiles};
 fn main() -> Result<(), eframe::Error> {
     env_logger::init();
     eframe::run_native(
-        "OpenStreetMap",
+        "MyApp",
         Default::default(),
         Box::new(|cc| Box::new(MyApp::new(cc.egui_ctx.clone()))),
     )
