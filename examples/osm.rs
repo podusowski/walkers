@@ -18,7 +18,7 @@ struct MyApp {
 impl MyApp {
     fn new(egui_ctx: Context) -> Self {
         Self {
-            tiles: Tiles::new(walkers::providers::openstreetmap, egui_ctx),
+            tiles: Tiles::new(walkers::providers::geoportal, egui_ctx),
             map_memory: MapMemory::default(),
         }
     }
