@@ -108,7 +108,7 @@ impl Tiles {
 #[derive(Debug, thiserror::Error)]
 enum Error {
     #[error(transparent)]
-    Http(#[from] reqwest::Error),
+    Http(reqwest::Error),
 
     #[error("error while decoding the image: {0}")]
     Image(String),
@@ -120,16 +120,16 @@ async fn download_single(client: &reqwest::Client, url: &str) -> Result<Tile, Er
         .header(USER_AGENT, "Walkers")
         .send()
         .await
-        .map_err(Error::from)?;
+        .map_err(Error::Http)?;
 
     log::debug!("Downloaded {:?}.", image.status());
 
     let image = image
         .error_for_status()
-        .map_err(Error::from)?
+        .map_err(Error::Http)?
         .bytes()
         .await
-        .map_err(Error::from)?;
+        .map_err(Error::Http)?;
 
     Tile::from_image_bytes(&image).map_err(Error::Image)
 }
