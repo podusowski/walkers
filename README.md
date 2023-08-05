@@ -9,7 +9,7 @@ such as OpenStreetMap and stores them in a cache, `MapMemory` keeps track of
 the widget's state and `Map` is the widget itself.
 
 ```rust
-use walkers::{Tiles, Map, MapMemory, Position, openstreetmap};
+use walkers::{Tiles, Map, MapMemory, Position, providers::openstreetmap};
 use egui::{Context, CentralPanel};
 use eframe::{App, Frame};
 
