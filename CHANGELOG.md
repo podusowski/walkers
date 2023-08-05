@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file.
 
+## Unreleased
+
+### Breaking
+
+ * `openstreetmap` is now in `walkers::providers` module.
+ * `osm` example is now called `myapp` and it shows a small windows with an orthophotomap
+   layer from <https://geoportal.gov.pl>.
+
 ## 0.6.0
 
 ### Breaking

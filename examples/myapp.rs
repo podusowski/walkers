@@ -12,13 +12,15 @@ fn main() -> Result<(), eframe::Error> {
 
 struct MyApp {
     tiles: Tiles,
+    geoportal_tiles: Tiles,
     map_memory: MapMemory,
 }
 
 impl MyApp {
     fn new(egui_ctx: Context) -> Self {
         Self {
-            tiles: Tiles::new(walkers::openstreetmap, egui_ctx),
+            tiles: Tiles::new(walkers::providers::openstreetmap, egui_ctx.to_owned()),
+            geoportal_tiles: Tiles::new(walkers::providers::geoportal, egui_ctx),
             map_memory: MapMemory::default(),
         }
     }
@@ -27,13 +29,6 @@ impl MyApp {
 impl eframe::App for MyApp {
     fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
         egui::CentralPanel::default().show(ctx, |ui| {
-            ui.horizontal(|ui| {
-                ui.label("following map uses data from");
-                ui.hyperlink("https://www.openstreetmap.org");
-                ui.label(", please consider donating at");
-                ui.hyperlink("https://donate.openstreetmap.org/");
-            });
-
             // Typically this would be a GPS acquired position which is tracked by the map.
             let my_position = wroclaw_glowny();
 
@@ -50,6 +45,15 @@ impl eframe::App for MyApp {
 
             zoom_window(ui, &mut self.map_memory);
             go_to_my_position_window(ui, &mut self.map_memory);
+
+            orthophotomap_window(
+                ui,
+                &mut self.geoportal_tiles,
+                &mut self.map_memory,
+                my_position,
+            );
+
+            acknowledge_window(ui);
         });
     }
 }
@@ -114,6 +118,38 @@ fn draw_custom_shapes(ui: &Ui, painter: Painter, map_memory: &MapMemory, my_posi
     });
     painter.add(background(&text));
     painter.add(text);
+}
+
+fn acknowledge_window(ui: &Ui) {
+    Window::new("Acknowledge")
+        .collapsible(false)
+        .resizable(false)
+        .title_bar(false)
+        .anchor(Align2::LEFT_TOP, [10., 10.])
+        .fixed_size([150., 150.])
+        .show(ui.ctx(), |ui| {
+            ui.horizontal(|ui| {
+                ui.label("following map uses data from");
+                ui.hyperlink("https://www.openstreetmap.org");
+            });
+        });
+}
+
+fn orthophotomap_window(
+    ui: &Ui,
+    tiles: &mut Tiles,
+    map_memory: &mut MapMemory,
+    my_position: Position,
+) {
+    Window::new("Orthophotomap")
+        .collapsible(false)
+        .resizable(false)
+        .title_bar(false)
+        .anchor(Align2::RIGHT_TOP, [-10., 10.])
+        .fixed_size([150., 150.])
+        .show(ui.ctx(), |ui| {
+            ui.add(Map::new(Some(tiles), map_memory, my_position));
+        });
 }
 
 /// Simple GUI to zoom in and out.

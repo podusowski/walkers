@@ -14,6 +14,7 @@ thiserror = "1"
 log = "0.4"
 egui = "0.22"
 egui_extras = { version = "0.22", features = ["image"] }
+image = { version = "0.24", features = ["jpeg", "png"] }
 geo-types = { version = "0.7" }
 reqwest = { version = "0.11", default-features = false, features = [
     "rustls-tls",

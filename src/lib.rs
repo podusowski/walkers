@@ -3,11 +3,12 @@
 
 mod map;
 mod mercator;
+pub mod providers;
 mod tiles;
 mod tokio;
 mod zoom;
 
 pub use map::{Center, Map, MapMemory};
 pub use mercator::{screen_to_position, Position, PositionExt};
+pub use tiles::Tiles;
 pub use zoom::Zoom;
-pub use {tiles::openstreetmap, tiles::Tiles};
