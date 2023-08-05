@@ -7,6 +7,7 @@ All notable changes to this project will be documented in this file.
 ### Breaking
 
  * `openstreetmap` is now in `walkers::providers` module.
+ * `osm` example is now called `myapp`.
 
 ## 0.6.0
 
