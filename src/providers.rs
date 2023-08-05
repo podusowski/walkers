@@ -10,6 +10,8 @@ pub fn openstreetmap(tile_id: TileId) -> String {
     )
 }
 
+/// Orthophotomap layer from Poland's Geoportal.
+/// <https://www.geoportal.gov.pl/uslugi/usluga-przegladania-wms>
 pub fn geoportal(tile_id: TileId) -> String {
     format!(
         "https://mapy.geoportal.gov.pl/wss/service/PZGIK/ORTO/WMTS/StandardResolution?\
