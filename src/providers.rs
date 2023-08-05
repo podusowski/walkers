@@ -21,9 +21,7 @@ pub fn geoportal(tile_id: TileId) -> String {
         &TILEMATRIXSET=EPSG:3857\
         &TILEMATRIX=EPSG:3857:{}\
         &TILEROW={}\
-        &TILECOL={}\
-        &FORMAT=image/png\
-        &rfh=1",
+        &TILECOL={}",
         tile_id.zoom, tile_id.y, tile_id.x
     )
 }
