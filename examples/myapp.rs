@@ -27,13 +27,6 @@ impl MyApp {
 impl eframe::App for MyApp {
     fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
         egui::CentralPanel::default().show(ctx, |ui| {
-            ui.horizontal(|ui| {
-                ui.label("following map uses data from");
-                ui.hyperlink("https://www.openstreetmap.org");
-                ui.label(", please consider donating at");
-                ui.hyperlink("https://donate.openstreetmap.org/");
-            });
-
             // Typically this would be a GPS acquired position which is tracked by the map.
             let my_position = wroclaw_glowny();
 
@@ -51,6 +44,7 @@ impl eframe::App for MyApp {
             zoom_window(ui, &mut self.map_memory);
             go_to_my_position_window(ui, &mut self.map_memory);
             orthophotomap_window(ui, &mut self.tiles, &mut self.map_memory, my_position);
+            acknowledge_window(ui);
         });
     }
 }
@@ -115,6 +109,21 @@ fn draw_custom_shapes(ui: &Ui, painter: Painter, map_memory: &MapMemory, my_posi
     });
     painter.add(background(&text));
     painter.add(text);
+}
+
+fn acknowledge_window(ui: &Ui) {
+    Window::new("Acknowledge")
+        .collapsible(false)
+        .resizable(false)
+        .title_bar(false)
+        .anchor(Align2::LEFT_TOP, [10., 10.])
+        .fixed_size([150., 150.])
+        .show(ui.ctx(), |ui| {
+            ui.horizontal(|ui| {
+                ui.label("following map uses data from");
+                ui.hyperlink("https://www.openstreetmap.org");
+            });
+        });
 }
 
 fn orthophotomap_window(
