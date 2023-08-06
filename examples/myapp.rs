@@ -43,17 +43,22 @@ impl eframe::App for MyApp {
             let painter = ui.painter().with_clip_rect(response.rect);
             draw_custom_shapes(ui, painter, &self.map_memory, my_position);
 
-            windows::zoom_window(ui, &mut self.map_memory);
-            windows::go_to_my_position_window(ui, &mut self.map_memory);
+            // Draw utility windows.
+            {
+                use windows::*;
 
-            windows::orthophotomap_window(
-                ui,
-                &mut self.geoportal_tiles,
-                &mut self.map_memory,
-                my_position,
-            );
+                zoom(ui, &mut self.map_memory);
+                go_to_my_position(ui, &mut self.map_memory);
 
-            windows::acknowledge_window(ui);
+                orthophotomap(
+                    ui,
+                    &mut self.geoportal_tiles,
+                    &mut self.map_memory,
+                    my_position,
+                );
+
+                acknowledge(ui);
+            }
         });
     }
 }
@@ -129,7 +134,7 @@ mod windows {
     use egui::{Align2, RichText, Ui, Window};
     use walkers::{Center, Map, MapMemory, Position, Tiles};
 
-    pub fn acknowledge_window(ui: &Ui) {
+    pub fn acknowledge(ui: &Ui) {
         Window::new("Acknowledge")
             .collapsible(false)
             .resizable(false)
@@ -144,7 +149,7 @@ mod windows {
             });
     }
 
-    pub fn orthophotomap_window(
+    pub fn orthophotomap(
         ui: &Ui,
         tiles: &mut Tiles,
         map_memory: &mut MapMemory,
@@ -162,7 +167,7 @@ mod windows {
     }
 
     /// Simple GUI to zoom in and out.
-    pub fn zoom_window(ui: &Ui, map_memory: &mut MapMemory) {
+    pub fn zoom(ui: &Ui, map_memory: &mut MapMemory) {
         Window::new("Map")
             .collapsible(false)
             .resizable(false)
@@ -182,7 +187,7 @@ mod windows {
     }
 
     /// When map is "detached", show a windows with an option to go back to my position.
-    pub fn go_to_my_position_window(ui: &Ui, map_memory: &mut MapMemory) {
+    pub fn go_to_my_position(ui: &Ui, map_memory: &mut MapMemory) {
         if let Center::Exact(position) = map_memory.center_mode {
             Window::new("Center")
                 .collapsible(false)
