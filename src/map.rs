@@ -27,6 +27,7 @@ pub struct Map<'a, 'b> {
     tiles: Option<&'b mut Tiles>,
     memory: &'a mut MapMemory,
     my_position: Position,
+    drawer: Option<Box<dyn Fn()>>,
 }
 
 impl<'a, 'b> Map<'a, 'b> {
@@ -39,7 +40,16 @@ impl<'a, 'b> Map<'a, 'b> {
             tiles,
             memory,
             my_position,
+            drawer: None,
         }
+    }
+
+    pub fn with_drawer<D>(mut self, drawer: D) -> Self
+    where
+        D: Fn() + 'static,
+    {
+        self.drawer = Some(Box::new(drawer));
+        self
     }
 }
 

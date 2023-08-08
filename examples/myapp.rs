@@ -33,11 +33,10 @@ impl eframe::App for MyApp {
             let my_position = places::wroclaw_glowny();
 
             // Draw the actual map.
-            let response = ui.add(Map::new(
-                Some(&mut self.tiles),
-                &mut self.map_memory,
-                my_position,
-            ));
+            let response = ui.add(
+                Map::new(Some(&mut self.tiles), &mut self.map_memory, my_position)
+                    .with_drawer(|| {}),
+            );
 
             // Draw custom shapes.
             let painter = ui.painter().with_clip_rect(response.rect);
