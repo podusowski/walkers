@@ -1,6 +1,6 @@
 use std::collections::{hash_map::Entry, HashMap};
 
-use egui::{Mesh, Painter, Pos2, Response, Sense, Ui, Vec2, Widget};
+use egui::{Mesh, Painter, Pos2, Rect, Response, Sense, Ui, Vec2, Widget};
 
 use crate::{
     mercator::{screen_to_position, PositionExt, TileId},
@@ -56,13 +56,13 @@ impl<'a, 'b> Map<'a, 'b> {
 }
 
 /// Projects geographical position into screen pixels, suitable for [`egui::Painter`].
-pub struct Projector<'a, 'b> {
-    painter: &'a Painter,
+pub struct Projector<'b> {
+    clip_rect: Rect,
     memory: &'b MapMemory,
     my_position: Position,
 }
 
-impl<'a, 'b> Projector<'a, 'b> {
+impl<'b> Projector<'b> {
     pub fn project(&self, position: Position) -> Vec2 {
         // Turn that into a flat, mercator projection.
         let projected_position = position.project(self.memory.zoom.round());
@@ -75,8 +75,7 @@ impl<'a, 'b> Projector<'a, 'b> {
             .project(self.memory.zoom.round());
 
         // From the two points above we can calculate the actual point on the screen.
-        self.painter.clip_rect().center() + projected_position.to_vec2()
-            - map_center_projected_position
+        self.clip_rect.center() + projected_position.to_vec2() - map_center_projected_position
     }
 }
 
@@ -123,7 +122,7 @@ impl Widget for Map<'_, '_> {
             let painter = ui.painter().with_clip_rect(response.rect);
 
             let projector = Projector {
-                painter: &ui.painter().with_clip_rect(response.rect),
+                clip_rect: response.rect,
                 memory: self.memory,
                 my_position: self.my_position,
             };
