@@ -1,6 +1,6 @@
 use std::collections::{hash_map::Entry, HashMap};
 
-use egui::{Mesh, Painter, Pos2, Response, Sense, Ui, Widget};
+use egui::{Mesh, Painter, Pos2, Rect, Response, Sense, Ui, Vec2, Widget};
 
 use crate::{
     mercator::{screen_to_position, PositionExt, TileId},
@@ -27,6 +27,9 @@ pub struct Map<'a, 'b> {
     tiles: Option<&'b mut Tiles>,
     memory: &'a mut MapMemory,
     my_position: Position,
+
+    #[allow(clippy::type_complexity)]
+    drawer: Option<Box<dyn Fn(Painter, &Projector)>>,
 }
 
 impl<'a, 'b> Map<'a, 'b> {
@@ -39,7 +42,40 @@ impl<'a, 'b> Map<'a, 'b> {
             tiles,
             memory,
             my_position,
+            drawer: None,
         }
+    }
+
+    pub fn with_drawer<D>(mut self, drawer: D) -> Self
+    where
+        D: Fn(Painter, &Projector) + 'static,
+    {
+        self.drawer = Some(Box::new(drawer));
+        self
+    }
+}
+
+/// Projects geographical position into screen pixels, suitable for [`egui::Painter`].
+pub struct Projector<'a> {
+    clip_rect: Rect,
+    memory: &'a MapMemory,
+    my_position: Position,
+}
+
+impl<'a> Projector<'a> {
+    pub fn project(&self, position: Position) -> Vec2 {
+        // Turn that into a flat, mercator projection.
+        let projected_position = position.project(self.memory.zoom.round());
+
+        // We also need to know where the map center is.
+        let map_center_projected_position = self
+            .memory
+            .center_mode
+            .position(self.my_position)
+            .project(self.memory.zoom.round());
+
+        // From the two points above we can calculate the actual point on the screen.
+        self.clip_rect.center() + projected_position.to_vec2() - map_center_projected_position
     }
 }
 
@@ -80,6 +116,18 @@ impl Widget for Map<'_, '_> {
             for (_, shape) in meshes {
                 painter.add(shape);
             }
+        }
+
+        if let Some(drawer) = self.drawer {
+            let painter = ui.painter().with_clip_rect(response.rect);
+
+            let projector = Projector {
+                clip_rect: response.rect,
+                memory: self.memory,
+                my_position: self.my_position,
+            };
+
+            drawer(painter, &projector);
         }
 
         response

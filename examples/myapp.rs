@@ -1,5 +1,5 @@
-use egui::{Align2, Context, Painter, Shape, Ui, Vec2};
-use walkers::{Map, MapMemory, Position, PositionExt, Tiles};
+use egui::{Align2, Context, Painter, Shape};
+use walkers::{Map, MapMemory, Projector, Tiles};
 
 fn main() -> Result<(), eframe::Error> {
     env_logger::init();
@@ -32,16 +32,17 @@ impl eframe::App for MyApp {
             // Typically this would be a GPS acquired position which is tracked by the map.
             let my_position = places::wroclaw_glowny();
 
-            // Draw the actual map.
-            let response = ui.add(Map::new(
-                Some(&mut self.tiles),
-                &mut self.map_memory,
-                my_position,
-            ));
+            // In egui, widgets are constructed and consumed in each frame.
+            let map = Map::new(Some(&mut self.tiles), &mut self.map_memory, my_position);
 
-            // Draw custom shapes.
-            let painter = ui.painter().with_clip_rect(response.rect);
-            draw_custom_shapes(ui, painter, &self.map_memory, my_position);
+            // Optionally, a function which draw custom stuff on the map can be attached.
+            let ctx_clone = ctx.clone();
+            let map = map.with_drawer(move |painter, project| {
+                draw_custom_shapes(ctx_clone.clone(), painter, project);
+            });
+
+            // Draw the map widget.
+            ui.add(map);
 
             // Draw utility windows.
             {
@@ -81,49 +82,31 @@ mod places {
     }
 }
 
-/// Turn geographical position into location on the screen.
-fn screen_position(
-    position: Position,
-    painter: &Painter,
-    map_memory: &MapMemory,
-    my_position: Position,
-) -> Vec2 {
-    // Turn that into a flat, mercator projection.
-    let projected_position = position.project(map_memory.zoom.round());
-
-    // We also need to know where the map center is.
-    let map_center_projected_position = map_memory
-        .center_mode
-        .position(my_position)
-        .project(map_memory.zoom.round());
-
-    // From the two points above we can calculate the actual point on the screen.
-    painter.clip_rect().center() + projected_position.to_vec2() - map_center_projected_position
-}
-
 /// Shows how to draw various things in the map.
-fn draw_custom_shapes(ui: &Ui, painter: Painter, map_memory: &MapMemory, my_position: Position) {
+fn draw_custom_shapes(ctx: Context, painter: Painter, projector: &Projector) {
     // Position of the point we want to put our shapes.
     let position = places::dworcowa_bus_stop();
-    let screen_position = screen_position(position, &painter, map_memory, my_position);
+
+    // Project it into the position on the screen.
+    let screen_position = projector.project(position);
 
     // Now we can just use Painter to draw stuff.
     let background = |text: &Shape| {
         Shape::rect_filled(
             text.visual_bounding_rect().expand(5.),
             5.,
-            ui.visuals().extreme_bg_color,
+            ctx.style().visuals.extreme_bg_color,
         )
     };
 
-    let text = ui.fonts(|fonts| {
+    let text = ctx.fonts(|fonts| {
         Shape::text(
             fonts,
             screen_position.to_pos2(),
             Align2::LEFT_CENTER,
             "⬉ Here you can board the 106 line\nwhich goes to the airport.",
             Default::default(),
-            ui.visuals().text_color(),
+            ctx.style().visuals.text_color(),
         )
     });
     painter.add(background(&text));
