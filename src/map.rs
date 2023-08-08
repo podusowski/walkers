@@ -56,13 +56,13 @@ impl<'a, 'b> Map<'a, 'b> {
 }
 
 /// Projects geographical position into screen pixels, suitable for [`egui::Painter`].
-pub struct Projector<'b> {
+pub struct Projector<'a> {
     clip_rect: Rect,
-    memory: &'b MapMemory,
+    memory: &'a MapMemory,
     my_position: Position,
 }
 
-impl<'b> Projector<'b> {
+impl<'a> Projector<'a> {
     pub fn project(&self, position: Position) -> Vec2 {
         // Turn that into a flat, mercator projection.
         let projected_position = position.project(self.memory.zoom.round());
