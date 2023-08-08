@@ -85,6 +85,8 @@ mod places {
 fn draw_custom_shapes(ctx: Context, painter: Painter, project: &dyn Fn(Position) -> Vec2) {
     // Position of the point we want to put our shapes.
     let position = places::dworcowa_bus_stop();
+
+    // Project it into the position on the screen.
     let screen_position = project(position);
 
     // Now we can just use Painter to draw stuff.
