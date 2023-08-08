@@ -27,7 +27,7 @@ pub struct Map<'a, 'b> {
     tiles: Option<&'b mut Tiles>,
     memory: &'a mut MapMemory,
     my_position: Position,
-    drawer: Option<Box<dyn Fn(Painter, &dyn Fn(Position) -> Vec2)>>,
+    drawer: Option<Box<dyn Fn(Painter, &Projector)>>,
 }
 
 impl<'a, 'b> Map<'a, 'b> {
@@ -46,30 +46,35 @@ impl<'a, 'b> Map<'a, 'b> {
 
     pub fn with_drawer<D>(mut self, drawer: D) -> Self
     where
-        D: Fn(Painter, &dyn Fn(Position) -> Vec2) + 'static,
+        D: Fn(Painter, &Projector) + 'static,
     {
         self.drawer = Some(Box::new(drawer));
         self
     }
 }
 
-fn screen_position(
-    position: Position,
-    painter: &Painter,
-    map_memory: &MapMemory,
+pub struct Projector<'a, 'b> {
+    painter: &'a Painter,
+    memory: &'b MapMemory,
     my_position: Position,
-) -> Vec2 {
-    // Turn that into a flat, mercator projection.
-    let projected_position = position.project(map_memory.zoom.round());
+}
 
-    // We also need to know where the map center is.
-    let map_center_projected_position = map_memory
-        .center_mode
-        .position(my_position)
-        .project(map_memory.zoom.round());
+impl<'a, 'b> Projector<'a, 'b> {
+    pub fn project(&self, position: Position) -> Vec2 {
+        // Turn that into a flat, mercator projection.
+        let projected_position = position.project(self.memory.zoom.round());
 
-    // From the two points above we can calculate the actual point on the screen.
-    painter.clip_rect().center() + projected_position.to_vec2() - map_center_projected_position
+        // We also need to know where the map center is.
+        let map_center_projected_position = self
+            .memory
+            .center_mode
+            .position(self.my_position)
+            .project(self.memory.zoom.round());
+
+        // From the two points above we can calculate the actual point on the screen.
+        self.painter.clip_rect().center() + projected_position.to_vec2()
+            - map_center_projected_position
+    }
 }
 
 impl Widget for Map<'_, '_> {
@@ -113,14 +118,14 @@ impl Widget for Map<'_, '_> {
 
         if let Some(drawer) = self.drawer {
             let painter = ui.painter().with_clip_rect(response.rect);
-            drawer(painter, &|position| {
-                screen_position(
-                    position,
-                    &ui.painter().with_clip_rect(response.rect),
-                    &self.memory,
-                    self.my_position,
-                )
-            });
+
+            let projector = Projector {
+                painter: &ui.painter().with_clip_rect(response.rect),
+                memory: self.memory,
+                my_position: self.my_position,
+            };
+
+            drawer(painter, &projector);
         }
 
         response

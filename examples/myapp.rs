@@ -1,5 +1,5 @@
-use egui::{Align2, Context, Painter, Shape, Vec2};
-use walkers::{Map, MapMemory, Position, Tiles};
+use egui::{Align2, Context, Painter, Shape};
+use walkers::{Map, MapMemory, Projector, Tiles};
 
 fn main() -> Result<(), eframe::Error> {
     env_logger::init();
@@ -83,12 +83,12 @@ mod places {
 }
 
 /// Shows how to draw various things in the map.
-fn draw_custom_shapes(ctx: Context, painter: Painter, project: &dyn Fn(Position) -> Vec2) {
+fn draw_custom_shapes(ctx: Context, painter: Painter, projector: &Projector) {
     // Position of the point we want to put our shapes.
     let position = places::dworcowa_bus_stop();
 
     // Project it into the position on the screen.
-    let screen_position = project(position);
+    let screen_position = projector.project(position);
 
     // Now we can just use Painter to draw stuff.
     let background = |text: &Shape| {
