@@ -28,39 +28,46 @@ impl MyApp {
 
 impl eframe::App for MyApp {
     fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
-        egui::CentralPanel::default().show(ctx, |ui| {
-            // Typically this would be a GPS acquired position which is tracked by the map.
-            let my_position = places::wroclaw_glowny();
+        let rimless = egui::Frame {
+            fill: ctx.style().visuals.panel_fill,
+            ..Default::default()
+        };
 
-            // In egui, widgets are constructed and consumed in each frame.
-            let map = Map::new(Some(&mut self.tiles), &mut self.map_memory, my_position);
+        egui::CentralPanel::default()
+            .frame(rimless)
+            .show(ctx, |ui| {
+                // Typically this would be a GPS acquired position which is tracked by the map.
+                let my_position = places::wroclaw_glowny();
 
-            // Optionally, a function which draw custom stuff on the map can be attached.
-            let ctx_clone = ctx.clone();
-            let map = map.with_drawer(move |painter, project| {
-                draw_custom_shapes(ctx_clone.clone(), painter, project);
+                // In egui, widgets are constructed and consumed in each frame.
+                let map = Map::new(Some(&mut self.tiles), &mut self.map_memory, my_position);
+
+                // Optionally, a function which draw custom stuff on the map can be attached.
+                let ctx_clone = ctx.clone();
+                let map = map.with_drawer(move |painter, project| {
+                    draw_custom_shapes(ctx_clone.clone(), painter, project);
+                });
+
+                // Draw the map widget.
+                ui.add(map);
+
+                // Draw utility windows.
+                {
+                    use windows::*;
+
+                    zoom(ui, &mut self.map_memory);
+                    go_to_my_position(ui, &mut self.map_memory);
+
+                    orthophotomap(
+                        ui,
+                        &mut self.geoportal_tiles,
+                        &mut self.map_memory,
+                        my_position,
+                    );
+
+                    acknowledge(ui);
+                }
             });
-
-            // Draw the map widget.
-            ui.add(map);
-
-            // Draw utility windows.
-            {
-                use windows::*;
-
-                zoom(ui, &mut self.map_memory);
-                go_to_my_position(ui, &mut self.map_memory);
-
-                orthophotomap(
-                    ui,
-                    &mut self.geoportal_tiles,
-                    &mut self.map_memory,
-                    my_position,
-                );
-
-                acknowledge(ui);
-            }
-        });
     }
 }
 
