@@ -38,34 +38,7 @@ impl eframe::App for MyApp {
             ui.add(
                 Map::new(Some(&mut self.tiles), &mut self.map_memory, my_position).with_drawer(
                     move |painter, project| {
-                        //draw_custom_shapes(ctx_clone.clone(), painter, map_memory, my_position);
-                        let ctx = ctx_clone.clone();
-
-                        // Position of the point we want to put our shapes.
-                        let position = places::dworcowa_bus_stop();
-                        let screen_position = project(position);
-
-                        // Now we can just use Painter to draw stuff.
-                        let background = |text: &Shape| {
-                            Shape::rect_filled(
-                                text.visual_bounding_rect().expand(5.),
-                                5.,
-                                ctx.style().visuals.extreme_bg_color,
-                            )
-                        };
-
-                        let text = ctx.fonts(|fonts| {
-                            Shape::text(
-                                fonts,
-                                screen_position.to_pos2(),
-                                Align2::LEFT_CENTER,
-                                "⬉ Here you can board the 106 line\nwhich goes to the airport.",
-                                Default::default(),
-                                ctx.style().visuals.text_color(),
-                            )
-                        });
-                        painter.add(background(&text));
-                        painter.add(text);
+                        draw_custom_shapes(ctx_clone.clone(), painter, project);
                     },
                 ),
             );
@@ -129,15 +102,10 @@ fn screen_position(
 }
 
 /// Shows how to draw various things in the map.
-fn draw_custom_shapes(
-    ctx: Context,
-    painter: Painter,
-    map_memory: &MapMemory,
-    my_position: Position,
-) {
+fn draw_custom_shapes(ctx: Context, painter: Painter, project: &dyn Fn(Position) -> Vec2) {
     // Position of the point we want to put our shapes.
     let position = places::dworcowa_bus_stop();
-    let screen_position = screen_position(position, &painter, map_memory, my_position);
+    let screen_position = project(position);
 
     // Now we can just use Painter to draw stuff.
     let background = |text: &Shape| {
