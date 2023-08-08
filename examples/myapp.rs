@@ -1,5 +1,5 @@
-use egui::{Align2, Context, Painter, Shape, Ui, Vec2};
-use walkers::{Map, MapMemory, Position, PositionExt, Tiles};
+use egui::{Align2, Context, Painter, Shape, Vec2};
+use walkers::{Map, MapMemory, Position, Tiles};
 
 fn main() -> Result<(), eframe::Error> {
     env_logger::init();
@@ -79,26 +79,6 @@ mod places {
     pub fn dworcowa_bus_stop() -> Position {
         Position::new(17.03940, 51.10005)
     }
-}
-
-/// Turn geographical position into location on the screen.
-fn screen_position(
-    position: Position,
-    painter: &Painter,
-    map_memory: &MapMemory,
-    my_position: Position,
-) -> Vec2 {
-    // Turn that into a flat, mercator projection.
-    let projected_position = position.project(map_memory.zoom.round());
-
-    // We also need to know where the map center is.
-    let map_center_projected_position = map_memory
-        .center_mode
-        .position(my_position)
-        .project(map_memory.zoom.round());
-
-    // From the two points above we can calculate the actual point on the screen.
-    painter.clip_rect().center() + projected_position.to_vec2() - map_center_projected_position
 }
 
 /// Shows how to draw various things in the map.
