@@ -12,7 +12,7 @@ All notable changes to this project will be documented in this file.
 
 ### Added
 
- * New method: `Map::with_drawer`, which provides simpler API for drawing custom stuff.
+ * New method: `Map::with_drawer`, which provides a simpler API for drawing custom stuff.
 
 ## 0.6.0
 
