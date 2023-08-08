@@ -53,6 +53,7 @@ impl<'a, 'b> Map<'a, 'b> {
     }
 }
 
+/// Projects geographical position into screen pixels, suitable for [`egui::Painter`].
 pub struct Projector<'a, 'b> {
     painter: &'a Painter,
     memory: &'b MapMemory,
