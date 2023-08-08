@@ -32,15 +32,20 @@ impl eframe::App for MyApp {
             // Typically this would be a GPS acquired position which is tracked by the map.
             let my_position = places::wroclaw_glowny();
 
+            let ctx_clone = ctx.clone();
+
             // Draw the actual map.
             let response = ui.add(
-                Map::new(Some(&mut self.tiles), &mut self.map_memory, my_position)
-                    .with_drawer(|| {}),
+                Map::new(Some(&mut self.tiles), &mut self.map_memory, my_position).with_drawer(
+                    move |painter, map_memory, position, project| {
+                        draw_custom_shapes(ctx_clone.clone(), painter, map_memory, my_position);
+                    },
+                ),
             );
 
             // Draw custom shapes.
-            let painter = ui.painter().with_clip_rect(response.rect);
-            draw_custom_shapes(ui, painter, &self.map_memory, my_position);
+            //let painter = ui.painter().with_clip_rect(response.rect);
+            //draw_custom_shapes(ui, painter, &self.map_memory, my_position);
 
             // Draw utility windows.
             {
@@ -101,7 +106,12 @@ fn screen_position(
 }
 
 /// Shows how to draw various things in the map.
-fn draw_custom_shapes(ui: &Ui, painter: Painter, map_memory: &MapMemory, my_position: Position) {
+fn draw_custom_shapes(
+    ctx: Context,
+    painter: Painter,
+    map_memory: &MapMemory,
+    my_position: Position,
+) {
     // Position of the point we want to put our shapes.
     let position = places::dworcowa_bus_stop();
     let screen_position = screen_position(position, &painter, map_memory, my_position);
@@ -111,18 +121,18 @@ fn draw_custom_shapes(ui: &Ui, painter: Painter, map_memory: &MapMemory, my_posi
         Shape::rect_filled(
             text.visual_bounding_rect().expand(5.),
             5.,
-            ui.visuals().extreme_bg_color,
+            ctx.style().visuals.extreme_bg_color,
         )
     };
 
-    let text = ui.fonts(|fonts| {
+    let text = ctx.fonts(|fonts| {
         Shape::text(
             fonts,
             screen_position.to_pos2(),
             Align2::LEFT_CENTER,
             "⬉ Here you can board the 106 line\nwhich goes to the airport.",
             Default::default(),
-            ui.visuals().text_color(),
+            ctx.style().visuals.text_color(),
         )
     });
     painter.add(background(&text));
