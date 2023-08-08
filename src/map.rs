@@ -27,7 +27,7 @@ pub struct Map<'a, 'b> {
     tiles: Option<&'b mut Tiles>,
     memory: &'a mut MapMemory,
     my_position: Position,
-    drawer: Option<Box<dyn Fn(Painter, &MapMemory, Position, &dyn Fn(Position) -> Vec2)>>,
+    drawer: Option<Box<dyn Fn(Painter, &dyn Fn(Position) -> Vec2)>>,
 }
 
 impl<'a, 'b> Map<'a, 'b> {
@@ -46,7 +46,7 @@ impl<'a, 'b> Map<'a, 'b> {
 
     pub fn with_drawer<D>(mut self, drawer: D) -> Self
     where
-        D: Fn(Painter, &MapMemory, Position, &dyn Fn(Position) -> Vec2) + 'static,
+        D: Fn(Painter, &dyn Fn(Position) -> Vec2) + 'static,
     {
         self.drawer = Some(Box::new(drawer));
         self
@@ -113,7 +113,7 @@ impl Widget for Map<'_, '_> {
 
         if let Some(drawer) = self.drawer {
             let painter = ui.painter().with_clip_rect(response.rect);
-            drawer(painter, &self.memory, self.my_position, &|position| {
+            drawer(painter, &|position| {
                 screen_position(
                     position,
                     &ui.painter().with_clip_rect(response.rect),

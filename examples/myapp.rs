@@ -35,17 +35,40 @@ impl eframe::App for MyApp {
             let ctx_clone = ctx.clone();
 
             // Draw the actual map.
-            let response = ui.add(
+            ui.add(
                 Map::new(Some(&mut self.tiles), &mut self.map_memory, my_position).with_drawer(
-                    move |painter, map_memory, position, project| {
-                        draw_custom_shapes(ctx_clone.clone(), painter, map_memory, my_position);
+                    move |painter, project| {
+                        //draw_custom_shapes(ctx_clone.clone(), painter, map_memory, my_position);
+                        let ctx = ctx_clone.clone();
+
+                        // Position of the point we want to put our shapes.
+                        let position = places::dworcowa_bus_stop();
+                        let screen_position = project(position);
+
+                        // Now we can just use Painter to draw stuff.
+                        let background = |text: &Shape| {
+                            Shape::rect_filled(
+                                text.visual_bounding_rect().expand(5.),
+                                5.,
+                                ctx.style().visuals.extreme_bg_color,
+                            )
+                        };
+
+                        let text = ctx.fonts(|fonts| {
+                            Shape::text(
+                                fonts,
+                                screen_position.to_pos2(),
+                                Align2::LEFT_CENTER,
+                                "⬉ Here you can board the 106 line\nwhich goes to the airport.",
+                                Default::default(),
+                                ctx.style().visuals.text_color(),
+                            )
+                        });
+                        painter.add(background(&text));
+                        painter.add(text);
                     },
                 ),
             );
-
-            // Draw custom shapes.
-            //let painter = ui.painter().with_clip_rect(response.rect);
-            //draw_custom_shapes(ui, painter, &self.map_memory, my_position);
 
             // Draw utility windows.
             {
