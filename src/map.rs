@@ -27,6 +27,8 @@ pub struct Map<'a, 'b> {
     tiles: Option<&'b mut Tiles>,
     memory: &'a mut MapMemory,
     my_position: Position,
+
+    #[allow(clippy::type_complexity)]
     drawer: Option<Box<dyn Fn(Painter, &Projector)>>,
 }
 
