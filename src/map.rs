@@ -1,6 +1,6 @@
 use std::collections::{hash_map::Entry, HashMap};
 
-use egui::{Mesh, Painter, Pos2, Rect, Response, Sense, Ui, Vec2, Widget};
+use egui::{Context, Mesh, Painter, Pos2, Rect, Response, Sense, Ui, Vec2, Widget};
 
 use crate::{
     mercator::{screen_to_position, PositionExt, TileId},
@@ -93,9 +93,12 @@ impl Widget for Map<'_, '_> {
                 // then it felt right with both mouse wheel, and an Android phone.
                 self.memory.zoom.zoom_by((zoom_delta - 1.) * 2.);
             } else {
-                self.memory
-                    .center_mode
-                    .drag(&response, self.my_position, self.memory.zoom.round());
+                self.memory.center_mode.drag(
+                    ui.ctx(),
+                    &response,
+                    self.my_position,
+                    self.memory.zoom.round(),
+                );
             }
         }
 
@@ -151,18 +154,24 @@ pub enum Center {
 }
 
 impl Center {
-    fn drag(&mut self, response: &Response, my_position: Position, zoom: u8) {
+    fn drag(&mut self, ctx: &Context, response: &Response, my_position: Position, zoom: u8) {
         if let Center::Inertia(position, direction, amount) = &self {
             log::debug!("Inertia {}", amount);
-            if amount <= &mut 0.0 {
-                *self = Center::Exact(*position);
+            *self = if amount <= &mut 0.0 {
+                // We have stopped.
+                Center::Exact(*position)
             } else {
-                let new_position = screen_to_position(
-                    self.position(my_position).project(zoom) - (*direction * *amount),
-                    zoom,
-                );
+                // Map is moving due to interia, therefore we need to recalculate in the next frame.
+                ctx.request_repaint();
 
-                *self = Center::Inertia(new_position, *direction, *amount - 0.01);
+                Center::Inertia(
+                    screen_to_position(
+                        self.position(my_position).project(zoom) - (*direction * *amount),
+                        zoom,
+                    ),
+                    *direction,
+                    *amount - 0.01,
+                )
             }
         }
 
