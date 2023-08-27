@@ -152,8 +152,6 @@ pub enum Center {
 
 impl Center {
     fn drag(&mut self, response: &Response, my_position: Position, zoom: u8) {
-
-
         if let Center::Inertia(position, direction, amount) = &self {
             log::debug!("Inertia {}", amount);
             if amount <= &mut 0.0 {
@@ -169,15 +167,7 @@ impl Center {
         }
 
         if response.dragged_by(egui::PointerButton::Primary) {
-            // We always end up in some exact, "detached" position, regardless of the current mode.
-            *self = Center::Inertia(
-                screen_to_position(
-                    self.position(my_position).project(zoom) - response.drag_delta(),
-                    zoom,
-                ),
-                response.drag_delta(),
-                1.0,
-            );
+            *self = Center::Inertia(self.position(my_position), response.drag_delta(), 1.0);
         }
     }
 
