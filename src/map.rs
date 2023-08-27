@@ -170,7 +170,7 @@ impl Center {
                         zoom,
                     ),
                     *direction,
-                    *amount - 0.01,
+                    *amount - 0.03,
                 )
             }
         }
