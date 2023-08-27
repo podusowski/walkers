@@ -146,16 +146,38 @@ pub enum Center {
 
     /// Center at the exact position.
     Exact(Position),
+
+    Inertia(Position, Vec2, f32),
 }
 
 impl Center {
     fn drag(&mut self, response: &Response, my_position: Position, zoom: u8) {
+
+
+        if let Center::Inertia(position, direction, amount) = &self {
+            log::debug!("Inertia {}", amount);
+            if amount <= &mut 0.0 {
+                *self = Center::Exact(*position);
+            } else {
+                let new_position = screen_to_position(
+                    self.position(my_position).project(zoom) - (*direction * *amount),
+                    zoom,
+                );
+
+                *self = Center::Inertia(new_position, *direction, *amount - 0.01);
+            }
+        }
+
         if response.dragged_by(egui::PointerButton::Primary) {
             // We always end up in some exact, "detached" position, regardless of the current mode.
-            *self = Center::Exact(screen_to_position(
-                self.position(my_position).project(zoom) - response.drag_delta(),
-                zoom,
-            ));
+            *self = Center::Inertia(
+                screen_to_position(
+                    self.position(my_position).project(zoom) - response.drag_delta(),
+                    zoom,
+                ),
+                response.drag_delta(),
+                1.0,
+            );
         }
     }
 
@@ -164,6 +186,7 @@ impl Center {
         match self {
             Center::MyPosition => my_position,
             Center::Exact(position) => *position,
+            Center::Inertia(position, _, _) => *position,
         }
     }
 }
