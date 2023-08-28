@@ -102,6 +102,17 @@ impl Widget for Map<'_, '_> {
             }
         }
 
+        // Keep animating the map's movement.
+        if matches!(self.memory.center_mode, Center::Inertia(_, _, _)) {
+            self.memory.center_mode.recalculate_inertial_movement(
+                ui.ctx(),
+                &response,
+                self.my_position,
+                self.memory.zoom.round(),
+            );
+            ui.ctx().request_repaint();
+        }
+
         let map_center = self.memory.center_mode.position(self.my_position);
         let painter = ui.painter().with_clip_rect(rect);
 
@@ -155,6 +166,18 @@ pub enum Center {
 
 impl Center {
     fn drag(&mut self, ctx: &Context, response: &Response, my_position: Position, zoom: u8) {
+        if response.dragged_by(egui::PointerButton::Primary) {
+            *self = Center::Inertia(self.position(my_position), response.drag_delta(), 1.0);
+        }
+    }
+
+    fn recalculate_inertial_movement(
+        &mut self,
+        ctx: &Context,
+        response: &Response,
+        my_position: Position,
+        zoom: u8,
+    ) {
         if let Center::Inertia(position, direction, amount) = &self {
             log::debug!("Inertia {}", amount);
             *self = if amount <= &mut 0.0 {
@@ -163,6 +186,7 @@ impl Center {
             } else {
                 // Map is moving due to interia, therefore we need to recalculate in the next frame.
                 ctx.request_repaint();
+                log::debug!("Requesting repaint due to non-zero inertia.");
 
                 Center::Inertia(
                     screen_to_position(
@@ -173,10 +197,6 @@ impl Center {
                     *amount - 0.03,
                 )
             }
-        }
-
-        if response.dragged_by(egui::PointerButton::Primary) {
-            *self = Center::Inertia(self.position(my_position), response.drag_delta(), 1.0);
         }
     }
 
