@@ -6,6 +6,10 @@ All notable changes to this project will be documented in this file.
 
 ### Breaking
 
+ * New `Center` variant - `Inertia`. It means that the map is moving due to inertia and
+  soon will stop with `Center` switching to `Exact`. To keep things easy, `Center` now
+  has new method `detached`, will returns a position the map is currently at, or `None`
+  if it just follows `my_position`.
  * `openstreetmap` is now in `walkers::providers` module.
  * `osm` example is now called `myapp` and it shows a small windows with an orthophotomap
    layer from <https://geoportal.gov.pl>.
