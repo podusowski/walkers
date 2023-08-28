@@ -186,6 +186,16 @@ impl Center {
         }
     }
 
+    /// Returns exact position if map is detached (i.e. not following `my_position`),
+    /// `None` otherwise.
+    pub fn detached(&self) -> Option<Position> {
+        match self {
+            Center::MyPosition => None,
+            Center::Exact(position) => Some(*position),
+            Center::Inertia(position, _, _) => Some(*position),
+        }
+    }
+
     /// Get the real position at the map's center.
     pub fn position(&self, my_position: Position) -> Position {
         match self {

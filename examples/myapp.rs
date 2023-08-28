@@ -178,7 +178,7 @@ mod windows {
 
     /// When map is "detached", show a windows with an option to go back to my position.
     pub fn go_to_my_position(ui: &Ui, map_memory: &mut MapMemory) {
-        if let Center::Exact(position) = map_memory.center_mode {
+        if let Some(position) = map_memory.center_mode.detached() {
             Window::new("Center")
                 .collapsible(false)
                 .resizable(false)
