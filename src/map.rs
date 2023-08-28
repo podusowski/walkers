@@ -106,10 +106,6 @@ impl Widget for Map<'_, '_> {
             );
         }
 
-        ui.ctx().request_repaint();
-
-        log::debug!("Hovered: {}", response.hovered());
-
         let map_center = self.memory.center_mode.position(self.my_position);
         let painter = ui.painter().with_clip_rect(rect);
 
@@ -151,13 +147,14 @@ impl Widget for Map<'_, '_> {
 /// [`Center::MyPosition`].
 #[derive(Clone, PartialEq, Default)]
 pub enum Center {
-    /// Center at `my_position` argument of the [`Map::new()`] function.
+    /// Centered at `my_position` argument of the [`Map::new()`] function.
     #[default]
     MyPosition,
 
-    /// Center at the exact position.
+    /// Centered at the exact position.
     Exact(Position),
 
+    /// Map's currently moving due to inertia, and will slow down and stop after a short while.
     Inertia(Position, Vec2, f32),
 }
 
