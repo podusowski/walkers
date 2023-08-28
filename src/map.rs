@@ -93,21 +93,22 @@ impl Widget for Map<'_, '_> {
                 // then it felt right with both mouse wheel, and an Android phone.
                 self.memory.zoom.zoom_by((zoom_delta - 1.) * 2.);
             } else {
-                self.memory.center_mode.drag(
-                    ui.ctx(),
-                    &response,
-                    self.my_position,
-                    self.memory.zoom.round(),
-                );
+                self.memory.center_mode.drag(&response, self.my_position);
             }
         }
 
-        self.memory.center_mode.recalculate_inertial_movement(
-            ui.ctx(),
-            &response,
-            self.my_position,
-            self.memory.zoom.round(),
-        );
+        // Compensate for the egui returning truth in `hovered` only every two frames.
+        if ui.ctx().frame_nr() % 2 == 0 {
+            self.memory.center_mode.recalculate_inertial_movement(
+                ui.ctx(),
+                self.my_position,
+                self.memory.zoom.round(),
+            );
+        }
+
+        ui.ctx().request_repaint();
+
+        log::debug!("Hovered: {}", response.hovered());
 
         let map_center = self.memory.center_mode.position(self.my_position);
         let painter = ui.painter().with_clip_rect(rect);
@@ -161,29 +162,17 @@ pub enum Center {
 }
 
 impl Center {
-    fn drag(&mut self, ctx: &Context, response: &Response, my_position: Position, zoom: u8) {
+    fn drag(&mut self, response: &Response, my_position: Position) {
         if response.dragged_by(egui::PointerButton::Primary) {
             *self = Center::Inertia(self.position(my_position), response.drag_delta(), 1.0);
         }
     }
 
-    fn recalculate_inertial_movement(
-        &mut self,
-        ctx: &Context,
-        response: &Response,
-        my_position: Position,
-        zoom: u8,
-    ) {
+    fn recalculate_inertial_movement(&mut self, ctx: &Context, my_position: Position, zoom: u8) {
         if let Center::Inertia(position, direction, amount) = &self {
-            log::debug!("Inertia {}", amount);
             *self = if amount <= &mut 0.0 {
-                // We have stopped.
                 Center::Exact(*position)
             } else {
-                // Map is moving due to interia, therefore we need to recalculate in the next frame.
-                ctx.request_repaint();
-                log::debug!("Requesting repaint due to non-zero inertia.");
-
                 Center::Inertia(
                     screen_to_position(
                         self.position(my_position).project(zoom) - (*direction * *amount),
@@ -192,7 +181,11 @@ impl Center {
                     *direction,
                     *amount - 0.03,
                 )
-            }
+            };
+
+            // Map is moving due to interia, therefore we need to recalculate in the next frame.
+            log::debug!("Requesting repaint due to non-zero inertia.");
+            ctx.request_repaint();
         }
     }
 
