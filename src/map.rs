@@ -198,11 +198,7 @@ impl Center {
 
     /// Get the real position at the map's center.
     pub fn position(&self, my_position: Position) -> Position {
-        match self {
-            Center::MyPosition => my_position,
-            Center::Exact(position) => *position,
-            Center::Inertia(position, _, _) => *position,
-        }
+        self.detached().unwrap_or(my_position)
     }
 }
 
