@@ -102,16 +102,12 @@ impl Widget for Map<'_, '_> {
             }
         }
 
-        // Keep animating the map's movement.
-        if matches!(self.memory.center_mode, Center::Inertia(_, _, _)) {
-            self.memory.center_mode.recalculate_inertial_movement(
-                ui.ctx(),
-                &response,
-                self.my_position,
-                self.memory.zoom.round(),
-            );
-            ui.ctx().request_repaint();
-        }
+        self.memory.center_mode.recalculate_inertial_movement(
+            ui.ctx(),
+            &response,
+            self.my_position,
+            self.memory.zoom.round(),
+        );
 
         let map_center = self.memory.center_mode.position(self.my_position);
         let painter = ui.painter().with_clip_rect(rect);
