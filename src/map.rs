@@ -97,14 +97,11 @@ impl Widget for Map<'_, '_> {
             }
         }
 
-        // Compensate for the egui returning truth in `hovered` only every two frames.
-        if ui.ctx().frame_nr() % 2 == 0 {
-            self.memory.center_mode.recalculate_inertial_movement(
-                ui.ctx(),
-                self.my_position,
-                self.memory.zoom.round(),
-            );
-        }
+        self.memory.center_mode.recalculate_inertial_movement(
+            ui.ctx(),
+            self.my_position,
+            self.memory.zoom.round(),
+        );
 
         let map_center = self.memory.center_mode.position(self.my_position);
         let painter = ui.painter().with_clip_rect(rect);
@@ -161,7 +158,11 @@ pub enum Center {
 impl Center {
     fn drag(&mut self, response: &Response, my_position: Position) {
         if response.dragged_by(egui::PointerButton::Primary) {
-            *self = Center::Inertia(self.position(my_position), response.drag_delta(), 1.0);
+            // Compensate for the egui returning truth in `hovered` only every two frames.
+            // This behavior should probably be investigated in the future.
+            let drag_delta = response.drag_delta() * 0.5;
+
+            *self = Center::Inertia(self.position(my_position), drag_delta, 1.0);
         }
     }
 
