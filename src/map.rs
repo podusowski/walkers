@@ -151,29 +151,42 @@ pub enum Center {
     Exact(Position),
 
     /// Map's currently moving due to inertia, and will slow down and stop after a short while.
-    Inertia(Position, Vec2, f32),
+    Inertia {
+        position: Position,
+        direction: Vec2,
+        amount: f32,
+    },
 }
 
 impl Center {
     fn drag(&mut self, response: &Response, my_position: Position) {
         if response.dragged_by(egui::PointerButton::Primary) {
-            *self = Center::Inertia(self.position(my_position), response.drag_delta(), 1.0);
+            *self = Center::Inertia {
+                position: self.position(my_position),
+                direction: response.drag_delta(),
+                amount: 1.0,
+            };
         }
     }
 
     fn recalculate_inertial_movement(&mut self, ctx: &Context, my_position: Position, zoom: u8) {
-        if let Center::Inertia(position, direction, amount) = &self {
+        if let Center::Inertia {
+            position,
+            direction,
+            amount,
+        } = &self
+        {
             *self = if amount <= &mut 0.0 {
                 Center::Exact(*position)
             } else {
-                Center::Inertia(
-                    screen_to_position(
+                Center::Inertia {
+                    position: screen_to_position(
                         self.position(my_position).project(zoom) - (*direction * *amount),
                         zoom,
                     ),
-                    *direction,
-                    *amount - 0.03,
-                )
+                    direction: *direction,
+                    amount: *amount - 0.03,
+                }
             };
 
             // Map is moving due to interia, therefore we need to recalculate in the next frame.
@@ -188,7 +201,11 @@ impl Center {
         match self {
             Center::MyPosition => None,
             Center::Exact(position) => Some(*position),
-            Center::Inertia(position, _, _) => Some(*position),
+            Center::Inertia {
+                position,
+                direction: _,
+                amount: _,
+            } => Some(*position),
         }
     }
 
