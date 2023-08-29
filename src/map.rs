@@ -83,7 +83,7 @@ impl Widget for Map<'_, '_> {
     fn ui(self, ui: &mut Ui) -> Response {
         let (rect, response) = ui.allocate_exact_size(ui.available_size(), Sense::drag());
 
-        if response.hovered() {
+        //if response.hovered() {
             let zoom_delta = ui.input(|input| input.zoom_delta());
 
             // Zooming and dragging need to be exclusive, otherwise the map will get dragged when
@@ -95,7 +95,7 @@ impl Widget for Map<'_, '_> {
             } else {
                 self.memory.center_mode.drag(&response, self.my_position);
             }
-        }
+        //}
 
         self.memory.center_mode.recalculate_inertial_movement(
             ui.ctx(),
@@ -158,11 +158,7 @@ pub enum Center {
 impl Center {
     fn drag(&mut self, response: &Response, my_position: Position) {
         if response.dragged_by(egui::PointerButton::Primary) {
-            // Compensate for the egui returning truth in `hovered` only every two frames.
-            // This behavior should probably be investigated in the future.
-            let drag_delta = response.drag_delta() * 0.5;
-
-            *self = Center::Inertia(self.position(my_position), drag_delta, 1.0);
+            *self = Center::Inertia(self.position(my_position), response.drag_delta(), 1.0);
         }
     }
 
