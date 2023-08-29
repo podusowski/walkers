@@ -93,7 +93,9 @@ impl Widget for Map<'_, '_> {
             // then it felt right with both mouse wheel, and an Android phone.
             self.memory.zoom.zoom_by((zoom_delta - 1.) * 2.);
         } else {
-            self.memory.center_mode.drag(&response, self.my_position);
+            self.memory
+                .center_mode
+                .recalculate_drag(&response, self.my_position);
         }
 
         self.memory.center_mode.recalculate_inertial_movement(
@@ -159,7 +161,7 @@ pub enum Center {
 }
 
 impl Center {
-    fn drag(&mut self, response: &Response, my_position: Position) {
+    fn recalculate_drag(&mut self, response: &Response, my_position: Position) {
         if response.dragged_by(egui::PointerButton::Primary) {
             *self = Center::Inertia {
                 position: self.position(my_position),
