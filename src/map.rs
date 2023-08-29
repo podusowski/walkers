@@ -1,6 +1,6 @@
 use std::collections::{hash_map::Entry, HashMap};
 
-use egui::{Mesh, Painter, Pos2, Rect, Response, Sense, Ui, Vec2, Widget};
+use egui::{Context, Mesh, Painter, Pos2, Rect, Response, Sense, Ui, Vec2, Widget};
 
 use crate::{
     mercator::{screen_to_position, PositionExt, TileId},
@@ -83,21 +83,26 @@ impl Widget for Map<'_, '_> {
     fn ui(self, ui: &mut Ui) -> Response {
         let (rect, response) = ui.allocate_exact_size(ui.available_size(), Sense::drag());
 
-        if response.hovered() {
-            let zoom_delta = ui.input(|input| input.zoom_delta());
+        //if response.hovered() {
+        let zoom_delta = ui.input(|input| input.zoom_delta());
 
-            // Zooming and dragging need to be exclusive, otherwise the map will get dragged when
-            // pinch gesture is used.
-            if !(0.99..=1.01).contains(&zoom_delta) {
-                // Shift by 1 because of the values given by zoom_delta(). Multiple by 2, because
-                // then it felt right with both mouse wheel, and an Android phone.
-                self.memory.zoom.zoom_by((zoom_delta - 1.) * 2.);
-            } else {
-                self.memory
-                    .center_mode
-                    .drag(&response, self.my_position, self.memory.zoom.round());
-            }
+        // Zooming and dragging need to be exclusive, otherwise the map will get dragged when
+        // pinch gesture is used.
+        if !(0.99..=1.01).contains(&zoom_delta) {
+            // Shift by 1 because of the values given by zoom_delta(). Multiple by 2, because
+            // then it felt right with both mouse wheel, and an Android phone.
+            self.memory.zoom.zoom_by((zoom_delta - 1.) * 2.);
+        } else {
+            self.memory
+                .center_mode
+                .recalculate_drag(&response, self.my_position);
         }
+
+        self.memory.center_mode.recalculate_inertial_movement(
+            ui.ctx(),
+            self.my_position,
+            self.memory.zoom.round(),
+        );
 
         let map_center = self.memory.center_mode.position(self.my_position);
         let painter = ui.painter().with_clip_rect(rect);
@@ -140,31 +145,75 @@ impl Widget for Map<'_, '_> {
 /// [`Center::MyPosition`].
 #[derive(Clone, PartialEq, Default)]
 pub enum Center {
-    /// Center at `my_position` argument of the [`Map::new()`] function.
+    /// Centered at `my_position` argument of the [`Map::new()`] function.
     #[default]
     MyPosition,
 
-    /// Center at the exact position.
+    /// Centered at the exact position.
     Exact(Position),
+
+    /// Map's currently moving due to inertia, and will slow down and stop after a short while.
+    Inertia {
+        position: Position,
+        direction: Vec2,
+        amount: f32,
+    },
 }
 
 impl Center {
-    fn drag(&mut self, response: &Response, my_position: Position, zoom: u8) {
+    fn recalculate_drag(&mut self, response: &Response, my_position: Position) {
         if response.dragged_by(egui::PointerButton::Primary) {
-            // We always end up in some exact, "detached" position, regardless of the current mode.
-            *self = Center::Exact(screen_to_position(
-                self.position(my_position).project(zoom) - response.drag_delta(),
-                zoom,
-            ));
+            *self = Center::Inertia {
+                position: self.position(my_position),
+                direction: response.drag_delta(),
+                amount: 1.0,
+            };
+        }
+    }
+
+    fn recalculate_inertial_movement(&mut self, ctx: &Context, my_position: Position, zoom: u8) {
+        if let Center::Inertia {
+            position,
+            direction,
+            amount,
+        } = &self
+        {
+            *self = if amount <= &mut 0.0 {
+                Center::Exact(*position)
+            } else {
+                Center::Inertia {
+                    position: screen_to_position(
+                        self.position(my_position).project(zoom) - (*direction * *amount),
+                        zoom,
+                    ),
+                    direction: *direction,
+                    amount: *amount - 0.03,
+                }
+            };
+
+            // Map is moving due to interia, therefore we need to recalculate in the next frame.
+            log::trace!("Requesting repaint due to non-zero inertia.");
+            ctx.request_repaint();
+        }
+    }
+
+    /// Returns exact position if map is detached (i.e. not following `my_position`),
+    /// `None` otherwise.
+    pub fn detached(&self) -> Option<Position> {
+        match self {
+            Center::MyPosition => None,
+            Center::Exact(position) => Some(*position),
+            Center::Inertia {
+                position,
+                direction: _,
+                amount: _,
+            } => Some(*position),
         }
     }
 
     /// Get the real position at the map's center.
     pub fn position(&self, my_position: Position) -> Position {
-        match self {
-            Center::MyPosition => my_position,
-            Center::Exact(position) => *position,
-        }
+        self.detached().unwrap_or(my_position)
     }
 }
 

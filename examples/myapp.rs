@@ -14,6 +14,7 @@ struct MyApp {
     tiles: Tiles,
     geoportal_tiles: Tiles,
     map_memory: MapMemory,
+    satellite: bool,
 }
 
 impl MyApp {
@@ -22,6 +23,7 @@ impl MyApp {
             tiles: Tiles::new(walkers::providers::openstreetmap, egui_ctx.to_owned()),
             geoportal_tiles: Tiles::new(walkers::providers::geoportal, egui_ctx),
             map_memory: MapMemory::default(),
+            satellite: false,
         }
     }
 }
@@ -39,8 +41,15 @@ impl eframe::App for MyApp {
                 // Typically this would be a GPS acquired position which is tracked by the map.
                 let my_position = places::wroclaw_glowny();
 
+                // Select either OSM standard map or satellite.
+                let tiles = if self.satellite {
+                    &mut self.geoportal_tiles
+                } else {
+                    &mut self.tiles
+                };
+
                 // In egui, widgets are constructed and consumed in each frame.
-                let map = Map::new(Some(&mut self.tiles), &mut self.map_memory, my_position);
+                let map = Map::new(Some(tiles), &mut self.map_memory, my_position);
 
                 // Optionally, a function which draw custom stuff on the map can be attached.
                 let ctx_clone = ctx.clone();
@@ -57,14 +66,7 @@ impl eframe::App for MyApp {
 
                     zoom(ui, &mut self.map_memory);
                     go_to_my_position(ui, &mut self.map_memory);
-
-                    orthophotomap(
-                        ui,
-                        &mut self.geoportal_tiles,
-                        &mut self.map_memory,
-                        my_position,
-                    );
-
+                    satellite(ui, &mut self.satellite);
                     acknowledge(ui);
                 }
             });
@@ -122,7 +124,7 @@ fn draw_custom_shapes(ctx: Context, painter: Painter, projector: &Projector) {
 
 mod windows {
     use egui::{Align2, RichText, Ui, Window};
-    use walkers::{Center, Map, MapMemory, Position, Tiles};
+    use walkers::{Center, MapMemory};
 
     pub fn acknowledge(ui: &Ui) {
         Window::new("Acknowledge")
@@ -139,20 +141,15 @@ mod windows {
             });
     }
 
-    pub fn orthophotomap(
-        ui: &Ui,
-        tiles: &mut Tiles,
-        map_memory: &mut MapMemory,
-        my_position: Position,
-    ) {
-        Window::new("Orthophotomap")
+    pub fn satellite(ui: &Ui, satellite: &mut bool) {
+        Window::new("Satellite")
             .collapsible(false)
             .resizable(false)
             .title_bar(false)
             .anchor(Align2::RIGHT_TOP, [-10., 10.])
             .fixed_size([150., 150.])
             .show(ui.ctx(), |ui| {
-                ui.add(Map::new(Some(tiles), map_memory, my_position));
+                ui.checkbox(satellite, "satellite view");
             });
     }
 
@@ -178,7 +175,7 @@ mod windows {
 
     /// When map is "detached", show a windows with an option to go back to my position.
     pub fn go_to_my_position(ui: &Ui, map_memory: &mut MapMemory) {
-        if let Center::Exact(position) = map_memory.center_mode {
+        if let Some(position) = map_memory.center_mode.detached() {
             Window::new("Center")
                 .collapsible(false)
                 .resizable(false)
