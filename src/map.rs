@@ -95,7 +95,6 @@ impl Widget for Map<'_, '_> {
         } else {
             self.memory.center_mode.drag(&response, self.my_position);
         }
-        //}
 
         self.memory.center_mode.recalculate_inertial_movement(
             ui.ctx(),
