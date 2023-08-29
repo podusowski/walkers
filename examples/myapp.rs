@@ -14,6 +14,7 @@ struct MyApp {
     tiles: Tiles,
     geoportal_tiles: Tiles,
     map_memory: MapMemory,
+    satellite: bool,
 }
 
 impl MyApp {
@@ -22,6 +23,7 @@ impl MyApp {
             tiles: Tiles::new(walkers::providers::openstreetmap, egui_ctx.to_owned()),
             geoportal_tiles: Tiles::new(walkers::providers::geoportal, egui_ctx),
             map_memory: MapMemory::default(),
+            satellite: false,
         }
     }
 }
@@ -39,8 +41,15 @@ impl eframe::App for MyApp {
                 // Typically this would be a GPS acquired position which is tracked by the map.
                 let my_position = places::wroclaw_glowny();
 
+                // Select either OSM standard map or satellite.
+                let tiles = if self.satellite {
+                    &mut self.geoportal_tiles
+                } else {
+                    &mut self.tiles
+                };
+
                 // In egui, widgets are constructed and consumed in each frame.
-                let map = Map::new(Some(&mut self.tiles), &mut self.map_memory, my_position);
+                let map = Map::new(Some(tiles), &mut self.map_memory, my_position);
 
                 // Optionally, a function which draw custom stuff on the map can be attached.
                 let ctx_clone = ctx.clone();
@@ -63,6 +72,7 @@ impl eframe::App for MyApp {
                         &mut self.geoportal_tiles,
                         &mut self.map_memory,
                         my_position,
+                        &mut self.satellite,
                     );
 
                     acknowledge(ui);
@@ -144,6 +154,7 @@ mod windows {
         tiles: &mut Tiles,
         map_memory: &mut MapMemory,
         my_position: Position,
+        satellite: &mut bool,
     ) {
         Window::new("Orthophotomap")
             .collapsible(false)
@@ -152,7 +163,9 @@ mod windows {
             .anchor(Align2::RIGHT_TOP, [-10., 10.])
             .fixed_size([150., 150.])
             .show(ui.ctx(), |ui| {
-                ui.add(Map::new(Some(tiles), map_memory, my_position));
+                ui.checkbox(satellite, "satellite view");
+
+                //ui.add(Map::new(Some(tiles), map_memory, my_position));
             });
     }
 
