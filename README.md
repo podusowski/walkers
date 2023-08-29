@@ -1,6 +1,7 @@
 [![crates.io](https://img.shields.io/crates/v/walkers.svg)](https://crates.io/crates/walkers)
 
-Slippy maps widget for [egui](https://github.com/emilk/egui).
+Slippy maps widget for [egui](https://github.com/emilk/egui). Supports [OpenStreetMap](https://www.openstreetmap.org)
+compatible tile servers.
 
 # Quick start
 
@@ -40,17 +41,6 @@ impl App for MyApp {
 }
 ```
 
-# Limitations
-
-There are couple of limitations when using this library. Some of them will
-might probably be lifted at some point. Please raise an issue if you are
-particularly affected by some and I will try to prioritize.
-
-* ~~Limited to the OpenStreetMaps, but I want to enable other tile servers~~ and
-  protocols (like WMS) as well.
-* It uses `reqwests`/`tokio` stack which does not work on WASM.
-* Example for Android is missing, but it does work there.
-
-Other suggestions are welcomed as well.
+You can see a more complete example [here](https://github.com/podusowski/walkers/blob/main/examples/myapp.rs).
 
 ![Screenshot](https://raw.githubusercontent.com/podusowski/walkers/main/screenshot.png)
