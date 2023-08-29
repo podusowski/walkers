@@ -84,17 +84,17 @@ impl Widget for Map<'_, '_> {
         let (rect, response) = ui.allocate_exact_size(ui.available_size(), Sense::drag());
 
         //if response.hovered() {
-            let zoom_delta = ui.input(|input| input.zoom_delta());
+        let zoom_delta = ui.input(|input| input.zoom_delta());
 
-            // Zooming and dragging need to be exclusive, otherwise the map will get dragged when
-            // pinch gesture is used.
-            if !(0.99..=1.01).contains(&zoom_delta) {
-                // Shift by 1 because of the values given by zoom_delta(). Multiple by 2, because
-                // then it felt right with both mouse wheel, and an Android phone.
-                self.memory.zoom.zoom_by((zoom_delta - 1.) * 2.);
-            } else {
-                self.memory.center_mode.drag(&response, self.my_position);
-            }
+        // Zooming and dragging need to be exclusive, otherwise the map will get dragged when
+        // pinch gesture is used.
+        if !(0.99..=1.01).contains(&zoom_delta) {
+            // Shift by 1 because of the values given by zoom_delta(). Multiple by 2, because
+            // then it felt right with both mouse wheel, and an Android phone.
+            self.memory.zoom.zoom_by((zoom_delta - 1.) * 2.);
+        } else {
+            self.memory.center_mode.drag(&response, self.my_position);
+        }
         //}
 
         self.memory.center_mode.recalculate_inertial_movement(
@@ -178,7 +178,7 @@ impl Center {
             };
 
             // Map is moving due to interia, therefore we need to recalculate in the next frame.
-            log::debug!("Requesting repaint due to non-zero inertia.");
+            log::trace!("Requesting repaint due to non-zero inertia.");
             ctx.request_repaint();
         }
     }
