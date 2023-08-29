@@ -66,15 +66,7 @@ impl eframe::App for MyApp {
 
                     zoom(ui, &mut self.map_memory);
                     go_to_my_position(ui, &mut self.map_memory);
-
-                    orthophotomap(
-                        ui,
-                        &mut self.geoportal_tiles,
-                        &mut self.map_memory,
-                        my_position,
-                        &mut self.satellite,
-                    );
-
+                    satellite(ui, &mut self.satellite);
                     acknowledge(ui);
                 }
             });
@@ -132,7 +124,7 @@ fn draw_custom_shapes(ctx: Context, painter: Painter, projector: &Projector) {
 
 mod windows {
     use egui::{Align2, RichText, Ui, Window};
-    use walkers::{Center, Map, MapMemory, Position, Tiles};
+    use walkers::{Center, MapMemory};
 
     pub fn acknowledge(ui: &Ui) {
         Window::new("Acknowledge")
@@ -149,14 +141,8 @@ mod windows {
             });
     }
 
-    pub fn orthophotomap(
-        ui: &Ui,
-        tiles: &mut Tiles,
-        map_memory: &mut MapMemory,
-        my_position: Position,
-        satellite: &mut bool,
-    ) {
-        Window::new("Orthophotomap")
+    pub fn satellite(ui: &Ui, satellite: &mut bool) {
+        Window::new("Satellite")
             .collapsible(false)
             .resizable(false)
             .title_bar(false)
@@ -164,8 +150,6 @@ mod windows {
             .fixed_size([150., 150.])
             .show(ui.ctx(), |ui| {
                 ui.checkbox(satellite, "satellite view");
-
-                //ui.add(Map::new(Some(tiles), map_memory, my_position));
             });
     }
 
