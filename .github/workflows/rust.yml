@@ -10,18 +10,30 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v3
+
     - name: Install Rust Stable
       uses: actions-rs/toolchain@v1
       with:
         toolchain: stable
         components: clippy
+
     - name: Build
       run: cargo build --verbose
+
+    - name: Install Trunk
+      run: cargo install trunk
+
+    - name: Build Web
+      run: trunk build
+
     - name: Run tests
       run: cargo test --verbose
+
     - name: Check rust formatting
       run:  cargo fmt --all --check
+
     - name: Clippy
       run:  cargo clippy --all-features -- -D warnings 
+
     - name: Documentation
       run:  cargo doc
