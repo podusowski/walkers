@@ -11,7 +11,9 @@ mod tiles_wasm;
 #[cfg(not(target_arch = "wasm32"))]
 mod tiles;
 
+#[cfg(not(target_arch = "wasm32"))]
 mod tokio;
+
 mod zoom;
 
 pub use map::{Center, Map, MapMemory, Projector};
