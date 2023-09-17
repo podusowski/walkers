@@ -1,6 +1,6 @@
 use eframe::wasm_bindgen::{self, prelude::*};
 
-use crate::DemoApp;
+use crate::MyApp;
 
 /// Our handle to the web app from JavaScript.
 #[derive(Clone)]
@@ -30,7 +30,7 @@ impl WebHandle {
             .start(
                 canvas_id,
                 eframe::WebOptions::default(),
-                Box::new(|_cc| Box::new(DemoApp::default())),
+                Box::new(|_cc| Box::new(MyApp::new(_cc.egui_ctx.clone()))),
             )
             .await
     }
