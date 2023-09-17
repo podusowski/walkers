@@ -1,5 +1,7 @@
+Cargo.lock
+
 /target
-/Cargo.lock
 demo/target
-demo/dist
-demo/Cargo.lock
+demo_native/target
+demo_web/target
+demo_web/dist
