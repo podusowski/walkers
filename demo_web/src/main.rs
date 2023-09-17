@@ -9,7 +9,7 @@ fn main() {
             .start(
                 "the_canvas_id", // hardcode it
                 web_options,
-                Box::new(|cc| Box::new(demo::MyApp::new(cc))),
+                Box::new(|cc| Box::new(demo::MyApp::new(cc.egui_ctx.clone()))),
             )
             .await
             .expect("failed to start eframe");
