@@ -41,6 +41,11 @@ impl Tile {
 /// Downloads and keeps cache of the tiles. It must persist between frames.
 pub struct Tiles {
     cache: HashMap<TileId, Option<Tile>>,
+
+    /// Tiles that got downloaded and should be put in the cache.
+    tile_rx: std::sync::mpsc::Receiver<(TileId, Tile)>,
+
+    tile_tx: std::sync::mpsc::Sender<(TileId, Tile)>,
 }
 
 impl Tiles {
@@ -48,14 +53,30 @@ impl Tiles {
     where
         S: Fn(TileId) -> String + Send + 'static,
     {
+        let (tx, rx) = std::sync::mpsc::channel();
+
         Self {
             cache: Default::default(),
+            tile_rx: rx,
+            tile_tx: tx,
         }
     }
 
     /// Return a tile if already in cache, schedule a download otherwise.
     pub fn at(&mut self, tile_id: TileId) -> Option<Tile> {
-        None
+        match self.cache.entry(tile_id) {
+            Entry::Occupied(entry) => entry.get().clone(),
+            Entry::Vacant(entry) => {
+                entry.insert(None);
+
+                let request = ehttp::Request::get("https://www.example.com");
+                ehttp::fetch(request, move |result: ehttp::Result<ehttp::Response>| {
+                    println!("Status code: {:?}", result.unwrap().status);
+                });
+
+                None
+            }
+        }
     }
 }
 
