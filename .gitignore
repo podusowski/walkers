@@ -1,2 +1,6 @@
-/target
 /Cargo.lock
+/target
+/demo/Cargo.lock
+/demo/target
+/demo_native/Cargo.lock
+/demo_native/target
