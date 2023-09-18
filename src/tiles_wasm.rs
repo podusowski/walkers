@@ -1,4 +1,5 @@
 use std::collections::hash_map::Entry;
+use std::sync::mpsc::TryRecvError;
 use std::{collections::HashMap, sync::Arc};
 
 use egui::{pos2, Color32, Context, Mesh, Rect, Vec2};
@@ -40,6 +41,8 @@ impl Tile {
 
 /// Downloads and keeps cache of the tiles. It must persist between frames.
 pub struct Tiles {
+    source: Box<dyn Fn(TileId) -> String + Send + 'static>,
+
     cache: HashMap<TileId, Option<Tile>>,
 
     /// Tiles that got downloaded and should be put in the cache.
@@ -56,6 +59,7 @@ impl Tiles {
         let (tx, rx) = std::sync::mpsc::channel();
 
         Self {
+            source: Box::new(source),
             cache: Default::default(),
             tile_rx: rx,
             tile_tx: tx,
@@ -64,14 +68,35 @@ impl Tiles {
 
     /// Return a tile if already in cache, schedule a download otherwise.
     pub fn at(&mut self, tile_id: TileId) -> Option<Tile> {
+        match self.tile_rx.try_recv() {
+            Ok((tile_id, tile)) => {
+                self.cache.insert(tile_id, Some(tile));
+            }
+            Err(TryRecvError::Empty) => {
+                // Just ignore. It means that no new tile was downloaded.
+            }
+            Err(TryRecvError::Disconnected) => panic!("IO thread is dead"),
+        }
+
         match self.cache.entry(tile_id) {
             Entry::Occupied(entry) => entry.get().clone(),
             Entry::Vacant(entry) => {
                 entry.insert(None);
 
-                let request = ehttp::Request::get("https://www.example.com");
+                let url = (self.source)(tile_id);
+                log::info!("Getting {}", url);
+
+                let request = ehttp::Request::get(url);
+                let tile_tx = self.tile_tx.clone();
                 ehttp::fetch(request, move |result: ehttp::Result<ehttp::Response>| {
-                    println!("Status code: {:?}", result.unwrap().status);
+                    if let Ok(response) = result {
+                        log::info!("{:?}", response);
+                        if response.ok {
+                            assert_eq!(200, response.status);
+                            let tile = Tile::from_image_bytes(&response.bytes);
+                            tile_tx.send((tile_id, tile.unwrap())).unwrap();
+                        }
+                    }
                 });
 
                 None
