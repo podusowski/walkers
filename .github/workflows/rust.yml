@@ -24,7 +24,7 @@ jobs:
       run: cargo install trunk
 
     - name: Build Demo Web
-      run: trunk build
+      run: env -C demo_web trunk build
 
     - name: Build Demo Native
       run: env -C demo_native cargo build --verbose
