@@ -1,7 +1,7 @@
 Cargo.lock
 
 /target
-demo/target
-demo_native/target
-demo_web/target
-demo_web/dist
+/demo/target
+/demo_native/target
+/demo_web/target
+/demo_web/dist
