@@ -86,7 +86,11 @@ impl Tiles {
                 let url = (self.source)(tile_id);
                 log::info!("Getting {}", url);
 
-                let request = ehttp::Request::get(url);
+                let mut request = ehttp::Request::get(url);
+                request
+                    .headers
+                    .insert("User-Agent".to_owned(), "Walkers".to_owned());
+
                 let tile_tx = self.tile_tx.clone();
                 ehttp::fetch(request, move |result: ehttp::Result<ehttp::Response>| {
                     if let Ok(response) = result {
