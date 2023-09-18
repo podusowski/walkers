@@ -1,0 +1,14 @@
+[package]
+name = "demo"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+walkers = { path = ".." }
+eframe = "0.22"
+egui = "0.22"
+log = "0.4"
+env_logger = "0.10"
+
+[target.'cfg(target_arch = "wasm32")'.dependencies]
+wasm-bindgen-futures = "0.4"
