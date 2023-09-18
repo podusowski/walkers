@@ -1,9 +1,18 @@
+# Walkers, a map widget for Rust
+
 [![crates.io](https://img.shields.io/crates/v/walkers.svg)](https://crates.io/crates/walkers)
 
-Slippy maps widget for [egui](https://github.com/emilk/egui). Supports [OpenStreetMap](https://www.openstreetmap.org)
-compatible tile servers.
+Walkers is a slippy maps widget for [egui](https://github.com/emilk/egui),
+similar to very popular [Leaflet](https://leafletjs.com/), but written in Rust.
 
-# Quick start
+It supports [OpenStreetMap](https://www.openstreetmap.org) and compatible tile
+servers.
+
+Before deploying your application, please get yourself familiar with the
+[OpenStreetMap usage policy](https://operations.osmfoundation.org/policies/tiles/),
+and consider donating the [OpenStreetMap Foundation](https://supporting.openstreetmap.org/).
+
+## Quick start
 
 Walkers has three main objects. `Tiles` downloads images from a tile map provider
 such as OpenStreetMap and stores them in a cache, `MapMemory` keeps track of
@@ -41,6 +50,20 @@ impl App for MyApp {
 }
 ```
 
-You can see a more complete example [here](https://github.com/podusowski/walkers/blob/main/examples/myapp.rs).
+You can see a more complete example [here](https://github.com/podusowski/walkers/blob/main/demo/src/lib.rs).
+
+## Running the demo
+
+In the future, Walkers will suport numerous build options, such as Android and
+WASM. They all will share a common library - `demo`, but most will probably
+require a different build workflow, not necessarily compatible with Cargo
+workspaces.
+
+### Native
+
+```sh
+cd demo_native
+cargo run
+```
 
 ![Screenshot](https://raw.githubusercontent.com/podusowski/walkers/main/screenshot.png)
