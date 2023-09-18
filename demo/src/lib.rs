@@ -1,16 +1,7 @@
 use egui::{Align2, Context, Painter, Shape};
 use walkers::{Map, MapMemory, Projector, Tiles};
 
-fn main() -> Result<(), eframe::Error> {
-    env_logger::init();
-    eframe::run_native(
-        "MyApp",
-        Default::default(),
-        Box::new(|cc| Box::new(MyApp::new(cc.egui_ctx.clone()))),
-    )
-}
-
-struct MyApp {
+pub struct MyApp {
     tiles: Tiles,
     geoportal_tiles: Tiles,
     map_memory: MapMemory,
@@ -18,7 +9,7 @@ struct MyApp {
 }
 
 impl MyApp {
-    fn new(egui_ctx: Context) -> Self {
+    pub fn new(egui_ctx: Context) -> Self {
         Self {
             tiles: Tiles::new(walkers::providers::openstreetmap, egui_ctx.to_owned()),
             geoportal_tiles: Tiles::new(walkers::providers::geoportal, egui_ctx),
@@ -193,3 +184,4 @@ mod windows {
         }
     }
 }
+
