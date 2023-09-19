@@ -83,7 +83,7 @@ impl Tiles {
             Ok(Some((tile_id, tile))) => {
                 self.cache.insert(tile_id, Some(tile));
             }
-            Err(TryRecvError) => {
+            Err(_) => {
                 // Just ignore. It means that no new tile was downloaded.
             }
             Ok(None) => panic!("IO thread is dead"),
