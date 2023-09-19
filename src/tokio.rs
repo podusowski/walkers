@@ -1,5 +1,5 @@
 //! Managed thread for Tokio runtime.
-use std::sync::Arc;
+use std::{future::Future, sync::Arc};
 
 pub struct TokioRuntimeThread {
     join_handle: Option<std::thread::JoinHandle<()>>,
@@ -8,7 +8,11 @@ pub struct TokioRuntimeThread {
 }
 
 impl TokioRuntimeThread {
-    pub fn new() -> Self {
+    pub fn new<F>(f: F) -> Self
+    where
+        F: Future + Send + 'static,
+        F::Output: Send,
+    {
         let (quit_tx, mut quit_rx) = tokio::sync::mpsc::unbounded_channel();
         let (rt_tx, mut rt_rx) = tokio::sync::mpsc::unbounded_channel();
 
@@ -25,12 +29,16 @@ impl TokioRuntimeThread {
             rt.block_on(quit_rx.recv());
         });
 
+        let runtime = rt_rx
+            .blocking_recv()
+            .expect("Tokio thread died before returning the Tokio runtime");
+
+        runtime.spawn(f);
+
         Self {
             join_handle: Some(join_handle),
             quit_tx,
-            runtime: rt_rx
-                .blocking_recv()
-                .expect("Tokio thread died before returning the Tokio runtime"),
+            runtime,
         }
     }
 }

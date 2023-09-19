@@ -59,16 +59,14 @@ impl Tiles {
     where
         S: Fn(TileId) -> String + Send + 'static,
     {
-        let tokio_runtime_thread = TokioRuntimeThread::new();
-
         // Minimum value which didn't cause any stalls while testing.
         let channel_size = 20;
 
         let (request_tx, request_rx) = tokio::sync::mpsc::channel(channel_size);
         let (tile_tx, tile_rx) = tokio::sync::mpsc::channel(channel_size);
-        tokio_runtime_thread
-            .runtime
-            .spawn(download(source, request_rx, tile_tx, egui_ctx));
+        let tokio_runtime_thread =
+            TokioRuntimeThread::new(download(source, request_rx, tile_tx, egui_ctx));
+
         Self {
             cache: Default::default(),
             request_tx,
