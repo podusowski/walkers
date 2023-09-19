@@ -1,10 +1,9 @@
 //! Managed thread for Tokio runtime.
-use std::{future::Future, sync::Arc};
+use std::future::Future;
 
 pub struct TokioRuntimeThread {
     join_handle: Option<std::thread::JoinHandle<()>>,
     quit_tx: tokio::sync::mpsc::UnboundedSender<()>,
-    pub runtime: Arc<tokio::runtime::Runtime>,
 }
 
 impl TokioRuntimeThread {
@@ -14,7 +13,6 @@ impl TokioRuntimeThread {
         F::Output: Send,
     {
         let (quit_tx, mut quit_rx) = tokio::sync::mpsc::unbounded_channel();
-        let (rt_tx, mut rt_rx) = tokio::sync::mpsc::unbounded_channel();
 
         let join_handle = std::thread::spawn(move || {
             let runtime = tokio::runtime::Builder::new_current_thread()
@@ -22,23 +20,13 @@ impl TokioRuntimeThread {
                 .build()
                 .expect("could not create the Tokio runtime, downloads will not work");
 
-            let rt = Arc::new(runtime);
-            rt_tx
-                .send(rt.clone())
-                .expect("could not return the Tokio runtime to the main thread");
-            rt.block_on(quit_rx.recv());
+            runtime.spawn(f);
+            runtime.block_on(quit_rx.recv());
         });
-
-        let runtime = rt_rx
-            .blocking_recv()
-            .expect("Tokio thread died before returning the Tokio runtime");
-
-        runtime.spawn(f);
 
         Self {
             join_handle: Some(join_handle),
             quit_tx,
-            runtime,
         }
     }
 }
