@@ -3,8 +3,8 @@ use std::{collections::HashMap, sync::Arc};
 
 use egui::{pos2, Color32, Context, Mesh, Rect, Vec2};
 use egui_extras::RetainedImage;
+use futures::StreamExt;
 use reqwest::header::USER_AGENT;
-use tokio::sync::mpsc::error::TryRecvError;
 
 use crate::mercator::TileId;
 use crate::tokio::TokioRuntimeThread;
@@ -45,10 +45,10 @@ pub struct Tiles {
     cache: HashMap<TileId, Option<Tile>>,
 
     /// Tiles to be downloaded by the IO thread.
-    request_tx: tokio::sync::mpsc::Sender<TileId>,
+    request_tx: futures::channel::mpsc::Sender<TileId>,
 
     /// Tiles that got downloaded and should be put in the cache.
-    tile_rx: tokio::sync::mpsc::Receiver<(TileId, Tile)>,
+    tile_rx: futures::channel::mpsc::Receiver<(TileId, Tile)>,
 
     #[allow(dead_code)] // Significant Drop
     tokio_runtime_thread: TokioRuntimeThread,
@@ -62,8 +62,9 @@ impl Tiles {
         // Minimum value which didn't cause any stalls while testing.
         let channel_size = 20;
 
-        let (request_tx, request_rx) = tokio::sync::mpsc::channel(channel_size);
-        let (tile_tx, tile_rx) = tokio::sync::mpsc::channel(channel_size);
+        //let (request_tx, request_rx) = tokio::sync::mpsc::channel(channel_size);
+        let (request_tx, request_rx) = futures::channel::mpsc::channel(channel_size);
+        let (tile_tx, tile_rx) = futures::channel::mpsc::channel(channel_size);
         let tokio_runtime_thread =
             TokioRuntimeThread::new(download(source, request_rx, tile_tx, egui_ctx));
 
@@ -78,14 +79,14 @@ impl Tiles {
     /// Return a tile if already in cache, schedule a download otherwise.
     pub fn at(&mut self, tile_id: TileId) -> Option<Tile> {
         // Just take one at the time.
-        match self.tile_rx.try_recv() {
-            Ok((tile_id, tile)) => {
+        match self.tile_rx.try_next() {
+            Ok(Some((tile_id, tile))) => {
                 self.cache.insert(tile_id, Some(tile));
             }
-            Err(TryRecvError::Empty) => {
+            Err(TryRecvError) => {
                 // Just ignore. It means that no new tile was downloaded.
             }
-            Err(TryRecvError::Disconnected) => panic!("IO thread is dead"),
+            Ok(None) => panic!("IO thread is dead"),
         }
 
         match self.cache.entry(tile_id) {
@@ -134,8 +135,9 @@ async fn download_single(client: &reqwest::Client, url: &str) -> Result<Tile, Er
 
 async fn download<S>(
     source: S,
-    mut request_rx: tokio::sync::mpsc::Receiver<TileId>,
-    tile_tx: tokio::sync::mpsc::Sender<(TileId, Tile)>,
+    //mut request_rx: tokio::sync::mpsc::Receiver<TileId>,
+    mut request_rx: futures::channel::mpsc::Receiver<TileId>,
+    mut tile_tx: futures::channel::mpsc::Sender<(TileId, Tile)>,
     egui_ctx: Context,
 ) -> Result<(), ()>
 where
@@ -145,14 +147,15 @@ where
     let client = reqwest::Client::new();
 
     loop {
-        let request = request_rx.recv().await.ok_or(())?;
+        //let request = request_rx.recv().await.ok_or(())?;
+        let request = request_rx.next().await.ok_or(())?;
         let url = source(request);
 
         log::debug!("Getting {:?} from {}.", request, url);
 
         match download_single(&client, &url).await {
             Ok(tile) => {
-                tile_tx.send((request, tile)).await.map_err(|_| ())?;
+                tile_tx.try_send((request, tile)).map_err(|_| ())?;
                 egui_ctx.request_repaint();
             }
             Err(e) => {
