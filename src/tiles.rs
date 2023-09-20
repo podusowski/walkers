@@ -144,7 +144,6 @@ where
     let client = reqwest::Client::new();
 
     loop {
-        //let request = request_rx.recv().await.ok_or(())?;
         let request = request_rx.next().await.ok_or(())?;
         let url = source(request);
 
