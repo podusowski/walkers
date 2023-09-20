@@ -66,7 +66,7 @@ impl Tiles {
         let (request_tx, request_rx) = futures::channel::mpsc::channel(channel_size);
         let (tile_tx, tile_rx) = futures::channel::mpsc::channel(channel_size);
         let tokio_runtime_thread =
-            TokioRuntimeThread::new(download(source, request_rx, tile_tx, egui_ctx));
+            TokioRuntimeThread::new(download_wrap(source, request_rx, tile_tx, egui_ctx));
 
         Self {
             cache: Default::default(),
@@ -163,6 +163,17 @@ where
             }
         }
     }
+}
+
+async fn download_wrap<S>(
+    source: S,
+    mut request_rx: futures::channel::mpsc::Receiver<TileId>,
+    mut tile_tx: futures::channel::mpsc::Sender<(TileId, Tile)>,
+    egui_ctx: Context,
+) where
+    S: Fn(TileId) -> String + Send + 'static,
+{
+    let _ = download(source, request_rx, tile_tx, egui_ctx).await;
 }
 
 #[cfg(test)]
