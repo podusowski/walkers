@@ -4,6 +4,7 @@
 
 Walkers is a slippy maps widget for [egui](https://github.com/emilk/egui),
 similar to very popular [Leaflet](https://leafletjs.com/), but written in Rust.
+It native applications as well as WASM. See the **[online demo here](https://podusowski.github.io/walkers/)**.
 
 ![Screenshot](https://raw.githubusercontent.com/podusowski/walkers/main/screenshot.png)
 
