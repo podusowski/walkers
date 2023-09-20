@@ -170,7 +170,12 @@ async fn download_wrap<S>(
 ) where
     S: Fn(TileId) -> String + Send + 'static,
 {
-    let _ = download(source, request_rx, tile_tx, egui_ctx).await;
+    if download(source, request_rx, tile_tx, egui_ctx)
+        .await
+        .is_err()
+    {
+        log::error!("Error from IO runtime.");
+    }
 }
 
 #[cfg(test)]
