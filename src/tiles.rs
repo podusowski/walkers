@@ -6,8 +6,8 @@ use egui_extras::RetainedImage;
 use futures::StreamExt;
 use reqwest::header::USER_AGENT;
 
+use crate::io::Runtime;
 use crate::mercator::TileId;
-use crate::io::TokioRuntimeThread;
 
 #[derive(Clone)]
 pub struct Tile {
@@ -51,7 +51,7 @@ pub struct Tiles {
     tile_rx: futures::channel::mpsc::Receiver<(TileId, Tile)>,
 
     #[allow(dead_code)] // Significant Drop
-    tokio_runtime_thread: TokioRuntimeThread,
+    runtime: Runtime,
 }
 
 impl Tiles {
@@ -65,14 +65,13 @@ impl Tiles {
         //let (request_tx, request_rx) = tokio::sync::mpsc::channel(channel_size);
         let (request_tx, request_rx) = futures::channel::mpsc::channel(channel_size);
         let (tile_tx, tile_rx) = futures::channel::mpsc::channel(channel_size);
-        let tokio_runtime_thread =
-            TokioRuntimeThread::new(download_wrap(source, request_rx, tile_tx, egui_ctx));
+        let runtime = Runtime::new(download_wrap(source, request_rx, tile_tx, egui_ctx));
 
         Self {
             cache: Default::default(),
             request_tx,
             tile_rx,
-            tokio_runtime_thread,
+            runtime,
         }
     }
 

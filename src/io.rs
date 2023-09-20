@@ -2,10 +2,10 @@
 use std::future::Future;
 
 #[cfg(not(target_arch = "wasm32"))]
-pub use native::TokioRuntimeThread;
+pub use native::TokioRuntimeThread as Runtime;
 
 #[cfg(target_arch = "wasm32")]
-pub use web::WasmBindgenFutures as TokioRuntimeThread;
+pub use web::WasmBindgenFutures as Runtime;
 
 #[cfg(target_arch = "wasm32")]
 mod web {
