@@ -3,11 +3,11 @@ use std::{collections::HashMap, sync::Arc};
 
 use egui::{pos2, Color32, Context, Mesh, Rect, Vec2};
 use egui_extras::RetainedImage;
+use futures::StreamExt;
 use reqwest::header::USER_AGENT;
-use tokio::sync::mpsc::error::TryRecvError;
 
+use crate::io::Runtime;
 use crate::mercator::TileId;
-use crate::tokio::TokioRuntimeThread;
 
 #[derive(Clone)]
 pub struct Tile {
@@ -45,13 +45,13 @@ pub struct Tiles {
     cache: HashMap<TileId, Option<Tile>>,
 
     /// Tiles to be downloaded by the IO thread.
-    request_tx: tokio::sync::mpsc::Sender<TileId>,
+    request_tx: futures::channel::mpsc::Sender<TileId>,
 
     /// Tiles that got downloaded and should be put in the cache.
-    tile_rx: tokio::sync::mpsc::Receiver<(TileId, Tile)>,
+    tile_rx: futures::channel::mpsc::Receiver<(TileId, Tile)>,
 
     #[allow(dead_code)] // Significant Drop
-    tokio_runtime_thread: TokioRuntimeThread,
+    runtime: Runtime,
 }
 
 impl Tiles {
@@ -59,35 +59,32 @@ impl Tiles {
     where
         S: Fn(TileId) -> String + Send + 'static,
     {
-        let tokio_runtime_thread = TokioRuntimeThread::new();
-
         // Minimum value which didn't cause any stalls while testing.
         let channel_size = 20;
 
-        let (request_tx, request_rx) = tokio::sync::mpsc::channel(channel_size);
-        let (tile_tx, tile_rx) = tokio::sync::mpsc::channel(channel_size);
-        tokio_runtime_thread
-            .runtime
-            .spawn(download(source, request_rx, tile_tx, egui_ctx));
+        let (request_tx, request_rx) = futures::channel::mpsc::channel(channel_size);
+        let (tile_tx, tile_rx) = futures::channel::mpsc::channel(channel_size);
+        let runtime = Runtime::new(download_wrap(source, request_rx, tile_tx, egui_ctx));
+
         Self {
             cache: Default::default(),
             request_tx,
             tile_rx,
-            tokio_runtime_thread,
+            runtime,
         }
     }
 
     /// Return a tile if already in cache, schedule a download otherwise.
     pub fn at(&mut self, tile_id: TileId) -> Option<Tile> {
         // Just take one at the time.
-        match self.tile_rx.try_recv() {
-            Ok((tile_id, tile)) => {
+        match self.tile_rx.try_next() {
+            Ok(Some((tile_id, tile))) => {
                 self.cache.insert(tile_id, Some(tile));
             }
-            Err(TryRecvError::Empty) => {
+            Err(_) => {
                 // Just ignore. It means that no new tile was downloaded.
             }
-            Err(TryRecvError::Disconnected) => panic!("IO thread is dead"),
+            Ok(None) => panic!("IO thread is dead"),
         }
 
         match self.cache.entry(tile_id) {
@@ -136,8 +133,8 @@ async fn download_single(client: &reqwest::Client, url: &str) -> Result<Tile, Er
 
 async fn download<S>(
     source: S,
-    mut request_rx: tokio::sync::mpsc::Receiver<TileId>,
-    tile_tx: tokio::sync::mpsc::Sender<(TileId, Tile)>,
+    mut request_rx: futures::channel::mpsc::Receiver<TileId>,
+    mut tile_tx: futures::channel::mpsc::Sender<(TileId, Tile)>,
     egui_ctx: Context,
 ) -> Result<(), ()>
 where
@@ -147,20 +144,36 @@ where
     let client = reqwest::Client::new();
 
     loop {
-        let request = request_rx.recv().await.ok_or(())?;
+        let request = request_rx.next().await.ok_or(())?;
         let url = source(request);
 
         log::debug!("Getting {:?} from {}.", request, url);
 
         match download_single(&client, &url).await {
             Ok(tile) => {
-                tile_tx.send((request, tile)).await.map_err(|_| ())?;
+                tile_tx.try_send((request, tile)).map_err(|_| ())?;
                 egui_ctx.request_repaint();
             }
             Err(e) => {
                 log::warn!("Could not download '{}': {}", &url, e);
             }
         }
+    }
+}
+
+async fn download_wrap<S>(
+    source: S,
+    request_rx: futures::channel::mpsc::Receiver<TileId>,
+    tile_tx: futures::channel::mpsc::Sender<(TileId, Tile)>,
+    egui_ctx: Context,
+) where
+    S: Fn(TileId) -> String + Send + 'static,
+{
+    if download(source, request_rx, tile_tx, egui_ctx)
+        .await
+        .is_err()
+    {
+        log::error!("Error from IO runtime.");
     }
 }
 
