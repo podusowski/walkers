@@ -7,6 +7,7 @@ pub use native::TokioRuntimeThread;
 #[cfg(target_arch = "wasm32")]
 pub use web::WasmBindgenFutures as TokioRuntimeThread;
 
+#[cfg(target_arch = "wasm32")]
 mod web {
     use super::*;
 
@@ -15,7 +16,7 @@ mod web {
     impl WasmBindgenFutures {
         pub fn new<F>(f: F) -> Self
         where
-            F: Future<Output=()> + 'static,
+            F: Future<Output = ()> + 'static,
         {
             wasm_bindgen_futures::spawn_local(f);
             Self {}

@@ -167,8 +167,8 @@ where
 
 async fn download_wrap<S>(
     source: S,
-    mut request_rx: futures::channel::mpsc::Receiver<TileId>,
-    mut tile_tx: futures::channel::mpsc::Sender<(TileId, Tile)>,
+    request_rx: futures::channel::mpsc::Receiver<TileId>,
+    tile_tx: futures::channel::mpsc::Sender<(TileId, Tile)>,
     egui_ctx: Context,
 ) where
     S: Fn(TileId) -> String + Send + 'static,
