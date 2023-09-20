@@ -8,5 +8,4 @@ demo = { path = "../demo" }
 eframe = "0.22"
 egui = "0.22"
 log = "0.4"
-env_logger = "0.10"
 wasm-bindgen-futures = "0.4"
