@@ -7,7 +7,7 @@ use futures::StreamExt;
 use reqwest::header::USER_AGENT;
 
 use crate::mercator::TileId;
-use crate::tokio::TokioRuntimeThread;
+use crate::io::TokioRuntimeThread;
 
 #[derive(Clone)]
 pub struct Tile {
