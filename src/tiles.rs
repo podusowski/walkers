@@ -62,7 +62,6 @@ impl Tiles {
         // Minimum value which didn't cause any stalls while testing.
         let channel_size = 20;
 
-        //let (request_tx, request_rx) = tokio::sync::mpsc::channel(channel_size);
         let (request_tx, request_rx) = futures::channel::mpsc::channel(channel_size);
         let (tile_tx, tile_rx) = futures::channel::mpsc::channel(channel_size);
         let runtime = Runtime::new(download_wrap(source, request_rx, tile_tx, egui_ctx));
@@ -134,7 +133,6 @@ async fn download_single(client: &reqwest::Client, url: &str) -> Result<Tile, Er
 
 async fn download<S>(
     source: S,
-    //mut request_rx: tokio::sync::mpsc::Receiver<TileId>,
     mut request_rx: futures::channel::mpsc::Receiver<TileId>,
     mut tile_tx: futures::channel::mpsc::Sender<(TileId, Tile)>,
     egui_ctx: Context,
