@@ -54,7 +54,7 @@ impl App for MyApp {
 
 You can see a more complete example [here](https://github.com/podusowski/walkers/blob/main/demo/src/lib.rs).
 
-## Running the demo
+## Running demos
 
 In the future, Walkers will suport numerous build options, such as Android and
 WASM. They all will share a common library - `demo`, but most will probably
