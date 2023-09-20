@@ -16,6 +16,7 @@ jobs:
       with:
         toolchain: stable
         components: clippy
+        target: wasm32-unknown-unknown
 
     - name: Build
       run: cargo build --verbose
