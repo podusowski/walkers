@@ -2,7 +2,7 @@
 
 All notable changes to this project will be documented in this file.
 
-## Unreleased
+## 0.8.0
 
  * Previous example was split into `demo` library, and `demo_*` integrations.
  * Support for WASM.
