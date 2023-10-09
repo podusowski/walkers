@@ -2,6 +2,10 @@
 
 All notable changes to this project will be documented in this file.
 
+## Unreleased
+
+ * Tile sources are now defined via `TileSource` trait, instead of `Fn`.
+
 ## 0.8.0
 
  * Previous example was split into `demo` library, and `demo_*` integrations.
