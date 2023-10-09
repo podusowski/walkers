@@ -22,7 +22,7 @@ such as OpenStreetMap and stores them in a cache, `MapMemory` keeps track of
 the widget's state and `Map` is the widget itself.
 
 ```rust
-use walkers::{Tiles, Map, MapMemory, Position, providers::openstreetmap};
+use walkers::{Tiles, Map, MapMemory, Position, providers::OpenStreetMap};
 use egui::{Context, CentralPanel};
 use eframe::{App, Frame};
 
@@ -34,7 +34,7 @@ struct MyApp {
 impl MyApp {
     fn new(egui_ctx: Context) -> Self {
         Self {
-            tiles: Tiles::new(openstreetmap, egui_ctx),
+            tiles: Tiles::new(OpenStreetMap, egui_ctx),
             map_memory: MapMemory::default(),
         }
     }
