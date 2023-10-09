@@ -26,7 +26,7 @@ impl TileSource for OpenStreetMap {
 
     fn attribution(&self) -> Attribution {
         Attribution {
-            text: "© OpenStreetMap contributors",
+            text: "OpenStreetMap contributors",
             url: "https://www.openstreetmap.org/copyright",
         }
     }
@@ -53,6 +53,9 @@ impl TileSource for Geoportal {
     }
 
     fn attribution(&self) -> Attribution {
-        todo!()
+        Attribution {
+            text: "Główny Urząd Geodezji i Kartografii",
+            url: "https://www.geoportal.gov.pl/",
+        }
     }
 }
