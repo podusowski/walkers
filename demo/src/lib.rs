@@ -125,7 +125,6 @@ mod windows {
             .resizable(false)
             .title_bar(false)
             .anchor(Align2::LEFT_TOP, [10., 10.])
-            .fixed_size([150., 150.])
             .show(ui.ctx(), |ui| {
                 ui.hyperlink_to(attribution.text, attribution.url);
             });
