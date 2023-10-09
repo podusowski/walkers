@@ -8,6 +8,7 @@ use reqwest::header::USER_AGENT;
 
 use crate::io::Runtime;
 use crate::mercator::TileId;
+use crate::providers::TileSource;
 
 #[derive(Clone)]
 pub struct Tile {
@@ -57,7 +58,7 @@ pub struct Tiles {
 impl Tiles {
     pub fn new<S>(source: S, egui_ctx: Context) -> Self
     where
-        S: Fn(TileId) -> String + Send + 'static,
+        S: TileSource + Send + 'static,
     {
         // Minimum value which didn't cause any stalls while testing.
         let channel_size = 20;
@@ -138,14 +139,14 @@ async fn download<S>(
     egui_ctx: Context,
 ) -> Result<(), ()>
 where
-    S: Fn(TileId) -> String + Send + 'static,
+    S: TileSource + Send + 'static,
 {
     // Keep outside the loop to reuse it as much as possible.
     let client = reqwest::Client::new();
 
     loop {
         let request = request_rx.next().await.ok_or(())?;
-        let url = source(request);
+        let url = source.tile_url(request);
 
         log::debug!("Getting {:?} from {}.", request, url);
 
@@ -167,7 +168,7 @@ async fn download_wrap<S>(
     tile_tx: futures::channel::mpsc::Sender<(TileId, Tile)>,
     egui_ctx: Context,
 ) where
-    S: Fn(TileId) -> String + Send + 'static,
+    S: TileSource + Send + 'static,
 {
     if download(source, request_rx, tile_tx, egui_ctx)
         .await

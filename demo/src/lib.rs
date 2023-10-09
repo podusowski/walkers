@@ -11,8 +11,8 @@ pub struct MyApp {
 impl MyApp {
     pub fn new(egui_ctx: Context) -> Self {
         Self {
-            tiles: Tiles::new(walkers::providers::openstreetmap, egui_ctx.to_owned()),
-            geoportal_tiles: Tiles::new(walkers::providers::geoportal, egui_ctx),
+            tiles: Tiles::new(walkers::providers::OpenStreetMap, egui_ctx.to_owned()),
+            geoportal_tiles: Tiles::new(walkers::providers::Geoportal, egui_ctx),
             map_memory: MapMemory::default(),
             satellite: false,
         }
@@ -184,4 +184,3 @@ mod windows {
         }
     }
 }
-
