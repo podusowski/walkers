@@ -190,19 +190,31 @@ mod tests {
         zoom: 3,
     };
 
-    type Source = Box<dyn Fn(TileId) -> String + Send>;
+    struct TestSource {
+        base_url: String,
+    }
+
+    impl TestSource {
+        pub fn new(base_url: String) -> Self {
+            Self { base_url }
+        }
+    }
+
+    impl TileSource for TestSource {
+        fn tile_url(&self, tile_id: TileId) -> String {
+            format!(
+                "{}/{}/{}/{}.png",
+                self.base_url, tile_id.zoom, tile_id.x, tile_id.y
+            )
+        }
+    }
 
     /// Creates `mockito::Server` and function mapping `TileId` to this
     /// server's URL.
-    fn mockito_server() -> (mockito::ServerGuard, Source) {
+    fn mockito_server() -> (mockito::ServerGuard, TestSource) {
         let server = mockito::Server::new();
         let url = server.url();
-
-        let source = move |tile_id: TileId| {
-            format!("{}/{}/{}/{}.png", url, tile_id.zoom, tile_id.x, tile_id.y)
-        };
-
-        (server, Box::new(source))
+        (server, TestSource::new(url))
     }
 
     #[test]
@@ -272,13 +284,18 @@ mod tests {
         tile_mock.assert();
     }
 
+    struct GarbageSource;
+
+    impl TileSource for GarbageSource {
+        fn tile_url(&self, _: TileId) -> String {
+            "totally invalid url".to_string()
+        }
+    }
+
     #[test]
     fn tile_is_empty_forever_if_http_can_not_even_connect() {
         let _ = env_logger::try_init();
-
-        let source = |_| "totally invalid url".to_string();
-        let mut tiles = Tiles::new(source, Context::default());
-
+        let mut tiles = Tiles::new(GarbageSource, Context::default());
         assert_tile_is_empty_forever(&mut tiles);
     }
 }
