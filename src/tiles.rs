@@ -8,7 +8,7 @@ use reqwest::header::USER_AGENT;
 
 use crate::io::Runtime;
 use crate::mercator::TileId;
-use crate::providers::TileSource;
+use crate::providers::{Attribution, TileSource};
 
 #[derive(Clone)]
 pub struct Tile {
@@ -43,6 +43,8 @@ impl Tile {
 
 /// Downloads and keeps cache of the tiles. It must persist between frames.
 pub struct Tiles {
+    attribution: Attribution,
+
     cache: HashMap<TileId, Option<Tile>>,
 
     /// Tiles to be downloaded by the IO thread.
@@ -65,14 +67,20 @@ impl Tiles {
 
         let (request_tx, request_rx) = futures::channel::mpsc::channel(channel_size);
         let (tile_tx, tile_rx) = futures::channel::mpsc::channel(channel_size);
+        let attribution = source.attribution();
         let runtime = Runtime::new(download_wrap(source, request_rx, tile_tx, egui_ctx));
 
         Self {
+            attribution,
             cache: Default::default(),
             request_tx,
             tile_rx,
             runtime,
         }
+    }
+
+    pub fn attribution(&self) -> Attribution {
+        self.attribution
     }
 
     /// Return a tile if already in cache, schedule a download otherwise.
@@ -207,6 +215,10 @@ mod tests {
                 self.base_url, tile_id.zoom, tile_id.x, tile_id.y
             )
         }
+
+        fn attribution(&self) -> crate::providers::Attribution {
+            unimplemented!()
+        }
     }
 
     /// Creates `mockito::Server` and function mapping `TileId` to this
@@ -289,6 +301,10 @@ mod tests {
     impl TileSource for GarbageSource {
         fn tile_url(&self, _: TileId) -> String {
             "totally invalid url".to_string()
+        }
+
+        fn attribution(&self) -> crate::providers::Attribution {
+            unimplemented!()
         }
     }
 

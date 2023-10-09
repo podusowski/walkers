@@ -2,8 +2,15 @@
 
 use crate::mercator::TileId;
 
+#[derive(Clone, Copy)]
+pub struct Attribution {
+    pub text: &'static str,
+    pub url: &'static str,
+}
+
 pub trait TileSource {
     fn tile_url(&self, tile_id: TileId) -> String;
+    fn attribution(&self) -> Attribution;
 }
 
 /// <https://www.openstreetmap.org/about>
@@ -15,6 +22,13 @@ impl TileSource for OpenStreetMap {
             "https://tile.openstreetmap.org/{}/{}/{}.png",
             tile_id.zoom, tile_id.x, tile_id.y
         )
+    }
+
+    fn attribution(&self) -> Attribution {
+        Attribution {
+            text: "© OpenStreetMap contributors",
+            url: "https://www.openstreetmap.org/copyright",
+        }
     }
 }
 
@@ -36,5 +50,9 @@ impl TileSource for Geoportal {
             &TILECOL={}",
             tile_id.zoom, tile_id.y, tile_id.x
         )
+    }
+
+    fn attribution(&self) -> Attribution {
+        todo!()
     }
 }
