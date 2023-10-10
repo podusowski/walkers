@@ -11,8 +11,8 @@ pub struct MyApp {
 impl MyApp {
     pub fn new(egui_ctx: Context) -> Self {
         Self {
-            tiles: Tiles::new(walkers::providers::openstreetmap, egui_ctx.to_owned()),
-            geoportal_tiles: Tiles::new(walkers::providers::geoportal, egui_ctx),
+            tiles: Tiles::new(walkers::providers::OpenStreetMap, egui_ctx.to_owned()),
+            geoportal_tiles: Tiles::new(walkers::providers::Geoportal, egui_ctx),
             map_memory: MapMemory::default(),
             satellite: false,
         }
@@ -39,6 +39,8 @@ impl eframe::App for MyApp {
                     &mut self.tiles
                 };
 
+                let attribution = tiles.attribution();
+
                 // In egui, widgets are constructed and consumed in each frame.
                 let map = Map::new(Some(tiles), &mut self.map_memory, my_position);
 
@@ -58,7 +60,7 @@ impl eframe::App for MyApp {
                     zoom(ui, &mut self.map_memory);
                     go_to_my_position(ui, &mut self.map_memory);
                     satellite(ui, &mut self.satellite);
-                    acknowledge(ui);
+                    acknowledge(ui, &attribution);
                 }
             });
     }
@@ -115,20 +117,16 @@ fn draw_custom_shapes(ctx: Context, painter: Painter, projector: &Projector) {
 
 mod windows {
     use egui::{Align2, RichText, Ui, Window};
-    use walkers::{Center, MapMemory};
+    use walkers::{providers::Attribution, Center, MapMemory};
 
-    pub fn acknowledge(ui: &Ui) {
+    pub fn acknowledge(ui: &Ui, attribution: &Attribution) {
         Window::new("Acknowledge")
             .collapsible(false)
             .resizable(false)
             .title_bar(false)
             .anchor(Align2::LEFT_TOP, [10., 10.])
-            .fixed_size([150., 150.])
             .show(ui.ctx(), |ui| {
-                ui.horizontal(|ui| {
-                    ui.label("following map uses data from");
-                    ui.hyperlink("https://www.openstreetmap.org");
-                });
+                ui.hyperlink_to(attribution.text, attribution.url);
             });
     }
 
@@ -184,4 +182,3 @@ mod windows {
         }
     }
 }
-

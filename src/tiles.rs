@@ -8,6 +8,7 @@ use reqwest::header::USER_AGENT;
 
 use crate::io::Runtime;
 use crate::mercator::TileId;
+use crate::providers::{Attribution, TileSource};
 
 #[derive(Clone)]
 pub struct Tile {
@@ -42,6 +43,8 @@ impl Tile {
 
 /// Downloads and keeps cache of the tiles. It must persist between frames.
 pub struct Tiles {
+    attribution: Attribution,
+
     cache: HashMap<TileId, Option<Tile>>,
 
     /// Tiles to be downloaded by the IO thread.
@@ -57,21 +60,29 @@ pub struct Tiles {
 impl Tiles {
     pub fn new<S>(source: S, egui_ctx: Context) -> Self
     where
-        S: Fn(TileId) -> String + Send + 'static,
+        S: TileSource + Send + 'static,
     {
         // Minimum value which didn't cause any stalls while testing.
         let channel_size = 20;
 
         let (request_tx, request_rx) = futures::channel::mpsc::channel(channel_size);
         let (tile_tx, tile_rx) = futures::channel::mpsc::channel(channel_size);
+        let attribution = source.attribution();
         let runtime = Runtime::new(download_wrap(source, request_rx, tile_tx, egui_ctx));
 
         Self {
+            attribution,
             cache: Default::default(),
             request_tx,
             tile_rx,
             runtime,
         }
+    }
+
+    /// Attribution of the source this tile cache pulls images from. Typically,
+    /// this should be displayed somewhere on the top of the map widget.
+    pub fn attribution(&self) -> Attribution {
+        self.attribution
     }
 
     /// Return a tile if already in cache, schedule a download otherwise.
@@ -138,14 +149,14 @@ async fn download<S>(
     egui_ctx: Context,
 ) -> Result<(), ()>
 where
-    S: Fn(TileId) -> String + Send + 'static,
+    S: TileSource + Send + 'static,
 {
     // Keep outside the loop to reuse it as much as possible.
     let client = reqwest::Client::new();
 
     loop {
         let request = request_rx.next().await.ok_or(())?;
-        let url = source(request);
+        let url = source.tile_url(request);
 
         log::debug!("Getting {:?} from {}.", request, url);
 
@@ -167,7 +178,7 @@ async fn download_wrap<S>(
     tile_tx: futures::channel::mpsc::Sender<(TileId, Tile)>,
     egui_ctx: Context,
 ) where
-    S: Fn(TileId) -> String + Send + 'static,
+    S: TileSource + Send + 'static,
 {
     if download(source, request_rx, tile_tx, egui_ctx)
         .await
@@ -189,19 +200,35 @@ mod tests {
         zoom: 3,
     };
 
-    type Source = Box<dyn Fn(TileId) -> String + Send>;
+    struct TestSource {
+        base_url: String,
+    }
+
+    impl TestSource {
+        pub fn new(base_url: String) -> Self {
+            Self { base_url }
+        }
+    }
+
+    impl TileSource for TestSource {
+        fn tile_url(&self, tile_id: TileId) -> String {
+            format!(
+                "{}/{}/{}/{}.png",
+                self.base_url, tile_id.zoom, tile_id.x, tile_id.y
+            )
+        }
+
+        fn attribution(&self) -> Attribution {
+            Attribution { text: "", url: "" }
+        }
+    }
 
     /// Creates `mockito::Server` and function mapping `TileId` to this
     /// server's URL.
-    fn mockito_server() -> (mockito::ServerGuard, Source) {
+    fn mockito_server() -> (mockito::ServerGuard, TestSource) {
         let server = mockito::Server::new();
         let url = server.url();
-
-        let source = move |tile_id: TileId| {
-            format!("{}/{}/{}/{}.png", url, tile_id.zoom, tile_id.x, tile_id.y)
-        };
-
-        (server, Box::new(source))
+        (server, TestSource::new(url))
     }
 
     #[test]
@@ -271,13 +298,22 @@ mod tests {
         tile_mock.assert();
     }
 
+    struct GarbageSource;
+
+    impl TileSource for GarbageSource {
+        fn tile_url(&self, _: TileId) -> String {
+            "totally invalid url".to_string()
+        }
+
+        fn attribution(&self) -> Attribution {
+            Attribution { text: "", url: "" }
+        }
+    }
+
     #[test]
     fn tile_is_empty_forever_if_http_can_not_even_connect() {
         let _ = env_logger::try_init();
-
-        let source = |_| "totally invalid url".to_string();
-        let mut tiles = Tiles::new(source, Context::default());
-
+        let mut tiles = Tiles::new(GarbageSource, Context::default());
         assert_tile_is_empty_forever(&mut tiles);
     }
 }
