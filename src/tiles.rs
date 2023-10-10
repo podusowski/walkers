@@ -79,6 +79,8 @@ impl Tiles {
         }
     }
 
+    /// Attribution of the source this tile cache pulls images from. Typically,
+    /// this should be displayed somewhere on the top of the map widget.
     pub fn attribution(&self) -> Attribution {
         self.attribution
     }
