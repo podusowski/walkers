@@ -216,8 +216,8 @@ mod tests {
             )
         }
 
-        fn attribution(&self) -> crate::providers::Attribution {
-            unimplemented!()
+        fn attribution(&self) -> Attribution {
+            Attribution { text: "", url: "" }
         }
     }
 
@@ -303,8 +303,8 @@ mod tests {
             "totally invalid url".to_string()
         }
 
-        fn attribution(&self) -> crate::providers::Attribution {
-            unimplemented!()
+        fn attribution(&self) -> Attribution {
+            Attribution { text: "", url: "" }
         }
     }
 
