@@ -1,3 +1,4 @@
+#[cfg(target_arch = "wasm32")]
 fn main() {
     // Redirect `log` message to `console.log` and friends:
     eframe::WebLogger::init(log::LevelFilter::Debug).ok();
@@ -14,4 +15,9 @@ fn main() {
             .await
             .expect("failed to start eframe");
     });
+}
+
+#[cfg(not(target_arch = "wasm32"))]
+fn main() {
+    println!("This demo is only meant to be compiled for WASM.");
 }
