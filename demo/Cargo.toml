@@ -4,7 +4,7 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-walkers = { path = ".." }
+walkers = { path = "../walkers" }
 eframe = "0.22"
 egui = "0.22"
 log = "0.4"

@@ -1,2 +1,2 @@
 [workspace]
-members = ["walkers"]
+members = ["walkers", "demo", "demo_native"]
