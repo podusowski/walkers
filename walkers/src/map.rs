@@ -7,6 +7,10 @@ use crate::{
     Position, Tiles, Zoom,
 };
 
+pub trait Plugin {
+    fn draw(&self, painter: Painter, projector: &Projector);
+}
+
 /// The actual map widget. Instances are to be created on each frame, as all necessary state is
 /// stored in [`Tiles`] and [`MapMemory`].
 ///
@@ -30,6 +34,8 @@ pub struct Map<'a, 'b> {
 
     #[allow(clippy::type_complexity)]
     drawer: Option<Box<dyn Fn(Painter, &Projector)>>,
+
+    plugins: Vec<Box<dyn Plugin>>,
 }
 
 impl<'a, 'b> Map<'a, 'b> {
@@ -43,6 +49,7 @@ impl<'a, 'b> Map<'a, 'b> {
             memory,
             my_position,
             drawer: None,
+            plugins: Vec::default(),
         }
     }
 
@@ -51,6 +58,11 @@ impl<'a, 'b> Map<'a, 'b> {
         D: Fn(Painter, &Projector) + 'static,
     {
         self.drawer = Some(Box::new(drawer));
+        self
+    }
+
+    pub fn with_plugin(mut self, plugin: impl Plugin + 'static) -> Self {
+        self.plugins.push(Box::new(plugin));
         self
     }
 }
@@ -133,6 +145,18 @@ impl Widget for Map<'_, '_> {
             };
 
             drawer(painter, &projector);
+        }
+
+        for plugin in self.plugins {
+            let painter = ui.painter().with_clip_rect(response.rect);
+
+            let projector = Projector {
+                clip_rect: response.rect,
+                memory: self.memory,
+                my_position: self.my_position,
+            };
+
+            plugin.draw(painter, &projector);
         }
 
         response
