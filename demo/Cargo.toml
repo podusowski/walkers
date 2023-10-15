@@ -6,6 +6,5 @@ publish = false
 
 [dependencies]
 walkers = { path = "../walkers" }
-eframe = "0.22"
-egui = "0.22"
-log = "0.4"
+eframe.workspace = true
+egui.workspace = true

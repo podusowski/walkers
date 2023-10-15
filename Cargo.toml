@@ -1,2 +1,7 @@
 [workspace]
 members = ["walkers", "demo", "demo_native", "demo_web"]
+
+[workspace.dependencies]
+log = "0.4"
+eframe = "0.22"
+egui = "0.22"
