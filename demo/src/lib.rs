@@ -92,6 +92,7 @@ impl Plugin for Places {
         // Project it into the position on the screen.
         let screen_position = projector.project(position);
 
+        // Context is a central part of egui. Among other things, it holds styles and fonts.
         let ctx = painter.ctx();
 
         // Now we can just use Painter to draw stuff.
