@@ -1,2 +1,8 @@
 [workspace]
 members = ["walkers", "demo", "demo_native", "demo_web"]
+
+[workspace.dependencies]
+log = "0.4"
+egui = "0.22"
+egui_extras = { version = "0.22", features = ["image"] }
+eframe = "0.22"
