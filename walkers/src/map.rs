@@ -7,7 +7,10 @@ use crate::{
     Position, Tiles, Zoom,
 };
 
+/// Plugins allow drawing custom shapes on the map. After implementing this trait for your type,
+/// you can add it to the map with [`Map::with_plugin`]
 pub trait Plugin {
+    /// Function called at each frame.
     fn draw(&self, painter: Painter, projector: &Projector);
 }
 
