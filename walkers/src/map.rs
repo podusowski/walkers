@@ -7,6 +7,13 @@ use crate::{
     Position, Tiles, Zoom,
 };
 
+/// Plugins allow drawing custom shapes on the map. After implementing this trait for your type,
+/// you can add it to the map with [`Map::with_plugin`]
+pub trait Plugin {
+    /// Function called at each frame.
+    fn draw(&self, painter: Painter, projector: &Projector);
+}
+
 /// The actual map widget. Instances are to be created on each frame, as all necessary state is
 /// stored in [`Tiles`] and [`MapMemory`].
 ///
@@ -27,9 +34,7 @@ pub struct Map<'a, 'b> {
     tiles: Option<&'b mut Tiles>,
     memory: &'a mut MapMemory,
     my_position: Position,
-
-    #[allow(clippy::type_complexity)]
-    drawer: Option<Box<dyn Fn(Painter, &Projector)>>,
+    plugins: Vec<Box<dyn Plugin>>,
 }
 
 impl<'a, 'b> Map<'a, 'b> {
@@ -42,15 +47,13 @@ impl<'a, 'b> Map<'a, 'b> {
             tiles,
             memory,
             my_position,
-            drawer: None,
+            plugins: Vec::default(),
         }
     }
 
-    pub fn with_drawer<D>(mut self, drawer: D) -> Self
-    where
-        D: Fn(Painter, &Projector) + 'static,
-    {
-        self.drawer = Some(Box::new(drawer));
+    /// Add plugin to the drawing pipeline. Plugins allow drawing custom shaped on the map.
+    pub fn with_plugin(mut self, plugin: impl Plugin + 'static) -> Self {
+        self.plugins.push(Box::new(plugin));
         self
     }
 }
@@ -83,7 +86,6 @@ impl Widget for Map<'_, '_> {
     fn ui(self, ui: &mut Ui) -> Response {
         let (rect, response) = ui.allocate_exact_size(ui.available_size(), Sense::drag());
 
-        //if response.hovered() {
         let zoom_delta = ui.input(|input| input.zoom_delta());
 
         // Zooming and dragging need to be exclusive, otherwise the map will get dragged when
@@ -123,7 +125,7 @@ impl Widget for Map<'_, '_> {
             }
         }
 
-        if let Some(drawer) = self.drawer {
+        for plugin in self.plugins {
             let painter = ui.painter().with_clip_rect(response.rect);
 
             let projector = Projector {
@@ -132,7 +134,7 @@ impl Widget for Map<'_, '_> {
                 my_position: self.my_position,
             };
 
-            drawer(painter, &projector);
+            plugin.draw(painter, &projector);
         }
 
         response

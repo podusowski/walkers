@@ -1,5 +1,5 @@
 use egui::{Align2, Context, Painter, Shape};
-use walkers::{Map, MapMemory, Projector, Tiles};
+use walkers::{Map, MapMemory, Plugin, Projector, Tiles};
 
 pub struct MyApp {
     tiles: Tiles,
@@ -44,11 +44,8 @@ impl eframe::App for MyApp {
                 // In egui, widgets are constructed and consumed in each frame.
                 let map = Map::new(Some(tiles), &mut self.map_memory, my_position);
 
-                // Optionally, a function which draw custom stuff on the map can be attached.
-                let ctx_clone = ctx.clone();
-                let map = map.with_drawer(move |painter, project| {
-                    draw_custom_shapes(ctx_clone.clone(), painter, project);
-                });
+                // Optionally, a plugin which draw custom stuff on the map can be attached.
+                let map = map.with_plugin(CustomShapes {});
 
                 // Draw the map widget.
                 ui.add(map);
@@ -84,35 +81,42 @@ mod places {
     }
 }
 
-/// Shows how to draw various things in the map.
-fn draw_custom_shapes(ctx: Context, painter: Painter, projector: &Projector) {
-    // Position of the point we want to put our shapes.
-    let position = places::dworcowa_bus_stop();
+/// Sample map plugin which draws custom stuff on the map.
+struct CustomShapes {}
 
-    // Project it into the position on the screen.
-    let screen_position = projector.project(position);
+impl Plugin for CustomShapes {
+    fn draw(&self, painter: Painter, projector: &Projector) {
+        // Position of the point we want to put our shapes.
+        let position = places::dworcowa_bus_stop();
 
-    // Now we can just use Painter to draw stuff.
-    let background = |text: &Shape| {
-        Shape::rect_filled(
-            text.visual_bounding_rect().expand(5.),
-            5.,
-            ctx.style().visuals.extreme_bg_color,
-        )
-    };
+        // Project it into the position on the screen.
+        let screen_position = projector.project(position);
 
-    let text = ctx.fonts(|fonts| {
-        Shape::text(
-            fonts,
-            screen_position.to_pos2(),
-            Align2::LEFT_CENTER,
-            "⬉ Here you can board the 106 line\nwhich goes to the airport.",
-            Default::default(),
-            ctx.style().visuals.text_color(),
-        )
-    });
-    painter.add(background(&text));
-    painter.add(text);
+        // Context is a central part of egui. Among other things, it holds styles and fonts.
+        let ctx = painter.ctx();
+
+        // Now we can just use Painter to draw stuff.
+        let background = |text: &Shape| {
+            Shape::rect_filled(
+                text.visual_bounding_rect().expand(5.),
+                5.,
+                ctx.style().visuals.extreme_bg_color,
+            )
+        };
+
+        let text = ctx.fonts(|fonts| {
+            Shape::text(
+                fonts,
+                screen_position.to_pos2(),
+                Align2::LEFT_CENTER,
+                "⬉ Here you can board the 106 line\nwhich goes to the airport.",
+                Default::default(),
+                ctx.style().visuals.text_color(),
+            )
+        });
+        painter.add(background(&text));
+        painter.add(text);
+    }
 }
 
 mod windows {
