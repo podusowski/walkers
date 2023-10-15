@@ -10,10 +10,10 @@ license = "MIT"
 edition = "2021"
 
 [dependencies]
+log.workspace = true
+egui.workspace = true
+egui_extras.workspace = true
 thiserror = "1"
-log = "0.4"
-egui = "0.22"
-egui_extras = { version = "0.22", features = ["image"] }
 image = { version = "0.24", features = ["jpeg", "png"] }
 geo-types = { version = "0.7" }
 reqwest = { version = "0.11", default-features = false, features = [
@@ -28,7 +28,7 @@ wasm-bindgen-futures = "0.4.37"
 tokio = { version = "1.28", features = ["macros"] }
 
 [dev-dependencies]
-eframe = "0.22"
+eframe.workspace = true
 env_logger = "0.10"
 approx = "0.5"
 mockito = "1.1"
