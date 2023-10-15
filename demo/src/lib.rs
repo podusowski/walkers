@@ -45,7 +45,7 @@ impl eframe::App for MyApp {
                 let map = Map::new(Some(tiles), &mut self.map_memory, my_position);
 
                 // Optionally, a plugin which draw custom stuff on the map can be attached.
-                let map = map.with_plugin(Places {});
+                let map = map.with_plugin(CustomShapes {});
 
                 // Draw the map widget.
                 ui.add(map);
@@ -82,9 +82,9 @@ mod places {
 }
 
 /// Sample map plugin which draws custom stuff on the map.
-struct Places {}
+struct CustomShapes {}
 
-impl Plugin for Places {
+impl Plugin for CustomShapes {
     fn draw(&self, painter: Painter, projector: &Projector) {
         // Position of the point we want to put our shapes.
         let position = places::dworcowa_bus_stop();
