@@ -95,7 +95,6 @@ impl Widget for Map<'_, '_> {
     fn ui(self, ui: &mut Ui) -> Response {
         let (rect, response) = ui.allocate_exact_size(ui.available_size(), Sense::drag());
 
-        //if response.hovered() {
         let zoom_delta = ui.input(|input| input.zoom_delta());
 
         // Zooming and dragging need to be exclusive, otherwise the map will get dragged when
