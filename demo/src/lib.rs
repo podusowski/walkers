@@ -1,5 +1,5 @@
 use egui::{Align2, Context, Painter, Shape};
-use walkers::{Map, MapMemory, Projector, Tiles};
+use walkers::{Map, MapMemory, Plugin, Projector, Tiles};
 
 pub struct MyApp {
     tiles: Tiles,
@@ -46,9 +46,11 @@ impl eframe::App for MyApp {
 
                 // Optionally, a function which draw custom stuff on the map can be attached.
                 let ctx_clone = ctx.clone();
-                let map = map.with_drawer(move |painter, project| {
-                    draw_custom_shapes(ctx_clone.clone(), painter, project);
-                });
+                let map = map
+                    //.with_drawer(move |painter, project| {
+                    //    draw_custom_shapes(ctx_clone.clone(), painter, project);
+                    //})
+                    .with_plugin(Places {});
 
                 // Draw the map widget.
                 ui.add(map);
@@ -81,6 +83,42 @@ mod places {
     /// https://www.wroclaw.pl/en/how-and-where-to-buy-public-transport-tickets-in-wroclaw
     pub fn dworcowa_bus_stop() -> Position {
         Position::new(17.03940, 51.10005)
+    }
+}
+
+struct Places {}
+
+impl Plugin for Places {
+    fn draw(&self, painter: Painter, projector: &Projector) {
+        // Position of the point we want to put our shapes.
+        let position = places::dworcowa_bus_stop();
+
+        // Project it into the position on the screen.
+        let screen_position = projector.project(position);
+
+        let ctx = painter.ctx();
+
+        // Now we can just use Painter to draw stuff.
+        let background = |text: &Shape| {
+            Shape::rect_filled(
+                text.visual_bounding_rect().expand(5.),
+                5.,
+                ctx.style().visuals.extreme_bg_color,
+            )
+        };
+
+        let text = ctx.fonts(|fonts| {
+            Shape::text(
+                fonts,
+                screen_position.to_pos2(),
+                Align2::LEFT_CENTER,
+                "⬉ Here you can board the 106 line\nwhich goes to the airport.",
+                Default::default(),
+                ctx.style().visuals.text_color(),
+            )
+        });
+        painter.add(background(&text));
+        painter.add(text);
     }
 }
 
