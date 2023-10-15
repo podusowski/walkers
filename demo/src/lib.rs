@@ -44,13 +44,8 @@ impl eframe::App for MyApp {
                 // In egui, widgets are constructed and consumed in each frame.
                 let map = Map::new(Some(tiles), &mut self.map_memory, my_position);
 
-                // Optionally, a function which draw custom stuff on the map can be attached.
-                let ctx_clone = ctx.clone();
-                let map = map
-                    //.with_drawer(move |painter, project| {
-                    //    draw_custom_shapes(ctx_clone.clone(), painter, project);
-                    //})
-                    .with_plugin(Places {});
+                // Optionally, a plugin which draw custom stuff on the map can be attached.
+                let map = map.with_plugin(Places {});
 
                 // Draw the map widget.
                 ui.add(map);
@@ -120,37 +115,6 @@ impl Plugin for Places {
         painter.add(background(&text));
         painter.add(text);
     }
-}
-
-/// Shows how to draw various things in the map.
-fn draw_custom_shapes(ctx: Context, painter: Painter, projector: &Projector) {
-    // Position of the point we want to put our shapes.
-    let position = places::dworcowa_bus_stop();
-
-    // Project it into the position on the screen.
-    let screen_position = projector.project(position);
-
-    // Now we can just use Painter to draw stuff.
-    let background = |text: &Shape| {
-        Shape::rect_filled(
-            text.visual_bounding_rect().expand(5.),
-            5.,
-            ctx.style().visuals.extreme_bg_color,
-        )
-    };
-
-    let text = ctx.fonts(|fonts| {
-        Shape::text(
-            fonts,
-            screen_position.to_pos2(),
-            Align2::LEFT_CENTER,
-            "⬉ Here you can board the 106 line\nwhich goes to the airport.",
-            Default::default(),
-            ctx.style().visuals.text_color(),
-        )
-    });
-    painter.add(background(&text));
-    painter.add(text);
 }
 
 mod windows {
