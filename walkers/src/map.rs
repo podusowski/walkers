@@ -34,10 +34,6 @@ pub struct Map<'a, 'b> {
     tiles: Option<&'b mut Tiles>,
     memory: &'a mut MapMemory,
     my_position: Position,
-
-    #[allow(clippy::type_complexity)]
-    drawer: Option<Box<dyn Fn(Painter, &Projector)>>,
-
     plugins: Vec<Box<dyn Plugin>>,
 }
 
@@ -51,19 +47,11 @@ impl<'a, 'b> Map<'a, 'b> {
             tiles,
             memory,
             my_position,
-            drawer: None,
             plugins: Vec::default(),
         }
     }
 
-    pub fn with_drawer<D>(mut self, drawer: D) -> Self
-    where
-        D: Fn(Painter, &Projector) + 'static,
-    {
-        self.drawer = Some(Box::new(drawer));
-        self
-    }
-
+    /// Add plugin to the drawing pipeline. Plugins allow drawing custom shaped on the map.
     pub fn with_plugin(mut self, plugin: impl Plugin + 'static) -> Self {
         self.plugins.push(Box::new(plugin));
         self
@@ -135,18 +123,6 @@ impl Widget for Map<'_, '_> {
             for (_, shape) in meshes {
                 painter.add(shape);
             }
-        }
-
-        if let Some(drawer) = self.drawer {
-            let painter = ui.painter().with_clip_rect(response.rect);
-
-            let projector = Projector {
-                clip_rect: response.rect,
-                memory: self.memory,
-                my_position: self.my_position,
-            };
-
-            drawer(painter, &projector);
         }
 
         for plugin in self.plugins {
