@@ -81,6 +81,7 @@ mod places {
     }
 }
 
+/// Sample map plugin which draws custom stuff on the map.
 struct Places {}
 
 impl Plugin for Places {
