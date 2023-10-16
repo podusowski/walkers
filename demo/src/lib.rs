@@ -48,7 +48,7 @@ impl eframe::App for MyApp {
                 let map = map.with_plugin(walkers::extras::Places::new(vec![
                     Place {
                         position: places::wroclaw_glowny(),
-                        label: "Wrocław\ntrain station".to_owned(),
+                        label: "Wrocław Główny\ntrain station".to_owned(),
                     },
                     Place {
                         position: places::dworcowa_bus_stop(),
