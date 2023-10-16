@@ -23,50 +23,12 @@ impl Plugin for Places {
             let screen_position = projector.project(place.position);
             let ctx = painter.ctx();
 
-            //{
-            //    let x = Vec2::new(7., 0.);
-            //    let y = Vec2::new(0., 7.);
-            //    let stroke = Stroke::new(4., Color32::GRAY);
-
-            //    painter.line_segment(
-            //        [screen_position.to_pos2(), (screen_position + x).to_pos2()],
-            //        stroke,
-            //    );
-
-            //    painter.line_segment(
-            //        [screen_position.to_pos2(), (screen_position + y).to_pos2()],
-            //        stroke,
-            //    );
-
-            //    painter.line_segment(
-            //        [
-            //            screen_position.to_pos2() + x + x + y,
-            //            (screen_position + x + x + y + y).to_pos2(),
-            //        ],
-            //        stroke,
-            //    );
-
-            //    painter.line_segment(
-            //        [
-            //            screen_position.to_pos2() + x + y + y,
-            //            (screen_position + x + x + y + y).to_pos2(),
-            //        ],
-            //        stroke,
-            //    );
-            //}
-
             painter.circle(
                 screen_position.to_pos2(),
                 10.,
                 Color32::WHITE,
                 Stroke::new(3., Color32::BLACK),
             );
-
-            //painter.circle_stroke(
-            //    screen_position.to_pos2(),
-            //    5.,
-            //    Stroke::new(3., Color32::DARK_BLUE),
-            //);
 
             let background = |text: &Shape| {
                 Shape::rect_filled(
