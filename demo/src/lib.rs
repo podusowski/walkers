@@ -1,5 +1,5 @@
 use egui::{Align2, Context, Painter, Shape};
-use walkers::{Map, MapMemory, Plugin, Projector, Tiles};
+use walkers::{extras::Place, Map, MapMemory, Plugin, Projector, Tiles};
 
 pub struct MyApp {
     tiles: Tiles,
@@ -46,8 +46,14 @@ impl eframe::App for MyApp {
 
                 // Optionally, a plugin which draw custom stuff on the map can be attached.
                 let map = map.with_plugin(walkers::extras::Places::new(vec![
-                    places::wroclaw_glowny(),
-                    places::dworcowa_bus_stop(),
+                    Place {
+                        position: places::wroclaw_glowny(),
+                        label: "Wrocław Główny\ntrain station".to_owned(),
+                    },
+                    Place {
+                        position: places::dworcowa_bus_stop(),
+                        label: "Bus stop".to_owned(),
+                    },
                 ]));
 
                 // Draw the map widget.
