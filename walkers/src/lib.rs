@@ -1,6 +1,7 @@
 #![doc = include_str!("../README.md")]
 #![deny(clippy::unwrap_used, rustdoc::broken_intra_doc_links)]
 
+pub mod extras;
 mod io;
 mod map;
 mod mercator;

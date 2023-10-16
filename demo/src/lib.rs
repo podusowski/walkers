@@ -45,7 +45,10 @@ impl eframe::App for MyApp {
                 let map = Map::new(Some(tiles), &mut self.map_memory, my_position);
 
                 // Optionally, a plugin which draw custom stuff on the map can be attached.
-                let map = map.with_plugin(CustomShapes {});
+                let map = map.with_plugin(walkers::extras::Places::new(vec![
+                    places::wroclaw_glowny(),
+                    places::dworcowa_bus_stop(),
+                ]));
 
                 // Draw the map widget.
                 ui.add(map);
