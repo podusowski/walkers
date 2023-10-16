@@ -25,7 +25,7 @@ impl Plugin for Places {
 
             painter.circle(
                 screen_position.to_pos2(),
-                10.,
+                6.,
                 Color32::WHITE,
                 Stroke::new(3., Color32::BLACK),
             );
