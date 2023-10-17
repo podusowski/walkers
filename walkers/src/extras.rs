@@ -1,12 +1,16 @@
+//! Extra functionalities that can be used with the map.
+
 use egui::{vec2, Color32, FontId, Stroke};
 
 use crate::{Plugin, Position};
 
+/// A place to be drawn on the map.
 pub struct Place {
     pub position: Position,
     pub label: String,
 }
 
+/// [`Plugin`] which draws given list of places on the map.
 pub struct Places {
     places: Vec<Place>,
 }
