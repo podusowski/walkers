@@ -1,4 +1,4 @@
-use egui::{vec2, Align2, Color32, FontId, Shape, Stroke, Vec2};
+use egui::{vec2, Color32, FontId, Stroke};
 
 use crate::{Plugin, Position};
 
@@ -25,7 +25,10 @@ impl Plugin for Places {
             let galley =
                 painter.layout_no_wrap(place.label.to_owned(), FontId::default(), Color32::WHITE);
 
+            // Offset of the label, relative to the circle.
             let offset = vec2(5., 5.);
+
+            let style = painter.ctx().style();
 
             painter.rect_filled(
                 galley
@@ -34,16 +37,20 @@ impl Plugin for Places {
                     .translate(offset)
                     .expand(5.),
                 6.,
-                Color32::BLACK,
+                style.visuals.extreme_bg_color,
             );
 
-            painter.galley((screen_position + offset).to_pos2(), galley);
+            painter.galley_with_color(
+                (screen_position + offset).to_pos2(),
+                galley,
+                style.visuals.text_color(),
+            );
 
             painter.circle(
                 screen_position.to_pos2(),
                 6.,
                 Color32::WHITE,
-                Stroke::new(3., Color32::BLACK),
+                Stroke::new(3., style.visuals.extreme_bg_color),
             );
         }
     }
