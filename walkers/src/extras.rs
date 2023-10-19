@@ -27,6 +27,11 @@ impl Places {
     }
 }
 
+fn semi_transparent(mut color: Color32) -> Color32 {
+    color[3] = 200;
+    color
+}
+
 impl Plugin for Places {
     fn draw(&self, painter: egui::Painter, projector: &crate::Projector) {
         for place in &self.places {
@@ -46,8 +51,8 @@ impl Plugin for Places {
                     .translate(screen_position)
                     .translate(offset)
                     .expand(5.),
-                6.,
-                style.visuals.extreme_bg_color,
+                10.,
+                semi_transparent(style.visuals.extreme_bg_color),
             );
 
             painter.galley_with_color(
