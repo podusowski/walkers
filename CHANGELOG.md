@@ -6,6 +6,7 @@ All notable changes to this project will be documented in this file.
 
  * Tile sources are now defined via `TileSource` trait, instead of `Fn`.
  * New `Plugin` trait and `Map::with_plugin` function, which replaces `Map::with_drawer`.
+ * Example plugin `extras::Places`, which draws markers on the map.
 
 ## 0.8.0
 
