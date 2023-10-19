@@ -1,5 +1,8 @@
 use egui::{Align2, Context, Painter, Shape};
-use walkers::{extras::{Place, Places}, Map, MapMemory, Plugin, Projector, Tiles};
+use walkers::{
+    extras::{Place, Places},
+    Map, MapMemory, Plugin, Projector, Tiles,
+};
 
 pub struct MyApp {
     tiles: Tiles,
@@ -49,10 +52,12 @@ impl eframe::App for MyApp {
                     Place {
                         position: places::wroclaw_glowny(),
                         label: "Wrocław Główny\ntrain station".to_owned(),
+                        symbol: '🚆',
                     },
                     Place {
                         position: places::dworcowa_bus_stop(),
                         label: "Bus stop".to_owned(),
+                        symbol: '🚌',
                     },
                 ]));
 

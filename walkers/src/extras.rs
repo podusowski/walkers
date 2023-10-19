@@ -1,13 +1,19 @@
 //! Extra functionalities that can be used with the map.
 
-use egui::{vec2, Color32, FontId, Stroke};
+use egui::{vec2, Align2, Color32, FontId, Stroke};
 
 use crate::{Plugin, Position};
 
 /// A place to be drawn on the map.
 pub struct Place {
+    /// Geographical position.
     pub position: Position,
+
+    /// Text displayed next to the marker.
     pub label: String,
+
+    /// Symbol drawn on the marker.
+    pub symbol: char,
 }
 
 /// [`Plugin`] which draws given list of places on the map.
@@ -30,7 +36,7 @@ impl Plugin for Places {
                 painter.layout_no_wrap(place.label.to_owned(), FontId::default(), Color32::WHITE);
 
             // Offset of the label, relative to the circle.
-            let offset = vec2(5., 5.);
+            let offset = vec2(8., 8.);
 
             let style = painter.ctx().style();
 
@@ -52,9 +58,17 @@ impl Plugin for Places {
 
             painter.circle(
                 screen_position.to_pos2(),
-                6.,
+                12.,
                 Color32::WHITE,
                 Stroke::new(3., style.visuals.extreme_bg_color),
+            );
+
+            painter.text(
+                screen_position.to_pos2(),
+                Align2::CENTER_CENTER,
+                place.symbol.to_string(),
+                FontId::default(),
+                Color32::BLACK,
             );
         }
     }
