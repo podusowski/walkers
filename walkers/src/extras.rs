@@ -4,6 +4,11 @@ use egui::{vec2, Align2, Color32, FontId, Stroke};
 
 use crate::{Plugin, Position};
 
+#[derive(Default)]
+pub struct Options {
+    pub symbol_font: FontId,
+}
+
 /// A place to be drawn on the map.
 pub struct Place {
     /// Geographical position.
@@ -19,11 +24,19 @@ pub struct Place {
 /// [`Plugin`] which draws given list of places on the map.
 pub struct Places {
     places: Vec<Place>,
+    options: Options,
 }
 
 impl Places {
     pub fn new(places: Vec<Place>) -> Self {
-        Self { places }
+        Self {
+            places,
+            options: Options::default(),
+        }
+    }
+
+    pub fn with_options(places: Vec<Place>, options: Options) -> Self {
+        Self { places, options }
     }
 }
 
@@ -37,7 +50,7 @@ impl Plugin for Places {
         for place in &self.places {
             let screen_position = projector.project(place.position);
 
-            let galley =
+            let label =
                 painter.layout_no_wrap(place.label.to_owned(), FontId::default(), Color32::WHITE);
 
             // Offset of the label, relative to the circle.
@@ -46,7 +59,7 @@ impl Plugin for Places {
             let style = painter.ctx().style();
 
             painter.rect_filled(
-                galley
+                label
                     .rect
                     .translate(screen_position)
                     .translate(offset)
@@ -57,13 +70,13 @@ impl Plugin for Places {
 
             painter.galley_with_color(
                 (screen_position + offset).to_pos2(),
-                galley,
+                label,
                 style.visuals.text_color(),
             );
 
             painter.circle(
                 screen_position.to_pos2(),
-                12.,
+                10.,
                 Color32::WHITE,
                 Stroke::new(3., style.visuals.extreme_bg_color),
             );
@@ -72,7 +85,7 @@ impl Plugin for Places {
                 screen_position.to_pos2(),
                 Align2::CENTER_CENTER,
                 place.symbol.to_string(),
-                FontId::default(),
+                self.options.symbol_font.clone(),
                 Color32::BLACK,
             );
         }
