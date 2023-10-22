@@ -13,8 +13,13 @@ pub struct MyApp {
 
 impl MyApp {
     pub fn new(egui_ctx: Context) -> Self {
+        let mut cache_dir = std::path::PathBuf::new();
+        // Paste here your path for cache directory
+        cache_dir.push("/home/user/.walkers");
+
         Self {
-            tiles: Tiles::new(walkers::providers::OpenStreetMap, egui_ctx.to_owned()),
+            tiles: Tiles::new(walkers::providers::OpenStreetMap, egui_ctx.to_owned())
+                .with_disk_cache(cache_dir),
             geoportal_tiles: Tiles::new(walkers::providers::Geoportal, egui_ctx),
             map_memory: MapMemory::default(),
             satellite: false,

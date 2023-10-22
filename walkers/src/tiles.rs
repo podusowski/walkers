@@ -1,14 +1,31 @@
-use std::collections::hash_map::Entry;
-use std::{collections::HashMap, sync::Arc};
+use std::{
+    collections::{hash_map::Entry, HashMap},
+    fs,
+    path::PathBuf,
+    sync::Arc,
+};
 
 use egui::{pos2, Color32, Context, Mesh, Rect, Vec2};
 use egui_extras::RetainedImage;
 use futures::StreamExt;
+use image::EncodableLayout;
 use reqwest::header::USER_AGENT;
 
 use crate::io::Runtime;
 use crate::mercator::TileId;
 use crate::providers::{Attribution, TileSource};
+
+type RawTile = Vec<u8>;
+type TileTx = futures::channel::mpsc::Sender<(TileId, RawTile)>;
+type TileRx = futures::channel::mpsc::Receiver<(TileId, RawTile)>;
+type RequestTx = futures::channel::mpsc::Sender<TileId>;
+type RequestRx = futures::channel::mpsc::Receiver<TileId>;
+
+macro_rules! disk_cache_pattern {
+    () => {
+        "{}_{}.png"
+    };
+}
 
 #[derive(Clone)]
 pub struct Tile {
@@ -48,10 +65,13 @@ pub struct Tiles {
     cache: HashMap<TileId, Option<Tile>>,
 
     /// Tiles to be downloaded by the IO thread.
-    request_tx: futures::channel::mpsc::Sender<TileId>,
+    request_tx: RequestTx,
 
     /// Tiles that got downloaded and should be put in the cache.
-    tile_rx: futures::channel::mpsc::Receiver<(TileId, Tile)>,
+    tile_rx: TileRx,
+
+    /// Local cache path
+    disk_cache: Option<PathBuf>,
 
     #[allow(dead_code)] // Significant Drop
     runtime: Runtime,
@@ -69,14 +89,29 @@ impl Tiles {
         let (tile_tx, tile_rx) = futures::channel::mpsc::channel(channel_size);
         let attribution = source.attribution();
         let runtime = Runtime::new(download_wrap(source, request_rx, tile_tx, egui_ctx));
+        let disk_cache = None;
 
         Self {
             attribution,
             cache: Default::default(),
             request_tx,
             tile_rx,
+            disk_cache,
             runtime,
         }
+    }
+
+    /// Downloaad tiles to cache on disk.
+    pub fn with_disk_cache(mut self, path: PathBuf) -> Self {
+        match fs::create_dir_all(&path) {
+            Ok(_) => self.disk_cache = Some(path),
+            Err(e) => log::warn!(
+                "Unable to create a directory {}: {}",
+                &path.display(),
+                e.to_string()
+            ),
+        }
+        self
     }
 
     /// Attribution of the source this tile cache pulls images from. Typically,
@@ -89,8 +124,20 @@ impl Tiles {
     pub fn at(&mut self, tile_id: TileId) -> Option<Tile> {
         // Just take one at the time.
         match self.tile_rx.try_next() {
-            Ok(Some((tile_id, tile))) => {
-                self.cache.insert(tile_id, Some(tile));
+            Ok(Some((tile_id, raw_tile))) => {
+                let raw_tile = raw_tile.as_bytes();
+                match Tile::from_image_bytes(&raw_tile) {
+                    Ok(tile) => {
+                        if let Err(e) = self.save_to_disk_cache(&tile_id, &raw_tile) {
+                            log::warn!("Unable to save tile to local cache: {}", e.to_string());
+                        }
+                        self.cache.insert(tile_id, Some(tile))
+                    }
+                    Err(e) => {
+                        log::error!("Unable to get tile: {}", e.to_string());
+                        return None;
+                    }
+                };
             }
             Err(_) => {
                 // Just ignore. It means that no new tile was downloaded.
@@ -98,54 +145,88 @@ impl Tiles {
             Ok(None) => panic!("IO thread is dead"),
         }
 
-        match self.cache.entry(tile_id) {
+        match self.cache.entry(tile_id.clone()) {
             Entry::Occupied(entry) => entry.get().clone(),
             Entry::Vacant(entry) => {
-                if let Ok(()) = self.request_tx.try_send(tile_id) {
-                    log::debug!("Requested tile: {:?}", tile_id);
-                    entry.insert(None);
-                } else {
-                    log::debug!("Request queue is full.");
+                match Self::load_from_disk_cache(&self.disk_cache, tile_id.clone()) {
+                    Some(tile) => {
+                        log::debug!("Loaded ftom cache: {:?}", tile_id);
+                        let tile_clone = tile.clone();
+                        entry.insert(Some(tile));
+                        Some(tile_clone)
+                    }
+                    None => {
+                        if let Ok(()) = self.request_tx.try_send(tile_id) {
+                            log::debug!("Requested tile: {:?}", tile_id);
+                            entry.insert(None);
+                        } else {
+                            log::debug!("Request queue is full.");
+                        }
+                        None
+                    }
                 }
-                None
             }
+        }
+    }
+
+    fn load_from_disk_cache(disk_cache: &Option<PathBuf>, tile_id: TileId) -> Option<Tile> {
+        if let Some(ref disk_cache) = disk_cache {
+            let mut disk_cache = disk_cache.clone();
+            let zoom = tile_id.zoom.to_string();
+            disk_cache.push(zoom);
+
+            let tile_name = format!(disk_cache_pattern!(), tile_id.x, tile_id.y);
+            disk_cache.push(tile_name);
+
+            let raw_tile = match fs::read(disk_cache) {
+                Ok(ok) => ok,
+                Err(_) => return None,
+            };
+
+            let tile = match Tile::from_image_bytes(&raw_tile) {
+                Ok(tile) => Some(tile),
+                Err(_) => None,
+            };
+
+            tile
+        } else {
+            None
+        }
+    }
+
+    fn save_to_disk_cache(&self, tile_id: &TileId, raw_tile: &[u8]) -> Result<(), std::io::Error> {
+        match self.disk_cache {
+            Some(ref disk_cache) => {
+                let mut disk_cache = disk_cache.clone();
+                let zoom = tile_id.zoom.to_string();
+                disk_cache.push(zoom);
+
+                fs::create_dir_all(&disk_cache)?;
+
+                let tile_name = format!(disk_cache_pattern!(), tile_id.x, tile_id.y);
+                disk_cache.push(tile_name);
+                fs::write(disk_cache, raw_tile)
+            }
+            None => Ok(()),
         }
     }
 }
 
-#[derive(Debug, thiserror::Error)]
-enum Error {
-    #[error(transparent)]
-    Http(reqwest::Error),
-
-    #[error("error while decoding the image: {0}")]
-    Image(String),
-}
-
-async fn download_single(client: &reqwest::Client, url: &str) -> Result<Tile, Error> {
-    let image = client
-        .get(url)
-        .header(USER_AGENT, "Walkers")
-        .send()
-        .await
-        .map_err(Error::Http)?;
+async fn download_single(client: &reqwest::Client, url: &str) -> Result<RawTile, reqwest::Error> {
+    let image = client.get(url).header(USER_AGENT, "Walkers").send().await?;
 
     log::debug!("Downloaded {:?}.", image.status());
 
-    let image = image
-        .error_for_status()
-        .map_err(Error::Http)?
-        .bytes()
-        .await
-        .map_err(Error::Http)?;
+    let image = image.error_for_status()?;
+    let image = image.bytes().await?;
 
-    Tile::from_image_bytes(&image).map_err(Error::Image)
+    Ok(image.to_vec())
 }
 
 async fn download<S>(
     source: S,
     mut request_rx: futures::channel::mpsc::Receiver<TileId>,
-    mut tile_tx: futures::channel::mpsc::Sender<(TileId, Tile)>,
+    mut tile_tx: TileTx,
     egui_ctx: Context,
 ) -> Result<(), ()>
 where
@@ -172,12 +253,8 @@ where
     }
 }
 
-async fn download_wrap<S>(
-    source: S,
-    request_rx: futures::channel::mpsc::Receiver<TileId>,
-    tile_tx: futures::channel::mpsc::Sender<(TileId, Tile)>,
-    egui_ctx: Context,
-) where
+async fn download_wrap<S>(source: S, request_rx: RequestRx, tile_tx: TileTx, egui_ctx: Context)
+where
     S: TileSource + Send + 'static,
 {
     if download(source, request_rx, tile_tx, egui_ctx)
