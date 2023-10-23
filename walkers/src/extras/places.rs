@@ -1,5 +1,3 @@
-//! Extra functionalities that can be used with the map.
-
 use egui::{vec2, Align2, Color32, FontId, Stroke};
 
 use crate::{Plugin, Position};

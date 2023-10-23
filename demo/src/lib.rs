@@ -1,6 +1,7 @@
+use egui::TextureHandle;
 use egui::{Align2, Context, Painter, Shape};
 use walkers::{
-    extras::{Place, Places},
+    extras::{Image, Images, Place, Places},
     Map, MapMemory, Plugin, Projector, Tiles,
 };
 
@@ -9,6 +10,7 @@ pub struct MyApp {
     geoportal_tiles: Tiles,
     map_memory: MapMemory,
     satellite: bool,
+    texture: TextureHandle,
 }
 
 impl MyApp {
@@ -17,12 +19,16 @@ impl MyApp {
         // Paste here your path for cache directory
         cache_dir.push("/home/user/.walkers");
 
+        let texture =
+            egui_ctx.load_texture("Wroclavia", egui::ColorImage::example(), Default::default());
+
         Self {
             tiles: Tiles::new(walkers::providers::OpenStreetMap, egui_ctx.to_owned())
                 .with_disk_cache(cache_dir),
             geoportal_tiles: Tiles::new(walkers::providers::Geoportal, egui_ctx),
             map_memory: MapMemory::default(),
             satellite: false,
+            texture: texture,
         }
     }
 }
@@ -53,19 +59,23 @@ impl eframe::App for MyApp {
                 let map = Map::new(Some(tiles), &mut self.map_memory, my_position);
 
                 // Optionally, a plugin which draw custom stuff on the map can be attached.
-                let map = map.with_plugin(Places::new(vec![
-                    Place {
-                        position: places::wroclaw_glowny(),
-                        label: "Wrocław Główny\ntrain station".to_owned(),
-                        symbol: '🚆',
-                    },
-                    Place {
-                        position: places::dworcowa_bus_stop(),
-                        label: "Bus stop".to_owned(),
-                        symbol: '🚌',
-                    },
-                ]));
-
+                let map = map
+                    .with_plugin(Places::new(vec![
+                        Place {
+                            position: places::wroclaw_glowny(),
+                            label: "Wrocław Główny\ntrain station".to_owned(),
+                            symbol: '🚆',
+                        },
+                        Place {
+                            position: places::dworcowa_bus_stop(),
+                            label: "Bus stop".to_owned(),
+                            symbol: '🚌',
+                        },
+                    ]))
+                    .with_plugin(Images::new(vec![Image {
+                        position: places::wroclavia(),
+                        texture: self.texture.id(),
+                    }]));
                 // Draw the map widget.
                 ui.add(map);
 
@@ -97,6 +107,11 @@ mod places {
     /// https://www.wroclaw.pl/en/how-and-where-to-buy-public-transport-tickets-in-wroclaw
     pub fn dworcowa_bus_stop() -> Position {
         Position::new(17.03940, 51.10005)
+    }
+
+    /// Shopping center
+    pub fn wroclavia() -> Position {
+        Position::new(17.03471, 51.09648)
     }
 }
 
