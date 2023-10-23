@@ -1,6 +1,6 @@
 use crate::{Plugin, Position};
 use egui::TextureId;
-use egui::{pos2, Color32, Rect, Stroke};
+use egui::{pos2, Color32, Rect};
 
 /// A image to be drawn on the map.
 pub struct Image {
@@ -26,16 +26,17 @@ impl Plugin for Images {
     fn draw(&self, painter: egui::Painter, projector: &crate::Projector) {
         for image in &self.images {
             let screen_position = projector.project(image.position);
-            let style = painter.ctx().style();
+            let map_rect = painter.clip_rect();
+            let rect = map_rect.translate(screen_position);
 
-            painter.circle(
-                screen_position.to_pos2(),
-                12.,
-                Color32::WHITE,
-                Stroke::new(3., style.visuals.extreme_bg_color),
-            );
+            let skip = (rect.max.x < map_rect.min.x)
+                | (rect.max.y < map_rect.min.y)
+                | (rect.min.x > map_rect.max.x)
+                | (rect.min.y > map_rect.max.y);
 
-            let rect = painter.clip_rect().translate(screen_position);
+            if skip {
+                continue;
+            }
 
             painter.image(
                 image.texture,
