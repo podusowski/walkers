@@ -19,10 +19,10 @@ pub struct Style {
 impl Default for Style {
     fn default() -> Self {
         Self {
-            label_font: FontId::default(),
-            label_text_color: Color32::WHITE,
-            label_background: Color32::BLACK,
-            symbol_font: FontId::default(),
+            label_font: FontId::proportional(12.),
+            label_text_color: Color32::from_gray(200),
+            label_background: Color32::BLACK.gamma_multiply(0.8),
+            symbol_font: FontId::proportional(14.),
             symbol_color: Color32::BLACK.gamma_multiply(0.8),
             symbol_fill_color: Color32::WHITE.gamma_multiply(0.8),
             symbol_stroke: Stroke::new(2., Color32::BLACK.gamma_multiply(0.8)),
@@ -57,11 +57,6 @@ impl Places {
     }
 }
 
-fn semi_transparent(mut color: Color32) -> Color32 {
-    color[3] = 200;
-    color
-}
-
 impl Plugin for Places {
     fn draw(&self, painter: egui::Painter, projector: &crate::Projector) {
         for place in &self.places {
@@ -76,8 +71,6 @@ impl Plugin for Places {
             // Offset of the label, relative to the circle.
             let offset = vec2(8., 8.);
 
-            let style = painter.ctx().style();
-
             painter.rect_filled(
                 label
                     .rect
@@ -88,11 +81,7 @@ impl Plugin for Places {
                 place.style.label_background,
             );
 
-            painter.galley_with_color(
-                (screen_position + offset).to_pos2(),
-                label,
-                style.visuals.text_color(),
-            );
+            painter.galley((screen_position + offset).to_pos2(), label);
 
             painter.circle(
                 screen_position.to_pos2(),
