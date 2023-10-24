@@ -8,11 +8,11 @@ use crate::{Plugin, Position};
 #[derive(Clone)]
 pub struct Style {
     pub label_font: FontId,
-    pub label_text_color: Color32,
+    pub label_color: Color32,
     pub label_background: Color32,
     pub symbol_font: FontId,
     pub symbol_color: Color32,
-    pub symbol_fill_color: Color32,
+    pub symbol_background: Color32,
     pub symbol_stroke: Stroke,
 }
 
@@ -20,11 +20,11 @@ impl Default for Style {
     fn default() -> Self {
         Self {
             label_font: FontId::proportional(12.),
-            label_text_color: Color32::from_gray(200),
+            label_color: Color32::from_gray(200),
             label_background: Color32::BLACK.gamma_multiply(0.8),
             symbol_font: FontId::proportional(14.),
             symbol_color: Color32::BLACK.gamma_multiply(0.8),
-            symbol_fill_color: Color32::WHITE.gamma_multiply(0.8),
+            symbol_background: Color32::WHITE.gamma_multiply(0.8),
             symbol_stroke: Stroke::new(2., Color32::BLACK.gamma_multiply(0.8)),
         }
     }
@@ -65,7 +65,7 @@ impl Plugin for Places {
             let label = painter.layout_no_wrap(
                 place.label.to_owned(),
                 place.style.label_font.clone(),
-                place.style.label_text_color,
+                place.style.label_color,
             );
 
             // Offset of the label, relative to the circle.
@@ -86,7 +86,7 @@ impl Plugin for Places {
             painter.circle(
                 screen_position.to_pos2(),
                 10.,
-                place.style.symbol_fill_color,
+                place.style.symbol_background,
                 place.style.symbol_stroke,
             );
 
