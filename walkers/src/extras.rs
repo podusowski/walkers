@@ -33,24 +33,19 @@ pub struct Place {
 
     /// Symbol drawn on the marker.
     pub symbol: char,
+
+    /// Style of the marker.
+    pub options: Options,
 }
 
 /// [`Plugin`] which draws given list of places on the map.
 pub struct Places {
     places: Vec<Place>,
-    options: Options,
 }
 
 impl Places {
     pub fn new(places: Vec<Place>) -> Self {
-        Self {
-            places,
-            options: Options::default(),
-        }
-    }
-
-    pub fn with_options(places: Vec<Place>, options: Options) -> Self {
-        Self { places, options }
+        Self { places }
     }
 }
 
@@ -91,16 +86,16 @@ impl Plugin for Places {
             painter.circle(
                 screen_position.to_pos2(),
                 10.,
-                self.options.symbol_fill_color,
-                self.options.symbol_stroke,
+                place.options.symbol_fill_color,
+                place.options.symbol_stroke,
             );
 
             painter.text(
                 screen_position.to_pos2(),
                 Align2::CENTER_CENTER,
                 place.symbol.to_string(),
-                self.options.symbol_font.clone(),
-                self.options.symbol_color,
+                place.options.symbol_font.clone(),
+                place.options.symbol_color,
             );
         }
     }
