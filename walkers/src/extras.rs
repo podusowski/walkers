@@ -4,15 +4,16 @@ use egui::{vec2, Align2, Color32, FontId, Stroke};
 
 use crate::{Plugin, Position};
 
+/// Visual style of the place.
 #[derive(Clone)]
-pub struct Options {
+pub struct Style {
     pub symbol_font: FontId,
     pub symbol_color: Color32,
     pub symbol_fill_color: Color32,
     pub symbol_stroke: Stroke,
 }
 
-impl Default for Options {
+impl Default for Style {
     fn default() -> Self {
         Self {
             symbol_font: FontId::default(),
@@ -31,14 +32,15 @@ pub struct Place {
     /// Text displayed next to the marker.
     pub label: String,
 
-    /// Symbol drawn on the marker.
+    /// Symbol drawn on the place. You can check [egui's font book](https://www.egui.rs/) to pick
+    /// a proper character.
     pub symbol: char,
 
-    /// Style of the marker.
-    pub options: Options,
+    /// Visual style of this place.
+    pub style: Style,
 }
 
-/// [`Plugin`] which draws given list of places on the map.
+/// [`Plugin`] which draws list of places on the map.
 pub struct Places {
     places: Vec<Place>,
 }
@@ -86,16 +88,16 @@ impl Plugin for Places {
             painter.circle(
                 screen_position.to_pos2(),
                 10.,
-                place.options.symbol_fill_color,
-                place.options.symbol_stroke,
+                place.style.symbol_fill_color,
+                place.style.symbol_stroke,
             );
 
             painter.text(
                 screen_position.to_pos2(),
                 Align2::CENTER_CENTER,
                 place.symbol.to_string(),
-                place.options.symbol_font.clone(),
-                place.options.symbol_color,
+                place.style.symbol_font.clone(),
+                place.style.symbol_color,
             );
         }
     }
