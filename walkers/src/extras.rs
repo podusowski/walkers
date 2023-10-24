@@ -7,6 +7,9 @@ use crate::{Plugin, Position};
 #[derive(Default)]
 pub struct Options {
     pub symbol_font: FontId,
+    pub symbol_color: Color32,
+    pub symbol_fill_color: Color32,
+    pub symbol_stroke: Stroke,
 }
 
 /// A place to be drawn on the map.
@@ -77,8 +80,8 @@ impl Plugin for Places {
             painter.circle(
                 screen_position.to_pos2(),
                 10.,
-                Color32::WHITE,
-                Stroke::new(3., style.visuals.extreme_bg_color),
+                self.options.symbol_fill_color,
+                self.options.symbol_stroke,
             );
 
             painter.text(
@@ -86,7 +89,7 @@ impl Plugin for Places {
                 Align2::CENTER_CENTER,
                 place.symbol.to_string(),
                 self.options.symbol_font.clone(),
-                Color32::BLACK,
+                self.options.symbol_color,
             );
         }
     }
