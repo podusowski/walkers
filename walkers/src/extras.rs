@@ -4,7 +4,7 @@ use egui::{vec2, Align2, Color32, FontId, Stroke};
 
 use crate::{Plugin, Position};
 
-#[derive(Default)]
+#[derive(Default, Clone)]
 pub struct Options {
     pub symbol_font: FontId,
     pub symbol_color: Color32,
