@@ -4,12 +4,23 @@ use egui::{vec2, Align2, Color32, FontId, Stroke};
 
 use crate::{Plugin, Position};
 
-#[derive(Default, Clone)]
+#[derive(Clone)]
 pub struct Options {
     pub symbol_font: FontId,
     pub symbol_color: Color32,
     pub symbol_fill_color: Color32,
     pub symbol_stroke: Stroke,
+}
+
+impl Default for Options {
+    fn default() -> Self {
+        Self {
+            symbol_font: FontId::default(),
+            symbol_color: Color32::BLACK.gamma_multiply(0.8),
+            symbol_fill_color: Color32::WHITE.gamma_multiply(0.8),
+            symbol_stroke: Stroke::new(2., Color32::BLACK.gamma_multiply(0.8)),
+        }
+    }
 }
 
 /// A place to be drawn on the map.
