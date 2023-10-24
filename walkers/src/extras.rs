@@ -7,6 +7,9 @@ use crate::{Plugin, Position};
 /// Visual style of the place.
 #[derive(Clone)]
 pub struct Style {
+    pub label_font: FontId,
+    pub label_text_color: Color32,
+    pub label_background: Color32,
     pub symbol_font: FontId,
     pub symbol_color: Color32,
     pub symbol_fill_color: Color32,
@@ -16,6 +19,9 @@ pub struct Style {
 impl Default for Style {
     fn default() -> Self {
         Self {
+            label_font: FontId::default(),
+            label_text_color: Color32::WHITE,
+            label_background: Color32::BLACK,
             symbol_font: FontId::default(),
             symbol_color: Color32::BLACK.gamma_multiply(0.8),
             symbol_fill_color: Color32::WHITE.gamma_multiply(0.8),
@@ -61,8 +67,11 @@ impl Plugin for Places {
         for place in &self.places {
             let screen_position = projector.project(place.position);
 
-            let label =
-                painter.layout_no_wrap(place.label.to_owned(), FontId::default(), Color32::WHITE);
+            let label = painter.layout_no_wrap(
+                place.label.to_owned(),
+                place.style.label_font.clone(),
+                place.style.label_text_color,
+            );
 
             // Offset of the label, relative to the circle.
             let offset = vec2(8., 8.);
@@ -76,7 +85,7 @@ impl Plugin for Places {
                     .translate(offset)
                     .expand(5.),
                 10.,
-                semi_transparent(style.visuals.extreme_bg_color),
+                place.style.label_background,
             );
 
             painter.galley_with_color(
