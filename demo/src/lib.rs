@@ -1,6 +1,6 @@
 use egui::{Align2, Context, Painter, Shape};
 use walkers::{
-    extras::{Style, Place, Places},
+    extras::{Place, Places, Style},
     Map, MapMemory, Plugin, Projector, Tiles,
 };
 
