@@ -59,13 +59,14 @@ impl<'a, 'b> Map<'a, 'b> {
 }
 
 /// Projects geographical position into screen pixels, suitable for [`egui::Painter`].
-pub struct Projector<'a> {
+#[derive(Clone)]
+pub struct Projector {
     clip_rect: Rect,
-    memory: &'a MapMemory,
+    memory: MapMemory,
     my_position: Position,
 }
 
-impl<'a> Projector<'a> {
+impl Projector {
     pub fn project(&self, position: Position) -> Vec2 {
         // Turn that into a flat, mercator projection.
         let projected_position = position.project(self.memory.zoom.round());
@@ -130,7 +131,7 @@ impl Widget for Map<'_, '_> {
 
             let projector = Projector {
                 clip_rect: response.rect,
-                memory: self.memory,
+                memory: self.memory.to_owned(),
                 my_position: self.my_position,
             };
 
@@ -220,7 +221,7 @@ impl Center {
 }
 
 /// State of the map widget which must persist between frames.
-#[derive(Default)]
+#[derive(Default, Clone)]
 pub struct MapMemory {
     pub center_mode: Center,
     pub zoom: Zoom,
