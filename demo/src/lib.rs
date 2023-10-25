@@ -1,7 +1,6 @@
-use egui::TextureHandle;
 use egui::{Align2, Context, Painter, Shape};
 use walkers::{
-    extras::{Image, Images, Place, Places},
+    extras::{Image, Images, Place, Places, Texture},
     Map, MapMemory, Plugin, Projector, Tiles,
 };
 
@@ -10,7 +9,7 @@ pub struct MyApp {
     geoportal_tiles: Tiles,
     map_memory: MapMemory,
     satellite: bool,
-    texture: TextureHandle,
+    texture: Texture,
 }
 
 impl MyApp {
@@ -19,8 +18,14 @@ impl MyApp {
         // Paste here your path for cache directory
         cache_dir.push("/home/user/.walkers");
 
-        let texture =
-            egui_ctx.load_texture("Wroclavia", egui::ColorImage::example(), Default::default());
+        let mut texture = Texture::new(
+            egui_ctx.to_owned(),
+            "Wroclavia",
+            egui::ColorImage::example(),
+        );
+
+        // texture.y_scale(2.0);
+        texture.rotate(5.0);
 
         Self {
             tiles: Tiles::new(walkers::providers::OpenStreetMap, egui_ctx.to_owned())
@@ -74,7 +79,7 @@ impl eframe::App for MyApp {
                     ]))
                     .with_plugin(Images::new(vec![Image {
                         position: places::wroclavia(),
-                        texture: self.texture.id(),
+                        texture: self.texture.clone(),
                     }]));
                 // Draw the map widget.
                 ui.add(map);

@@ -2,4 +2,4 @@
 mod places;
 pub use places::{Place, Places};
 mod images;
-pub use images::{Image, Images};
+pub use images::{Image, Images, Texture};

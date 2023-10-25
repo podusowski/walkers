@@ -1,6 +1,7 @@
 use crate::{Plugin, Position};
 use egui::TextureId;
-use egui::{pos2, Color32, Rect};
+use egui::{pos2, Color32, ColorImage, Context, Rect, TextureHandle};
+use std::cmp;
 
 /// A image to be drawn on the map.
 pub struct Image {
@@ -8,7 +9,7 @@ pub struct Image {
     pub position: Position,
 
     /// Texture id of image.
-    pub texture: TextureId,
+    pub texture: Texture,
 }
 
 /// [`Plugin`] which draws given list of images on the map.
@@ -27,7 +28,13 @@ impl Plugin for Images {
         for image in &self.images {
             let screen_position = projector.project(image.position);
             let map_rect = painter.clip_rect();
-            let rect = map_rect.translate(screen_position);
+            let texture = &image.texture;
+
+            let [w, h] = texture.size();
+            let mut rect = map_rect.translate(screen_position);
+
+            rect.max.x = rect.min.x + (w as f32) * texture.x_scale;
+            rect.max.y = rect.min.y + (h as f32) * texture.y_scale;
 
             let skip = (rect.max.x < map_rect.min.x)
                 | (rect.max.y < map_rect.min.y)
@@ -39,11 +46,145 @@ impl Plugin for Images {
             }
 
             painter.image(
-                image.texture,
+                texture.id(),
                 rect,
                 Rect::from_min_max(pos2(0.0, 0.0), pos2(1.0, 1.0)),
                 Color32::WHITE,
             );
         }
     }
+}
+
+trait ByPixel {
+    fn get_pixel(&self, x: usize, y: usize) -> Option<Color32>;
+    fn set_pixel(&mut self, x: usize, y: usize, color: Color32);
+    fn index_to_xy(&self, i: usize) -> (usize, usize);
+}
+
+impl ByPixel for ColorImage {
+    fn get_pixel(&self, x: usize, y: usize) -> Option<Color32> {
+        let [w, h] = self.size;
+        if x >= w || y >= h {
+            return None;
+        }
+        Some(self.pixels[x + w * y])
+    }
+
+    fn set_pixel(&mut self, x: usize, y: usize, color: Color32) {
+        let w = self.size[0];
+        self.pixels[x + w * y] = color;
+    }
+
+    fn index_to_xy(&self, i: usize) -> (usize, usize) {
+        let w = self.size[0];
+        let y = i / w;
+        let x = i % w;
+        (x, y)
+    }
+}
+
+#[derive(Clone)]
+pub struct Texture {
+    img: ColorImage,
+    texture: TextureHandle,
+    x_scale: f32,
+    y_scale: f32,
+}
+
+impl Texture {
+    pub fn new(ctx: Context, uri: &str, img: ColorImage) -> Self {
+        let _img = img.clone();
+        let texture = ctx.load_texture(uri, _img, Default::default());
+
+        Self {
+            img: img,
+            texture: texture,
+            x_scale: 1.0,
+            y_scale: 1.0,
+        }
+    }
+
+    #[inline(always)]
+    pub fn id(&self) -> TextureId {
+        self.texture.id()
+    }
+
+    #[inline(always)]
+    pub fn size(&self) -> [usize; 2] {
+        self.texture.size()
+    }
+
+    #[inline(always)]
+    pub fn x_scale(&mut self, val: f32) {
+        self.x_scale = val;
+    }
+
+    #[inline(always)]
+    pub fn y_scale(&mut self, val: f32) {
+        self.y_scale = val;
+    }
+
+    /// Rotate image.
+    /// This code based on transform::rotate from [raster] (https://crates.io/crates/raster) crate
+    pub fn rotate(&mut self, degree: f32) {
+        let src = &self.img;
+        let [w1, h1] = src.size;
+        let w1 = w1 as i32;
+        let h1 = h1 as i32;
+        // Using screen coords system, top left is always at (0,0)
+        let mut min_x = 0;
+        let mut max_x = 0;
+        let mut min_y = 0;
+        let mut max_y = 0;
+
+        let top_right_1 = (w1, 0);
+        let top_right_2 = _rotate(top_right_1, degree);
+        min_x = cmp::min(min_x, top_right_2.0);
+        max_x = cmp::max(max_x, top_right_2.0);
+        min_y = cmp::min(min_y, top_right_2.1);
+        max_y = cmp::max(max_y, top_right_2.1);
+
+        let bottom_right_1 = (w1, h1);
+        let bottom_right_2 = _rotate(bottom_right_1, degree);
+        min_x = cmp::min(min_x, bottom_right_2.0);
+        max_x = cmp::max(max_x, bottom_right_2.0);
+        min_y = cmp::min(min_y, bottom_right_2.1);
+        max_y = cmp::max(max_y, bottom_right_2.1);
+
+        let bottom_left_1 = (0, h1);
+        let bottom_left_2 = _rotate(bottom_left_1, degree);
+        min_x = cmp::min(min_x, bottom_left_2.0);
+        max_x = cmp::max(max_x, bottom_left_2.0);
+        min_y = cmp::min(min_y, bottom_left_2.1);
+        max_y = cmp::max(max_y, bottom_left_2.1);
+
+        let w2 = ((min_x as f32).abs() + (max_x as f32).abs()) as i32 + 1;
+        let h2 = ((min_y as f32).abs() + (max_y as f32).abs()) as i32 + 1;
+
+        let mut dest = ColorImage::new([w2 as usize, h2 as usize], Color32::TRANSPARENT);
+
+        for (dest_y, y) in (0..).zip(min_y..max_y + 1) {
+            for (dest_x, x) in (0..).zip(min_x..max_x + 1) {
+                let point: (i32, i32) = _rotate((x, y), -degree);
+
+                if point.0 >= 0 && point.0 < w1 && point.1 >= 0 && point.1 < h1 {
+                    let pixel = src.get_pixel(point.0 as usize, point.1 as usize).unwrap();
+                    dest.set_pixel(dest_x, dest_y, pixel);
+                }
+            }
+        }
+
+        self.texture.set(dest, egui::TextureOptions::LINEAR);
+    }
+}
+
+fn _rotate(p: (i32, i32), deg: f32) -> (i32, i32) {
+    let radians: f32 = deg.to_radians();
+    let px: f32 = p.0 as f32;
+    let py: f32 = p.1 as f32;
+    let cos = radians.cos();
+    let sin = radians.sin();
+    let x = ((px * cos) - (py * sin)).round();
+    let y = ((px * sin) + (py * cos)).round();
+    (x as i32, y as i32)
 }
