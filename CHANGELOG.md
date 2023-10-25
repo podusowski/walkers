@@ -2,7 +2,7 @@
 
 All notable changes to this project will be documented in this file.
 
-## Unreleased
+## 0.9.0
 
  * Tile sources are now defined via `TileSource` trait, instead of `Fn`.
  * New `Plugin` trait and `Map::with_plugin` function, which replaces `Map::with_drawer`.
