@@ -31,10 +31,15 @@ impl Plugin for Images {
             let texture = &image.texture;
 
             let [w, h] = texture.size();
+            let w = w as f32;
+            let h = h as f32;
             let mut rect = map_rect.translate(screen_position);
 
-            rect.max.x = rect.min.x + (w as f32) * texture.x_scale;
-            rect.max.y = rect.min.y + (h as f32) * texture.y_scale;
+            rect.min.x -= w / 2.0;
+            rect.min.y -= h / 2.0;
+
+            rect.max.x = rect.min.x + w;
+            rect.max.y = rect.min.y + h;
 
             let skip = (rect.max.x < map_rect.min.x)
                 | (rect.max.y < map_rect.min.y)
@@ -89,6 +94,7 @@ pub struct Texture {
     texture: TextureHandle,
     x_scale: f32,
     y_scale: f32,
+    angle: f32,
 }
 
 impl Texture {
@@ -101,6 +107,7 @@ impl Texture {
             texture: texture,
             x_scale: 1.0,
             y_scale: 1.0,
+            angle: 0.0,
         }
     }
 
@@ -115,18 +122,15 @@ impl Texture {
     }
 
     #[inline(always)]
-    pub fn x_scale(&mut self, val: f32) {
-        self.x_scale = val;
-    }
-
-    #[inline(always)]
-    pub fn y_scale(&mut self, val: f32) {
-        self.y_scale = val;
+    pub fn scale(&mut self, x_val: f32, y_val: f32) {
+        // self.y_scale = y_val * self.angle.cos() - x_val * self.angle.sin();
+        // self.x_scale = x_val * self.angle.cos() + y_val * self.angle.sin();
     }
 
     /// Rotate image.
     /// This code based on transform::rotate from [raster] (https://crates.io/crates/raster) crate
     pub fn rotate(&mut self, degree: f32) {
+        self.angle = degree.to_radians();
         let src = &self.img;
         let [w1, h1] = src.size;
         let w1 = w1 as i32;
