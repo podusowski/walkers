@@ -4,7 +4,7 @@ use std::{collections::HashMap, sync::Arc};
 use egui::{pos2, Color32, Context, Mesh, Rect, Vec2};
 use egui_extras::RetainedImage;
 
-use crate::download::download_wrap;
+use crate::download::download_continuously;
 use crate::io::Runtime;
 use crate::mercator::TileId;
 use crate::providers::{Attribution, TileSource};
@@ -67,7 +67,7 @@ impl Tiles {
         let (request_tx, request_rx) = futures::channel::mpsc::channel(channel_size);
         let (tile_tx, tile_rx) = futures::channel::mpsc::channel(channel_size);
         let attribution = source.attribution();
-        let runtime = Runtime::new(download_wrap(source, request_rx, tile_tx, egui_ctx));
+        let runtime = Runtime::new(download_continuously(source, request_rx, tile_tx, egui_ctx));
 
         Self {
             attribution,

@@ -2,7 +2,7 @@ use egui::Context;
 use futures::StreamExt;
 use reqwest::header::USER_AGENT;
 
-use crate::{tiles::Tile, mercator::TileId, providers::TileSource};
+use crate::{mercator::TileId, providers::TileSource, tiles::Tile};
 
 #[derive(Debug, thiserror::Error)]
 enum Error {
@@ -13,7 +13,8 @@ enum Error {
     Image(String),
 }
 
-async fn download_single(client: &reqwest::Client, url: &str) -> Result<Tile, Error> {
+/// Download and decode the tile.
+async fn download_and_decode(client: &reqwest::Client, url: &str) -> Result<Tile, Error> {
     let image = client
         .get(url)
         .header(USER_AGENT, "Walkers")
@@ -33,7 +34,7 @@ async fn download_single(client: &reqwest::Client, url: &str) -> Result<Tile, Er
     Tile::from_image_bytes(&image).map_err(Error::Image)
 }
 
-async fn download<S>(
+async fn download_continuously_impl<S>(
     source: S,
     mut request_rx: futures::channel::mpsc::Receiver<TileId>,
     mut tile_tx: futures::channel::mpsc::Sender<(TileId, Tile)>,
@@ -51,7 +52,7 @@ where
 
         log::debug!("Getting {:?} from {}.", request, url);
 
-        match download_single(&client, &url).await {
+        match download_and_decode(&client, &url).await {
             Ok(tile) => {
                 tile_tx.try_send((request, tile)).map_err(|_| ())?;
                 egui_ctx.request_repaint();
@@ -63,7 +64,8 @@ where
     }
 }
 
-pub async fn download_wrap<S>(
+/// Continuously download tiles requested via request channel.
+pub async fn download_continuously<S>(
     source: S,
     request_rx: futures::channel::mpsc::Receiver<TileId>,
     tile_tx: futures::channel::mpsc::Sender<(TileId, Tile)>,
@@ -71,7 +73,7 @@ pub async fn download_wrap<S>(
 ) where
     S: TileSource + Send + 'static,
 {
-    if download(source, request_rx, tile_tx, egui_ctx)
+    if download_continuously_impl(source, request_rx, tile_tx, egui_ctx)
         .await
         .is_err()
     {
