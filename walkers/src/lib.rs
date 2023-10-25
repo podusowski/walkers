@@ -8,6 +8,7 @@ mod mercator;
 pub mod providers;
 mod tiles;
 mod zoom;
+mod download;
 
 pub use map::{Center, Map, MapMemory, Plugin, Projector};
 pub use mercator::{screen_to_position, Position, PositionExt};
