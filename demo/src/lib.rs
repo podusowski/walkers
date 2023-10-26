@@ -11,6 +11,8 @@ pub struct MyApp {
     satellite: bool,
     texture: Texture,
     rotate: f32,
+    x_scale: f32,
+    y_scale: f32,
 }
 
 impl MyApp {
@@ -19,13 +21,12 @@ impl MyApp {
         // Paste here your path for cache directory
         cache_dir.push("/home/user/.walkers");
 
-        let mut texture = Texture::new(
+        let texture = Texture::new(
             egui_ctx.to_owned(),
             "Wroclavia",
             egui::ColorImage::example(),
         );
 
-        // texture.y_scale(2.0);
         Self {
             tiles: Tiles::new(walkers::providers::OpenStreetMap, egui_ctx.to_owned())
                 .with_disk_cache(cache_dir),
@@ -34,6 +35,8 @@ impl MyApp {
             satellite: false,
             texture: texture,
             rotate: 0.0,
+            x_scale: 1.0,
+            y_scale: 1.0,
         }
     }
 }
@@ -90,8 +93,15 @@ impl eframe::App for MyApp {
 
                     zoom(ui, &mut self.map_memory);
                     go_to_my_position(ui, &mut self.map_memory);
-                    satellite(ui, &mut self.satellite);
-                    acknowledge(ui, &attribution, &mut self.texture, &mut self.rotate);
+                    controls(
+                        ui,
+                        &mut self.satellite,
+                        &mut self.texture,
+                        &mut self.rotate,
+                        &mut self.x_scale,
+                        &mut self.y_scale,
+                    );
+                    acknowledge(ui, &attribution);
                 }
             });
     }
@@ -163,12 +173,7 @@ mod windows {
     use walkers::extras::Texture;
     use walkers::{providers::Attribution, Center, MapMemory};
 
-    pub fn acknowledge(
-        ui: &Ui,
-        attribution: &Attribution,
-        texture: &mut Texture,
-        rotate: &mut f32,
-    ) {
+    pub fn acknowledge(ui: &Ui, attribution: &Attribution) {
         Window::new("Acknowledge")
             .collapsible(false)
             .resizable(false)
@@ -176,12 +181,17 @@ mod windows {
             .anchor(Align2::LEFT_TOP, [10., 10.])
             .show(ui.ctx(), |ui| {
                 ui.hyperlink_to(attribution.text, attribution.url);
-                ui.add(egui::Slider::new(rotate, 0.0..=360.0).text("Rotate"));
-                texture.rotate(*rotate);
             });
     }
 
-    pub fn satellite(ui: &Ui, satellite: &mut bool) {
+    pub fn controls(
+        ui: &Ui,
+        satellite: &mut bool,
+        texture: &mut Texture,
+        rotate: &mut f32,
+        x_scale: &mut f32,
+        y_scale: &mut f32,
+    ) {
         Window::new("Satellite")
             .collapsible(false)
             .resizable(false)
@@ -190,6 +200,11 @@ mod windows {
             .fixed_size([150., 150.])
             .show(ui.ctx(), |ui| {
                 ui.checkbox(satellite, "satellite view");
+                ui.add(egui::Slider::new(rotate, 0.0..=360.0).text("Rotate"));
+                ui.add(egui::Slider::new(x_scale, 0.1..=3.0).text("Scale width"));
+                ui.add(egui::Slider::new(y_scale, 0.1..=3.0).text("Scale heigth"));
+                texture.scale(*x_scale, *y_scale);
+                texture.rotate(*rotate);
             });
     }
 

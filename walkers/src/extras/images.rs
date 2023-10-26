@@ -17,6 +17,16 @@ pub struct Images {
     images: Vec<Image>,
 }
 
+#[derive(Clone)]
+pub struct Texture {
+    img: ColorImage,
+    scaled_img: ColorImage,
+    texture: TextureHandle,
+    x_scale: f32,
+    y_scale: f32,
+    angle: f32,
+}
+
 impl Images {
     pub fn new(images: Vec<Image>) -> Self {
         Self { images }
@@ -88,20 +98,12 @@ impl ByPixel for ColorImage {
     }
 }
 
-#[derive(Clone)]
-pub struct Texture {
-    img: ColorImage,
-    scaled_img: ColorImage,
-    texture: TextureHandle,
-    x_scale: f32,
-    y_scale: f32,
-    angle: f32,
-}
-
 impl Texture {
+    /// Construct new texture
+    /// ⚠️ Make sure to only call this ONCE for each image, i.e. NOT in your main GUI code.
+    /// The call is NOT immediate safe.
     pub fn new(ctx: Context, uri: &str, img: ColorImage) -> Self {
-        let _img = img.clone();
-        let texture = ctx.load_texture(uri, _img, Default::default());
+        let texture = ctx.load_texture(uri, img.clone(), Default::default());
 
         Self {
             img: img.clone(),
@@ -113,23 +115,30 @@ impl Texture {
         }
     }
 
+    /// Same as [egui::TextureHandle::id]
+    /// (https://docs.rs/egui/latest/egui/struct.TextureHandle.html#method.id)
     #[inline(always)]
     pub fn id(&self) -> TextureId {
         self.texture.id()
     }
 
+    /// Same as [egui::TextureHandle::size] (https://docs.rs/egui/latest/egui/struct.TextureHandle.html#method.size)
     #[inline(always)]
     pub fn size(&self) -> [usize; 2] {
         self.texture.size()
     }
 
-    #[inline(always)]
+    /// Scale texture.
     pub fn scale(&mut self, x_val: f32, y_val: f32) {
-        // self.y_scale = y_val * self.angle.cos() - x_val * self.angle.sin();
-        // self.x_scale = x_val * self.angle.cos() + y_val * self.angle.sin();
+        if x_val == self.x_scale && y_val == self.y_scale {
+            return;
+        }
+        self.x_scale = x_val;
+        self.y_scale = y_val;
+        self.do_scale();
     }
 
-    /// Rotate image.
+    /// Rotate texture.
     pub fn rotate(&mut self, degree: f32) {
         if degree == self.angle {
             return;
@@ -189,6 +198,29 @@ impl Texture {
         }
 
         self.texture.set(dest, egui::TextureOptions::LINEAR);
+    }
+
+    fn do_scale(&mut self) {
+        let x_ratio = self.x_scale;
+        let y_ratio = self.y_scale;
+
+        let [w, h] = self.img.size;
+        let w = (w as f32 * x_ratio) as usize;
+        let h = (h as f32 * y_ratio) as usize;
+
+        self.scaled_img = ColorImage::new([w, h], Color32::TRANSPARENT);
+        for y in 0..h {
+            for x in 0..w {
+                let px = (x as f32 / x_ratio).floor() as usize;
+                let py = (y as f32 / y_ratio).floor() as usize;
+                if let Some(pixel) = self.img.get_pixel(px, py) {
+                    self.scaled_img.set_pixel(x, y, pixel);
+                }
+            }
+        }
+
+        self.texture
+            .set(self.scaled_img.clone(), egui::TextureOptions::LINEAR);
     }
 }
 
