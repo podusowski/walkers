@@ -10,6 +10,7 @@ pub struct MyApp {
     map_memory: MapMemory,
     satellite: bool,
     texture: Texture,
+    rotate: f32,
 }
 
 impl MyApp {
@@ -25,8 +26,6 @@ impl MyApp {
         );
 
         // texture.y_scale(2.0);
-        texture.rotate(5.0);
-
         Self {
             tiles: Tiles::new(walkers::providers::OpenStreetMap, egui_ctx.to_owned())
                 .with_disk_cache(cache_dir),
@@ -34,6 +33,7 @@ impl MyApp {
             map_memory: MapMemory::default(),
             satellite: false,
             texture: texture,
+            rotate: 0.0,
         }
     }
 }
@@ -91,7 +91,7 @@ impl eframe::App for MyApp {
                     zoom(ui, &mut self.map_memory);
                     go_to_my_position(ui, &mut self.map_memory);
                     satellite(ui, &mut self.satellite);
-                    acknowledge(ui, &attribution);
+                    acknowledge(ui, &attribution, &mut self.texture, &mut self.rotate);
                 }
             });
     }
@@ -160,9 +160,15 @@ impl Plugin for CustomShapes {
 
 mod windows {
     use egui::{Align2, RichText, Ui, Window};
+    use walkers::extras::Texture;
     use walkers::{providers::Attribution, Center, MapMemory};
 
-    pub fn acknowledge(ui: &Ui, attribution: &Attribution) {
+    pub fn acknowledge(
+        ui: &Ui,
+        attribution: &Attribution,
+        texture: &mut Texture,
+        rotate: &mut f32,
+    ) {
         Window::new("Acknowledge")
             .collapsible(false)
             .resizable(false)
@@ -170,6 +176,8 @@ mod windows {
             .anchor(Align2::LEFT_TOP, [10., 10.])
             .show(ui.ctx(), |ui| {
                 ui.hyperlink_to(attribution.text, attribution.url);
+                ui.add(egui::Slider::new(rotate, 0.0..=360.0).text("Rotate"));
+                texture.rotate(*rotate);
             });
     }
 

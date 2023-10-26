@@ -91,6 +91,7 @@ impl ByPixel for ColorImage {
 #[derive(Clone)]
 pub struct Texture {
     img: ColorImage,
+    scaled_img: ColorImage,
     texture: TextureHandle,
     x_scale: f32,
     y_scale: f32,
@@ -103,7 +104,8 @@ impl Texture {
         let texture = ctx.load_texture(uri, _img, Default::default());
 
         Self {
-            img: img,
+            img: img.clone(),
+            scaled_img: img,
             texture: texture,
             x_scale: 1.0,
             y_scale: 1.0,
@@ -128,10 +130,18 @@ impl Texture {
     }
 
     /// Rotate image.
-    /// This code based on transform::rotate from [raster] (https://crates.io/crates/raster) crate
     pub fn rotate(&mut self, degree: f32) {
-        self.angle = degree.to_radians();
-        let src = &self.img;
+        if degree == self.angle {
+            return;
+        }
+        self.angle = degree;
+        self.do_rotate();
+    }
+
+    // This code based on transform::rotate from [raster] (https://crates.io/crates/raster) crate
+    fn do_rotate(&mut self) {
+        let degree = self.angle;
+        let src = &self.scaled_img;
         let [w1, h1] = src.size;
         let w1 = w1 as i32;
         let h1 = h1 as i32;
