@@ -1,6 +1,6 @@
 use egui::{Align2, Context, Painter, Shape};
 use walkers::{
-    extras::{Place, Places, Style},
+    extras::{Image, Images, Place, Places, Style, Texture},
     Map, MapMemory, Plugin, Projector, Tiles,
 };
 
@@ -9,15 +9,29 @@ pub struct MyApp {
     geoportal_tiles: Tiles,
     map_memory: MapMemory,
     satellite: bool,
+    texture: Texture,
+    rotate: f32,
+    x_scale: f32,
+    y_scale: f32,
 }
 
 impl MyApp {
     pub fn new(egui_ctx: Context) -> Self {
+        let texture = Texture::new(
+            egui_ctx.to_owned(),
+            "Wroclavia",
+            egui::ColorImage::example(),
+        );
+
         Self {
             tiles: Tiles::new(walkers::providers::OpenStreetMap, egui_ctx.to_owned()),
             geoportal_tiles: Tiles::new(walkers::providers::Geoportal, egui_ctx),
             map_memory: MapMemory::default(),
             satellite: false,
+            texture: texture,
+            rotate: 0.0,
+            x_scale: 1.0,
+            y_scale: 1.0,
         }
     }
 }
@@ -48,21 +62,25 @@ impl eframe::App for MyApp {
                 let map = Map::new(Some(tiles), &mut self.map_memory, my_position);
 
                 // Optionally, a plugin which draw custom stuff on the map can be attached.
-                let map = map.with_plugin(Places::new(vec![
-                    Place {
-                        position: places::wroclaw_glowny(),
-                        label: "Wrocław Główny\ntrain station".to_owned(),
-                        symbol: '🚆',
-                        style: Style::default(),
-                    },
-                    Place {
-                        position: places::dworcowa_bus_stop(),
-                        label: "Bus stop".to_owned(),
-                        symbol: '🚌',
-                        style: Style::default(),
-                    },
-                ]));
-
+                let map = map
+                    .with_plugin(Places::new(vec![
+                        Place {
+                            position: places::wroclaw_glowny(),
+                            label: "Wrocław Główny\ntrain station".to_owned(),
+                            symbol: '🚆',
+                            style: Style::default(),
+                        },
+                        Place {
+                            position: places::dworcowa_bus_stop(),
+                            label: "Bus stop".to_owned(),
+                            symbol: '🚌',
+                            style: Style::default(),
+                        },
+                    ]))
+                    .with_plugin(Images::new(vec![Image {
+                        position: places::wroclavia(),
+                        texture: self.texture.clone(),
+                    }]));
                 // Draw the map widget.
                 ui.add(map);
 
@@ -72,7 +90,14 @@ impl eframe::App for MyApp {
 
                     zoom(ui, &mut self.map_memory);
                     go_to_my_position(ui, &mut self.map_memory);
-                    satellite(ui, &mut self.satellite);
+                    controls(
+                        ui,
+                        &mut self.satellite,
+                        &mut self.texture,
+                        &mut self.rotate,
+                        &mut self.x_scale,
+                        &mut self.y_scale,
+                    );
                     acknowledge(ui, &attribution);
                 }
             });
@@ -94,6 +119,11 @@ mod places {
     /// https://www.wroclaw.pl/en/how-and-where-to-buy-public-transport-tickets-in-wroclaw
     pub fn dworcowa_bus_stop() -> Position {
         Position::new(17.03940, 51.10005)
+    }
+
+    /// Shopping center
+    pub fn wroclavia() -> Position {
+        Position::new(17.03471, 51.09648)
     }
 }
 
@@ -137,6 +167,7 @@ impl Plugin for CustomShapes {
 
 mod windows {
     use egui::{Align2, RichText, Ui, Window};
+    use walkers::extras::Texture;
     use walkers::{providers::Attribution, Center, MapMemory};
 
     pub fn acknowledge(ui: &Ui, attribution: &Attribution) {
@@ -150,7 +181,14 @@ mod windows {
             });
     }
 
-    pub fn satellite(ui: &Ui, satellite: &mut bool) {
+    pub fn controls(
+        ui: &Ui,
+        satellite: &mut bool,
+        texture: &mut Texture,
+        rotate: &mut f32,
+        x_scale: &mut f32,
+        y_scale: &mut f32,
+    ) {
         Window::new("Satellite")
             .collapsible(false)
             .resizable(false)
@@ -159,6 +197,11 @@ mod windows {
             .fixed_size([150., 150.])
             .show(ui.ctx(), |ui| {
                 ui.checkbox(satellite, "satellite view");
+                ui.add(egui::Slider::new(rotate, 0.0..=360.0).text("Rotate"));
+                ui.add(egui::Slider::new(x_scale, 0.1..=3.0).text("Scale width"));
+                ui.add(egui::Slider::new(y_scale, 0.1..=3.0).text("Scale heigth"));
+                texture.scale(*x_scale, *y_scale);
+                texture.rotate(*rotate);
             });
     }
 
