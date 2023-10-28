@@ -6,3 +6,4 @@ log = "0.4"
 egui = "0.22"
 egui_extras = { version = "0.22", features = ["image"] }
 eframe = "0.22"
+emath = "0.22"

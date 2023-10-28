@@ -201,7 +201,7 @@ mod windows {
                 ui.add(egui::Slider::new(x_scale, 0.1..=3.0).text("Scale width"));
                 ui.add(egui::Slider::new(y_scale, 0.1..=3.0).text("Scale heigth"));
                 texture.scale(*x_scale, *y_scale);
-                texture.rotate(*rotate);
+                texture.rotate((*rotate).to_radians());
             });
     }
 
