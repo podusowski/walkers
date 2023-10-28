@@ -51,21 +51,14 @@ impl Plugin for Images {
             rect.max.x = rect.min.x + w;
             rect.max.y = rect.min.y + h;
 
-            let skip = (rect.max.x < map_rect.min.x)
-                | (rect.max.y < map_rect.min.y)
-                | (rect.min.x > map_rect.max.x)
-                | (rect.min.y > map_rect.max.y);
-
-            if skip {
-                continue;
+            if map_rect.intersects(rect) {
+                painter.image(
+                    texture.id(),
+                    rect,
+                    Rect::from_min_max(pos2(0.0, 0.0), pos2(1.0, 1.0)),
+                    Color32::WHITE,
+                );
             }
-
-            painter.image(
-                texture.id(),
-                rect,
-                Rect::from_min_max(pos2(0.0, 0.0), pos2(1.0, 1.0)),
-                Color32::WHITE,
-            );
         }
     }
 }

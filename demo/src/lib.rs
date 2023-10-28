@@ -28,7 +28,7 @@ impl MyApp {
             geoportal_tiles: Tiles::new(walkers::providers::Geoportal, egui_ctx),
             map_memory: MapMemory::default(),
             satellite: false,
-            texture: texture,
+            texture,
             rotate: 0.0,
             x_scale: 1.0,
             y_scale: 1.0,
