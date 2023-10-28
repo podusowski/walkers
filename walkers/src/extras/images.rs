@@ -86,7 +86,10 @@ impl ByPixel for ColorImage {
     }
 
     fn set_pixel(&mut self, x: usize, y: usize, color: Color32) {
-        let w = self.size[0];
+        let [w, h] = self.size;
+        if x >= w || y >= h {
+            return;
+        }
         self.pixels[x + w * y] = color;
     }
 
@@ -108,7 +111,7 @@ impl Texture {
         Self {
             img: img.clone(),
             scaled_img: img,
-            texture: texture,
+            texture,
             x_scale: 1.0,
             y_scale: 1.0,
             angle: 0.0,
@@ -191,8 +194,9 @@ impl Texture {
                 let point: (i32, i32) = _rotate((x, y), -degree);
 
                 if point.0 >= 0 && point.0 < w1 && point.1 >= 0 && point.1 < h1 {
-                    let pixel = src.get_pixel(point.0 as usize, point.1 as usize).unwrap();
-                    dest.set_pixel(dest_x, dest_y, pixel);
+                    if let Some(pixel) = src.get_pixel(point.0 as usize, point.1 as usize) {
+                        dest.set_pixel(dest_x, dest_y, pixel);
+                    }
                 }
             }
         }
