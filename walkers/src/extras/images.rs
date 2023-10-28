@@ -1,6 +1,5 @@
 use crate::{Plugin, Position};
-use egui::TextureId;
-use egui::{pos2, Color32, ColorImage, Context, Rect, TextureHandle};
+use egui::{pos2, Color32, ColorImage, Context, Rect, TextureHandle, TextureId};
 use emath::Rot2;
 
 /// A image to be drawn on the map.
@@ -127,20 +126,16 @@ impl Texture {
     }
 
     /// Scale texture.
+    #[inline(always)]
     pub fn scale(&mut self, x_val: f32, y_val: f32) {
-        if x_val == self.x_scale && y_val == self.y_scale {
-            return;
-        }
         self.x_scale = x_val;
         self.y_scale = y_val;
     }
 
     /// Rotate texture.
     /// Angle is clockwise in radians. A 𝞃/4 = 90° rotation means rotating the X axis to the Y axis.
+    #[inline(always)]
     pub fn rotate(&mut self, angle: f32) {
-        if angle == self.angle.angle() {
-            return;
-        }
         self.angle = Rot2::from_angle(angle);
     }
 }
