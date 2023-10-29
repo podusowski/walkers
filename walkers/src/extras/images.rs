@@ -135,7 +135,7 @@ impl Texture {
     /// Rotate texture.
     /// Angle is clockwise in radians. A 𝞃/4 = 90° rotation means rotating the X axis to the Y axis.
     #[inline(always)]
-    pub fn rotate(&mut self, angle: f32) {
+    pub fn angle(&mut self, angle: f32) {
         self.angle = Rot2::from_angle(angle);
     }
 }
