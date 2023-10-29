@@ -1,6 +1,6 @@
 use crate::{Plugin, Position};
+use egui::epaint::emath::Rot2;
 use egui::{pos2, Color32, ColorImage, Context, Rect, TextureHandle, TextureId};
-use emath::Rot2;
 
 /// A image to be drawn on the map.
 pub struct Image {
@@ -63,37 +63,6 @@ impl Plugin for Images {
                 painter.add(mesh);
             }
         }
-    }
-}
-
-trait ByPixel {
-    fn get_pixel(&self, x: usize, y: usize) -> Option<Color32>;
-    fn set_pixel(&mut self, x: usize, y: usize, color: Color32);
-    fn index_to_xy(&self, i: usize) -> (usize, usize);
-}
-
-impl ByPixel for ColorImage {
-    fn get_pixel(&self, x: usize, y: usize) -> Option<Color32> {
-        let [w, h] = self.size;
-        if x >= w || y >= h {
-            return None;
-        }
-        Some(self.pixels[x + w * y])
-    }
-
-    fn set_pixel(&mut self, x: usize, y: usize, color: Color32) {
-        let [w, h] = self.size;
-        if x >= w || y >= h {
-            return;
-        }
-        self.pixels[x + w * y] = color;
-    }
-
-    fn index_to_xy(&self, i: usize) -> (usize, usize) {
-        let w = self.size[0];
-        let y = i / w;
-        let x = i % w;
-        (x, y)
     }
 }
 
