@@ -121,7 +121,7 @@ mod places {
         Position::new(17.03940, 51.10005)
     }
 
-    /// Shopping center
+    /// Shopping center, and main intercity bus station.
     pub fn wroclavia() -> Position {
         Position::new(17.03471, 51.09648)
     }
