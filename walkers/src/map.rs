@@ -160,6 +160,14 @@ impl DetachedPosition {
     fn position(&self, zoom: u8) -> Position {
         screen_to_position(self.position.project(zoom) - self.offset, zoom)
     }
+
+    /// Recalculate `position` so that `offset` is zero.
+    fn zero_offset(self, zoom: u8) -> Self {
+        Self {
+            position: screen_to_position(self.position.project(zoom) - self.offset, zoom),
+            offset: Vec2::ZERO,
+        }
+    }
 }
 
 /// Position at the map's center. Initially, the map follows `my_position` argument which typically
@@ -261,25 +269,13 @@ impl Center {
     pub fn approximate_offset(self, zoom: u8) -> Self {
         match self {
             Center::MyPosition => Center::MyPosition,
-            Center::Exact(detached_position) => Center::Exact(DetachedPosition {
-                position: screen_to_position(
-                    detached_position.position.project(zoom) - detached_position.offset,
-                    zoom,
-                ),
-                offset: Vec2::ZERO,
-            }),
+            Center::Exact(detached_position) => Center::Exact(detached_position.zero_offset(zoom)),
             Center::Inertia {
                 position,
                 direction,
                 amount,
             } => Center::Inertia {
-                position: DetachedPosition {
-                    position: screen_to_position(
-                        position.position.project(zoom) - position.offset,
-                        zoom,
-                    ),
-                    offset: Vec2::ZERO,
-                },
+                position: position.zero_offset(zoom),
                 direction,
                 amount,
             },
