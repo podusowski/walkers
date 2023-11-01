@@ -148,7 +148,7 @@ impl Widget for Map<'_, '_> {
 /// [`Position`] alone is not able to represent detached (e.g. after map gets dragged) position
 /// due to insufficient accuracy.
 #[derive(Debug, Clone, PartialEq)]
-pub struct DetachedPosition {
+pub struct AdjustedPosition {
     /// Base geographical position.
     position: Position,
 
@@ -156,7 +156,7 @@ pub struct DetachedPosition {
     offset: Vec2,
 }
 
-impl DetachedPosition {
+impl AdjustedPosition {
     /// Calculate the real position, i.e. including the offset.
     fn position(&self, zoom: u8) -> Position {
         screen_to_position(self.position.project(zoom) - self.offset, zoom)
@@ -182,11 +182,11 @@ pub enum Center {
     MyPosition,
 
     /// Centered at the exact position.
-    Exact(DetachedPosition),
+    Exact(AdjustedPosition),
 
     /// Map's currently moving due to inertia, and will slow down and stop after a short while.
     Inertia {
-        position: DetachedPosition,
+        position: AdjustedPosition,
         direction: Vec2,
         amount: f32,
     },
@@ -196,7 +196,7 @@ impl Center {
     fn recalculate_drag(&mut self, response: &Response, my_position: Position) {
         if response.dragged_by(egui::PointerButton::Primary) {
             let position = match &self {
-                Center::MyPosition => DetachedPosition {
+                Center::MyPosition => AdjustedPosition {
                     position: my_position,
                     offset: Vec2::ZERO,
                 },
@@ -224,7 +224,7 @@ impl Center {
                 let offset = position.offset + (*direction * *amount);
 
                 Center::Inertia {
-                    position: DetachedPosition {
+                    position: AdjustedPosition {
                         position: position.position,
                         offset,
                     },
