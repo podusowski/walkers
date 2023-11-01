@@ -157,6 +157,7 @@ pub struct DetachedPosition {
 }
 
 impl DetachedPosition {
+    /// Calculate the real position, i.e. including the offset.
     fn position(&self, zoom: u8) -> Position {
         screen_to_position(self.position.project(zoom) - self.offset, zoom)
     }
