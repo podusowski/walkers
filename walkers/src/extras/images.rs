@@ -2,7 +2,7 @@ use crate::{Plugin, Position};
 use egui::epaint::emath::Rot2;
 use egui::{pos2, Color32, ColorImage, Context, Rect, TextureHandle, TextureId};
 
-/// A image to be drawn on the map.
+/// An image to be drawn on the map.
 pub struct Image {
     /// Geographical position.
     pub position: Position,

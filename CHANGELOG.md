@@ -2,6 +2,10 @@
 
 All notable changes to this project will be documented in this file.
 
+## Unreleased
+
+ * `Images` plugin, for putting images at geographical location.
+
 ## 0.9.0
 
  * Tile sources are now defined via `TileSource` trait, instead of `Fn`.
