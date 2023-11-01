@@ -237,7 +237,7 @@ impl Center {
 
     /// Returns exact position if map is detached (i.e. not following `my_position`),
     /// `None` otherwise.
-    pub fn detached(&self, zoom: u8) -> Option<Position> {
+    fn detached(&self, zoom: u8) -> Option<Position> {
         match self {
             Center::MyPosition => None,
             Center::Exact(detached_position) => Some(screen_to_position(
@@ -313,6 +313,8 @@ impl MapMemory {
         self.zoom.zoom_out()
     }
 
+    /// Returns exact position if map is detached (i.e. not following `my_position`),
+    /// `None` otherwise.
     pub fn detached(&self) -> Option<Position> {
         self.center_mode.detached(self.zoom.round())
     }
