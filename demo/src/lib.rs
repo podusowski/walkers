@@ -23,7 +23,6 @@ impl MyApp {
     pub fn new(egui_ctx: Context) -> Self {
         let texture = Texture::new(
             egui_ctx.to_owned(),
-            "Wroclavia",
             egui::ColorImage::example(),
         );
 

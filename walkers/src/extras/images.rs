@@ -70,8 +70,8 @@ impl Texture {
     /// Construct new texture
     /// ⚠️ Make sure to only call this ONCE for each image, i.e. NOT in your main GUI code.
     /// The call is NOT immediate safe.
-    pub fn new(ctx: Context, uri: &str, img: ColorImage) -> Self {
-        let texture = ctx.load_texture(uri, img, Default::default());
+    pub fn new(ctx: Context, img: ColorImage) -> Self {
+        let texture = ctx.load_texture("texture", img, Default::default());
 
         Self {
             texture,
