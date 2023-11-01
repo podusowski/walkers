@@ -4,6 +4,7 @@ use egui::{Context, Mesh, Painter, Pos2, Rect, Response, Sense, Ui, Vec2, Widget
 
 use crate::{
     mercator::{screen_to_position, PositionExt, TileId},
+    zoom::InvalidZoom,
     Position, Tiles, Zoom,
 };
 
@@ -292,7 +293,29 @@ impl Center {
 #[derive(Debug, Default, Clone)]
 pub struct MapMemory {
     pub center_mode: Center,
-    pub zoom: Zoom,
+    zoom: Zoom,
+}
+
+impl MapMemory {
+    pub fn zoom_in(&mut self) -> Result<(), InvalidZoom> {
+        self.center_mode = self
+            .center_mode
+            .clone()
+            .approximate_offset(self.zoom.round());
+        self.zoom.zoom_in()
+    }
+
+    pub fn zoom_out(&mut self) -> Result<(), InvalidZoom> {
+        self.center_mode = self
+            .center_mode
+            .clone()
+            .approximate_offset(self.zoom.round());
+        self.zoom.zoom_out()
+    }
+
+    pub fn detached(&self) -> Option<Position> {
+        self.center_mode.detached(self.zoom.round())
+    }
 }
 
 fn draw_tiles(
