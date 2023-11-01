@@ -205,9 +205,6 @@ mod windows {
                 let angle = image.angle;
                 image.texture.scale(x_scale, y_scale);
                 image.texture.angle(angle.to_radians());
-
-                ui.separator();
-                ui.label(format!("{:#?}", map_memory));
             });
     }
 
