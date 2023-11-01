@@ -94,12 +94,7 @@ impl eframe::App for MyApp {
 
                     zoom(ui, &mut self.map_memory);
                     go_to_my_position(ui, &mut self.map_memory);
-                    controls(
-                        ui,
-                        &mut self.satellite,
-                        &mut self.images_plugin_data,
-                        &self.map_memory,
-                    );
+                    controls(ui, &mut self.satellite, &mut self.images_plugin_data);
                     acknowledge(ui, &attribution);
                 }
             });
@@ -183,12 +178,7 @@ mod windows {
             });
     }
 
-    pub fn controls(
-        ui: &Ui,
-        satellite: &mut bool,
-        image: &mut ImagesPluginData,
-        map_memory: &MapMemory,
-    ) {
+    pub fn controls(ui: &Ui, satellite: &mut bool, image: &mut ImagesPluginData) {
         Window::new("Satellite")
             .collapsible(false)
             .resizable(false)
