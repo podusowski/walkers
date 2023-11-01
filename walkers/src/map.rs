@@ -225,11 +225,7 @@ impl Center {
             *self = if amount <= &mut 0.0 {
                 Center::Exact(position.to_owned())
             } else {
-                let translation = *direction * *amount;
-                let offset = position.offset + translation;
-
-                //log::debug!("Translate by: {:?}, gives: {:?}", translation, position);
-                log::debug!("offset: {:?}", offset);
+                let offset = position.offset + (*direction * *amount);
 
                 Center::Inertia {
                     position: DetachedPosition {
