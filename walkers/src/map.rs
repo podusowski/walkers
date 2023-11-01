@@ -153,7 +153,7 @@ pub enum Center {
     MyPosition,
 
     /// Centered at the exact position.
-    Exact(Position),
+    Exact { position: Position, offset: Vec2 },
 
     /// Map's currently moving due to inertia, and will slow down and stop after a short while.
     Inertia {
@@ -191,13 +191,8 @@ impl Center {
                 Center::Exact(*position)
             } else {
                 let translation = *direction * *amount;
-                let offset = 
-                     *offset + translation;
-
-                let position = screen_to_position(
-                    original_position.project(zoom) - offset,
-                    zoom,
-                );
+                let offset = *offset + translation;
+                let position = screen_to_position(original_position.project(zoom) - offset, zoom);
 
                 log::debug!("Translate by: {:?}, gives: {:?}", translation, position);
 
@@ -221,7 +216,7 @@ impl Center {
     pub fn detached(&self) -> Option<Position> {
         match self {
             Center::MyPosition => None,
-            Center::Exact(position) => Some(*position),
+            Center::Exact { position, offset } => Some(*position),
             Center::Inertia {
                 position,
                 original_position: _,
