@@ -199,12 +199,7 @@ impl Center {
                     position: my_position,
                     offset: Vec2::ZERO,
                 },
-                Center::Exact(position) => position.to_owned(),
-                Center::Inertia {
-                    position,
-                    direction: _,
-                    amount: _,
-                } => position.to_owned(),
+                Center::Exact(position) | Center::Inertia { position, .. } => position.to_owned(),
             };
 
             *self = Center::Inertia {
