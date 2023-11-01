@@ -94,7 +94,7 @@ impl eframe::App for MyApp {
 
                     zoom(ui, &mut self.map_memory);
                     go_to_my_position(ui, &mut self.map_memory);
-                    controls(ui, &mut self.satellite, &mut self.images_plugin_data);
+                    controls(ui, &mut self.satellite, &mut self.images_plugin_data, &self.map_memory);
                     acknowledge(ui, &attribution);
                 }
             });
@@ -178,7 +178,7 @@ mod windows {
             });
     }
 
-    pub fn controls(ui: &Ui, satellite: &mut bool, image: &mut ImagesPluginData) {
+    pub fn controls(ui: &Ui, satellite: &mut bool, image: &mut ImagesPluginData, map_memory: &MapMemory) {
         Window::new("Satellite")
             .collapsible(false)
             .resizable(false)
@@ -195,6 +195,9 @@ mod windows {
                 let angle = image.angle;
                 image.texture.scale(x_scale, y_scale);
                 image.texture.angle(angle.to_radians());
+
+                ui.separator();
+                ui.label(format!("{:?}", map_memory));
             });
     }
 

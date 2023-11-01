@@ -148,7 +148,7 @@ impl Widget for Map<'_, '_> {
 
 /// [`Position`] alone is not able to represent detached (e.g. after map gets dragged) position
 /// due to insufficient accuracy.
-#[derive(Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct DetachedPosition {
     /// Base geographical position.
     position: Position,
@@ -161,7 +161,7 @@ pub struct DetachedPosition {
 /// is meant to be fed by a GPS sensor or other geo-localization method. If user drags the map,
 /// it becomes "detached" and stays this way until [`MapMemory::center_mode`] is changed back to
 /// [`Center::MyPosition`].
-#[derive(Clone, PartialEq, Default)]
+#[derive(Debug, Clone, PartialEq, Default)]
 pub enum Center {
     /// Centered at `my_position` argument of the [`Map::new()`] function.
     #[default]
@@ -289,7 +289,7 @@ impl Center {
 }
 
 /// State of the map widget which must persist between frames.
-#[derive(Default, Clone)]
+#[derive(Debug, Default, Clone)]
 pub struct MapMemory {
     pub center_mode: Center,
     pub zoom: Zoom,
