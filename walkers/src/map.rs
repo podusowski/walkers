@@ -98,6 +98,7 @@ impl Widget for Map<'_, '_> {
             // Shift by 1 because of the values given by zoom_delta(). Multiple by 2, because
             // then it felt right with both mouse wheel, and an Android phone.
             self.memory.zoom.zoom_by((zoom_delta - 1.) * 2.);
+            self.memory.center_mode = self.memory.center_mode.clone().approximate_offset(zoom);
         } else {
             self.memory
                 .center_mode
@@ -171,8 +172,7 @@ pub enum Center {
 
     /// Map's currently moving due to inertia, and will slow down and stop after a short while.
     Inertia {
-        position: Position,
-        offset: Vec2,
+        position: DetachedPosition,
         direction: Vec2,
         amount: f32,
     },
@@ -181,22 +181,21 @@ pub enum Center {
 impl Center {
     fn recalculate_drag(&mut self, response: &Response, my_position: Position, zoom: u8) {
         if response.dragged_by(egui::PointerButton::Primary) {
-            let (position, offset) = match &self {
-                Center::MyPosition => (my_position, Vec2::ZERO),
-                Center::Exact(detached_position) => {
-                    (detached_position.position, detached_position.offset)
-                }
+            let position = match &self {
+                Center::MyPosition => DetachedPosition {
+                    position: my_position,
+                    offset: Vec2::ZERO,
+                },
+                Center::Exact(detached_position) => detached_position.to_owned(),
                 Center::Inertia {
                     position,
-                    offset,
                     direction,
                     amount,
-                } => (*position, *offset),
+                } => position.to_owned(),
             };
 
             *self = Center::Inertia {
                 position,
-                offset,
                 direction: response.drag_delta(),
                 amount: 1.0,
             };
@@ -206,26 +205,24 @@ impl Center {
     fn recalculate_inertial_movement(&mut self, ctx: &Context, my_position: Position, zoom: u8) {
         if let Center::Inertia {
             position,
-            offset,
             direction,
             amount,
         } = &self
         {
             *self = if amount <= &mut 0.0 {
-                Center::Exact(DetachedPosition {
-                    position: *position,
-                    offset: *offset,
-                })
+                Center::Exact(position.to_owned())
             } else {
                 let translation = *direction * *amount;
-                let offset = *offset + translation;
+                let offset = position.offset + translation;
 
                 //log::debug!("Translate by: {:?}, gives: {:?}", translation, position);
                 log::debug!("offset: {:?}", offset);
 
                 Center::Inertia {
-                    position: *position,
-                    offset,
+                    position: DetachedPosition {
+                        position: position.position,
+                        offset,
+                    },
                     direction: *direction,
                     amount: *amount - 0.03,
                 }
@@ -248,16 +245,46 @@ impl Center {
             )),
             Center::Inertia {
                 position,
-                offset,
                 direction: _,
                 amount: _,
-            } => Some(screen_to_position(position.project(zoom) - *offset, zoom)),
+            } => Some(screen_to_position(
+                position.position.project(zoom) - position.offset,
+                zoom,
+            )),
         }
     }
 
     /// Get the real position at the map's center.
     pub fn position(&self, my_position: Position, zoom: u8) -> Position {
         self.detached(zoom).unwrap_or(my_position)
+    }
+
+    pub fn approximate_offset(self, zoom: u8) -> Self {
+        match self {
+            Center::MyPosition => Center::MyPosition,
+            Center::Exact(detached_position) => Center::Exact(DetachedPosition {
+                position: screen_to_position(
+                    detached_position.position.project(zoom) - detached_position.offset,
+                    zoom,
+                ),
+                offset: Vec2::ZERO,
+            }),
+            Center::Inertia {
+                position,
+                direction,
+                amount,
+            } => Center::Inertia {
+                position: DetachedPosition {
+                    position: screen_to_position(
+                        position.position.project(zoom) - position.offset,
+                        zoom,
+                    ),
+                    offset: Vec2::ZERO,
+                },
+                direction,
+                amount,
+            },
+        }
     }
 }
 
