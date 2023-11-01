@@ -156,6 +156,12 @@ pub struct DetachedPosition {
     offset: Vec2,
 }
 
+impl DetachedPosition {
+    fn position(&self, zoom: u8) -> Position {
+        screen_to_position(self.position.project(zoom) - self.offset, zoom)
+    }
+}
+
 /// Position at the map's center. Initially, the map follows `my_position` argument which typically
 /// is meant to be fed by a GPS sensor or other geo-localization method. If user drags the map,
 /// it becomes "detached" and stays this way until [`MapMemory::center_mode`] is changed back to
@@ -238,18 +244,12 @@ impl Center {
     fn detached(&self, zoom: u8) -> Option<Position> {
         match self {
             Center::MyPosition => None,
-            Center::Exact(detached_position) => Some(screen_to_position(
-                detached_position.position.project(zoom) - detached_position.offset,
-                zoom,
-            )),
+            Center::Exact(detached_position) => Some(detached_position.position(zoom)),
             Center::Inertia {
                 position,
                 direction: _,
                 amount: _,
-            } => Some(screen_to_position(
-                position.position.project(zoom) - position.offset,
-                zoom,
-            )),
+            } => Some(position.position(zoom)),
         }
     }
 
