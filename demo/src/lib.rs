@@ -4,7 +4,7 @@ use walkers::{
     Map, MapMemory, Plugin, Projector, Tiles,
 };
 
-pub struct ImageHandler {
+pub struct ImagesPluginData {
     texture: Texture,
     angle: f32,
     x_scale: f32,
@@ -16,7 +16,7 @@ pub struct MyApp {
     geoportal_tiles: Tiles,
     map_memory: MapMemory,
     satellite: bool,
-    image: ImageHandler,
+    images_plugin_data: ImagesPluginData,
 }
 
 impl MyApp {
@@ -27,7 +27,7 @@ impl MyApp {
             egui::ColorImage::example(),
         );
 
-        let image = ImageHandler {
+        let images_plugin_data = ImagesPluginData {
             texture,
             angle: 0.0,
             x_scale: 1.0,
@@ -39,7 +39,7 @@ impl MyApp {
             geoportal_tiles: Tiles::new(walkers::providers::Geoportal, egui_ctx),
             map_memory: MapMemory::default(),
             satellite: false,
-            image,
+            images_plugin_data,
         }
     }
 }
@@ -87,7 +87,7 @@ impl eframe::App for MyApp {
                     ]))
                     .with_plugin(Images::new(vec![Image {
                         position: places::wroclavia(),
-                        texture: self.image.texture.clone(),
+                        texture: self.images_plugin_data.texture.clone(),
                     }]));
                 // Draw the map widget.
                 ui.add(map);
@@ -98,7 +98,7 @@ impl eframe::App for MyApp {
 
                     zoom(ui, &mut self.map_memory);
                     go_to_my_position(ui, &mut self.map_memory);
-                    controls(ui, &mut self.satellite, &mut self.image);
+                    controls(ui, &mut self.satellite, &mut self.images_plugin_data);
                     acknowledge(ui, &attribution);
                 }
             });
@@ -167,7 +167,7 @@ impl Plugin for CustomShapes {
 }
 
 mod windows {
-    use super::ImageHandler;
+    use super::ImagesPluginData;
     use egui::{Align2, RichText, Ui, Window};
     use walkers::{providers::Attribution, Center, MapMemory};
 
@@ -182,7 +182,7 @@ mod windows {
             });
     }
 
-    pub fn controls(ui: &Ui, satellite: &mut bool, image: &mut ImageHandler) {
+    pub fn controls(ui: &Ui, satellite: &mut bool, image: &mut ImagesPluginData) {
         Window::new("Satellite")
             .collapsible(false)
             .resizable(false)
