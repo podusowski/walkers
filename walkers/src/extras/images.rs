@@ -71,7 +71,7 @@ impl Texture {
     /// ⚠️ Make sure to only call this ONCE for each image, i.e. NOT in your main GUI code.
     /// The call is NOT immediate safe.
     pub fn new(ctx: Context, uri: &str, img: ColorImage) -> Self {
-        let texture = ctx.load_texture(uri, img.clone(), Default::default());
+        let texture = ctx.load_texture(uri, img, Default::default());
 
         Self {
             texture,
