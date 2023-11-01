@@ -94,7 +94,12 @@ impl eframe::App for MyApp {
 
                     zoom(ui, &mut self.map_memory);
                     go_to_my_position(ui, &mut self.map_memory);
-                    controls(ui, &mut self.satellite, &mut self.images_plugin_data, &self.map_memory);
+                    controls(
+                        ui,
+                        &mut self.satellite,
+                        &mut self.images_plugin_data,
+                        &self.map_memory,
+                    );
                     acknowledge(ui, &attribution);
                 }
             });
@@ -178,7 +183,12 @@ mod windows {
             });
     }
 
-    pub fn controls(ui: &Ui, satellite: &mut bool, image: &mut ImagesPluginData, map_memory: &MapMemory) {
+    pub fn controls(
+        ui: &Ui,
+        satellite: &mut bool,
+        image: &mut ImagesPluginData,
+        map_memory: &MapMemory,
+    ) {
         Window::new("Satellite")
             .collapsible(false)
             .resizable(false)
@@ -211,11 +221,11 @@ mod windows {
             .show(ui.ctx(), |ui| {
                 ui.horizontal(|ui| {
                     if ui.button(RichText::new("➕").heading()).clicked() {
-                        let _ = map_memory.zoom.zoom_in();
+                        let _ = map_memory.zoom_in();
                     }
 
                     if ui.button(RichText::new("➖").heading()).clicked() {
-                        let _ = map_memory.zoom.zoom_out();
+                        let _ = map_memory.zoom_out();
                     }
                 });
             });
@@ -223,7 +233,7 @@ mod windows {
 
     /// When map is "detached", show a windows with an option to go back to my position.
     pub fn go_to_my_position(ui: &Ui, map_memory: &mut MapMemory) {
-        if let Some(position) = map_memory.center_mode.detached(map_memory.zoom.round()) {
+        if let Some(position) = map_memory.detached() {
             Window::new("Center")
                 .collapsible(false)
                 .resizable(false)
