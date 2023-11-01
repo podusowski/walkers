@@ -71,11 +71,13 @@ impl Projector {
         // Turn that into a flat, mercator projection.
         let projected_position = position.project(self.memory.zoom.round());
 
+        let zoom = self.memory.zoom.round();
+
         // We also need to know where the map center is.
         let map_center_projected_position = self
             .memory
             .center_mode
-            .position(self.my_position)
+            .position(self.my_position, zoom)
             .project(self.memory.zoom.round());
 
         // From the two points above we can calculate the actual point on the screen.
@@ -88,6 +90,7 @@ impl Widget for Map<'_, '_> {
         let (rect, response) = ui.allocate_exact_size(ui.available_size(), Sense::drag());
 
         let zoom_delta = ui.input(|input| input.zoom_delta());
+        let zoom = self.memory.zoom.round();
 
         // Zooming and dragging need to be exclusive, otherwise the map will get dragged when
         // pinch gesture is used.
@@ -98,7 +101,7 @@ impl Widget for Map<'_, '_> {
         } else {
             self.memory
                 .center_mode
-                .recalculate_drag(&response, self.my_position);
+                .recalculate_drag(&response, self.my_position, zoom);
         }
 
         self.memory.center_mode.recalculate_inertial_movement(
@@ -107,7 +110,7 @@ impl Widget for Map<'_, '_> {
             self.memory.zoom.round(),
         );
 
-        let map_center = self.memory.center_mode.position(self.my_position);
+        let map_center = self.memory.center_mode.position(self.my_position, zoom);
         let painter = ui.painter().with_clip_rect(rect);
 
         if let Some(tiles) = self.tiles {
@@ -158,7 +161,6 @@ pub enum Center {
     /// Map's currently moving due to inertia, and will slow down and stop after a short while.
     Inertia {
         position: Position,
-        original_position: Position,
         offset: Vec2,
         direction: Vec2,
         amount: f32,
@@ -166,12 +168,22 @@ pub enum Center {
 }
 
 impl Center {
-    fn recalculate_drag(&mut self, response: &Response, my_position: Position) {
+    fn recalculate_drag(&mut self, response: &Response, my_position: Position, zoom: u8) {
         if response.dragged_by(egui::PointerButton::Primary) {
+            let (position, offset) = match &self {
+                Center::MyPosition => (my_position, Vec2::ZERO),
+                Center::Exact { position, offset } => (*position, *offset),
+                Center::Inertia {
+                    position,
+                    offset,
+                    direction,
+                    amount,
+                } => (*position, *offset),
+            };
+
             *self = Center::Inertia {
-                position: self.position(my_position),
-                original_position: self.position(my_position),
-                offset: Vec2::default(),
+                position,
+                offset,
                 direction: response.drag_delta(),
                 amount: 1.0,
             };
@@ -181,24 +193,25 @@ impl Center {
     fn recalculate_inertial_movement(&mut self, ctx: &Context, my_position: Position, zoom: u8) {
         if let Center::Inertia {
             position,
-            original_position,
             offset,
             direction,
             amount,
         } = &self
         {
             *self = if amount <= &mut 0.0 {
-                Center::Exact(*position)
+                Center::Exact {
+                    position: *position,
+                    offset: *offset,
+                }
             } else {
                 let translation = *direction * *amount;
                 let offset = *offset + translation;
-                let position = screen_to_position(original_position.project(zoom) - offset, zoom);
 
-                log::debug!("Translate by: {:?}, gives: {:?}", translation, position);
+                //log::debug!("Translate by: {:?}, gives: {:?}", translation, position);
+                log::debug!("offset: {:?}", offset);
 
                 Center::Inertia {
-                    position,
-                    original_position: *original_position,
+                    position: *position,
                     offset,
                     direction: *direction,
                     amount: *amount - 0.03,
@@ -213,23 +226,24 @@ impl Center {
 
     /// Returns exact position if map is detached (i.e. not following `my_position`),
     /// `None` otherwise.
-    pub fn detached(&self) -> Option<Position> {
+    pub fn detached(&self, zoom: u8) -> Option<Position> {
         match self {
             Center::MyPosition => None,
-            Center::Exact { position, offset } => Some(*position),
+            Center::Exact { position, offset } => {
+                Some(screen_to_position(position.project(zoom) - *offset, zoom))
+            }
             Center::Inertia {
                 position,
-                original_position: _,
-                offset: _,
+                offset,
                 direction: _,
                 amount: _,
-            } => Some(*position),
+            } => Some(screen_to_position(position.project(zoom) - *offset, zoom)),
         }
     }
 
     /// Get the real position at the map's center.
-    pub fn position(&self, my_position: Position) -> Position {
-        self.detached().unwrap_or(my_position)
+    pub fn position(&self, my_position: Position, zoom: u8) -> Position {
+        self.detached(zoom).unwrap_or(my_position)
     }
 }
 
