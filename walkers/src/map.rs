@@ -103,14 +103,12 @@ impl Widget for Map<'_, '_> {
         } else {
             self.memory
                 .center_mode
-                .recalculate_drag(&response, self.my_position, zoom);
+                .recalculate_drag(&response, self.my_position);
         }
 
-        self.memory.center_mode.recalculate_inertial_movement(
-            ui.ctx(),
-            self.my_position,
-            self.memory.zoom.round(),
-        );
+        self.memory
+            .center_mode
+            .recalculate_inertial_movement(ui.ctx());
 
         let map_center = self.memory.center_mode.position(self.my_position, zoom);
         let painter = ui.painter().with_clip_rect(rect);
@@ -180,7 +178,7 @@ pub enum Center {
 }
 
 impl Center {
-    fn recalculate_drag(&mut self, response: &Response, my_position: Position, zoom: u8) {
+    fn recalculate_drag(&mut self, response: &Response, my_position: Position) {
         if response.dragged_by(egui::PointerButton::Primary) {
             let position = match &self {
                 Center::MyPosition => DetachedPosition {
@@ -203,7 +201,7 @@ impl Center {
         }
     }
 
-    fn recalculate_inertial_movement(&mut self, ctx: &Context, my_position: Position, zoom: u8) {
+    fn recalculate_inertial_movement(&mut self, ctx: &Context) {
         if let Center::Inertia {
             position,
             direction,
