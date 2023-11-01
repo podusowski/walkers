@@ -10,12 +10,12 @@ use crate::mercator::TileId;
 use crate::providers::{Attribution, TileSource};
 
 #[derive(Clone)]
-pub struct Tile {
+pub(crate) struct Tile {
     image: Arc<RetainedImage>,
 }
 
 impl Tile {
-    pub(crate) fn from_image_bytes(image: &[u8]) -> Result<Self, String> {
+    pub fn from_image_bytes(image: &[u8]) -> Result<Self, String> {
         RetainedImage::from_image_bytes("debug_name", image).map(|image| Self {
             image: Arc::new(image),
         })
@@ -85,7 +85,7 @@ impl Tiles {
     }
 
     /// Return a tile if already in cache, schedule a download otherwise.
-    pub fn at(&mut self, tile_id: TileId) -> Option<Tile> {
+    pub(crate) fn at(&mut self, tile_id: TileId) -> Option<Tile> {
         // Just take one at the time.
         match self.tile_rx.try_next() {
             Ok(Some((tile_id, tile))) => {

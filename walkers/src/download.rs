@@ -65,7 +65,7 @@ where
 }
 
 /// Continuously download tiles requested via request channel.
-pub async fn download_continuously<S>(
+pub(crate) async fn download_continuously<S>(
     source: S,
     request_rx: futures::channel::mpsc::Receiver<TileId>,
     tile_tx: futures::channel::mpsc::Sender<(TileId, Tile)>,
