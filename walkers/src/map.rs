@@ -257,7 +257,7 @@ impl Center {
     pub fn zero_offset(self, zoom: u8) -> Self {
         match self {
             Center::MyPosition => Center::MyPosition,
-            Center::Exact(detached_position) => Center::Exact(detached_position.zero_offset(zoom)),
+            Center::Exact(position) => Center::Exact(position.zero_offset(zoom)),
             Center::Inertia {
                 position,
                 direction,
