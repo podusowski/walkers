@@ -99,7 +99,7 @@ impl Widget for Map<'_, '_> {
             // Shift by 1 because of the values given by zoom_delta(). Multiple by 2, because
             // then it felt right with both mouse wheel, and an Android phone.
             self.memory.zoom.zoom_by((zoom_delta - 1.) * 2.);
-            self.memory.center_mode = self.memory.center_mode.clone().approximate_offset(zoom);
+            self.memory.center_mode = self.memory.center_mode.clone().zero_offset(zoom);
         } else {
             self.memory
                 .center_mode
@@ -262,7 +262,7 @@ impl Center {
         self.detached(zoom).unwrap_or(my_position)
     }
 
-    pub fn approximate_offset(self, zoom: u8) -> Self {
+    pub fn zero_offset(self, zoom: u8) -> Self {
         match self {
             Center::MyPosition => Center::MyPosition,
             Center::Exact(detached_position) => Center::Exact(detached_position.zero_offset(zoom)),
@@ -288,18 +288,12 @@ pub struct MapMemory {
 
 impl MapMemory {
     pub fn zoom_in(&mut self) -> Result<(), InvalidZoom> {
-        self.center_mode = self
-            .center_mode
-            .clone()
-            .approximate_offset(self.zoom.round());
+        self.center_mode = self.center_mode.clone().zero_offset(self.zoom.round());
         self.zoom.zoom_in()
     }
 
     pub fn zoom_out(&mut self) -> Result<(), InvalidZoom> {
-        self.center_mode = self
-            .center_mode
-            .clone()
-            .approximate_offset(self.zoom.round());
+        self.center_mode = self.center_mode.clone().zero_offset(self.zoom.round());
         self.zoom.zoom_out()
     }
 
