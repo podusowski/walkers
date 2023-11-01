@@ -190,8 +190,8 @@ impl Center {
                 Center::Exact(detached_position) => detached_position.to_owned(),
                 Center::Inertia {
                     position,
-                    direction,
-                    amount,
+                    direction: _,
+                    amount: _,
                 } => position.to_owned(),
             };
 
