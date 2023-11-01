@@ -145,6 +145,17 @@ impl Widget for Map<'_, '_> {
     }
 }
 
+/// [`Position`] alone is not able to represent detached (e.g. after map gets dragged) position
+/// due to insufficient accuracy.
+#[derive(Clone, PartialEq)]
+pub struct DetachedPosition {
+    /// Base geographical position.
+    position: Position,
+
+    /// Offset in pixels.
+    offset: Vec2,
+}
+
 /// Position at the map's center. Initially, the map follows `my_position` argument which typically
 /// is meant to be fed by a GPS sensor or other geo-localization method. If user drags the map,
 /// it becomes "detached" and stays this way until [`MapMemory::center_mode`] is changed back to
@@ -156,7 +167,7 @@ pub enum Center {
     MyPosition,
 
     /// Centered at the exact position.
-    Exact { position: Position, offset: Vec2 },
+    Exact(DetachedPosition),
 
     /// Map's currently moving due to inertia, and will slow down and stop after a short while.
     Inertia {
@@ -172,7 +183,9 @@ impl Center {
         if response.dragged_by(egui::PointerButton::Primary) {
             let (position, offset) = match &self {
                 Center::MyPosition => (my_position, Vec2::ZERO),
-                Center::Exact { position, offset } => (*position, *offset),
+                Center::Exact(detached_position) => {
+                    (detached_position.position, detached_position.offset)
+                }
                 Center::Inertia {
                     position,
                     offset,
@@ -199,10 +212,10 @@ impl Center {
         } = &self
         {
             *self = if amount <= &mut 0.0 {
-                Center::Exact {
+                Center::Exact(DetachedPosition {
                     position: *position,
                     offset: *offset,
-                }
+                })
             } else {
                 let translation = *direction * *amount;
                 let offset = *offset + translation;
@@ -229,9 +242,10 @@ impl Center {
     pub fn detached(&self, zoom: u8) -> Option<Position> {
         match self {
             Center::MyPosition => None,
-            Center::Exact { position, offset } => {
-                Some(screen_to_position(position.project(zoom) - *offset, zoom))
-            }
+            Center::Exact(detached_position) => Some(screen_to_position(
+                detached_position.position.project(zoom) - detached_position.offset,
+                zoom,
+            )),
             Center::Inertia {
                 position,
                 offset,
