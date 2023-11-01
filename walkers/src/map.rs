@@ -243,12 +243,9 @@ impl Center {
     fn detached(&self, zoom: u8) -> Option<Position> {
         match self {
             Center::MyPosition => None,
-            Center::Exact(detached_position) => Some(detached_position.position(zoom)),
-            Center::Inertia {
-                position,
-                direction: _,
-                amount: _,
-            } => Some(position.position(zoom)),
+            Center::Exact(position) | Center::Inertia { position, .. } => {
+                Some(position.position(zoom))
+            }
         }
     }
 
