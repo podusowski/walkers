@@ -158,6 +158,8 @@ pub enum Center {
     /// Map's currently moving due to inertia, and will slow down and stop after a short while.
     Inertia {
         position: Position,
+        original_position: Position,
+        offset: Vec2,
         direction: Vec2,
         amount: f32,
     },
@@ -168,6 +170,8 @@ impl Center {
         if response.dragged_by(egui::PointerButton::Primary) {
             *self = Center::Inertia {
                 position: self.position(my_position),
+                original_position: self.position(my_position),
+                offset: Vec2::default(),
                 direction: response.drag_delta(),
                 amount: 1.0,
             };
@@ -177,6 +181,8 @@ impl Center {
     fn recalculate_inertial_movement(&mut self, ctx: &Context, my_position: Position, zoom: u8) {
         if let Center::Inertia {
             position,
+            original_position,
+            offset,
             direction,
             amount,
         } = &self
@@ -184,11 +190,21 @@ impl Center {
             *self = if amount <= &mut 0.0 {
                 Center::Exact(*position)
             } else {
+                let translation = *direction * *amount;
+                let offset = 
+                     *offset + translation;
+
+                let position = screen_to_position(
+                    original_position.project(zoom) - offset,
+                    zoom,
+                );
+
+                log::debug!("Translate by: {:?}, gives: {:?}", translation, position);
+
                 Center::Inertia {
-                    position: screen_to_position(
-                        self.position(my_position).project(zoom) - (*direction * *amount),
-                        zoom,
-                    ),
+                    position,
+                    original_position: *original_position,
+                    offset,
                     direction: *direction,
                     amount: *amount - 0.03,
                 }
@@ -208,6 +224,8 @@ impl Center {
             Center::Exact(position) => Some(*position),
             Center::Inertia {
                 position,
+                original_position: _,
+                offset: _,
                 direction: _,
                 amount: _,
             } => Some(*position),
