@@ -21,10 +21,7 @@ pub struct MyApp {
 
 impl MyApp {
     pub fn new(egui_ctx: Context) -> Self {
-        let texture = Texture::new(
-            egui_ctx.to_owned(),
-            egui::ColorImage::example(),
-        );
+        let texture = Texture::new(egui_ctx.to_owned(), egui::ColorImage::example());
 
         let images_plugin_data = ImagesPluginData {
             texture,
