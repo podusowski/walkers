@@ -2,6 +2,11 @@
 
 All notable changes to this project will be documented in this file.
 
+## 0.10.1
+
+ * Brought back the ability to center the map at exact position (`MapMemory::center_at`) after
+   making some types private.
+
 ## 0.10.0
 
  * `Images` plugin, for putting images at geographical location.
