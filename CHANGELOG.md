@@ -6,6 +6,9 @@ All notable changes to this project will be documented in this file.
 
  * `Images` plugin, for putting images at geographical location.
  * `Projector` and `MapMemory` are now `Clone`.
+ * `MapMemory::zoom` is no longer `pub`. Use `MapMemory::zoom_in/out` instead.
+ * `MapMemory::center_mode::detached()` is no longer `pub`. Use `MapMemory::detached()` instead.
+ * Fixed weird drag behavior in higher zoom levels.
 
 ## 0.9.0
 
