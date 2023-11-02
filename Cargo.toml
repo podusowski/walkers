@@ -2,7 +2,7 @@
 members = ["walkers", "demo", "demo_native", "demo_web"]
 
 [workspace.package]
-version = "0.9.0"
+version = "0.10.0"
 
 [workspace.dependencies]
 log = "0.4"

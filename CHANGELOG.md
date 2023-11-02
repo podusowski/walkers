@@ -2,7 +2,7 @@
 
 All notable changes to this project will be documented in this file.
 
-## Unreleased
+## 0.10.0
 
  * `Images` plugin, for putting images at geographical location.
  * `Projector` and `MapMemory` are now `Clone`.
