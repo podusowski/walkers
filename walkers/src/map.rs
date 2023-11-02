@@ -295,6 +295,14 @@ impl MapMemory {
     pub fn detached(&self) -> Option<Position> {
         self.center_mode.detached(self.zoom.round())
     }
+
+    /// Center exactly at the given position.
+    pub fn center_at(&mut self, position: Position) {
+        self.center_mode = Center::Exact(AdjustedPosition {
+            position,
+            offset: Vec2::ZERO,
+        });
+    }
 }
 
 fn draw_tiles(
