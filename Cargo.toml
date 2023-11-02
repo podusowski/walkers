@@ -1,6 +1,9 @@
 [workspace]
 members = ["walkers", "demo", "demo_native", "demo_web"]
 
+[workspace.package]
+version = "0.9.0"
+
 [workspace.dependencies]
 log = "0.4"
 egui = "0.22"
