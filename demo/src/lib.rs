@@ -1,4 +1,4 @@
-use egui::{Align2, Color32, Context, Painter, Shape};
+use egui::{Color32, Context, Painter};
 use walkers::{
     extras::{Image, Images, Place, Places, Style, Texture},
     Map, MapMemory, Plugin, Projector, Tiles,
@@ -147,31 +147,6 @@ impl Plugin for CustomShapes {
             30.,
             Color32::BLACK.gamma_multiply(0.5),
         );
-
-        //// Context is a central part of egui. Among other things, it holds styles and fonts.
-        //let ctx = painter.ctx();
-
-        //// Now we can just use Painter to draw stuff.
-        //let background = |text: &Shape| {
-        //    Shape::rect_filled(
-        //        text.visual_bounding_rect().expand(5.),
-        //        5.,
-        //        ctx.style().visuals.extreme_bg_color,
-        //    )
-        //};
-
-        //let text = ctx.fonts(|fonts| {
-        //    Shape::text(
-        //        fonts,
-        //        screen_position.to_pos2(),
-        //        Align2::LEFT_CENTER,
-        //        "⬉ Here you can board the 106 line\nwhich goes to the airport.",
-        //        Default::default(),
-        //        ctx.style().visuals.text_color(),
-        //    )
-        //});
-        //painter.add(background(&text));
-        //painter.add(text);
     }
 }
 
