@@ -275,7 +275,7 @@ impl Center {
 /// State of the map widget which must persist between frames.
 #[derive(Debug, Default, Clone)]
 pub struct MapMemory {
-    pub center_mode: Center,
+    center_mode: Center,
     zoom: Zoom,
 }
 
