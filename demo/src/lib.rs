@@ -180,8 +180,8 @@ mod windows {
 
                 ui.collapsing("Images plugin", |ui| {
                     ui.add(egui::Slider::new(&mut image.angle, 0.0..=360.0).text("Rotate"));
-                    ui.add(egui::Slider::new(&mut image.x_scale, 0.1..=3.0).text("Scale width"));
-                    ui.add(egui::Slider::new(&mut image.y_scale, 0.1..=3.0).text("Scale heigth"));
+                    ui.add(egui::Slider::new(&mut image.x_scale, 0.1..=3.0).text("Scale X"));
+                    ui.add(egui::Slider::new(&mut image.y_scale, 0.1..=3.0).text("Scale Y"));
                     image.texture.scale(image.x_scale, image.y_scale);
                     image.texture.angle(image.angle.to_radians());
                 });
