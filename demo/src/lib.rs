@@ -21,10 +21,9 @@ pub struct MyApp {
 
 impl MyApp {
     pub fn new(egui_ctx: Context) -> Self {
-        let texture = Texture::new(egui_ctx.to_owned(), egui::ColorImage::example());
-
+        // Data for the `images` plugin showcase.
         let images_plugin_data = ImagesPluginData {
-            texture,
+            texture: Texture::new(egui_ctx.to_owned(), egui::ColorImage::example()),
             angle: 0.0,
             x_scale: 1.0,
             y_scale: 1.0,
