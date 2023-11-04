@@ -4,8 +4,8 @@ use egui::{Context, Mesh, Painter, Pos2, Rect, Response, Sense, Ui, Vec2, Widget
 
 use crate::{
     mercator::{screen_to_position, PositionExt, TileId},
-    zoom::InvalidZoom,
-    Position, Tiles, Zoom,
+    zoom::{InvalidZoom, Zoom},
+    Position, Tiles,
 };
 
 /// Plugins allow drawing custom shapes on the map. After implementing this trait for your type,

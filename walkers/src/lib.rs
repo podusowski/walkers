@@ -13,4 +13,4 @@ mod zoom;
 pub use map::{Center, Map, MapMemory, Plugin, Projector};
 pub use mercator::{screen_to_position, Position, PositionExt};
 pub use tiles::Tiles;
-pub use zoom::Zoom;
+pub use zoom::InvalidZoom;
