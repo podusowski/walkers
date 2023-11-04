@@ -26,7 +26,7 @@ pub trait PositionExt {
 }
 
 /// Size of the tiles used by the services like the OSM.
-const TILE_SIZE: u32 = 256;
+pub(crate) const TILE_SIZE: u32 = 256;
 
 fn mercator_normalized((x, y): (f64, f64)) -> (f64, f64) {
     // Project into Mercator (cylindrical map projection).

@@ -6,8 +6,15 @@ use egui_extras::RetainedImage;
 
 use crate::download::download_continuously;
 use crate::io::Runtime;
-use crate::mercator::TileId;
+use crate::mercator::{TileId, TILE_SIZE};
 use crate::providers::{Attribution, TileSource};
+
+pub(crate) fn rect(screen_position: Vec2) -> Rect {
+    Rect::from_min_size(
+        screen_position.to_pos2(),
+        Vec2::new(TILE_SIZE as f32, TILE_SIZE as f32),
+    )
+}
 
 #[derive(Clone)]
 pub(crate) struct Tile {
@@ -21,18 +28,10 @@ impl Tile {
         })
     }
 
-    pub fn rect(&self, screen_position: Vec2) -> Rect {
-        let tile_size = pos2(self.image.width() as f32, self.image.height() as f32);
-        Rect::from_two_pos(
-            screen_position.to_pos2(),
-            (screen_position + tile_size.to_vec2()).to_pos2(),
-        )
-    }
-
     pub fn mesh(&self, screen_position: Vec2, ctx: &Context) -> Mesh {
         let mut mesh = Mesh::with_texture(self.image.texture_id(ctx));
         mesh.add_rect_with_uv(
-            self.rect(screen_position),
+            rect(screen_position),
             Rect::from_min_max(pos2(0., 0.0), pos2(1.0, 1.0)),
             Color32::WHITE,
         );

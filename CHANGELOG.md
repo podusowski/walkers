@@ -7,6 +7,7 @@ All notable changes to this project will be documented in this file.
  * `Zoom` type is no longer public, while `InvalidZoom` becomes public.
  * `MapMemory::center_mode` is no longer public,
  * New `MapMemory::follow_my_position` function.
+ * Fix occasional disappearing of the map when dragging rapidly.
 
 ## 0.10.1
 

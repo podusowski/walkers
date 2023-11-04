@@ -4,6 +4,7 @@ use egui::{Context, Mesh, Painter, Pos2, Rect, Response, Sense, Ui, Vec2, Widget
 
 use crate::{
     mercator::{screen_to_position, PositionExt, TileId},
+    tiles,
     zoom::{InvalidZoom, Zoom},
     Position, Tiles,
 };
@@ -124,7 +125,7 @@ impl Widget for Map<'_, '_> {
                 &mut meshes,
             );
 
-            for (_, shape) in meshes {
+            for shape in meshes.drain().filter_map(|(_, mesh)| mesh) {
                 painter.add(shape);
             }
         }
@@ -312,28 +313,30 @@ impl MapMemory {
     }
 }
 
+/// Use simple [flood fill algorithm](https://en.wikipedia.org/wiki/Flood_fill) to draw tiles on the map.
 fn draw_tiles(
     painter: &Painter,
     tile_id: TileId,
     map_center_projected_position: Pos2,
     tiles: &mut Tiles,
     ui: &mut Ui,
-    meshes: &mut HashMap<TileId, Mesh>,
+    meshes: &mut HashMap<TileId, Option<Mesh>>,
 ) {
     let tile_projected = tile_id.project();
     let tile_screen_position = painter.clip_rect().center().to_vec2() + tile_projected.to_vec2()
         - map_center_projected_position.to_vec2();
 
-    let Some(image) = tiles.at(tile_id) else {
-        return;
-    };
-
     if painter
         .clip_rect()
-        .intersects(image.rect(tile_screen_position))
+        .intersects(tiles::rect(tile_screen_position))
     {
-        if let Entry::Vacant(vacant) = meshes.entry(tile_id) {
-            vacant.insert(image.mesh(tile_screen_position, ui.ctx()));
+        if let Entry::Vacant(entry) = meshes.entry(tile_id) {
+            // It's still OK to insert an empty one, as we need to mark the spot for the filling algorithm.
+            let tile = tiles
+                .at(tile_id)
+                .map(|tile| tile.mesh(tile_screen_position, ui.ctx()));
+
+            entry.insert(tile);
 
             for coordinates in [
                 tile_id.north(),
