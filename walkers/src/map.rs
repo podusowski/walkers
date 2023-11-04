@@ -305,6 +305,11 @@ impl MapMemory {
             offset: Vec2::ZERO,
         });
     }
+
+    /// Follow `my_position`.
+    pub fn follow_my_position(&mut self) {
+        self.center_mode = Center::MyPosition;
+    }
 }
 
 fn draw_tiles(
