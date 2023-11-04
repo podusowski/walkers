@@ -313,6 +313,7 @@ impl MapMemory {
     }
 }
 
+/// Use simple [flood fill algorithm](https://en.wikipedia.org/wiki/Flood_fill) to draw tiles on the map.
 fn draw_tiles(
     painter: &Painter,
     tile_id: TileId,
