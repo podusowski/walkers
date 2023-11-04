@@ -153,7 +153,7 @@ impl Plugin for CustomShapes {
 mod windows {
     use super::ImagesPluginData;
     use egui::{Align2, RichText, Ui, Window};
-    use walkers::{providers::Attribution, Center, MapMemory};
+    use walkers::{providers::Attribution, MapMemory};
 
     pub fn acknowledge(ui: &Ui, attribution: &Attribution) {
         Window::new("Acknowledge")
@@ -222,7 +222,7 @@ mod windows {
                         .button(RichText::new("go to my (fake) position ").heading())
                         .clicked()
                     {
-                        map_memory.center_mode = Center::MyPosition;
+                        map_memory.follow_my_position();
                     }
                 });
         }
