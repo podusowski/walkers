@@ -125,7 +125,7 @@ impl Widget for Map<'_, '_> {
                 &mut meshes,
             );
 
-            for shape in meshes.into_iter().filter_map(|(_, mesh)| mesh) {
+            for shape in meshes.drain().filter_map(|(_, mesh)| mesh) {
                 painter.add(shape);
             }
         }
