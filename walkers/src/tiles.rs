@@ -9,6 +9,10 @@ use crate::io::Runtime;
 use crate::mercator::TileId;
 use crate::providers::{Attribution, TileSource};
 
+pub(crate) fn rect(screen_position: Vec2) -> Rect {
+    Rect::from_min_size(screen_position.to_pos2(), Vec2::new(256., 256.))
+}
+
 #[derive(Clone)]
 pub(crate) struct Tile {
     image: Arc<RetainedImage>,
