@@ -330,8 +330,12 @@ fn draw_tiles(
         .intersects(tiles::rect(tile_screen_position))
     {
         if let Entry::Vacant(vacant) = meshes.entry(tile_id) {
-            let tile = tiles.at(tile_id);
-            vacant.insert(tile.map(|tile| tile.mesh(tile_screen_position, ui.ctx())));
+            // It's still OK to insert an empty one, as we need to mark the spot for the filling algorithm.
+            let tile = tiles
+                .at(tile_id)
+                .map(|tile| tile.mesh(tile_screen_position, ui.ctx()));
+
+            vacant.insert(tile);
 
             for coordinates in [
                 tile_id.north(),
