@@ -67,7 +67,6 @@ impl Plugin for Images {
 }
 
 impl Texture {
-    /// Construct new texture
     /// ⚠️ Make sure to only call this ONCE for each image, i.e. NOT in your main GUI code.
     /// The call is NOT immediate safe.
     pub fn new(ctx: Context, img: ColorImage) -> Self {
@@ -83,27 +82,23 @@ impl Texture {
 
     /// Same as [egui::TextureHandle::id]
     /// (https://docs.rs/egui/latest/egui/struct.TextureHandle.html#method.id)
-    #[inline(always)]
     pub fn id(&self) -> TextureId {
         self.texture.id()
     }
 
     /// Same as [egui::TextureHandle::size] (https://docs.rs/egui/latest/egui/struct.TextureHandle.html#method.size)
-    #[inline(always)]
     pub fn size(&self) -> [usize; 2] {
         self.texture.size()
     }
 
     /// Scale texture.
-    #[inline(always)]
-    pub fn scale(&mut self, x_val: f32, y_val: f32) {
-        self.x_scale = x_val;
-        self.y_scale = y_val;
+    pub fn scale(&mut self, x_scale: f32, y_scale: f32) {
+        self.x_scale = x_scale;
+        self.y_scale = y_scale;
     }
 
     /// Rotate texture.
     /// Angle is clockwise in radians. A 𝞃/4 = 90° rotation means rotating the X axis to the Y axis.
-    #[inline(always)]
     pub fn angle(&mut self, angle: f32) {
         self.angle = Rot2::from_angle(angle);
     }

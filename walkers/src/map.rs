@@ -4,8 +4,8 @@ use egui::{Context, Mesh, Painter, Pos2, Rect, Response, Sense, Ui, Vec2, Widget
 
 use crate::{
     mercator::{screen_to_position, PositionExt, TileId},
-    zoom::InvalidZoom,
-    Position, Tiles, Zoom,
+    zoom::{InvalidZoom, Zoom},
+    Position, Tiles,
 };
 
 /// Plugins allow drawing custom shapes on the map. After implementing this trait for your type,
@@ -275,16 +275,18 @@ impl Center {
 /// State of the map widget which must persist between frames.
 #[derive(Debug, Default, Clone)]
 pub struct MapMemory {
-    pub center_mode: Center,
+    center_mode: Center,
     zoom: Zoom,
 }
 
 impl MapMemory {
+    /// Try to zoom in, returning `Err(InvalidZoom)` if already at maximum.
     pub fn zoom_in(&mut self) -> Result<(), InvalidZoom> {
         self.center_mode = self.center_mode.clone().zero_offset(self.zoom.round());
         self.zoom.zoom_in()
     }
 
+    /// Try to zoom out, returning `Err(InvalidZoom)` if already at minimum.
     pub fn zoom_out(&mut self) -> Result<(), InvalidZoom> {
         self.center_mode = self.center_mode.clone().zero_offset(self.zoom.round());
         self.zoom.zoom_out()
@@ -302,6 +304,11 @@ impl MapMemory {
             position,
             offset: Vec2::ZERO,
         });
+    }
+
+    /// Follow `my_position`.
+    pub fn follow_my_position(&mut self) {
+        self.center_mode = Center::MyPosition;
     }
 }
 
