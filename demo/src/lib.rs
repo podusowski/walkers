@@ -1,4 +1,4 @@
-use egui::{Align2, Context, Painter, Shape};
+use egui::{Color32, Context, Painter};
 use walkers::{
     extras::{Image, Images, Place, Places, Style, Texture},
     Map, MapMemory, Plugin, Projector, Tiles,
@@ -64,7 +64,7 @@ impl eframe::App for MyApp {
                 // In egui, widgets are constructed and consumed in each frame.
                 let map = Map::new(Some(tiles), &mut self.map_memory, my_position);
 
-                // Optionally, a plugin which draw custom stuff on the map can be attached.
+                // Optionally, plugins can be attached.
                 let map = map
                     .with_plugin(Places::new(vec![
                         Place {
@@ -83,7 +83,9 @@ impl eframe::App for MyApp {
                     .with_plugin(Images::new(vec![Image {
                         position: places::wroclavia(),
                         texture: self.images_plugin_data.texture.clone(),
-                    }]));
+                    }]))
+                    .with_plugin(CustomShapes {});
+
                 // Draw the map widget.
                 ui.add(map);
 
@@ -117,7 +119,13 @@ mod places {
         Position::new(17.03940, 51.10005)
     }
 
-    /// Shopping center, and main intercity bus station.
+    /// Musical Theatre Capitol.
+    /// https://www.teatr-capitol.pl/
+    pub fn capitol() -> Position {
+        Position::new(17.03018, 51.10073)
+    }
+
+    /// Shopping center, and the main intercity bus station.
     pub fn wroclavia() -> Position {
         Position::new(17.03471, 51.09648)
     }
@@ -129,35 +137,16 @@ struct CustomShapes {}
 impl Plugin for CustomShapes {
     fn draw(&self, painter: Painter, projector: &Projector) {
         // Position of the point we want to put our shapes.
-        let position = places::dworcowa_bus_stop();
+        let position = places::capitol();
 
         // Project it into the position on the screen.
         let screen_position = projector.project(position);
 
-        // Context is a central part of egui. Among other things, it holds styles and fonts.
-        let ctx = painter.ctx();
-
-        // Now we can just use Painter to draw stuff.
-        let background = |text: &Shape| {
-            Shape::rect_filled(
-                text.visual_bounding_rect().expand(5.),
-                5.,
-                ctx.style().visuals.extreme_bg_color,
-            )
-        };
-
-        let text = ctx.fonts(|fonts| {
-            Shape::text(
-                fonts,
-                screen_position.to_pos2(),
-                Align2::LEFT_CENTER,
-                "⬉ Here you can board the 106 line\nwhich goes to the airport.",
-                Default::default(),
-                ctx.style().visuals.text_color(),
-            )
-        });
-        painter.add(background(&text));
-        painter.add(text);
+        painter.circle_filled(
+            screen_position.to_pos2(),
+            30.,
+            Color32::BLACK.gamma_multiply(0.5),
+        );
     }
 }
 
