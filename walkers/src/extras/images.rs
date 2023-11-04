@@ -96,9 +96,9 @@ impl Texture {
 
     /// Scale texture.
     #[inline(always)]
-    pub fn scale(&mut self, x_val: f32, y_val: f32) {
-        self.x_scale = x_val;
-        self.y_scale = y_val;
+    pub fn scale(&mut self, x_scale: f32, y_scale: f32) {
+        self.x_scale = x_scale;
+        self.y_scale = y_scale;
     }
 
     /// Rotate texture.
