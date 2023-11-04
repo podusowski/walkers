@@ -174,15 +174,20 @@ mod windows {
             .anchor(Align2::RIGHT_TOP, [-10., 10.])
             .fixed_size([150., 150.])
             .show(ui.ctx(), |ui| {
-                ui.checkbox(satellite, "satellite view");
-                ui.add(egui::Slider::new(&mut image.angle, 0.0..=360.0).text("Rotate"));
-                ui.add(egui::Slider::new(&mut image.x_scale, 0.1..=3.0).text("Scale width"));
-                ui.add(egui::Slider::new(&mut image.y_scale, 0.1..=3.0).text("Scale heigth"));
-                let x_scale = image.x_scale;
-                let y_scale = image.y_scale;
-                let angle = image.angle;
-                image.texture.scale(x_scale, y_scale);
-                image.texture.angle(angle.to_radians());
+                ui.collapsing("Map", |ui| {
+                    ui.checkbox(satellite, "satellite view");
+                });
+
+                ui.collapsing("Images plugin", |ui| {
+                    ui.add(egui::Slider::new(&mut image.angle, 0.0..=360.0).text("Rotate"));
+                    ui.add(egui::Slider::new(&mut image.x_scale, 0.1..=3.0).text("Scale width"));
+                    ui.add(egui::Slider::new(&mut image.y_scale, 0.1..=3.0).text("Scale heigth"));
+                    let x_scale = image.x_scale;
+                    let y_scale = image.y_scale;
+                    let angle = image.angle;
+                    image.texture.scale(x_scale, y_scale);
+                    image.texture.angle(angle.to_radians());
+                });
             });
     }
 
