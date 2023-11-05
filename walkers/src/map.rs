@@ -88,7 +88,7 @@ impl Projector {
 }
 
 impl Map<'_, '_> {
-    fn recalculate_zoom_and_drag(&mut self, ui: &mut Ui, response: &Response) {
+    fn zoom_and_drag(&mut self, ui: &mut Ui, response: &Response) {
         let zoom_delta = ui.input(|input| input.zoom_delta());
 
         // Zooming and dragging need to be exclusive, otherwise the map will get dragged when
@@ -120,7 +120,7 @@ impl Widget for Map<'_, '_> {
     fn ui(mut self, ui: &mut Ui) -> Response {
         let (rect, response) = ui.allocate_exact_size(ui.available_size(), Sense::drag());
 
-        self.recalculate_zoom_and_drag(ui, &response);
+        self.zoom_and_drag(ui, &response);
 
         let zoom = self.memory.zoom.round();
         let map_center = self.memory.center_mode.position(self.my_position, zoom);
