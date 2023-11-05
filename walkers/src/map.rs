@@ -88,6 +88,7 @@ impl Projector {
 }
 
 impl Map<'_, '_> {
+    /// Handle zoom and drag inputs, and recalculate everything accordingly.
     fn zoom_and_drag(&mut self, ui: &mut Ui, response: &Response) {
         let zoom_delta = ui.input(|input| input.zoom_delta());
 
