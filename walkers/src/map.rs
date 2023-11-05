@@ -129,7 +129,7 @@ impl Widget for Map<'_, '_> {
 
         if let Some(tiles) = self.tiles {
             let mut meshes = Default::default();
-            draw_tiles(
+            flood_fill_tiles(
                 &painter,
                 map_center.tile_id(zoom),
                 map_center.project(zoom),
@@ -325,7 +325,7 @@ impl MapMemory {
 }
 
 /// Use simple [flood fill algorithm](https://en.wikipedia.org/wiki/Flood_fill) to draw tiles on the map.
-fn draw_tiles(
+fn flood_fill_tiles(
     painter: &Painter,
     tile_id: TileId,
     map_center_projected_position: Pos2,
@@ -358,7 +358,7 @@ fn draw_tiles(
             .iter()
             .flatten()
             {
-                draw_tiles(
+                flood_fill_tiles(
                     painter,
                     *coordinates,
                     map_center_projected_position,
