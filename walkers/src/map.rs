@@ -108,7 +108,7 @@ impl Map<'_, '_> {
         } else {
             self.memory
                 .center_mode
-                .recalculate_drag(&response, self.my_position);
+                .recalculate_drag(response, self.my_position);
         }
 
         self.memory
