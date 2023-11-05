@@ -53,7 +53,7 @@ impl<'a, 'b> Map<'a, 'b> {
         }
     }
 
-    /// Add plugin to the drawing pipeline. Plugins allow drawing custom shaped on the map.
+    /// Add plugin to the drawing pipeline. Plugins allow drawing custom shapes on the map.
     pub fn with_plugin(mut self, plugin: impl Plugin + 'static) -> Self {
         self.plugins.push(Box::new(plugin));
         self
