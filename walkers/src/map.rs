@@ -87,12 +87,10 @@ impl Projector {
     }
 }
 
-impl Widget for Map<'_, '_> {
-    fn ui(self, ui: &mut Ui) -> Response {
-        let (rect, response) = ui.allocate_exact_size(ui.available_size(), Sense::drag());
-
+impl Map<'_, '_> {
+    /// Handle zoom and drag inputs, and recalculate everything accordingly.
+    fn zoom_and_drag(&mut self, ui: &mut Ui, response: &Response) {
         let zoom_delta = ui.input(|input| input.zoom_delta());
-        let zoom = self.memory.zoom.round();
 
         // Zooming and dragging need to be exclusive, otherwise the map will get dragged when
         // pinch gesture is used.
@@ -100,26 +98,41 @@ impl Widget for Map<'_, '_> {
             // Shift by 1 because of the values given by zoom_delta(). Multiple by 2, because
             // then it felt right with both mouse wheel, and an Android phone.
             self.memory.zoom.zoom_by((zoom_delta - 1.) * 2.);
-            self.memory.center_mode = self.memory.center_mode.clone().zero_offset(zoom);
+
+            // Recalculate the AdjustedPosition's offset, since it gets invalidated by zooming.
+            self.memory.center_mode = self
+                .memory
+                .center_mode
+                .clone()
+                .zero_offset(self.memory.zoom.round());
         } else {
             self.memory
                 .center_mode
-                .recalculate_drag(&response, self.my_position);
+                .recalculate_drag(response, self.my_position);
         }
 
         self.memory
             .center_mode
             .recalculate_inertial_movement(ui.ctx());
+    }
+}
 
+impl Widget for Map<'_, '_> {
+    fn ui(mut self, ui: &mut Ui) -> Response {
+        let (rect, response) = ui.allocate_exact_size(ui.available_size(), Sense::drag());
+
+        self.zoom_and_drag(ui, &response);
+
+        let zoom = self.memory.zoom.round();
         let map_center = self.memory.center_mode.position(self.my_position, zoom);
         let painter = ui.painter().with_clip_rect(rect);
 
         if let Some(tiles) = self.tiles {
             let mut meshes = Default::default();
-            draw_tiles(
+            flood_fill_tiles(
                 &painter,
-                map_center.tile_id(self.memory.zoom.round()),
-                map_center.project(self.memory.zoom.round()),
+                map_center.tile_id(zoom),
+                map_center.project(zoom),
                 tiles,
                 ui,
                 &mut meshes,
@@ -131,15 +144,13 @@ impl Widget for Map<'_, '_> {
         }
 
         for plugin in self.plugins {
-            let painter = ui.painter().with_clip_rect(response.rect);
-
             let projector = Projector {
                 clip_rect: response.rect,
                 memory: self.memory.to_owned(),
                 my_position: self.my_position,
             };
 
-            plugin.draw(painter, &projector);
+            plugin.draw(painter.to_owned(), &projector);
         }
 
         response
@@ -314,7 +325,7 @@ impl MapMemory {
 }
 
 /// Use simple [flood fill algorithm](https://en.wikipedia.org/wiki/Flood_fill) to draw tiles on the map.
-fn draw_tiles(
+fn flood_fill_tiles(
     painter: &Painter,
     tile_id: TileId,
     map_center_projected_position: Pos2,
@@ -347,7 +358,7 @@ fn draw_tiles(
             .iter()
             .flatten()
             {
-                draw_tiles(
+                flood_fill_tiles(
                     painter,
                     *coordinates,
                     map_center_projected_position,
