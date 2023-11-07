@@ -2,7 +2,7 @@
 
 All notable changes to this project will be documented in this file.
 
-## Unreleased
+## 0.11.0
 
  * `Zoom` type is no longer public, while `InvalidZoom` becomes public.
  * `MapMemory::center_mode` is no longer public,
