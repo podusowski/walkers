@@ -8,5 +8,4 @@ version = "0.10.1"
 image = "*"
 log = "0.4"
 egui = "0.23"
-egui_extras = { version = "0.23", features = ["image"] }
 eframe = "0.23"
