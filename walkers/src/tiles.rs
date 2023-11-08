@@ -1,7 +1,7 @@
 use std::collections::hash_map::Entry;
 use std::{collections::HashMap, sync::Arc};
 
-use egui::{pos2, Color32, ColorImage, Context, Mesh, mutex::Mutex, Rect, Vec2};
+use egui::{mutex::Mutex, pos2, Color32, ColorImage, Context, Mesh, Rect, Vec2};
 
 use crate::download::download_continuously;
 use crate::io::Runtime;
@@ -42,12 +42,8 @@ impl RetainedImage {
         }
     }
 
-    fn from_image_bytes(
-        image_bytes: &[u8],
-    ) -> Result<Self, String> {
-        Ok(Self::from_color_image(
-            load_image_bytes(image_bytes)?,
-        ))
+    fn from_image_bytes(image_bytes: &[u8]) -> Result<Self, String> {
+        Ok(Self::from_color_image(load_image_bytes(image_bytes)?))
     }
 
     fn texture_id(&self, ctx: &egui::Context) -> egui::TextureId {
