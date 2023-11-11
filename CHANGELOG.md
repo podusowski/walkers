@@ -2,6 +2,10 @@
 
 All notable changes to this project will be documented in this file.
 
+## 0.12.0
+
+* `egui` updated to 0.23.
+
 ## 0.11.0
 
  * `Zoom` type is no longer public, while `InvalidZoom` becomes public.
