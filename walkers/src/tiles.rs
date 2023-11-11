@@ -1,8 +1,7 @@
 use std::collections::hash_map::Entry;
 use std::{collections::HashMap, sync::Arc};
 
-use egui::{pos2, Color32, Context, Mesh, Rect, Vec2};
-use egui_extras::RetainedImage;
+use egui::{mutex::Mutex, pos2, Color32, ColorImage, Context, Mesh, Rect, Vec2};
 
 use crate::download::download_continuously;
 use crate::io::Runtime;
@@ -16,6 +15,49 @@ pub(crate) fn rect(screen_position: Vec2) -> Rect {
     )
 }
 
+struct RetainedImage {
+    /// Cleared once [`Self::texture`] has been loaded.
+    image: Mutex<egui::ColorImage>,
+
+    /// Lazily loaded when we have an egui context.
+    texture: Mutex<Option<egui::TextureHandle>>,
+}
+
+fn load_image_bytes(image_bytes: &[u8]) -> Result<egui::ColorImage, String> {
+    let image = image::load_from_memory(image_bytes).map_err(|err| err.to_string())?;
+    let size = [image.width() as _, image.height() as _];
+    let image_buffer = image.to_rgba8();
+    let pixels = image_buffer.as_flat_samples();
+    Ok(egui::ColorImage::from_rgba_unmultiplied(
+        size,
+        pixels.as_slice(),
+    ))
+}
+
+impl RetainedImage {
+    fn from_color_image(image: ColorImage) -> Self {
+        Self {
+            image: Mutex::new(image),
+            texture: Default::default(),
+        }
+    }
+
+    fn from_image_bytes(image_bytes: &[u8]) -> Result<Self, String> {
+        Ok(Self::from_color_image(load_image_bytes(image_bytes)?))
+    }
+
+    fn texture_id(&self, ctx: &egui::Context) -> egui::TextureId {
+        self.texture
+            .lock()
+            .get_or_insert_with(|| {
+                let image: &mut ColorImage = &mut self.image.lock();
+                let image = std::mem::take(image);
+                ctx.load_texture("tile", image, Default::default())
+            })
+            .id()
+    }
+}
+
 #[derive(Clone)]
 pub(crate) struct Tile {
     image: Arc<RetainedImage>,
@@ -23,7 +65,7 @@ pub(crate) struct Tile {
 
 impl Tile {
     pub fn from_image_bytes(image: &[u8]) -> Result<Self, String> {
-        RetainedImage::from_image_bytes("debug_name", image).map(|image| Self {
+        RetainedImage::from_image_bytes(image).map(|image| Self {
             image: Arc::new(image),
         })
     }
