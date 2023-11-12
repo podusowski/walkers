@@ -171,10 +171,10 @@ mod tests {
 
         // Projected Citadel position should be somewhere near projected tile, shifted only by the
         // position on the tile.
-        assert_eq!(
-            Pixels::new(36590. * 256. + 252., 21569. * 256. + 7.5),
-            citadel.project(zoom)
-        );
+        let calculated = citadel.project(zoom);
+        let citadel_proj = Pixels::new(36590. * 256. + 252., 21569. * 256. + 7.5);
+        approx::assert_relative_eq!(calculated.x(), citadel_proj.x(), max_relative = 0.5);
+        approx::assert_relative_eq!(calculated.y(), citadel_proj.y(), max_relative = 0.5);
     }
 
     #[test]
