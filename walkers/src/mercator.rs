@@ -13,10 +13,14 @@
 pub struct Position(geo_types::Point);
 
 impl Position {
+    /// Construct from latitude and longitude.
     pub fn from_lat_lon(lat: f64, lon: f64) -> Self {
         Self(geo_types::Point::new(lon, lat))
     }
 
+    /// Construct from longitude and latitude. Note that it is common standard to write coordinates
+    /// starting with the latitude instead (e.g. `51.104465719934176, 17.075169894118684` is
+    /// the [Wrocław's zoo](https://zoo.wroclaw.pl/en/)).
     pub fn from_lon_lat(lon: f64, lat: f64) -> Self {
         Self(geo_types::Point::new(lon, lat))
     }
