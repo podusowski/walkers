@@ -9,7 +9,38 @@
 // 2            4 × 4 tiles    16 tiles         90° x [variable]
 
 /// Geographical position with latitude and longitude.
-pub type Position = geo_types::Point;
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct Position(geo_types::Point);
+
+impl Position {
+    pub fn from_lat_lon(lat: f64, lon: f64) -> Self {
+        Self(geo_types::Point::new(lon, lat))
+    }
+
+    pub fn from_lon_lat(lon: f64, lat: f64) -> Self {
+        Self(geo_types::Point::new(lon, lat))
+    }
+
+    pub fn lat(&self) -> f64 {
+        self.0.y()
+    }
+
+    pub fn lon(&self) -> f64 {
+        self.0.x()
+    }
+}
+
+impl From<(f64, f64)> for Position {
+    fn from((lat, lon): (f64, f64)) -> Self {
+        Self::from_lat_lon(lat, lon)
+    }
+}
+
+impl From<Position> for (f64, f64) {
+    fn from(value: Position) -> Self {
+        (value.lon(), value.lat())
+    }
+}
 
 /// Location projected on the screen or an abstract bitmap.
 pub type Pixels = Pos2;
@@ -132,7 +163,7 @@ pub fn screen_to_position(pixels: Pixels, zoom: u8) -> Position {
     let lat = (-lat * 2. + 1.) * PI;
     let lat = lat.sinh().atan().to_degrees();
 
-    Position::new(lon, lat)
+    Position::from_lon_lat(lon, lat)
 }
 
 #[cfg(test)]
@@ -141,7 +172,7 @@ mod tests {
 
     #[test]
     fn projecting_position_and_tile() {
-        let citadel = Position::new(21.00027, 52.26470);
+        let citadel = Position::from_lat_lon(21.00027, 52.26470);
 
         let zoom = 16;
 
@@ -170,11 +201,11 @@ mod tests {
 
     #[test]
     fn project_there_and_back() {
-        let citadel = Position::new(21.00027, 52.26470);
+        let citadel = Position::from_lat_lon(21.00027, 52.26470);
         let zoom = 16;
         let calculated = screen_to_position(citadel.project(zoom), zoom);
 
-        approx::assert_relative_eq!(calculated.x(), citadel.x(), max_relative = 1.0);
-        approx::assert_relative_eq!(calculated.y(), citadel.y(), max_relative = 1.0);
+        approx::assert_relative_eq!(calculated.lon(), citadel.lon(), max_relative = 1.0);
+        approx::assert_relative_eq!(calculated.lat(), citadel.lat(), max_relative = 1.0);
     }
 }
