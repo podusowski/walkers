@@ -185,7 +185,7 @@ mod tests {
 
     #[test]
     fn projecting_position_and_tile() {
-        let citadel = Position::from_lat_lon(21.00027, 52.26470);
+        let citadel = Position::from_lon_lat(21.00027, 52.26470);
 
         let zoom = 16;
 
