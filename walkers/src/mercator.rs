@@ -152,12 +152,14 @@ mod tests {
     fn projecting_position_and_tile() {
         let citadel = Position::new(21.00027, 52.26470);
 
-        let zoom = 16;
+        // Just a bit higher than what most providers support,
+        // to make sure we cover the worst case in terms of precision.
+        let zoom = 20;
 
         assert_eq!(
             TileId {
-                x: 36590,
-                y: 21569,
+                x: 585455,
+                y: 345104,
                 zoom
             },
             citadel.tile_id(zoom)
@@ -165,14 +167,14 @@ mod tests {
 
         // Projected tile is just its x, y multiplied by the size of tiles.
         assert_eq!(
-            Pixels::new(36590. * 256., 21569. * 256.),
+            Pixels::new(585455. * 256., 345104. * 256.),
             citadel.tile_id(zoom).project()
         );
 
         // Projected Citadel position should be somewhere near projected tile, shifted only by the
         // position on the tile.
         let calculated = citadel.project(zoom);
-        let citadel_proj = Pixels::new(36590. * 256. + 252., 21569. * 256. + 7.5);
+        let citadel_proj = Pixels::new(585455. * 256. + 184., 345104. * 256. + 116.5);
         approx::assert_relative_eq!(calculated.x(), citadel_proj.x(), max_relative = 0.5);
         approx::assert_relative_eq!(calculated.y(), citadel_proj.y(), max_relative = 0.5);
     }
