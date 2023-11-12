@@ -1,9 +1,9 @@
 use std::collections::{hash_map::Entry, HashMap};
 
-use egui::{Context, Mesh, Painter, Pos2, Rect, Response, Sense, Ui, Vec2, Widget};
+use egui::{Context, Mesh, Painter, Rect, Response, Sense, Ui, Vec2, Widget};
 
 use crate::{
-    mercator::{screen_to_position, PositionExt, TileId},
+    mercator::{screen_to_position, Pixels, PixelsExt, PositionExt, TileId},
     tiles,
     zoom::{InvalidZoom, Zoom},
     Position, Tiles,
@@ -83,7 +83,8 @@ impl Projector {
             .project(self.memory.zoom.round());
 
         // From the two points above we can calculate the actual point on the screen.
-        self.clip_rect.center() + projected_position.to_vec2() - map_center_projected_position
+        self.clip_rect.center().to_vec2()
+            + (projected_position - map_center_projected_position).to_vec2()
     }
 }
 
@@ -165,7 +166,7 @@ pub struct AdjustedPosition {
     position: Position,
 
     /// Offset in pixels.
-    offset: Vec2,
+    offset: Pixels,
 }
 
 impl AdjustedPosition {
@@ -178,7 +179,7 @@ impl AdjustedPosition {
     fn zero_offset(self, zoom: u8) -> Self {
         Self {
             position: screen_to_position(self.position.project(zoom) - self.offset, zoom),
-            offset: Vec2::ZERO,
+            offset: Default::default(),
         }
     }
 }
@@ -210,7 +211,7 @@ impl Center {
             let position = match &self {
                 Center::MyPosition => AdjustedPosition {
                     position: my_position,
-                    offset: Vec2::ZERO,
+                    offset: Default::default(),
                 },
                 Center::Exact(position) | Center::Inertia { position, .. } => position.to_owned(),
             };
@@ -233,7 +234,8 @@ impl Center {
             *self = if amount <= &mut 0.0 {
                 Center::Exact(position.to_owned())
             } else {
-                let offset = position.offset + (*direction * *amount);
+                let delta = *direction * *amount;
+                let offset = position.offset + Pixels::new(delta.x as f64, delta.y as f64);
 
                 Center::Inertia {
                     position: AdjustedPosition {
@@ -314,7 +316,7 @@ impl MapMemory {
     pub fn center_at(&mut self, position: Position) {
         self.center_mode = Center::Exact(AdjustedPosition {
             position,
-            offset: Vec2::ZERO,
+            offset: Default::default(),
         });
     }
 
@@ -328,14 +330,14 @@ impl MapMemory {
 fn flood_fill_tiles(
     painter: &Painter,
     tile_id: TileId,
-    map_center_projected_position: Pos2,
+    map_center_projected_position: Pixels,
     tiles: &mut Tiles,
     ui: &mut Ui,
     meshes: &mut HashMap<TileId, Option<Mesh>>,
 ) {
     let tile_projected = tile_id.project();
-    let tile_screen_position = painter.clip_rect().center().to_vec2() + tile_projected.to_vec2()
-        - map_center_projected_position.to_vec2();
+    let tile_screen_position = painter.clip_rect().center().to_vec2()
+        + (tile_projected - map_center_projected_position).to_vec2();
 
     if painter
         .clip_rect()
