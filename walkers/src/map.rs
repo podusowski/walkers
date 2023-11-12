@@ -83,7 +83,8 @@ impl Projector {
             .project(self.memory.zoom.round());
 
         // From the two points above we can calculate the actual point on the screen.
-        self.clip_rect.center().to_vec2() + (projected_position - map_center_projected_position).to_vec2()
+        self.clip_rect.center().to_vec2()
+            + (projected_position - map_center_projected_position).to_vec2()
     }
 }
 
