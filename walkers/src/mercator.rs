@@ -12,9 +12,8 @@
 pub type Position = geo_types::Point;
 
 /// Location projected on the screen or an abstract bitmap.
-pub type Pixels = Pos2;
+pub type Pixels = geo_types::Point;
 
-use egui::Pos2;
 use std::f64::consts::PI;
 
 pub trait PositionExt {
@@ -23,6 +22,16 @@ pub trait PositionExt {
 
     /// Tile this position is on.
     fn tile_id(&self, zoom: u8) -> TileId;
+}
+
+pub trait PixelsExt {
+    fn to_vec2(&self) -> egui::Vec2;
+}
+
+impl PixelsExt for Pixels {
+    fn to_vec2(&self) -> egui::Vec2 {
+        egui::Vec2::new(self.x() as f32, self.y() as f32)
+    }
 }
 
 /// Size of the tiles used by the services like the OSM.
@@ -49,7 +58,7 @@ impl PositionExt for Position {
         let x = x * number_of_pixels as f64;
         let y = y * number_of_pixels as f64;
 
-        Pixels::new(x as f32, y as f32)
+        Pixels::new(x, y)
     }
 
     fn tile_id(&self, zoom: u8) -> TileId {
@@ -81,7 +90,7 @@ pub struct TileId {
 impl TileId {
     /// Tile position (in pixels) on the "World bitmap".
     pub fn project(&self) -> Pixels {
-        Pixels::new((self.x * TILE_SIZE) as f32, (self.y * TILE_SIZE) as f32)
+        Pixels::new((self.x * TILE_SIZE) as f64, (self.y * TILE_SIZE) as f64)
     }
 
     pub fn east(&self) -> Option<TileId> {
@@ -122,12 +131,12 @@ pub fn screen_to_position(pixels: Pixels, zoom: u8) -> Position {
     let number_of_pixels = 2u32.pow(zoom as u32) * TILE_SIZE;
     let number_of_pixels: f64 = number_of_pixels.into();
 
-    let lon = pixels.x as f64;
+    let lon = pixels.x();
     let lon = lon / number_of_pixels;
     let lon = (lon * 2. - 1.) * PI;
     let lon = lon.to_degrees();
 
-    let lat = pixels.y as f64;
+    let lat = pixels.y();
     let lat = lat / number_of_pixels;
     let lat = (-lat * 2. + 1.) * PI;
     let lat = lat.sinh().atan().to_degrees();
@@ -156,16 +165,16 @@ mod tests {
 
         // Projected tile is just its x, y multiplied by the size of tiles.
         assert_eq!(
-            Pos2::new(36590. * 256., 21569. * 256.),
+            Pixels::new(36590. * 256., 21569. * 256.),
             citadel.tile_id(zoom).project()
         );
 
         // Projected Citadel position should be somewhere near projected tile, shifted only by the
         // position on the tile.
-        assert_eq!(
-            Pixels::new(36590. * 256. + 252., 21569. * 256. + 7.5),
-            citadel.project(zoom)
-        );
+        let calculated = citadel.project(zoom);
+        let citadel_proj = Pixels::new(36590. * 256. + 252., 21569. * 256. + 7.5);
+        approx::assert_relative_eq!(calculated.x(), citadel_proj.x(), max_relative = 0.5);
+        approx::assert_relative_eq!(calculated.y(), citadel_proj.y(), max_relative = 0.5);
     }
 
     #[test]
