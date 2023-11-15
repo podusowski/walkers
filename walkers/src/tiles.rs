@@ -23,17 +23,6 @@ struct RetainedImage {
     texture: Mutex<Option<egui::TextureHandle>>,
 }
 
-fn load_image_bytes(image_bytes: &[u8]) -> Result<egui::ColorImage, String> {
-    let image = image::load_from_memory(image_bytes).map_err(|err| err.to_string())?;
-    let size = [image.width() as _, image.height() as _];
-    let image_buffer = image.to_rgba8();
-    let pixels = image_buffer.as_flat_samples();
-    Ok(egui::ColorImage::from_rgba_unmultiplied(
-        size,
-        pixels.as_slice(),
-    ))
-}
-
 impl RetainedImage {
     fn from_color_image(image: ColorImage) -> Self {
         Self {
@@ -43,7 +32,13 @@ impl RetainedImage {
     }
 
     fn from_image_bytes(image_bytes: &[u8]) -> Result<Self, String> {
-        Ok(Self::from_color_image(load_image_bytes(image_bytes)?))
+        let image = image::load_from_memory(image_bytes).map_err(|err| err.to_string())?;
+        let size = [image.width() as _, image.height() as _];
+        let image_buffer = image.to_rgba8();
+        let pixels = image_buffer.as_flat_samples();
+        let image = egui::ColorImage::from_rgba_unmultiplied(size, pixels.as_slice());
+
+        Ok(Self::from_color_image(image))
     }
 
     fn texture_id(&self, ctx: &egui::Context) -> egui::TextureId {
