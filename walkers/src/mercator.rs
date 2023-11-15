@@ -34,12 +34,6 @@ impl Position {
     }
 }
 
-impl From<(f64, f64)> for Position {
-    fn from((lat, lon): (f64, f64)) -> Self {
-        Self::from_lat_lon(lat, lon)
-    }
-}
-
 impl From<Position> for (f64, f64) {
     fn from(value: Position) -> Self {
         (value.lon(), value.lat())
