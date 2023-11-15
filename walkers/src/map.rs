@@ -135,7 +135,6 @@ impl Widget for Map<'_, '_> {
                 map_center.tile_id(zoom),
                 map_center.project(zoom),
                 tiles,
-                ui,
                 &mut meshes,
             );
 
@@ -332,7 +331,6 @@ fn flood_fill_tiles(
     tile_id: TileId,
     map_center_projected_position: Pixels,
     tiles: &mut Tiles,
-    ui: &mut Ui,
     meshes: &mut HashMap<TileId, Option<Mesh>>,
 ) {
     let tile_projected = tile_id.project();
@@ -362,7 +360,6 @@ fn flood_fill_tiles(
                     *next_tile_id,
                     map_center_projected_position,
                     tiles,
-                    ui,
                     meshes,
                 );
             }
