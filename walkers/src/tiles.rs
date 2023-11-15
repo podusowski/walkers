@@ -24,21 +24,20 @@ struct RetainedImage {
 }
 
 impl RetainedImage {
-    fn from_color_image(image: ColorImage) -> Self {
-        Self {
+    fn from_image_bytes(image_bytes: &[u8]) -> Result<Self, String> {
+        let image = image::load_from_memory(image_bytes)
+            .map_err(|err| err.to_string())?
+            .to_rgba8();
+        let pixels = image.as_flat_samples();
+        let image = egui::ColorImage::from_rgba_unmultiplied(
+            [image.width() as _, image.height() as _],
+            pixels.as_slice(),
+        );
+
+        Ok(Self {
             image: Mutex::new(image),
             texture: Default::default(),
-        }
-    }
-
-    fn from_image_bytes(image_bytes: &[u8]) -> Result<Self, String> {
-        let image = image::load_from_memory(image_bytes).map_err(|err| err.to_string())?;
-        let size = [image.width() as _, image.height() as _];
-        let image_buffer = image.to_rgba8();
-        let pixels = image_buffer.as_flat_samples();
-        let image = egui::ColorImage::from_rgba_unmultiplied(size, pixels.as_slice());
-
-        Ok(Self::from_color_image(image))
+        })
     }
 
     fn texture_id(&self, ctx: &egui::Context) -> egui::TextureId {
