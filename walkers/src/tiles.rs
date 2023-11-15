@@ -26,8 +26,7 @@ fn load_image(image_bytes: &[u8], ctx: &egui::Context) -> Result<TextureHandle, 
         pixels.as_slice(),
     );
 
-    let texture = ctx.load_texture("tile", image, Default::default());
-    Ok(texture)
+    Ok(ctx.load_texture("tile", image, Default::default()))
 }
 
 #[derive(Clone)]
