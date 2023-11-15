@@ -46,7 +46,7 @@ impl App for MyApp {
             ui.add(Map::new(
                 Some(&mut self.tiles),
                 &mut self.map_memory,
-                Position::new(17.03664, 51.09916)
+                Position::from_lon_lat(17.03664, 51.09916)
             ));
         });
     }

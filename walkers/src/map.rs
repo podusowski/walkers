@@ -28,7 +28,7 @@ pub trait Plugin {
 ///     ui.add(Map::new(
 ///         Some(tiles), // `None`, if you don't want to show any tiles.
 ///         map_memory,
-///         Position::new(17.03664, 51.09916)
+///         Position::from_lon_lat(17.03664, 51.09916)
 ///     ));
 /// }
 /// ```
