@@ -34,7 +34,7 @@ pub(crate) struct Tile {
 }
 
 impl Tile {
-    pub fn from_image_bytes(image: &[u8], ctx: &Context) -> Result<Self, ImageError> {
+    pub fn new(image: &[u8], ctx: &Context) -> Result<Self, ImageError> {
         load_image(image, ctx).map(|image| Self { image })
     }
 

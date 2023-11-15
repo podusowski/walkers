@@ -36,7 +36,7 @@ async fn download_and_decode(
         .await
         .map_err(Error::Http)?;
 
-    Tile::from_image_bytes(&image, egui_ctx).map_err(Error::Image)
+    Tile::new(&image, egui_ctx).map_err(Error::Image)
 }
 
 async fn download_continuously_impl<S>(
