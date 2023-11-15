@@ -32,18 +32,16 @@ fn load_image(image_bytes: &[u8], ctx: &egui::Context) -> Result<TextureHandle, 
 
 #[derive(Clone)]
 pub(crate) struct Tile {
-    image: Arc<Mutex<TextureHandle>>,
+    image: TextureHandle,
 }
 
 impl Tile {
     pub fn from_image_bytes(image: &[u8], ctx: &Context) -> Result<Self, String> {
-        load_image(image, ctx).map(|image| Self {
-            image: Arc::new(Mutex::new(image)),
-        })
+        load_image(image, ctx).map(|image| Self { image })
     }
 
     pub fn mesh(&self, screen_position: Vec2) -> Mesh {
-        let mut mesh = Mesh::with_texture(self.image.lock().id());
+        let mut mesh = Mesh::with_texture(self.image.id());
         mesh.add_rect_with_uv(
             rect(screen_position),
             Rect::from_min_max(pos2(0., 0.0), pos2(1.0, 1.0)),
