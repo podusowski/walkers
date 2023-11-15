@@ -2,9 +2,14 @@
 
 All notable changes to this project will be documented in this file.
 
+## Unreleased
+
+ * `Position` is no longer a typedef of `geo_types::Point`. There is also a new, more explicit
+   way of constructing it - `from_lat_lon`, and `from_lon_lat`.
+
 ## 0.12.0
 
-* `egui` updated to 0.23.
+ * `egui` updated to 0.23.
 
 ## 0.11.0
 

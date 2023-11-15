@@ -9,20 +9,65 @@
 // 2            4 × 4 tiles    16 tiles         90° x [variable]
 
 /// Geographical position with latitude and longitude.
-pub type Position = geo_types::Point;
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct Position(geo_types::Point);
+
+impl Position {
+    /// Construct from latitude and longitude.
+    pub fn from_lat_lon(lat: f64, lon: f64) -> Self {
+        Self(geo_types::Point::new(lon, lat))
+    }
+
+    /// Construct from longitude and latitude. Note that it is common standard to write coordinates
+    /// starting with the latitude instead (e.g. `51.104465719934176, 17.075169894118684` is
+    /// the [Wrocław's zoo](https://zoo.wroclaw.pl/en/)).
+    pub fn from_lon_lat(lon: f64, lat: f64) -> Self {
+        Self(geo_types::Point::new(lon, lat))
+    }
+
+    pub fn lat(&self) -> f64 {
+        self.0.y()
+    }
+
+    pub fn lon(&self) -> f64 {
+        self.0.x()
+    }
+
+    /// Project geographical position into a 2D plane using Mercator.
+    pub(crate) fn project(&self, zoom: u8) -> Pixels {
+        let (x, y) = mercator_normalized((*self).into());
+
+        // Map that into a big bitmap made out of web tiles.
+        let number_of_pixels = 2u32.pow(zoom as u32) * TILE_SIZE;
+        let x = x * number_of_pixels as f64;
+        let y = y * number_of_pixels as f64;
+
+        Pixels::new(x, y)
+    }
+
+    /// Tile this position is on.
+    pub(crate) fn tile_id(&self, zoom: u8) -> TileId {
+        let (x, y) = mercator_normalized((*self).into());
+
+        // Map that into a big bitmap made out of web tiles.
+        let number_of_tiles = 2u32.pow(zoom as u32);
+        let x = (x * number_of_tiles as f64).floor() as u32;
+        let y = (y * number_of_tiles as f64).floor() as u32;
+
+        TileId { x, y, zoom }
+    }
+}
+
+impl From<Position> for (f64, f64) {
+    fn from(value: Position) -> Self {
+        (value.lon(), value.lat())
+    }
+}
 
 /// Location projected on the screen or an abstract bitmap.
 pub type Pixels = geo_types::Point;
 
 use std::f64::consts::PI;
-
-pub trait PositionExt {
-    /// Project geographical position into a 2D plane using Mercator.
-    fn project(&self, zoom: u8) -> Pixels;
-
-    /// Tile this position is on.
-    fn tile_id(&self, zoom: u8) -> TileId;
-}
 
 pub trait PixelsExt {
     fn to_vec2(&self) -> egui::Vec2;
@@ -47,30 +92,6 @@ fn mercator_normalized((x, y): (f64, f64)) -> (f64, f64) {
     let y = (1. - (y / PI)) / 2.;
 
     (x, y)
-}
-
-impl PositionExt for Position {
-    fn project(&self, zoom: u8) -> Pixels {
-        let (x, y) = mercator_normalized((*self).into());
-
-        // Map that into a big bitmap made out of web tiles.
-        let number_of_pixels = 2u32.pow(zoom as u32) * TILE_SIZE;
-        let x = x * number_of_pixels as f64;
-        let y = y * number_of_pixels as f64;
-
-        Pixels::new(x, y)
-    }
-
-    fn tile_id(&self, zoom: u8) -> TileId {
-        let (x, y) = mercator_normalized((*self).into());
-
-        // Map that into a big bitmap made out of web tiles.
-        let number_of_tiles = 2u32.pow(zoom as u32);
-        let x = (x * number_of_tiles as f64).floor() as u32;
-        let y = (y * number_of_tiles as f64).floor() as u32;
-
-        TileId { x, y, zoom }
-    }
 }
 
 /// Coordinates of the OSM-like tile.
@@ -141,7 +162,7 @@ pub fn screen_to_position(pixels: Pixels, zoom: u8) -> Position {
     let lat = (-lat * 2. + 1.) * PI;
     let lat = lat.sinh().atan().to_degrees();
 
-    Position::new(lon, lat)
+    Position::from_lon_lat(lon, lat)
 }
 
 #[cfg(test)]
@@ -150,7 +171,7 @@ mod tests {
 
     #[test]
     fn projecting_position_and_tile() {
-        let citadel = Position::new(21.00027, 52.26470);
+        let citadel = Position::from_lon_lat(21.00027, 52.26470);
 
         // Just a bit higher than what most providers support,
         // to make sure we cover the worst case in terms of precision.
@@ -181,11 +202,11 @@ mod tests {
 
     #[test]
     fn project_there_and_back() {
-        let citadel = Position::new(21.00027, 52.26470);
+        let citadel = Position::from_lat_lon(21.00027, 52.26470);
         let zoom = 16;
         let calculated = screen_to_position(citadel.project(zoom), zoom);
 
-        approx::assert_relative_eq!(calculated.x(), citadel.x(), max_relative = 1.0);
-        approx::assert_relative_eq!(calculated.y(), citadel.y(), max_relative = 1.0);
+        approx::assert_relative_eq!(calculated.lon(), citadel.lon(), max_relative = 1.0);
+        approx::assert_relative_eq!(calculated.lat(), citadel.lat(), max_relative = 1.0);
     }
 }

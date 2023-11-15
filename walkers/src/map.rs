@@ -3,7 +3,7 @@ use std::collections::{hash_map::Entry, HashMap};
 use egui::{Context, Mesh, Painter, Rect, Response, Sense, Ui, Vec2, Widget};
 
 use crate::{
-    mercator::{screen_to_position, Pixels, PixelsExt, PositionExt, TileId},
+    mercator::{screen_to_position, Pixels, PixelsExt, TileId},
     tiles,
     zoom::{InvalidZoom, Zoom},
     Position, Tiles,
@@ -28,7 +28,7 @@ pub trait Plugin {
 ///     ui.add(Map::new(
 ///         Some(tiles), // `None`, if you don't want to show any tiles.
 ///         map_memory,
-///         Position::new(17.03664, 51.09916)
+///         Position::from_lon_lat(17.03664, 51.09916)
 ///     ));
 /// }
 /// ```
