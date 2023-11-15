@@ -30,33 +30,6 @@ fn load_image(image_bytes: &[u8], ctx: &egui::Context) -> Result<TextureHandle, 
     Ok(texture)
 }
 
-struct RetainedImage {
-    texture: Mutex<egui::TextureHandle>,
-}
-
-impl RetainedImage {
-    fn from_image_bytes(image_bytes: &[u8], ctx: &egui::Context) -> Result<Self, String> {
-        let image = image::load_from_memory(image_bytes)
-            .map_err(|err| err.to_string())?
-            .to_rgba8();
-        let pixels = image.as_flat_samples();
-        let image = egui::ColorImage::from_rgba_unmultiplied(
-            [image.width() as _, image.height() as _],
-            pixels.as_slice(),
-        );
-
-        let texture = ctx.load_texture("tile", image, Default::default());
-
-        Ok(Self {
-            texture: Mutex::new(texture),
-        })
-    }
-
-    fn texture_id(&self, ctx: &egui::Context) -> egui::TextureId {
-        self.texture.lock().id()
-    }
-}
-
 #[derive(Clone)]
 pub(crate) struct Tile {
     image: Arc<Mutex<TextureHandle>>,
