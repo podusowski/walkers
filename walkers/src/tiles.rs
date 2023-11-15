@@ -16,15 +16,12 @@ pub(crate) fn rect(screen_position: Vec2) -> Rect {
 }
 
 struct RetainedImage {
-    /// Cleared once [`Self::texture`] has been loaded.
-    image: Mutex<egui::ColorImage>,
-
     /// Lazily loaded when we have an egui context.
-    texture: Mutex<Option<egui::TextureHandle>>,
+    texture: Mutex<egui::TextureHandle>,
 }
 
 impl RetainedImage {
-    fn from_image_bytes(image_bytes: &[u8]) -> Result<Self, String> {
+    fn from_image_bytes(image_bytes: &[u8], ctx: &egui::Context) -> Result<Self, String> {
         let image = image::load_from_memory(image_bytes)
             .map_err(|err| err.to_string())?
             .to_rgba8();
@@ -34,21 +31,15 @@ impl RetainedImage {
             pixels.as_slice(),
         );
 
+        let texture = ctx.load_texture("tile", image, Default::default());
+
         Ok(Self {
-            image: Mutex::new(image),
-            texture: Default::default(),
+            texture: Mutex::new(texture),
         })
     }
 
     fn texture_id(&self, ctx: &egui::Context) -> egui::TextureId {
-        self.texture
-            .lock()
-            .get_or_insert_with(|| {
-                let image: &mut ColorImage = &mut self.image.lock();
-                let image = std::mem::take(image);
-                ctx.load_texture("tile", image, Default::default())
-            })
-            .id()
+        self.texture.lock().id()
     }
 }
 
@@ -58,8 +49,8 @@ pub(crate) struct Tile {
 }
 
 impl Tile {
-    pub fn from_image_bytes(image: &[u8]) -> Result<Self, String> {
-        RetainedImage::from_image_bytes(image).map(|image| Self {
+    pub fn from_image_bytes(image: &[u8], ctx: &Context) -> Result<Self, String> {
+        RetainedImage::from_image_bytes(image, ctx).map(|image| Self {
             image: Arc::new(image),
         })
     }

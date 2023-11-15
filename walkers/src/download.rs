@@ -14,7 +14,11 @@ enum Error {
 }
 
 /// Download and decode the tile.
-async fn download_and_decode(client: &reqwest::Client, url: &str) -> Result<Tile, Error> {
+async fn download_and_decode(
+    client: &reqwest::Client,
+    url: &str,
+    egui_ctx: &Context,
+) -> Result<Tile, Error> {
     let image = client
         .get(url)
         .header(USER_AGENT, "Walkers")
@@ -31,7 +35,7 @@ async fn download_and_decode(client: &reqwest::Client, url: &str) -> Result<Tile
         .await
         .map_err(Error::Http)?;
 
-    Tile::from_image_bytes(&image).map_err(Error::Image)
+    Tile::from_image_bytes(&image, egui_ctx).map_err(Error::Image)
 }
 
 async fn download_continuously_impl<S>(
@@ -52,7 +56,7 @@ where
 
         log::debug!("Getting {:?} from {}.", request, url);
 
-        match download_and_decode(&client, &url).await {
+        match download_and_decode(&client, &url, &egui_ctx).await {
             Ok(tile) => {
                 tile_tx.try_send((request, tile)).map_err(|_| ())?;
                 egui_ctx.request_repaint();
