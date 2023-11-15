@@ -1,8 +1,8 @@
 use std::collections::hash_map::Entry;
-use std::{collections::HashMap, sync::Arc};
+use std::collections::HashMap;
 
 use egui::TextureHandle;
-use egui::{mutex::Mutex, pos2, Color32, Context, Mesh, Rect, Vec2};
+use egui::{pos2, Color32, Context, Mesh, Rect, Vec2};
 
 use crate::download::download_continuously;
 use crate::io::Runtime;
