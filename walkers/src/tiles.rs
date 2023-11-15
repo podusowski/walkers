@@ -42,7 +42,7 @@ impl Tile {
         })
     }
 
-    pub fn mesh(&self, screen_position: Vec2, ctx: &Context) -> Mesh {
+    pub fn mesh(&self, screen_position: Vec2) -> Mesh {
         let mut mesh = Mesh::with_texture(self.image.lock().id());
         mesh.add_rect_with_uv(
             rect(screen_position),
