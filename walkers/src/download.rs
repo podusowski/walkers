@@ -1,5 +1,6 @@
 use egui::Context;
 use futures::StreamExt;
+use image::ImageError;
 use reqwest::header::USER_AGENT;
 
 use crate::{mercator::TileId, providers::TileSource, tiles::Tile};
@@ -9,8 +10,8 @@ enum Error {
     #[error(transparent)]
     Http(reqwest::Error),
 
-    #[error("error while decoding the image: {0}")]
-    Image(String),
+    #[error(transparent)]
+    Image(ImageError),
 }
 
 /// Download and decode the tile.

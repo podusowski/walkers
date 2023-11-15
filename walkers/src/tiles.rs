@@ -3,6 +3,7 @@ use std::collections::HashMap;
 
 use egui::TextureHandle;
 use egui::{pos2, Color32, Context, Mesh, Rect, Vec2};
+use image::ImageError;
 
 use crate::download::download_continuously;
 use crate::io::Runtime;
@@ -16,10 +17,8 @@ pub(crate) fn rect(screen_position: Vec2) -> Rect {
     )
 }
 
-fn load_image(image_bytes: &[u8], ctx: &egui::Context) -> Result<TextureHandle, String> {
-    let image = image::load_from_memory(image_bytes)
-        .map_err(|err| err.to_string())?
-        .to_rgba8();
+fn load_image(image_bytes: &[u8], ctx: &egui::Context) -> Result<TextureHandle, ImageError> {
+    let image = image::load_from_memory(image_bytes)?.to_rgba8();
     let pixels = image.as_flat_samples();
     let image = egui::ColorImage::from_rgba_unmultiplied(
         [image.width() as _, image.height() as _],
@@ -35,7 +34,7 @@ pub(crate) struct Tile {
 }
 
 impl Tile {
-    pub fn from_image_bytes(image: &[u8], ctx: &Context) -> Result<Self, String> {
+    pub fn from_image_bytes(image: &[u8], ctx: &Context) -> Result<Self, ImageError> {
         load_image(image, ctx).map(|image| Self { image })
     }
 
