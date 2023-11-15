@@ -3,7 +3,7 @@ use std::collections::{hash_map::Entry, HashMap};
 use egui::{Context, Mesh, Painter, Rect, Response, Sense, Ui, Vec2, Widget};
 
 use crate::{
-    mercator::{screen_to_position, Pixels, PixelsExt, PositionExt, TileId},
+    mercator::{screen_to_position, Pixels, PixelsExt, TileId},
     tiles,
     zoom::{InvalidZoom, Zoom},
     Position, Tiles,
@@ -28,7 +28,7 @@ pub trait Plugin {
 ///     ui.add(Map::new(
 ///         Some(tiles), // `None`, if you don't want to show any tiles.
 ///         map_memory,
-///         Position::new(17.03664, 51.09916)
+///         Position::from_lon_lat(17.03664, 51.09916)
 ///     ));
 /// }
 /// ```
@@ -151,7 +151,7 @@ impl Widget for Map<'_, '_> {
         if let Some(tiles) = self.tiles {
             let mut meshes = Default::default();
             flood_fill_tiles(
-                &painter,
+                painter.clip_rect(),
                 map_center.tile_id(zoom),
                 map_center.project(zoom),
                 tiles,
@@ -372,7 +372,7 @@ impl MapMemory {
 
 /// Use simple [flood fill algorithm](https://en.wikipedia.org/wiki/Flood_fill) to draw tiles on the map.
 fn flood_fill_tiles(
-    painter: &Painter,
+    rect: Rect,
     tile_id: TileId,
     map_center_projected_position: Pixels,
     tiles: &mut Tiles,
@@ -380,13 +380,10 @@ fn flood_fill_tiles(
     meshes: &mut HashMap<TileId, Option<Mesh>>,
 ) {
     let tile_projected = tile_id.project();
-    let tile_screen_position = painter.clip_rect().center().to_vec2()
-        + (tile_projected - map_center_projected_position).to_vec2();
+    let tile_screen_position =
+        rect.center().to_vec2() + (tile_projected - map_center_projected_position).to_vec2();
 
-    if painter
-        .clip_rect()
-        .intersects(tiles::rect(tile_screen_position))
-    {
+    if rect.intersects(tiles::rect(tile_screen_position)) {
         if let Entry::Vacant(entry) = meshes.entry(tile_id) {
             // It's still OK to insert an empty one, as we need to mark the spot for the filling algorithm.
             let tile = tiles
@@ -395,7 +392,7 @@ fn flood_fill_tiles(
 
             entry.insert(tile);
 
-            for coordinates in [
+            for next_tile_id in [
                 tile_id.north(),
                 tile_id.east(),
                 tile_id.south(),
@@ -405,8 +402,8 @@ fn flood_fill_tiles(
             .flatten()
             {
                 flood_fill_tiles(
-                    painter,
-                    *coordinates,
+                    rect,
+                    *next_tile_id,
                     map_center_projected_position,
                     tiles,
                     ui,
