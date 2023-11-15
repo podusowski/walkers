@@ -32,6 +32,30 @@ impl Position {
     pub fn lon(&self) -> f64 {
         self.0.x()
     }
+
+    /// Project geographical position into a 2D plane using Mercator.
+    pub(crate) fn project(&self, zoom: u8) -> Pixels {
+        let (x, y) = mercator_normalized((*self).into());
+
+        // Map that into a big bitmap made out of web tiles.
+        let number_of_pixels = 2u32.pow(zoom as u32) * TILE_SIZE;
+        let x = x * number_of_pixels as f64;
+        let y = y * number_of_pixels as f64;
+
+        Pixels::new(x, y)
+    }
+
+    /// Tile this position is on.
+    pub(crate) fn tile_id(&self, zoom: u8) -> TileId {
+        let (x, y) = mercator_normalized((*self).into());
+
+        // Map that into a big bitmap made out of web tiles.
+        let number_of_tiles = 2u32.pow(zoom as u32);
+        let x = (x * number_of_tiles as f64).floor() as u32;
+        let y = (y * number_of_tiles as f64).floor() as u32;
+
+        TileId { x, y, zoom }
+    }
 }
 
 impl From<Position> for (f64, f64) {
@@ -44,14 +68,6 @@ impl From<Position> for (f64, f64) {
 pub type Pixels = geo_types::Point;
 
 use std::f64::consts::PI;
-
-pub trait PositionExt {
-    /// Project geographical position into a 2D plane using Mercator.
-    fn project(&self, zoom: u8) -> Pixels;
-
-    /// Tile this position is on.
-    fn tile_id(&self, zoom: u8) -> TileId;
-}
 
 pub trait PixelsExt {
     fn to_vec2(&self) -> egui::Vec2;
@@ -76,30 +92,6 @@ fn mercator_normalized((x, y): (f64, f64)) -> (f64, f64) {
     let y = (1. - (y / PI)) / 2.;
 
     (x, y)
-}
-
-impl PositionExt for Position {
-    fn project(&self, zoom: u8) -> Pixels {
-        let (x, y) = mercator_normalized((*self).into());
-
-        // Map that into a big bitmap made out of web tiles.
-        let number_of_pixels = 2u32.pow(zoom as u32) * TILE_SIZE;
-        let x = x * number_of_pixels as f64;
-        let y = y * number_of_pixels as f64;
-
-        Pixels::new(x, y)
-    }
-
-    fn tile_id(&self, zoom: u8) -> TileId {
-        let (x, y) = mercator_normalized((*self).into());
-
-        // Map that into a big bitmap made out of web tiles.
-        let number_of_tiles = 2u32.pow(zoom as u32);
-        let x = (x * number_of_tiles as f64).floor() as u32;
-        let y = (y * number_of_tiles as f64).floor() as u32;
-
-        TileId { x, y, zoom }
-    }
 }
 
 /// Coordinates of the OSM-like tile.
