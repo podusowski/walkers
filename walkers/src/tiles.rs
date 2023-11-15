@@ -17,17 +17,6 @@ pub(crate) fn rect(screen_position: Vec2) -> Rect {
     )
 }
 
-fn load_image(image_bytes: &[u8], ctx: &egui::Context) -> Result<TextureHandle, ImageError> {
-    let image = image::load_from_memory(image_bytes)?.to_rgba8();
-    let pixels = image.as_flat_samples();
-    let image = egui::ColorImage::from_rgba_unmultiplied(
-        [image.width() as _, image.height() as _],
-        pixels.as_slice(),
-    );
-
-    Ok(ctx.load_texture("tile", image, Default::default()))
-}
-
 #[derive(Clone)]
 pub(crate) struct Tile {
     image: TextureHandle,
@@ -35,7 +24,16 @@ pub(crate) struct Tile {
 
 impl Tile {
     pub fn new(image: &[u8], ctx: &Context) -> Result<Self, ImageError> {
-        load_image(image, ctx).map(|image| Self { image })
+        let image = image::load_from_memory(image)?.to_rgba8();
+        let pixels = image.as_flat_samples();
+        let image = egui::ColorImage::from_rgba_unmultiplied(
+            [image.width() as _, image.height() as _],
+            pixels.as_slice(),
+        );
+
+        Ok(Self {
+            image: ctx.load_texture("tile", image, Default::default()),
+        })
     }
 
     pub fn mesh(&self, screen_position: Vec2) -> Mesh {
