@@ -1,7 +1,9 @@
 use std::collections::hash_map::Entry;
-use std::{collections::HashMap, sync::Arc};
+use std::collections::HashMap;
 
-use egui::{mutex::Mutex, pos2, Color32, ColorImage, Context, Mesh, Rect, Vec2};
+use egui::TextureHandle;
+use egui::{pos2, Color32, Context, Mesh, Rect, Vec2};
+use image::ImageError;
 
 use crate::download::download_continuously;
 use crate::io::Runtime;
@@ -15,63 +17,27 @@ pub(crate) fn rect(screen_position: Vec2) -> Rect {
     )
 }
 
-struct RetainedImage {
-    /// Cleared once [`Self::texture`] has been loaded.
-    image: Mutex<egui::ColorImage>,
-
-    /// Lazily loaded when we have an egui context.
-    texture: Mutex<Option<egui::TextureHandle>>,
-}
-
-fn load_image_bytes(image_bytes: &[u8]) -> Result<egui::ColorImage, String> {
-    let image = image::load_from_memory(image_bytes).map_err(|err| err.to_string())?;
-    let size = [image.width() as _, image.height() as _];
-    let image_buffer = image.to_rgba8();
-    let pixels = image_buffer.as_flat_samples();
-    Ok(egui::ColorImage::from_rgba_unmultiplied(
-        size,
-        pixels.as_slice(),
-    ))
-}
-
-impl RetainedImage {
-    fn from_color_image(image: ColorImage) -> Self {
-        Self {
-            image: Mutex::new(image),
-            texture: Default::default(),
-        }
-    }
-
-    fn from_image_bytes(image_bytes: &[u8]) -> Result<Self, String> {
-        Ok(Self::from_color_image(load_image_bytes(image_bytes)?))
-    }
-
-    fn texture_id(&self, ctx: &egui::Context) -> egui::TextureId {
-        self.texture
-            .lock()
-            .get_or_insert_with(|| {
-                let image: &mut ColorImage = &mut self.image.lock();
-                let image = std::mem::take(image);
-                ctx.load_texture("tile", image, Default::default())
-            })
-            .id()
-    }
-}
-
 #[derive(Clone)]
 pub(crate) struct Tile {
-    image: Arc<RetainedImage>,
+    image: TextureHandle,
 }
 
 impl Tile {
-    pub fn from_image_bytes(image: &[u8]) -> Result<Self, String> {
-        RetainedImage::from_image_bytes(image).map(|image| Self {
-            image: Arc::new(image),
+    pub fn new(image: &[u8], ctx: &Context) -> Result<Self, ImageError> {
+        let image = image::load_from_memory(image)?.to_rgba8();
+        let pixels = image.as_flat_samples();
+        let image = egui::ColorImage::from_rgba_unmultiplied(
+            [image.width() as _, image.height() as _],
+            pixels.as_slice(),
+        );
+
+        Ok(Self {
+            image: ctx.load_texture("tile", image, Default::default()),
         })
     }
 
-    pub fn mesh(&self, screen_position: Vec2, ctx: &Context) -> Mesh {
-        let mut mesh = Mesh::with_texture(self.image.texture_id(ctx));
+    pub fn mesh(&self, screen_position: Vec2) -> Mesh {
+        let mut mesh = Mesh::with_texture(self.image.id());
         mesh.add_rect_with_uv(
             rect(screen_position),
             Rect::from_min_max(pos2(0., 0.0), pos2(1.0, 1.0)),
