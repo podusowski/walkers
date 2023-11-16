@@ -96,6 +96,22 @@ impl Map<'_, '_> {
         // Zooming and dragging need to be exclusive, otherwise the map will get dragged when
         // pinch gesture is used.
         if !(0.99..=1.01).contains(&zoom_delta) {
+            // Displacement of mouse pointer relative to widget center
+            let offset = response.hover_pos().map(|p| p - response.rect.center());
+
+            // While zooming, we want to keep the location under the mouse pointer fixed on the
+            // screen. To achieve this, we first move the location to the widget's center,
+            // then adjust zoom level, finally move the location back to the original screen
+            // position.
+            if let Some(offset) = offset {
+                self.memory.center_mode = self
+                    .memory
+                    .center_mode
+                    .clone()
+                    .shift(-offset)
+                    .zero_offset(self.memory.zoom.round());
+            }
+
             // Shift by 1 because of the values given by zoom_delta(). Multiple by 2, because
             // then it felt right with both mouse wheel, and an Android phone.
             self.memory.zoom.zoom_by((zoom_delta - 1.) * 2.);
@@ -106,6 +122,10 @@ impl Map<'_, '_> {
                 .center_mode
                 .clone()
                 .zero_offset(self.memory.zoom.round());
+
+            if let Some(offset) = offset {
+                self.memory.center_mode = self.memory.center_mode.clone().shift(offset);
+            }
         } else {
             self.memory
                 .center_mode
@@ -180,6 +200,13 @@ impl AdjustedPosition {
         Self {
             position: screen_to_position(self.position.project(zoom) - self.offset, zoom),
             offset: Default::default(),
+        }
+    }
+
+    fn shift(self, offset: Vec2) -> Self {
+        Self {
+            position: self.position,
+            offset: self.offset + Pixels::new(offset.x as f64, offset.y as f64),
         }
     }
 }
@@ -279,6 +306,23 @@ impl Center {
                 amount,
             } => Center::Inertia {
                 position: position.zero_offset(zoom),
+                direction,
+                amount,
+            },
+        }
+    }
+
+    /// Shift position by given number of pixels, if detached.
+    fn shift(self, offset: Vec2) -> Self {
+        match self {
+            Center::MyPosition => Center::MyPosition,
+            Center::Exact(position) => Center::Exact(position.shift(offset)),
+            Center::Inertia {
+                position,
+                direction,
+                amount,
+            } => Center::Inertia {
+                position: position.shift(offset),
                 direction,
                 amount,
             },
