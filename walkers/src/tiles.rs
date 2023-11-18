@@ -18,11 +18,9 @@ pub(crate) fn rect(screen_position: Vec2) -> Rect {
 }
 
 #[derive(Clone)]
-pub(crate) struct Tile {
-    image: TextureHandle,
-}
+pub(crate) struct Texture(TextureHandle);
 
-impl Tile {
+impl Texture {
     pub fn new(image: &[u8], ctx: &Context) -> Result<Self, ImageError> {
         let image = image::load_from_memory(image)?.to_rgba8();
         let pixels = image.as_flat_samples();
@@ -31,13 +29,11 @@ impl Tile {
             pixels.as_slice(),
         );
 
-        Ok(Self {
-            image: ctx.load_texture("tile", image, Default::default()),
-        })
+        Ok(Self(ctx.load_texture("tile", image, Default::default())))
     }
 
     pub fn mesh(&self, screen_position: Vec2) -> Mesh {
-        let mut mesh = Mesh::with_texture(self.image.id());
+        let mut mesh = Mesh::with_texture(self.0.id());
         mesh.add_rect_with_uv(
             rect(screen_position),
             Rect::from_min_max(pos2(0., 0.0), pos2(1.0, 1.0)),
@@ -51,13 +47,13 @@ impl Tile {
 pub struct Tiles {
     attribution: Attribution,
 
-    cache: HashMap<TileId, Option<Tile>>,
+    cache: HashMap<TileId, Option<Texture>>,
 
     /// Tiles to be downloaded by the IO thread.
     request_tx: futures::channel::mpsc::Sender<TileId>,
 
     /// Tiles that got downloaded and should be put in the cache.
-    tile_rx: futures::channel::mpsc::Receiver<(TileId, Tile)>,
+    tile_rx: futures::channel::mpsc::Receiver<(TileId, Texture)>,
 
     #[allow(dead_code)] // Significant Drop
     runtime: Runtime,
@@ -92,7 +88,7 @@ impl Tiles {
     }
 
     /// Return a tile if already in cache, schedule a download otherwise.
-    pub(crate) fn at(&mut self, tile_id: TileId) -> Option<Tile> {
+    pub(crate) fn at(&mut self, tile_id: TileId) -> Option<Texture> {
         // Just take one at the time.
         match self.tile_rx.try_next() {
             Ok(Some((tile_id, tile))) => {
