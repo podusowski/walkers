@@ -1,6 +1,6 @@
 use crate::{Plugin, Position};
 use egui::epaint::emath::Rot2;
-use egui::{pos2, Color32, ColorImage, Context, Rect, TextureHandle, TextureId};
+use egui::{pos2, Color32, ColorImage, Context, Rect, TextureHandle, TextureId, Vec2};
 
 /// An image to be drawn on the map.
 pub struct Image {
@@ -19,8 +19,7 @@ pub struct Images {
 #[derive(Clone)]
 pub struct Texture {
     texture: TextureHandle,
-    x_scale: f32,
-    y_scale: f32,
+    scale: Vec2,
     angle: Rot2,
 }
 
@@ -38,8 +37,8 @@ impl Plugin for Images {
             let texture = &image.texture;
 
             let [w, h] = texture.size();
-            let w = w as f32 * texture.x_scale;
-            let h = h as f32 * texture.y_scale;
+            let w = w as f32 * texture.scale.x;
+            let h = h as f32 * texture.scale.y;
             let mut rect = viewport.translate(screen_position);
 
             rect.min.x -= w / 2.0;
@@ -74,8 +73,7 @@ impl Texture {
 
         Self {
             texture,
-            x_scale: 1.0,
-            y_scale: 1.0,
+            scale: Vec2::splat(1.0),
             angle: Rot2::from_angle(0.0),
         }
     }
@@ -91,13 +89,13 @@ impl Texture {
         self.texture.size()
     }
 
-    /// Scale texture.
-    pub fn scale(&mut self, x_scale: f32, y_scale: f32) {
-        self.x_scale = x_scale;
-        self.y_scale = y_scale;
+    /// Scale the image.
+    pub fn scale(&mut self, x: f32, y: f32) {
+        self.scale.x = x;
+        self.scale.y = y;
     }
 
-    /// Rotate texture.
+    /// Set the image's angle.
     /// Angle is clockwise in radians. A 𝞃/4 = 90° rotation means rotating the X axis to the Y axis.
     pub fn angle(&mut self, angle: f32) {
         self.angle = Rot2::from_angle(angle);
