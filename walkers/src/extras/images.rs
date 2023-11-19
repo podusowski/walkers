@@ -7,8 +7,34 @@ pub struct Image {
     /// Geographical position.
     pub position: Position,
 
+    scale: Vec2,
+    angle: Rot2,
+
     /// Texture id of image.
     pub texture: Texture,
+}
+
+impl Image {
+    pub fn new(texture: Texture, position: Position) -> Self {
+        Self {
+            position,
+            scale: Vec2::splat(1.0),
+            angle: Rot2::from_angle(0.0),
+            texture,
+        }
+    }
+
+    /// Scale the image.
+    pub fn scale(&mut self, x: f32, y: f32) {
+        self.scale.x = x;
+        self.scale.y = y;
+    }
+
+    /// Set the image's angle.
+    /// Angle is clockwise in radians. A 𝞃/4 = 90° rotation means rotating the X axis to the Y axis.
+    pub fn angle(&mut self, angle: f32) {
+        self.angle = Rot2::from_angle(angle);
+    }
 }
 
 /// [`Plugin`] which draws given list of images on the map.
@@ -19,8 +45,6 @@ pub struct Images {
 #[derive(Clone)]
 pub struct Texture {
     texture: TextureHandle,
-    scale: Vec2,
-    angle: Rot2,
 }
 
 impl Images {
@@ -37,8 +61,8 @@ impl Plugin for Images {
             let texture = &image.texture;
 
             let [w, h] = texture.size();
-            let w = w as f32 * texture.scale.x;
-            let h = h as f32 * texture.scale.y;
+            let w = w as f32 * image.scale.x;
+            let h = h as f32 * image.scale.y;
             let mut rect = viewport.translate(screen_position);
 
             rect.min.x -= w / 2.0;
@@ -49,7 +73,7 @@ impl Plugin for Images {
 
             if viewport.intersects(rect) {
                 let mut mesh = egui::Mesh::with_texture(texture.id());
-                let angle = texture.angle;
+                let angle = image.angle;
 
                 mesh.add_rect_with_uv(
                     rect,
@@ -71,11 +95,7 @@ impl Texture {
     pub fn new(ctx: Context, img: ColorImage) -> Self {
         let texture = ctx.load_texture("texture", img, Default::default());
 
-        Self {
-            texture,
-            scale: Vec2::splat(1.0),
-            angle: Rot2::from_angle(0.0),
-        }
+        Self { texture }
     }
 
     /// Same as [egui::TextureHandle::id]
@@ -87,17 +107,5 @@ impl Texture {
     /// Same as [egui::TextureHandle::size] (https://docs.rs/egui/latest/egui/struct.TextureHandle.html#method.size)
     pub fn size(&self) -> [usize; 2] {
         self.texture.size()
-    }
-
-    /// Scale the image.
-    pub fn scale(&mut self, x: f32, y: f32) {
-        self.scale.x = x;
-        self.scale.y = y;
-    }
-
-    /// Set the image's angle.
-    /// Angle is clockwise in radians. A 𝞃/4 = 90° rotation means rotating the X axis to the Y axis.
-    pub fn angle(&mut self, angle: f32) {
-        self.angle = Rot2::from_angle(angle);
     }
 }

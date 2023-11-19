@@ -6,6 +6,7 @@ All notable changes to this project will be documented in this file.
 
  * `Position` is no longer a typedef of `geo_types::Point`. There is also a new, more explicit
    way of constructing it - `from_lat_lon`, and `from_lon_lat`.
+ * In `Images` plugin, `scale` and `angle` functions are now part of `Image`.
 
 ## 0.12.0
 
