@@ -68,8 +68,7 @@ impl Plugin for Images {
             if viewport.intersects(rect) {
                 let mut mesh = image.texture.mesh_with_rect(rect);
                 let origin = egui::Vec2::splat(0.5);
-                let angle = image.angle;
-                mesh.rotate(angle, rect.min + origin * rect.size());
+                mesh.rotate(image.angle, rect.min + origin * rect.size());
                 painter.add(mesh);
             }
         }
