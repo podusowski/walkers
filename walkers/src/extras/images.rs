@@ -34,13 +34,13 @@ impl Plugin for Images {
     fn draw(&self, painter: egui::Painter, projector: &crate::Projector) {
         for image in &self.images {
             let screen_position = projector.project(image.position);
-            let map_rect = painter.clip_rect();
+            let viewport = painter.clip_rect();
             let texture = &image.texture;
 
             let [w, h] = texture.size();
             let w = w as f32 * texture.x_scale;
             let h = h as f32 * texture.y_scale;
-            let mut rect = map_rect.translate(screen_position);
+            let mut rect = viewport.translate(screen_position);
 
             rect.min.x -= w / 2.0;
             rect.min.y -= h / 2.0;
@@ -48,7 +48,7 @@ impl Plugin for Images {
             rect.max.x = rect.min.x + w;
             rect.max.y = rect.min.y + h;
 
-            if map_rect.intersects(rect) {
+            if viewport.intersects(rect) {
                 let mut mesh = egui::Mesh::with_texture(texture.id());
                 let angle = texture.angle;
 
