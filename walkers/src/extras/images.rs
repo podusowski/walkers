@@ -1,7 +1,7 @@
 use crate::tiles::Texture;
 use crate::{Plugin, Position};
 use egui::epaint::emath::Rot2;
-use egui::Vec2;
+use egui::{Rect, Vec2};
 
 /// An image to be drawn on the map.
 pub struct Image {
@@ -54,15 +54,7 @@ impl Plugin for Images {
             let texture = &image.texture;
 
             let size = texture.size();
-            let w = size.x as f32 * image.scale.x;
-            let h = size.y as f32 * image.scale.y;
-            let mut rect = viewport.translate(screen_position);
-
-            rect.min.x -= w / 2.0;
-            rect.min.y -= h / 2.0;
-
-            rect.max.x = rect.min.x + w;
-            rect.max.y = rect.min.y + h;
+            let rect = Rect::from_center_size(screen_position.to_pos2(), size * image.scale);
 
             if viewport.intersects(rect) {
                 let mut mesh = image.texture.mesh_with_rect(rect);
