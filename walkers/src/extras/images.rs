@@ -1,7 +1,7 @@
 use crate::tiles::Texture;
 use crate::{Plugin, Position};
 use egui::epaint::emath::Rot2;
-use egui::{pos2, Color32, Rect, Vec2};
+use egui::Vec2;
 
 /// An image to be drawn on the map.
 pub struct Image {
