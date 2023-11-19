@@ -49,14 +49,12 @@ impl Images {
 impl Plugin for Images {
     fn draw(&self, painter: egui::Painter, projector: &crate::Projector) {
         for image in &self.images {
-            let screen_position = projector.project(image.position);
-            let viewport = painter.clip_rect();
-            let texture = &image.texture;
+            let rect = Rect::from_center_size(
+                projector.project(image.position).to_pos2(),
+                image.texture.size() * image.scale,
+            );
 
-            let size = texture.size();
-            let rect = Rect::from_center_size(screen_position.to_pos2(), size * image.scale);
-
-            if viewport.intersects(rect) {
+            if painter.clip_rect().intersects(rect) {
                 let mut mesh = image.texture.mesh_with_rect(rect);
                 mesh.rotate(image.angle, rect.center());
                 painter.add(mesh);
