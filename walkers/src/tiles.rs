@@ -37,7 +37,11 @@ impl Texture {
         Self(ctx.load_texture("image", color_image, Default::default()))
     }
 
-    pub fn mesh(&self, screen_position: Vec2) -> Mesh {
+    pub(crate) fn size(&self) -> Vec2 {
+        self.0.size_vec2()
+    }
+
+    pub(crate) fn mesh(&self, screen_position: Vec2) -> Mesh {
         let mut mesh = Mesh::with_texture(self.0.id());
         mesh.add_rect_with_uv(
             rect(screen_position),
@@ -47,7 +51,7 @@ impl Texture {
         mesh
     }
 
-    pub fn mesh_with_rect(&self, rect: Rect) -> Mesh {
+    pub(crate) fn mesh_with_rect(&self, rect: Rect) -> Mesh {
         let mut mesh = Mesh::with_texture(self.0.id());
         mesh.add_rect_with_uv(
             rect,
@@ -55,10 +59,6 @@ impl Texture {
             Color32::WHITE,
         );
         mesh
-    }
-
-    pub fn size(&self) -> Vec2 {
-        self.0.size_vec2()
     }
 }
 
