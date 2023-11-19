@@ -29,8 +29,7 @@ impl Image {
         self.scale.y = y;
     }
 
-    /// Set the image's angle.
-    /// Angle is clockwise in radians. A 𝞃/4 = 90° rotation means rotating the X axis to the Y axis.
+    /// Set the image's angle in radians.
     pub fn angle(&mut self, angle: f32) {
         self.angle = Rot2::from_angle(angle);
     }
