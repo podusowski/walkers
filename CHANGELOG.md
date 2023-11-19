@@ -8,6 +8,7 @@ All notable changes to this project will be documented in this file.
    way of constructing it - `from_lat_lon`, and `from_lon_lat`.
  * If center position is detached, zooming using mouse wheel will now keep location under pointer
    fixed.
+ * In `Images` plugin, `scale` and `angle` functions are now part of `Image`.
 
 ## 0.12.0
 
