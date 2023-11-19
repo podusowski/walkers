@@ -11,10 +11,7 @@ use crate::mercator::{TileId, TILE_SIZE};
 use crate::providers::{Attribution, TileSource};
 
 pub(crate) fn rect(screen_position: Vec2) -> Rect {
-    Rect::from_min_size(
-        screen_position.to_pos2(),
-        Vec2::new(TILE_SIZE as f32, TILE_SIZE as f32),
-    )
+    Rect::from_min_size(screen_position.to_pos2(), Vec2::splat(TILE_SIZE as f32))
 }
 
 #[derive(Clone)]
