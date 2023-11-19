@@ -1,6 +1,7 @@
+use crate::tiles::Texture;
 use crate::{Plugin, Position};
 use egui::epaint::emath::Rot2;
-use egui::{pos2, Color32, ColorImage, Context, Rect, TextureHandle, TextureId, Vec2};
+use egui::{pos2, Color32, Rect, Vec2};
 
 /// An image to be drawn on the map.
 pub struct Image {
@@ -9,8 +10,6 @@ pub struct Image {
 
     scale: Vec2,
     angle: Rot2,
-
-    /// Texture id of image.
     pub texture: Texture,
 }
 
@@ -42,11 +41,6 @@ pub struct Images {
     images: Vec<Image>,
 }
 
-#[derive(Clone)]
-pub struct Texture {
-    texture: TextureHandle,
-}
-
 impl Images {
     pub fn new(images: Vec<Image>) -> Self {
         Self { images }
@@ -60,9 +54,9 @@ impl Plugin for Images {
             let viewport = painter.clip_rect();
             let texture = &image.texture;
 
-            let [w, h] = texture.size();
-            let w = w as f32 * image.scale.x;
-            let h = h as f32 * image.scale.y;
+            let size = texture.size();
+            let w = size.x as f32 * image.scale.x;
+            let h = size.y as f32 * image.scale.y;
             let mut rect = viewport.translate(screen_position);
 
             rect.min.x -= w / 2.0;
@@ -72,40 +66,12 @@ impl Plugin for Images {
             rect.max.y = rect.min.y + h;
 
             if viewport.intersects(rect) {
-                let mut mesh = egui::Mesh::with_texture(texture.id());
-                let angle = image.angle;
-
-                mesh.add_rect_with_uv(
-                    rect,
-                    Rect::from_min_max(pos2(0.0, 0.0), pos2(1.0, 1.0)),
-                    Color32::WHITE,
-                );
-
+                let mut mesh = image.texture.mesh_with_rect(rect);
                 let origin = egui::Vec2::splat(0.5);
+                let angle = image.angle;
                 mesh.rotate(angle, rect.min + origin * rect.size());
                 painter.add(mesh);
             }
         }
-    }
-}
-
-impl Texture {
-    /// ⚠️ Make sure to only call this ONCE for each image, i.e. NOT in your main GUI code.
-    /// The call is NOT immediate safe.
-    pub fn new(ctx: Context, img: ColorImage) -> Self {
-        let texture = ctx.load_texture("texture", img, Default::default());
-
-        Self { texture }
-    }
-
-    /// Same as [egui::TextureHandle::id]
-    /// (https://docs.rs/egui/latest/egui/struct.TextureHandle.html#method.id)
-    pub fn id(&self) -> TextureId {
-        self.texture.id()
-    }
-
-    /// Same as [egui::TextureHandle::size] (https://docs.rs/egui/latest/egui/struct.TextureHandle.html#method.size)
-    pub fn size(&self) -> [usize; 2] {
-        self.texture.size()
     }
 }

@@ -18,7 +18,7 @@ pub(crate) fn rect(screen_position: Vec2) -> Rect {
 }
 
 #[derive(Clone)]
-pub(crate) struct Texture(TextureHandle);
+pub struct Texture(TextureHandle);
 
 impl Texture {
     pub fn new(image: &[u8], ctx: &Context) -> Result<Self, ImageError> {
@@ -45,6 +45,20 @@ impl Texture {
             Color32::WHITE,
         );
         mesh
+    }
+
+    pub fn mesh_with_rect(&self, rect: Rect) -> Mesh {
+        let mut mesh = Mesh::with_texture(self.0.id());
+        mesh.add_rect_with_uv(
+            rect,
+            Rect::from_min_max(pos2(0., 0.0), pos2(1.0, 1.0)),
+            Color32::WHITE,
+        );
+        mesh
+    }
+
+    pub fn size(&self) -> Vec2 {
+        self.0.size_vec2()
     }
 }
 

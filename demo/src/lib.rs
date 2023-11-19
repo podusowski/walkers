@@ -23,7 +23,7 @@ impl MyApp {
     pub fn new(egui_ctx: Context) -> Self {
         // Data for the `images` plugin showcase.
         let images_plugin_data = ImagesPluginData {
-            texture: Texture::new(egui_ctx.to_owned(), egui::ColorImage::example()),
+            texture: Texture::from_color_image(egui::ColorImage::example(), &egui_ctx),
             angle: 0.0,
             x_scale: 1.0,
             y_scale: 1.0,

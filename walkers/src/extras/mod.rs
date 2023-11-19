@@ -2,4 +2,5 @@
 mod places;
 pub use places::{Place, Places, Style};
 mod images;
-pub use images::{Image, Images, Texture};
+pub use crate::tiles::Texture;
+pub use images::{Image, Images};
