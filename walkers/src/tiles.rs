@@ -1,8 +1,8 @@
 use std::collections::hash_map::Entry;
 use std::collections::HashMap;
 
-use egui::TextureHandle;
 use egui::{pos2, Color32, Context, Mesh, Rect, Vec2};
+use egui::{ColorImage, TextureHandle};
 use image::ImageError;
 
 use crate::download::download_continuously;
@@ -24,12 +24,17 @@ impl Texture {
     pub fn new(image: &[u8], ctx: &Context) -> Result<Self, ImageError> {
         let image = image::load_from_memory(image)?.to_rgba8();
         let pixels = image.as_flat_samples();
-        let image = egui::ColorImage::from_rgba_unmultiplied(
+        let image = ColorImage::from_rgba_unmultiplied(
             [image.width() as _, image.height() as _],
             pixels.as_slice(),
         );
 
-        Ok(Self(ctx.load_texture("tile", image, Default::default())))
+        Ok(Self::from_color_image(image, ctx))
+    }
+
+    /// Load the texture from egui's [`ColorImage`].
+    pub fn from_color_image(color_image: ColorImage, ctx: &Context) -> Self {
+        Self(ctx.load_texture("image", color_image, Default::default()))
     }
 
     pub fn mesh(&self, screen_position: Vec2) -> Mesh {
