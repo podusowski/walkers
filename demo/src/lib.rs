@@ -23,7 +23,7 @@ impl MyApp {
     pub fn new(egui_ctx: Context) -> Self {
         // Data for the `images` plugin showcase.
         let images_plugin_data = ImagesPluginData {
-            texture: Texture::new(egui_ctx.to_owned(), egui::ColorImage::example()),
+            texture: Texture::from_color_image(egui::ColorImage::example(), &egui_ctx),
             angle: 0.0,
             x_scale: 1.0,
             y_scale: 1.0,
@@ -80,9 +80,17 @@ impl eframe::App for MyApp {
                             style: Style::default(),
                         },
                     ]))
-                    .with_plugin(Images::new(vec![Image {
-                        position: places::wroclavia(),
-                        texture: self.images_plugin_data.texture.clone(),
+                    .with_plugin(Images::new(vec![{
+                        let mut image = Image::new(
+                            self.images_plugin_data.texture.clone(),
+                            places::wroclavia(),
+                        );
+                        image.scale(
+                            self.images_plugin_data.x_scale,
+                            self.images_plugin_data.y_scale,
+                        );
+                        image.angle(self.images_plugin_data.angle.to_radians());
+                        image
                     }]))
                     .with_plugin(CustomShapes {});
 
@@ -182,8 +190,6 @@ mod windows {
                     ui.add(egui::Slider::new(&mut image.angle, 0.0..=360.0).text("Rotate"));
                     ui.add(egui::Slider::new(&mut image.x_scale, 0.1..=3.0).text("Scale X"));
                     ui.add(egui::Slider::new(&mut image.y_scale, 0.1..=3.0).text("Scale Y"));
-                    image.texture.scale(image.x_scale, image.y_scale);
-                    image.texture.angle(image.angle.to_radians());
                 });
             });
     }

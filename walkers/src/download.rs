@@ -3,7 +3,7 @@ use futures::StreamExt;
 use image::ImageError;
 use reqwest::header::USER_AGENT;
 
-use crate::{mercator::TileId, providers::TileSource, tiles::Tile};
+use crate::{mercator::TileId, providers::TileSource, tiles::Texture};
 
 #[derive(Debug, thiserror::Error)]
 enum Error {
@@ -19,7 +19,7 @@ async fn download_and_decode(
     client: &reqwest::Client,
     url: &str,
     egui_ctx: &Context,
-) -> Result<Tile, Error> {
+) -> Result<Texture, Error> {
     let image = client
         .get(url)
         .header(USER_AGENT, "Walkers")
@@ -36,13 +36,13 @@ async fn download_and_decode(
         .await
         .map_err(Error::Http)?;
 
-    Tile::new(&image, egui_ctx).map_err(Error::Image)
+    Texture::new(&image, egui_ctx).map_err(Error::Image)
 }
 
 async fn download_continuously_impl<S>(
     source: S,
     mut request_rx: futures::channel::mpsc::Receiver<TileId>,
-    mut tile_tx: futures::channel::mpsc::Sender<(TileId, Tile)>,
+    mut tile_tx: futures::channel::mpsc::Sender<(TileId, Texture)>,
     egui_ctx: Context,
 ) -> Result<(), ()>
 where
@@ -73,7 +73,7 @@ where
 pub(crate) async fn download_continuously<S>(
     source: S,
     request_rx: futures::channel::mpsc::Receiver<TileId>,
-    tile_tx: futures::channel::mpsc::Sender<(TileId, Tile)>,
+    tile_tx: futures::channel::mpsc::Sender<(TileId, Texture)>,
     egui_ctx: Context,
 ) where
     S: TileSource + Send + 'static,

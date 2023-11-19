@@ -371,7 +371,7 @@ impl MapMemory {
 
 /// Use simple [flood fill algorithm](https://en.wikipedia.org/wiki/Flood_fill) to draw tiles on the map.
 fn flood_fill_tiles(
-    rect: Rect,
+    viewport: Rect,
     tile_id: TileId,
     map_center_projected_position: Pixels,
     tiles: &mut Tiles,
@@ -379,9 +379,9 @@ fn flood_fill_tiles(
 ) {
     let tile_projected = tile_id.project();
     let tile_screen_position =
-        rect.center().to_vec2() + (tile_projected - map_center_projected_position).to_vec2();
+        viewport.center().to_vec2() + (tile_projected - map_center_projected_position).to_vec2();
 
-    if rect.intersects(tiles::rect(tile_screen_position)) {
+    if viewport.intersects(tiles::rect(tile_screen_position)) {
         if let Entry::Vacant(entry) = meshes.entry(tile_id) {
             // It's still OK to insert an empty one, as we need to mark the spot for the filling algorithm.
             let tile = tiles
@@ -400,7 +400,7 @@ fn flood_fill_tiles(
             .flatten()
             {
                 flood_fill_tiles(
-                    rect,
+                    viewport,
                     *next_tile_id,
                     map_center_projected_position,
                     tiles,
