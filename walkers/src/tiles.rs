@@ -42,13 +42,7 @@ impl Texture {
     }
 
     pub(crate) fn mesh(&self, screen_position: Vec2) -> Mesh {
-        let mut mesh = Mesh::with_texture(self.0.id());
-        mesh.add_rect_with_uv(
-            rect(screen_position),
-            Rect::from_min_max(pos2(0., 0.0), pos2(1.0, 1.0)),
-            Color32::WHITE,
-        );
-        mesh
+        self.mesh_with_rect(rect(screen_position))
     }
 
     pub(crate) fn mesh_with_rect(&self, rect: Rect) -> Mesh {
