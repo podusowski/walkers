@@ -35,7 +35,7 @@ impl Position {
 
     /// Project geographical position into a 2D plane using Mercator.
     pub(crate) fn project(&self, zoom: u8) -> Pixels {
-        let (x, y) = mercator_normalized((*self).into());
+        let (x, y) = mercator_normalized(*self);
 
         // Map that into a big bitmap made out of web tiles.
         let number_of_pixels = 2u32.pow(zoom as u32) * TILE_SIZE;
@@ -47,7 +47,7 @@ impl Position {
 
     /// Tile this position is on.
     pub(crate) fn tile_id(&self, zoom: u8) -> TileId {
-        let (x, y) = mercator_normalized((*self).into());
+        let (x, y) = mercator_normalized(*self);
 
         // Map that into a big bitmap made out of web tiles.
         let number_of_tiles = 2u32.pow(zoom as u32);
