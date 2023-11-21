@@ -58,12 +58,6 @@ impl Position {
     }
 }
 
-impl From<Position> for (f64, f64) {
-    fn from(value: Position) -> Self {
-        (value.lon(), value.lat())
-    }
-}
-
 /// Location projected on the screen or an abstract bitmap.
 pub type Pixels = geo_types::Point;
 
@@ -82,10 +76,10 @@ impl PixelsExt for Pixels {
 /// Size of the tiles used by the services like the OSM.
 pub(crate) const TILE_SIZE: u32 = 256;
 
-fn mercator_normalized((x, y): (f64, f64)) -> (f64, f64) {
+fn mercator_normalized(position: Position) -> (f64, f64) {
     // Project into Mercator (cylindrical map projection).
-    let x = x.to_radians();
-    let y = y.to_radians().tan().asinh();
+    let x = position.lon().to_radians();
+    let y = position.lat().to_radians().tan().asinh();
 
     // Scale both x and y to 0-1 range.
     let x = (1. + (x / PI)) / 2.;
