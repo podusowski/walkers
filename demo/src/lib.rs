@@ -1,4 +1,4 @@
-use egui::{Color32, Context, Painter};
+use egui::{Color32, Context, Painter, Response};
 use walkers::{
     extras::{Image, Images, Place, Places, Style, Texture},
     Map, MapMemory, Plugin, Projector, Tiles,
@@ -143,7 +143,7 @@ mod places {
 struct CustomShapes {}
 
 impl Plugin for CustomShapes {
-    fn draw(&self, painter: Painter, projector: &Projector) {
+    fn draw(&self, _response: &Response, painter: Painter, projector: &Projector) {
         // Position of the point we want to put our shapes.
         let position = places::capitol();
 

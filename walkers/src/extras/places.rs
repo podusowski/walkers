@@ -1,4 +1,4 @@
-use egui::{vec2, Align2, Color32, FontId, Stroke};
+use egui::{vec2, Align2, Color32, FontId, Painter, Response, Stroke};
 
 use crate::{Plugin, Position};
 
@@ -56,7 +56,7 @@ impl Places {
 }
 
 impl Plugin for Places {
-    fn draw(&self, painter: egui::Painter, projector: &crate::Projector) {
+    fn draw(&self, _response: &Response, painter: Painter, projector: &crate::Projector) {
         for place in &self.places {
             let screen_position = projector.project(place.position);
 
