@@ -35,7 +35,7 @@ impl Position {
 
     /// Project geographical position into a 2D plane using Mercator.
     pub(crate) fn project(&self, zoom: u8) -> Pixels {
-        let (x, y) = mercator_normalized((*self).into());
+        let (x, y) = mercator_normalized(*self);
 
         // Map that into a big bitmap made out of web tiles.
         let number_of_pixels = 2u32.pow(zoom as u32) * TILE_SIZE;
@@ -47,7 +47,7 @@ impl Position {
 
     /// Tile this position is on.
     pub(crate) fn tile_id(&self, zoom: u8) -> TileId {
-        let (x, y) = mercator_normalized((*self).into());
+        let (x, y) = mercator_normalized(*self);
 
         // Map that into a big bitmap made out of web tiles.
         let number_of_tiles = 2u32.pow(zoom as u32);
@@ -55,12 +55,6 @@ impl Position {
         let y = (y * number_of_tiles as f64).floor() as u32;
 
         TileId { x, y, zoom }
-    }
-}
-
-impl From<Position> for (f64, f64) {
-    fn from(value: Position) -> Self {
-        (value.lon(), value.lat())
     }
 }
 
@@ -82,10 +76,10 @@ impl PixelsExt for Pixels {
 /// Size of the tiles used by the services like the OSM.
 pub(crate) const TILE_SIZE: u32 = 256;
 
-fn mercator_normalized((x, y): (f64, f64)) -> (f64, f64) {
+fn mercator_normalized(position: Position) -> (f64, f64) {
     // Project into Mercator (cylindrical map projection).
-    let x = x.to_radians();
-    let y = y.to_radians().tan().asinh();
+    let x = position.lon().to_radians();
+    let y = position.lat().to_radians().tan().asinh();
 
     // Scale both x and y to 0-1 range.
     let x = (1. + (x / PI)) / 2.;
