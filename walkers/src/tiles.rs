@@ -98,7 +98,7 @@ impl Tiles {
     /// Attribution of the source this tile cache pulls images from. Typically,
     /// this should be displayed somewhere on the top of the map widget.
     pub fn attribution(&self) -> Attribution {
-        self.attribution
+        self.attribution.clone()
     }
 
     /// Return a tile if already in cache, schedule a download otherwise.
@@ -160,7 +160,12 @@ mod tests {
         }
 
         fn attribution(&self) -> Attribution {
-            Attribution { text: "", url: "" }
+            Attribution {
+                text: "",
+                url: "",
+                logo_light: None,
+                logo_dark: None,
+            }
         }
     }
 
@@ -247,7 +252,12 @@ mod tests {
         }
 
         fn attribution(&self) -> Attribution {
-            Attribution { text: "", url: "" }
+            Attribution {
+                text: "",
+                url: "",
+                logo_light: None,
+                logo_dark: None,
+            }
         }
     }
 
