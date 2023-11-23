@@ -8,3 +8,4 @@ publish = false
 walkers = { path = "../walkers" }
 eframe.workspace = true
 egui.workspace = true
+egui_extras.workspace = true
