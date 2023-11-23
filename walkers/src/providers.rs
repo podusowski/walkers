@@ -11,6 +11,10 @@ pub struct Attribution {
 pub trait TileSource {
     fn tile_url(&self, tile_id: TileId) -> String;
     fn attribution(&self) -> Attribution;
+
+    fn tile_size(&self) -> u32 {
+        256
+    }
 }
 
 /// <https://www.openstreetmap.org/about>

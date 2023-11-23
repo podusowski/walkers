@@ -7,11 +7,11 @@ use image::ImageError;
 
 use crate::download::download_continuously;
 use crate::io::Runtime;
-use crate::mercator::{TileId, TILE_SIZE};
+use crate::mercator::TileId;
 use crate::providers::{Attribution, TileSource};
 
-pub(crate) fn rect(screen_position: Vec2) -> Rect {
-    Rect::from_min_size(screen_position.to_pos2(), Vec2::splat(TILE_SIZE as f32))
+pub(crate) fn rect(screen_position: Vec2, tile_size: u32) -> Rect {
+    Rect::from_min_size(screen_position.to_pos2(), Vec2::splat(tile_size as f32))
 }
 
 #[derive(Clone)]
@@ -38,8 +38,8 @@ impl Texture {
         self.0.size_vec2()
     }
 
-    pub(crate) fn mesh(&self, screen_position: Vec2) -> Mesh {
-        self.mesh_with_rect(rect(screen_position))
+    pub(crate) fn mesh(&self, screen_position: Vec2, tile_size: u32) -> Mesh {
+        self.mesh_with_rect(rect(screen_position, tile_size))
     }
 
     pub(crate) fn mesh_with_rect(&self, rect: Rect) -> Mesh {
@@ -67,6 +67,8 @@ pub struct Tiles {
 
     #[allow(dead_code)] // Significant Drop
     runtime: Runtime,
+
+    pub tile_size: u32,
 }
 
 impl Tiles {
@@ -80,6 +82,7 @@ impl Tiles {
         let (request_tx, request_rx) = futures::channel::mpsc::channel(channel_size);
         let (tile_tx, tile_rx) = futures::channel::mpsc::channel(channel_size);
         let attribution = source.attribution();
+        let tile_size = source.tile_size();
         let runtime = Runtime::new(download_continuously(source, request_rx, tile_tx, egui_ctx));
 
         Self {
@@ -88,6 +91,7 @@ impl Tiles {
             request_tx,
             tile_rx,
             runtime,
+            tile_size,
         }
     }
 
