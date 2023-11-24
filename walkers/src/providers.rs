@@ -73,7 +73,6 @@ impl TileSource for Geoportal {
 /// Predefined Mapbox styles.
 /// <https://docs.mapbox.com/api/maps/styles/#classic-mapbox-styles>
 #[derive(Clone, Copy, Default)]
-#[cfg(feature = "mapbox")]
 pub enum MapboxStyle {
     #[default]
     Streets,
@@ -86,7 +85,6 @@ pub enum MapboxStyle {
     NavigationNight,
 }
 
-#[cfg(feature = "mapbox")]
 impl MapboxStyle {
     fn api_slug(&self) -> &'static str {
         match self {
@@ -105,7 +103,6 @@ impl MapboxStyle {
 /// Mapbox static tile source.
 /// <https://docs.mapbox.com/api/maps/static-tiles/>
 #[derive(Default)]
-#[cfg(feature = "mapbox")]
 pub struct Mapbox {
     /// Predefined style to use
     pub style: MapboxStyle,
@@ -115,7 +112,6 @@ pub struct Mapbox {
     pub access_token: String,
 }
 
-#[cfg(feature = "mapbox")]
 impl TileSource for Mapbox {
     fn tile_url(&self, tile_id: TileId) -> String {
         format!(
