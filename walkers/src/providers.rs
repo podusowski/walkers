@@ -14,6 +14,7 @@ pub trait TileSource {
     fn tile_url(&self, tile_id: TileId) -> String;
     fn attribution(&self) -> Attribution;
 
+    /// Size of each tile, should be a multiple of 256
     fn tile_size(&self) -> u32 {
         256
     }

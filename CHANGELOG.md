@@ -9,6 +9,9 @@ All notable changes to this project will be documented in this file.
  * If center position is detached, zooming using mouse wheel will now keep location under pointer
    fixed.
  * In `Images` plugin, `scale` and `angle` functions are now part of `Image`.
+ * Allow structs implementing `Provider` to use larger tile sizes.
+ * Add optional logos to `Attribution` struct.
+ * Add `Mapbox` provider.
 
 ## 0.12.0
 
