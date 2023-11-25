@@ -153,7 +153,7 @@ impl Widget for Map<'_, '_> {
             let mut meshes = Default::default();
             flood_fill_tiles(
                 painter.clip_rect(),
-                map_center.tile_id(zoom),
+                map_center.tile_id(zoom, tiles.tile_size),
                 map_center.project(zoom),
                 tiles,
                 &mut meshes,
@@ -378,16 +378,16 @@ fn flood_fill_tiles(
     tiles: &mut Tiles,
     meshes: &mut HashMap<TileId, Option<Mesh>>,
 ) {
-    let tile_projected = tile_id.project();
+    let tile_projected = tile_id.project(tiles.tile_size);
     let tile_screen_position =
         viewport.center().to_vec2() + (tile_projected - map_center_projected_position).to_vec2();
 
-    if viewport.intersects(tiles::rect(tile_screen_position)) {
+    if viewport.intersects(tiles::rect(tile_screen_position, tiles.tile_size)) {
         if let Entry::Vacant(entry) = meshes.entry(tile_id) {
             // It's still OK to insert an empty one, as we need to mark the spot for the filling algorithm.
             let tile = tiles
                 .at(tile_id)
-                .map(|tile| tile.mesh(tile_screen_position));
+                .map(|tile| tile.mesh(tile_screen_position, tiles.tile_size));
 
             entry.insert(tile);
 

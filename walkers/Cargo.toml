@@ -12,6 +12,7 @@ edition = "2021"
 [dependencies]
 log.workspace = true
 egui.workspace = true
+egui_extras.workspace = true
 thiserror = "1"
 image = { version = "0.24", features = ["jpeg", "png"] }
 geo-types = { version = "0.7" }

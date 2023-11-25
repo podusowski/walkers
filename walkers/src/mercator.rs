@@ -46,8 +46,14 @@ impl Position {
     }
 
     /// Tile this position is on.
-    pub(crate) fn tile_id(&self, zoom: u8) -> TileId {
+    pub(crate) fn tile_id(&self, mut zoom: u8, tile_size: u32) -> TileId {
         let (x, y) = mercator_normalized(*self);
+
+        // Some providers provide larger tiles, effectively bundling e.g. 4 256px tiles in one
+        // 512px one. To use this functionality, we zoom out correspondigly so the resolution
+        // remains the same.
+        let tile_size_correction = ((tile_size as f64) / (TILE_SIZE as f64)).log2();
+        zoom -= tile_size_correction as u8;
 
         // Map that into a big bitmap made out of web tiles.
         let number_of_tiles = 2u32.pow(zoom as u32);
@@ -104,8 +110,8 @@ pub struct TileId {
 
 impl TileId {
     /// Tile position (in pixels) on the "World bitmap".
-    pub fn project(&self) -> Pixels {
-        Pixels::new((self.x * TILE_SIZE) as f64, (self.y * TILE_SIZE) as f64)
+    pub fn project(&self, tile_size: u32) -> Pixels {
+        Pixels::new((self.x * tile_size) as f64, (self.y * tile_size) as f64)
     }
 
     pub fn east(&self) -> Option<TileId> {
@@ -177,13 +183,23 @@ mod tests {
                 y: 345104,
                 zoom
             },
-            citadel.tile_id(zoom)
+            citadel.tile_id(zoom, 256)
+        );
+
+        // Automatically zooms out for larger tiles
+        assert_eq!(
+            TileId {
+                x: 292727,
+                y: 172552,
+                zoom: zoom - 1
+            },
+            citadel.tile_id(zoom, 512)
         );
 
         // Projected tile is just its x, y multiplied by the size of tiles.
         assert_eq!(
             Pixels::new(585455. * 256., 345104. * 256.),
-            citadel.tile_id(zoom).project()
+            citadel.tile_id(zoom, 256).project(256)
         );
 
         // Projected Citadel position should be somewhere near projected tile, shifted only by the
