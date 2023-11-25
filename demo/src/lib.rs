@@ -1,8 +1,5 @@
-use egui::{Color32, Context, Painter, Response};
-use walkers::{
-    extras::{Image, Images, Place, Places, Style, Texture},
-    Map, MapMemory, Plugin, Projector, Tiles,
-};
+use egui::Context;
+use walkers::{extras::Texture, Map, MapMemory, Tiles};
 
 pub struct ImagesPluginData {
     texture: Texture,
@@ -98,37 +95,11 @@ impl eframe::App for MyApp {
                 // In egui, widgets are constructed and consumed in each frame.
                 let map = Map::new(Some(tiles), &mut self.map_memory, my_position);
 
-                let places = Places::new(vec![
-                    Place {
-                        position: places::wroclaw_glowny(),
-                        label: "Wrocław Główny\ntrain station".to_owned(),
-                        symbol: '🚆',
-                        style: Style::default(),
-                    },
-                    Place {
-                        position: places::dworcowa_bus_stop(),
-                        label: "Bus stop".to_owned(),
-                        symbol: '🚌',
-                        style: Style::default(),
-                    },
-                ]);
-
                 // Optionally, plugins can be attached.
                 let map = map
-                    .with_plugin(places)
-                    .with_plugin(Images::new(vec![{
-                        let mut image = Image::new(
-                            self.images_plugin_data.texture.clone(),
-                            places::wroclavia(),
-                        );
-                        image.scale(
-                            self.images_plugin_data.x_scale,
-                            self.images_plugin_data.y_scale,
-                        );
-                        image.angle(self.images_plugin_data.angle.to_radians());
-                        image
-                    }]))
-                    .with_plugin(CustomShapes {});
+                    .with_plugin(plugins::places())
+                    .with_plugin(plugins::images(&mut self.images_plugin_data))
+                    .with_plugin(plugins::CustomShapes {});
 
                 // Draw the map widget.
                 ui.add(map);
@@ -160,6 +131,61 @@ impl eframe::App for MyApp {
     }
 }
 
+mod plugins {
+    use egui::{Color32, Painter, Response};
+    use walkers::{
+        extras::{Image, Images, Place, Places, Style},
+        Plugin, Projector,
+    };
+
+    use crate::{places, ImagesPluginData};
+
+    pub fn places() -> impl Plugin {
+        Places::new(vec![
+            Place {
+                position: places::wroclaw_glowny(),
+                label: "Wrocław Główny\ntrain station".to_owned(),
+                symbol: '🚆',
+                style: Style::default(),
+            },
+            Place {
+                position: places::dworcowa_bus_stop(),
+                label: "Bus stop".to_owned(),
+                symbol: '🚌',
+                style: Style::default(),
+            },
+        ])
+    }
+
+    pub fn images(images_plugin_data: &mut ImagesPluginData) -> impl Plugin {
+        Images::new(vec![{
+            let mut image = Image::new(images_plugin_data.texture.clone(), places::wroclavia());
+            image.scale(images_plugin_data.x_scale, images_plugin_data.y_scale);
+            image.angle(images_plugin_data.angle.to_radians());
+            image
+        }])
+    }
+
+    /// Sample map plugin which draws custom stuff on the map.
+    pub struct CustomShapes {}
+
+    impl Plugin for CustomShapes {
+        fn draw(&self, _response: &Response, painter: Painter, projector: &Projector) {
+            // Position of the point we want to put our shapes.
+            let position = places::capitol();
+
+            // Project it into the position on the screen.
+            let screen_position = projector.project(position);
+
+            painter.circle_filled(
+                screen_position.to_pos2(),
+                30.,
+                Color32::BLACK.gamma_multiply(0.5),
+            );
+        }
+    }
+}
+
 mod places {
     //! Few common places in the city of Wrocław, used in the example app.
     use walkers::Position;
@@ -186,25 +212,6 @@ mod places {
     /// Shopping center, and the main intercity bus station.
     pub fn wroclavia() -> Position {
         Position::from_lon_lat(17.03471, 51.09648)
-    }
-}
-
-/// Sample map plugin which draws custom stuff on the map.
-struct CustomShapes {}
-
-impl Plugin for CustomShapes {
-    fn draw(&self, _response: &Response, painter: Painter, projector: &Projector) {
-        // Position of the point we want to put our shapes.
-        let position = places::capitol();
-
-        // Project it into the position on the screen.
-        let screen_position = projector.project(position);
-
-        painter.circle_filled(
-            screen_position.to_pos2(),
-            30.,
-            Color32::BLACK.gamma_multiply(0.5),
-        );
     }
 }
 
