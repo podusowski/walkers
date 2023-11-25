@@ -12,6 +12,7 @@ All notable changes to this project will be documented in this file.
  * Allow structs implementing `Provider` to use larger tile sizes.
  * Add optional logos to `Attribution` struct.
  * Add `Mapbox` provider.
+ * `Plugin::draw` now has a `Response` parameter, allowing plugins to be interactive.
 
 ## 0.12.0
 
