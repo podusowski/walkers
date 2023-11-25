@@ -98,22 +98,24 @@ impl eframe::App for MyApp {
                 // In egui, widgets are constructed and consumed in each frame.
                 let map = Map::new(Some(tiles), &mut self.map_memory, my_position);
 
+                let places = Places::new(vec![
+                    Place {
+                        position: places::wroclaw_glowny(),
+                        label: "Wrocław Główny\ntrain station".to_owned(),
+                        symbol: '🚆',
+                        style: Style::default(),
+                    },
+                    Place {
+                        position: places::dworcowa_bus_stop(),
+                        label: "Bus stop".to_owned(),
+                        symbol: '🚌',
+                        style: Style::default(),
+                    },
+                ]);
+
                 // Optionally, plugins can be attached.
                 let map = map
-                    .with_plugin(Places::new(vec![
-                        Place {
-                            position: places::wroclaw_glowny(),
-                            label: "Wrocław Główny\ntrain station".to_owned(),
-                            symbol: '🚆',
-                            style: Style::default(),
-                        },
-                        Place {
-                            position: places::dworcowa_bus_stop(),
-                            label: "Bus stop".to_owned(),
-                            symbol: '🚌',
-                            style: Style::default(),
-                        },
-                    ]))
+                    .with_plugin(places)
                     .with_plugin(Images::new(vec![{
                         let mut image = Image::new(
                             self.images_plugin_data.texture.clone(),
