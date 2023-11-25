@@ -6,7 +6,7 @@ publish = false
 
 [dependencies]
 demo = { path = "../demo" }
-eframe = "0.23"
-egui = "0.23"
-log = "0.4"
+eframe.workspace = true
+egui.workspace = true
+log.workspace = true
 wasm-bindgen-futures = "0.4"
