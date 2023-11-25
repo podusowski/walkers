@@ -1,12 +1,6 @@
 use egui::Context;
-use walkers::{extras::Texture, Map, MapMemory, Tiles};
-
-pub struct ImagesPluginData {
-    texture: Texture,
-    angle: f32,
-    x_scale: f32,
-    y_scale: f32,
-}
+use plugins::ImagesPluginData;
+use walkers::{Map, MapMemory, Tiles};
 
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub enum SelectedProvider {
@@ -31,12 +25,7 @@ impl MyApp {
         egui_extras::install_image_loaders(&egui_ctx);
 
         // Data for the `images` plugin showcase.
-        let images_plugin_data = ImagesPluginData {
-            texture: Texture::from_color_image(egui::ColorImage::example(), &egui_ctx),
-            angle: 0.0,
-            x_scale: 1.0,
-            y_scale: 1.0,
-        };
+        let images_plugin_data = ImagesPluginData::new(egui_ctx.to_owned());
 
         // Pass in a mapbox access token at compile time. May or may not be what you want to do,
         // potentially loading it from application settings instead.
@@ -134,11 +123,11 @@ impl eframe::App for MyApp {
 mod plugins {
     use egui::{Color32, Painter, Response};
     use walkers::{
-        extras::{Image, Images, Place, Places, Style},
+        extras::{Image, Images, Place, Places, Style, Texture},
         Plugin, Projector,
     };
 
-    use crate::{places, ImagesPluginData};
+    use crate::places;
 
     pub fn places() -> impl Plugin {
         Places::new(vec![
@@ -155,6 +144,24 @@ mod plugins {
                 style: Style::default(),
             },
         ])
+    }
+
+    pub struct ImagesPluginData {
+        pub texture: Texture,
+        pub angle: f32,
+        pub x_scale: f32,
+        pub y_scale: f32,
+    }
+
+    impl ImagesPluginData {
+        pub fn new(egui_ctx: egui::Context) -> Self {
+            Self {
+                texture: Texture::from_color_image(egui::ColorImage::example(), &egui_ctx),
+                angle: 0.0,
+                x_scale: 1.0,
+                y_scale: 1.0,
+            }
+        }
     }
 
     pub fn images(images_plugin_data: &mut ImagesPluginData) -> impl Plugin {
@@ -216,7 +223,9 @@ mod places {
 }
 
 mod windows {
-    use super::{ImagesPluginData, SelectedProvider};
+    use crate::plugins::ImagesPluginData;
+
+    use super::SelectedProvider;
     use egui::{Align2, RichText, Ui, Window};
     use walkers::{providers::Attribution, MapMemory};
 
