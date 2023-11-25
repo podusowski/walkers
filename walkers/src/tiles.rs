@@ -111,7 +111,9 @@ impl Tiles {
             Err(_) => {
                 // Just ignore. It means that no new tile was downloaded.
             }
-            Ok(None) => panic!("IO thread is dead"),
+            Ok(None) => {
+                log::error!("IO thread is dead")
+            }
         }
 
         match self.cache.entry(tile_id) {

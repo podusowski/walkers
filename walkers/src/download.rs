@@ -1,5 +1,5 @@
 use egui::Context;
-use futures::StreamExt;
+use futures::{SinkExt, StreamExt};
 use image::ImageError;
 use reqwest::header::USER_AGENT;
 
@@ -59,7 +59,7 @@ where
 
         match download_and_decode(&client, &url, &egui_ctx).await {
             Ok(tile) => {
-                tile_tx.try_send((request, tile)).map_err(|_| ())?;
+                tile_tx.send((request, tile)).await.map_err(|_| ())?;
                 egui_ctx.request_repaint();
             }
             Err(e) => {
