@@ -2,16 +2,65 @@ mod places;
 mod plugins;
 mod windows;
 
+use std::collections::HashMap;
+
 use crate::plugins::ImagesPluginData;
 use egui::Context;
 use walkers::{Map, MapMemory, Tiles};
 
-#[derive(Debug, Clone, Copy, PartialEq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum SelectedProvider {
     OpenStreetMap,
     Geoportal,
     MapboxStreets,
     MapboxSatellite,
+}
+
+fn providers(egui_ctx: Context) -> HashMap<SelectedProvider, Tiles> {
+    let mut providers = HashMap::default();
+
+    providers.insert(
+        SelectedProvider::OpenStreetMap,
+        Tiles::new(walkers::providers::OpenStreetMap, egui_ctx.to_owned()),
+    );
+
+    providers.insert(
+        SelectedProvider::Geoportal,
+        Tiles::new(walkers::providers::Geoportal, egui_ctx.to_owned()),
+    );
+
+    // Pass in a mapbox access token at compile time. May or may not be what you want to do,
+    // potentially loading it from application settings instead.
+    let mapbox_access_token = std::option_env!("MAPBOX_ACCESS_TOKEN");
+
+    // We only show the mapbox map if we have an access token
+    if let Some(token) = mapbox_access_token {
+        providers.insert(
+            SelectedProvider::MapboxStreets,
+            Tiles::new(
+                walkers::providers::Mapbox {
+                    style: walkers::providers::MapboxStyle::Streets,
+                    access_token: token.to_string(),
+                    high_resolution: false,
+                },
+                egui_ctx.to_owned(),
+            ),
+        );
+
+        providers.insert(
+            SelectedProvider::MapboxSatellite,
+            Tiles::new(
+                walkers::providers::Mapbox {
+                    style: walkers::providers::MapboxStyle::Satellite,
+                    access_token: token.to_string(),
+                    high_resolution: true,
+                },
+                egui_ctx.to_owned(),
+            ),
+        );
+    }
+
+    providers
 }
 
 pub struct MyApp {
