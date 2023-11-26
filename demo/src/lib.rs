@@ -125,14 +125,10 @@ impl eframe::App for MyApp {
                 let my_position = places::wroclaw_glowny();
 
                 // Select tile provider
-                let tiles = match self.selected_tile_provider {
-                    SelectedProvider::OpenStreetMap => &mut self.tiles,
-                    SelectedProvider::Geoportal => &mut self.geoportal_tiles,
-                    SelectedProvider::MapboxStreets => self.mapbox_tiles_streets.as_mut().unwrap(),
-                    SelectedProvider::MapboxSatellite => {
-                        self.mapbox_tiles_satellite.as_mut().unwrap()
-                    }
-                };
+                let tiles = self
+                    .providers
+                    .get_mut(&self.selected_tile_provider)
+                    .unwrap();
 
                 let attribution = tiles.attribution();
 
