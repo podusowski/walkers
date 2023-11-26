@@ -65,10 +65,6 @@ fn providers(egui_ctx: Context) -> HashMap<SelectedProvider, Tiles> {
 
 pub struct MyApp {
     providers: HashMap<SelectedProvider, Tiles>,
-    tiles: Tiles,
-    geoportal_tiles: Tiles,
-    mapbox_tiles_streets: Option<Tiles>,
-    mapbox_tiles_satellite: Option<Tiles>,
     map_memory: MapMemory,
     selected_tile_provider: SelectedProvider,
     images_plugin_data: ImagesPluginData,
@@ -81,29 +77,8 @@ impl MyApp {
         // Data for the `images` plugin showcase.
         let images_plugin_data = ImagesPluginData::new(egui_ctx.to_owned());
 
-        // Pass in a mapbox access token at compile time. May or may not be what you want to do,
-        // potentially loading it from application settings instead.
-        let mapbox_access_token = std::option_env!("MAPBOX_ACCESS_TOKEN");
-
-        // We only show the mapbox map if we have an access token
-        let mapbox_streets = mapbox_access_token.map(|t| walkers::providers::Mapbox {
-            style: walkers::providers::MapboxStyle::Streets,
-            access_token: t.to_string(),
-            high_resolution: false,
-        });
-
-        let mapbox_satellite = mapbox_access_token.map(|t| walkers::providers::Mapbox {
-            style: walkers::providers::MapboxStyle::Satellite,
-            access_token: t.to_string(),
-            high_resolution: true,
-        });
-
         Self {
             providers: providers(egui_ctx.to_owned()),
-            tiles: Tiles::new(walkers::providers::OpenStreetMap, egui_ctx.to_owned()),
-            geoportal_tiles: Tiles::new(walkers::providers::Geoportal, egui_ctx.to_owned()),
-            mapbox_tiles_streets: mapbox_streets.map(|p| Tiles::new(p, egui_ctx.to_owned())),
-            mapbox_tiles_satellite: mapbox_satellite.map(|p| Tiles::new(p, egui_ctx.to_owned())),
             map_memory: MapMemory::default(),
             selected_tile_provider: SelectedProvider::OpenStreetMap,
             images_plugin_data,
@@ -147,15 +122,6 @@ impl eframe::App for MyApp {
                 // Draw utility windows.
                 {
                     use windows::*;
-
-                    let mut possible_providers =
-                        vec![SelectedProvider::OpenStreetMap, SelectedProvider::Geoportal];
-                    if self.mapbox_tiles_streets.is_some() {
-                        possible_providers.extend([
-                            SelectedProvider::MapboxStreets,
-                            SelectedProvider::MapboxSatellite,
-                        ]);
-                    }
 
                     zoom(ui, &mut self.map_memory);
                     go_to_my_position(ui, &mut self.map_memory);
