@@ -65,8 +65,8 @@ fn providers(egui_ctx: Context) -> HashMap<Provider, Tiles> {
 
 pub struct MyApp {
     providers: HashMap<Provider, Tiles>,
+    selected_provider: Provider,
     map_memory: MapMemory,
-    selected_tile_provider: Provider,
     images_plugin_data: ImagesPluginData,
 }
 
@@ -79,8 +79,8 @@ impl MyApp {
 
         Self {
             providers: providers(egui_ctx.to_owned()),
+            selected_provider: Provider::OpenStreetMap,
             map_memory: MapMemory::default(),
-            selected_tile_provider: Provider::OpenStreetMap,
             images_plugin_data,
         }
     }
@@ -99,12 +99,7 @@ impl eframe::App for MyApp {
                 // Typically this would be a GPS acquired position which is tracked by the map.
                 let my_position = places::wroclaw_glowny();
 
-                // Select tile provider
-                let tiles = self
-                    .providers
-                    .get_mut(&self.selected_tile_provider)
-                    .unwrap();
-
+                let tiles = self.providers.get_mut(&self.selected_provider).unwrap();
                 let attribution = tiles.attribution();
 
                 // In egui, widgets are constructed and consumed in each frame.
@@ -127,7 +122,7 @@ impl eframe::App for MyApp {
                     go_to_my_position(ui, &mut self.map_memory);
                     controls(
                         ui,
-                        &mut self.selected_tile_provider,
+                        &mut self.selected_provider,
                         &mut self.providers.keys(),
                         &mut self.images_plugin_data,
                     );
