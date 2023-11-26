@@ -1,4 +1,3 @@
-
 use crate::plugins::ImagesPluginData;
 
 use crate::SelectedProvider;
@@ -24,7 +23,7 @@ pub fn acknowledge(ui: &Ui, attribution: Attribution) {
 pub fn controls(
     ui: &Ui,
     selected_provider: &mut SelectedProvider,
-    possible_providers: &[SelectedProvider],
+    possible_providers: &mut dyn Iterator<Item = &SelectedProvider>,
     image: &mut ImagesPluginData,
 ) {
     Window::new("Satellite")

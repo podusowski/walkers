@@ -64,6 +64,7 @@ fn providers(egui_ctx: Context) -> HashMap<SelectedProvider, Tiles> {
 }
 
 pub struct MyApp {
+    providers: HashMap<SelectedProvider, Tiles>,
     tiles: Tiles,
     geoportal_tiles: Tiles,
     mapbox_tiles_streets: Option<Tiles>,
@@ -98,6 +99,7 @@ impl MyApp {
         });
 
         Self {
+            providers: providers(egui_ctx.to_owned()),
             tiles: Tiles::new(walkers::providers::OpenStreetMap, egui_ctx.to_owned()),
             geoportal_tiles: Tiles::new(walkers::providers::Geoportal, egui_ctx.to_owned()),
             mapbox_tiles_streets: mapbox_streets.map(|p| Tiles::new(p, egui_ctx.to_owned())),
@@ -164,7 +166,7 @@ impl eframe::App for MyApp {
                     controls(
                         ui,
                         &mut self.selected_tile_provider,
-                        &possible_providers,
+                        &mut self.providers.keys(),
                         &mut self.images_plugin_data,
                     );
                     acknowledge(ui, attribution);
