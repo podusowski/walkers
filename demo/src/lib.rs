@@ -9,23 +9,23 @@ use egui::Context;
 use walkers::{Map, MapMemory, Tiles};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-pub enum SelectedProvider {
+pub enum Provider {
     OpenStreetMap,
     Geoportal,
     MapboxStreets,
     MapboxSatellite,
 }
 
-fn providers(egui_ctx: Context) -> HashMap<SelectedProvider, Tiles> {
+fn providers(egui_ctx: Context) -> HashMap<Provider, Tiles> {
     let mut providers = HashMap::default();
 
     providers.insert(
-        SelectedProvider::OpenStreetMap,
+        Provider::OpenStreetMap,
         Tiles::new(walkers::providers::OpenStreetMap, egui_ctx.to_owned()),
     );
 
     providers.insert(
-        SelectedProvider::Geoportal,
+        Provider::Geoportal,
         Tiles::new(walkers::providers::Geoportal, egui_ctx.to_owned()),
     );
 
@@ -36,7 +36,7 @@ fn providers(egui_ctx: Context) -> HashMap<SelectedProvider, Tiles> {
     // We only show the mapbox map if we have an access token
     if let Some(token) = mapbox_access_token {
         providers.insert(
-            SelectedProvider::MapboxStreets,
+            Provider::MapboxStreets,
             Tiles::new(
                 walkers::providers::Mapbox {
                     style: walkers::providers::MapboxStyle::Streets,
@@ -48,7 +48,7 @@ fn providers(egui_ctx: Context) -> HashMap<SelectedProvider, Tiles> {
         );
 
         providers.insert(
-            SelectedProvider::MapboxSatellite,
+            Provider::MapboxSatellite,
             Tiles::new(
                 walkers::providers::Mapbox {
                     style: walkers::providers::MapboxStyle::Satellite,
@@ -64,9 +64,9 @@ fn providers(egui_ctx: Context) -> HashMap<SelectedProvider, Tiles> {
 }
 
 pub struct MyApp {
-    providers: HashMap<SelectedProvider, Tiles>,
+    providers: HashMap<Provider, Tiles>,
     map_memory: MapMemory,
-    selected_tile_provider: SelectedProvider,
+    selected_tile_provider: Provider,
     images_plugin_data: ImagesPluginData,
 }
 
@@ -80,7 +80,7 @@ impl MyApp {
         Self {
             providers: providers(egui_ctx.to_owned()),
             map_memory: MapMemory::default(),
-            selected_tile_provider: SelectedProvider::OpenStreetMap,
+            selected_tile_provider: Provider::OpenStreetMap,
             images_plugin_data,
         }
     }

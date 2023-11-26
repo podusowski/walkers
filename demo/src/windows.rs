@@ -1,6 +1,6 @@
 use crate::plugins::ImagesPluginData;
 
-use crate::SelectedProvider;
+use crate::Provider;
 use egui::{Align2, RichText, Ui, Window};
 use walkers::{providers::Attribution, MapMemory};
 
@@ -22,8 +22,8 @@ pub fn acknowledge(ui: &Ui, attribution: Attribution) {
 
 pub fn controls(
     ui: &Ui,
-    selected_provider: &mut SelectedProvider,
-    possible_providers: &mut dyn Iterator<Item = &SelectedProvider>,
+    selected_provider: &mut Provider,
+    possible_providers: &mut dyn Iterator<Item = &Provider>,
     image: &mut ImagesPluginData,
 ) {
     Window::new("Satellite")
