@@ -1,4 +1,4 @@
-use egui::{Color32, Painter, Response};
+use egui::{Color32, Painter, Rect, Response, Vec2};
 use walkers::{
     extras::{Image, Images, Place, Places, Style, Texture},
     Plugin, Projector,
@@ -64,10 +64,17 @@ impl Plugin for CustomShapes {
         // Project it into the position on the screen.
         let screen_position = projector.project(position);
 
+        let radius = 30.;
+
+        let hovered = _response
+            .hover_pos()
+            .map(|hover_pos| hover_pos.distance(screen_position.to_pos2()) < radius)
+            .unwrap_or(false);
+
         painter.circle_filled(
             screen_position.to_pos2(),
-            30.,
-            Color32::BLACK.gamma_multiply(0.5),
+            radius,
+            Color32::BLACK.gamma_multiply(if hovered { 0.5 } else { 0.2 }),
         );
     }
 }
