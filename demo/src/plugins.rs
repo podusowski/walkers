@@ -1,4 +1,4 @@
-use egui::{Color32, Painter, Rect, Response, Vec2};
+use egui::{Color32, Painter, Response};
 use walkers::{
     extras::{Image, Images, Place, Places, Style, Texture},
     Plugin, Projector,
@@ -57,22 +57,22 @@ pub fn images(images_plugin_data: &mut ImagesPluginData) -> impl Plugin {
 pub struct CustomShapes {}
 
 impl Plugin for CustomShapes {
-    fn draw(&self, _response: &Response, painter: Painter, projector: &Projector) {
+    fn draw(&self, response: &Response, painter: Painter, projector: &Projector) {
         // Position of the point we want to put our shapes.
         let position = places::capitol();
 
         // Project it into the position on the screen.
-        let screen_position = projector.project(position);
+        let position = projector.project(position).to_pos2();
 
         let radius = 30.;
 
-        let hovered = _response
+        let hovered = response
             .hover_pos()
-            .map(|hover_pos| hover_pos.distance(screen_position.to_pos2()) < radius)
+            .map(|hover_pos| hover_pos.distance(position) < radius)
             .unwrap_or(false);
 
         painter.circle_filled(
-            screen_position.to_pos2(),
+            position,
             radius,
             Color32::BLACK.gamma_multiply(if hovered { 0.5 } else { 0.2 }),
         );
