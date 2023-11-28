@@ -8,8 +8,8 @@ It compiles to native applications as well as WASM. See the **[online demo here]
 
 ![Screenshot](https://raw.githubusercontent.com/podusowski/walkers/main/screenshot.png)
 
-It supports [OpenStreetMap](https://www.openstreetmap.org) and compatible tile
-servers.
+It supports [OpenStreetMap](https://www.openstreetmap.org), [mapbox](https://www.mapbox.com/),
+and compatible tile servers.
 
 Before deploying your application, please get yourself familiar with the
 [OpenStreetMap usage policy](https://operations.osmfoundation.org/policies/tiles/),
@@ -63,6 +63,10 @@ require a different build workflow, not necessarily compatible with Cargo
 workspaces.
 
 ### Native
+
+To enable mapbox layers, you need to define `MAPBOX_ACCESS_TOKEN` environment
+variable before building. You can obtain one, by creating a
+[mapbox account](https://account.mapbox.com/).
 
 ```sh
 cd demo_native
