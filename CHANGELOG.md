@@ -6,6 +6,10 @@ All notable changes to this project will be documented in this file.
 
  * Fixed occasional panic when changing tile providers.
  * Fixed grabbing mouse events from outside the widget.
+ * Added `TileCache` trait for storage caches, as well as two implementations, `DiskTileCache` and
+   `NoopCache`.
+ * `Tiles::new` now expects a third argument, a `TileCache` implementation. Use `NoopCache {}` if
+   you do not need or want caching in your application.
 
 ## 0.13.0
 

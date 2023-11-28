@@ -9,3 +9,6 @@ walkers = { path = "../walkers" }
 eframe.workspace = true
 egui.workspace = true
 egui_extras.workspace = true
+
+[target.'cfg(not(target_arch = "wasm32"))'.dependencies]
+directories = "5.0.1"

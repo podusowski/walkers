@@ -1,10 +1,12 @@
 use std::collections::hash_map::Entry;
 use std::collections::HashMap;
+use std::hash::Hash;
 
 use egui::{pos2, Color32, Context, Mesh, Rect, Vec2};
 use egui::{ColorImage, TextureHandle};
 use image::ImageError;
 
+use crate::cache::TileCache;
 use crate::download::download_continuously;
 use crate::io::Runtime;
 use crate::mercator::TileId;
@@ -72,9 +74,11 @@ pub struct Tiles {
 }
 
 impl Tiles {
-    pub fn new<S>(source: S, egui_ctx: Context) -> Self
+    pub fn new<S, C>(source: S, egui_ctx: Context, cache: C) -> Self
     where
-        S: TileSource + Send + 'static,
+        C: TileCache + Send + 'static,
+        C::Error: std::fmt::Display,
+        S: TileSource + Hash + Send + 'static,
     {
         // Minimum value which didn't cause any stalls while testing.
         let channel_size = 20;
@@ -83,7 +87,9 @@ impl Tiles {
         let (tile_tx, tile_rx) = futures::channel::mpsc::channel(channel_size);
         let attribution = source.attribution();
         let tile_size = source.tile_size();
-        let runtime = Runtime::new(download_continuously(source, request_rx, tile_tx, egui_ctx));
+        let runtime = Runtime::new(download_continuously(
+            source, cache, request_rx, tile_tx, egui_ctx,
+        ));
 
         Self {
             attribution,
@@ -135,6 +141,8 @@ impl Tiles {
 mod tests {
     use std::time::Duration;
 
+    use crate::cache::NoopCache;
+
     use super::*;
 
     static TILE_ID: TileId = TileId {
@@ -143,6 +151,7 @@ mod tests {
         zoom: 3,
     };
 
+    #[derive(Hash)]
     struct TestSource {
         base_url: String,
     }
@@ -189,12 +198,12 @@ mod tests {
             .with_body(include_bytes!("valid.png"))
             .create();
 
-        let mut tiles = Tiles::new(source, Context::default());
+        let mut tiles = Tiles::new(source, Context::default(), NoopCache {});
 
         // First query start the download, but it will always return None.
         assert!(tiles.at(TILE_ID).is_none());
 
-        // Eventually it gets downloaded and become available in cache.
+        // Eventually it gets downloaded and become available in memory.
         while tiles.at(TILE_ID).is_none() {}
 
         tile_mock.assert();
@@ -212,7 +221,7 @@ mod tests {
         let _ = env_logger::try_init();
 
         let (mut server, source) = mockito_server();
-        let mut tiles = Tiles::new(source, Context::default());
+        let mut tiles = Tiles::new(source, Context::default(), NoopCache {});
         let tile_mock = server.mock("GET", "/3/1/2.png").with_status(404).create();
 
         assert_tile_is_empty_forever(&mut tiles);
@@ -224,7 +233,7 @@ mod tests {
         let _ = env_logger::try_init();
 
         let (mut server, source) = mockito_server();
-        let mut tiles = Tiles::new(source, Context::default());
+        let mut tiles = Tiles::new(source, Context::default(), NoopCache {});
         let tile_mock = server.mock("GET", "/3/1/2.png").create();
 
         assert_tile_is_empty_forever(&mut tiles);
@@ -236,7 +245,7 @@ mod tests {
         let _ = env_logger::try_init();
 
         let (mut server, source) = mockito_server();
-        let mut tiles = Tiles::new(source, Context::default());
+        let mut tiles = Tiles::new(source, Context::default(), NoopCache {});
         let tile_mock = server
             .mock("GET", "/3/1/2.png")
             .with_body("definitely not an image")
@@ -246,6 +255,7 @@ mod tests {
         tile_mock.assert();
     }
 
+    #[derive(Hash)]
     struct GarbageSource;
 
     impl TileSource for GarbageSource {
@@ -266,7 +276,7 @@ mod tests {
     #[test]
     fn tile_is_empty_forever_if_http_can_not_even_connect() {
         let _ = env_logger::try_init();
-        let mut tiles = Tiles::new(GarbageSource, Context::default());
+        let mut tiles = Tiles::new(GarbageSource, Context::default(), NoopCache {});
         assert_tile_is_empty_forever(&mut tiles);
     }
 }

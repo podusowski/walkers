@@ -1,5 +1,7 @@
 //! Some common tile map providers.
 
+use std::hash::Hash;
+
 use crate::mercator::TileId;
 
 #[derive(Clone)]
@@ -21,6 +23,7 @@ pub trait TileSource {
 }
 
 /// <https://www.openstreetmap.org/about>
+#[derive(Hash)]
 pub struct OpenStreetMap;
 
 impl TileSource for OpenStreetMap {
@@ -43,6 +46,7 @@ impl TileSource for OpenStreetMap {
 
 /// Orthophotomap layer from Poland's Geoportal.
 /// <https://www.geoportal.gov.pl/uslugi/usluga-przegladania-wms>
+#[derive(Hash)]
 pub struct Geoportal;
 
 impl TileSource for Geoportal {
@@ -73,7 +77,7 @@ impl TileSource for Geoportal {
 
 /// Predefined Mapbox styles.
 /// <https://docs.mapbox.com/api/maps/styles/#classic-mapbox-styles>
-#[derive(Clone, Copy, Default)]
+#[derive(Clone, Copy, Default, Hash)]
 pub enum MapboxStyle {
     #[default]
     Streets,
@@ -103,7 +107,7 @@ impl MapboxStyle {
 
 /// Mapbox static tile source.
 /// <https://docs.mapbox.com/api/maps/static-tiles/>
-#[derive(Default)]
+#[derive(Default, Hash)]
 pub struct Mapbox {
     /// Predefined style to use
     pub style: MapboxStyle,

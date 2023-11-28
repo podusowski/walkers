@@ -6,7 +6,11 @@ use std::collections::HashMap;
 
 use crate::plugins::ImagesPluginData;
 use egui::Context;
+use walkers::cache::*;
 use walkers::{Map, MapMemory, Tiles};
+
+#[cfg(not(target_arch = "wasm32"))]
+use directories::ProjectDirs;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum Provider {
@@ -19,14 +23,27 @@ pub enum Provider {
 fn providers(egui_ctx: Context) -> HashMap<Provider, Tiles> {
     let mut providers = HashMap::default();
 
+    #[cfg(not(target_arch = "wasm32"))]
+    let cache = DiskTileCache::new(ProjectDirs::from("", "", "walkers").unwrap().cache_dir());
+    #[cfg(target_arch = "wasm32")]
+    let cache = NoopCache {};
+
     providers.insert(
         Provider::OpenStreetMap,
-        Tiles::new(walkers::providers::OpenStreetMap, egui_ctx.to_owned()),
+        Tiles::new(
+            walkers::providers::OpenStreetMap,
+            egui_ctx.to_owned(),
+            cache.clone(),
+        ),
     );
 
     providers.insert(
         Provider::Geoportal,
-        Tiles::new(walkers::providers::Geoportal, egui_ctx.to_owned()),
+        Tiles::new(
+            walkers::providers::Geoportal,
+            egui_ctx.to_owned(),
+            cache.clone(),
+        ),
     );
 
     // Pass in a mapbox access token at compile time. May or may not be what you want to do,
@@ -44,6 +61,7 @@ fn providers(egui_ctx: Context) -> HashMap<Provider, Tiles> {
                     high_resolution: false,
                 },
                 egui_ctx.to_owned(),
+                cache.clone(),
             ),
         );
 
@@ -56,6 +74,7 @@ fn providers(egui_ctx: Context) -> HashMap<Provider, Tiles> {
                     high_resolution: true,
                 },
                 egui_ctx.to_owned(),
+                cache,
             ),
         );
     }
