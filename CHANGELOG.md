@@ -2,6 +2,11 @@
 
 All notable changes to this project will be documented in this file.
 
+## Unreleased
+
+ * Fixed occasional panic when changing tile providers.
+ * Fixed grabbing mouse events from outside the widget.
+
 ## 0.13.0
 
  * `Position` is no longer a typedef of `geo_types::Point`. There is also a new, more explicit
