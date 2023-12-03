@@ -239,7 +239,7 @@ mod tests {
         let converted: geo_types::Point = original.into();
         let brought_back: Position = converted.into();
 
-        approx::assert_relative_eq!(original.lon(), brought_back.lon(), max_relative = 1.0);
-        approx::assert_relative_eq!(original.lat(), brought_back.lat(), max_relative = 1.0);
+        approx::assert_relative_eq!(original.lon(), brought_back.lon());
+        approx::assert_relative_eq!(original.lat(), brought_back.lat());
     }
 }
