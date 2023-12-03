@@ -32,14 +32,14 @@ pub trait Plugin {
 ///     ));
 /// }
 /// ```
-pub struct Map<'a, 'b> {
+pub struct Map<'a, 'b, 'c> {
     tiles: Option<&'b mut Tiles>,
     memory: &'a mut MapMemory,
     my_position: Position,
-    plugins: Vec<Box<dyn Plugin>>,
+    plugins: Vec<Box<dyn Plugin + 'c>>,
 }
 
-impl<'a, 'b> Map<'a, 'b> {
+impl<'a, 'b, 'c> Map<'a, 'b, 'c> {
     pub fn new(
         tiles: Option<&'b mut Tiles>,
         memory: &'a mut MapMemory,
@@ -54,7 +54,7 @@ impl<'a, 'b> Map<'a, 'b> {
     }
 
     /// Add plugin to the drawing pipeline. Plugins allow drawing custom shapes on the map.
-    pub fn with_plugin(mut self, plugin: impl Plugin + 'static) -> Self {
+    pub fn with_plugin(mut self, plugin: impl Plugin + 'c) -> Self {
         self.plugins.push(Box::new(plugin));
         self
     }
@@ -89,7 +89,7 @@ impl Projector {
     }
 }
 
-impl Map<'_, '_> {
+impl Map<'_, '_, '_> {
     /// Handle zoom and drag inputs, and recalculate everything accordingly.
     fn zoom_and_drag(&mut self, ui: &mut Ui, response: &Response) {
         let zoom_delta = ui.input(|input| input.zoom_delta());
@@ -139,7 +139,7 @@ impl Map<'_, '_> {
     }
 }
 
-impl Widget for Map<'_, '_> {
+impl Widget for Map<'_, '_, '_> {
     fn ui(mut self, ui: &mut Ui) -> Response {
         let (rect, response) = ui.allocate_exact_size(ui.available_size(), Sense::drag());
 
