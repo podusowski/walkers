@@ -70,9 +70,9 @@ impl From<geo_types::Point> for Position {
     }
 }
 
-impl Into<geo_types::Point> for Position {
-    fn into(self) -> geo_types::Point {
-        self.0
+impl From<Position> for geo_types::Point {
+    fn from(value: Position) -> Self {
+        value.0
     }
 }
 
