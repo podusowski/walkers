@@ -6,11 +6,11 @@ use egui::{Painter, Rect, Response, Vec2};
 /// An image to be drawn on the map.
 pub struct Image {
     /// Geographical position.
-    pub position: Position,
+    position: Position,
 
     scale: Vec2,
     angle: Rot2,
-    pub texture: Texture,
+    texture: Texture,
 }
 
 impl Image {
@@ -33,6 +33,19 @@ impl Image {
     pub fn angle(&mut self, angle: f32) {
         self.angle = Rot2::from_angle(angle);
     }
+
+    pub fn draw(&self, _response: &Response, painter: Painter, projector: &crate::Projector) {
+        let rect = Rect::from_center_size(
+            projector.project(self.position).to_pos2(),
+            self.texture.size() * self.scale,
+        );
+
+        if painter.clip_rect().intersects(rect) {
+            let mut mesh = self.texture.mesh_with_rect(rect);
+            mesh.rotate(self.angle, rect.center());
+            painter.add(mesh);
+        }
+    }
 }
 
 /// [`Plugin`] which draws given list of images on the map.
@@ -47,18 +60,9 @@ impl Images {
 }
 
 impl Plugin for Images {
-    fn draw(&self, _response: &Response, painter: Painter, projector: &crate::Projector) {
+    fn draw(&self, response: &Response, painter: Painter, projector: &crate::Projector) {
         for image in &self.images {
-            let rect = Rect::from_center_size(
-                projector.project(image.position).to_pos2(),
-                image.texture.size() * image.scale,
-            );
-
-            if painter.clip_rect().intersects(rect) {
-                let mut mesh = image.texture.mesh_with_rect(rect);
-                mesh.rotate(image.angle, rect.center());
-                painter.add(mesh);
-            }
+            image.draw(response, painter.clone(), projector);
         }
     }
 }
