@@ -6,6 +6,7 @@ All notable changes to this project will be documented in this file.
 
  * Fixed occasional panic when changing tile providers.
  * Fixed grabbing mouse events from outside the widget.
+ * `Position` can be now converted into `geo_types::Point`.
 
 ## 0.13.0
 
