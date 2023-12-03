@@ -6,11 +6,11 @@ use egui::{Painter, Rect, Response, Vec2};
 /// An image to be drawn on the map.
 pub struct Image {
     /// Geographical position.
-    pub position: Position,
+    position: Position,
 
     scale: Vec2,
     angle: Rot2,
-    pub texture: Texture,
+    texture: Texture,
 }
 
 impl Image {
