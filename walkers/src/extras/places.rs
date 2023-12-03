@@ -44,6 +44,48 @@ pub struct Place {
     pub style: Style,
 }
 
+impl Place {
+    fn draw(&self, _response: &Response, painter: Painter, projector: &crate::Projector) {
+        let screen_position = projector.project(self.position);
+
+        let label = painter.layout_no_wrap(
+            self.label.to_owned(),
+            self.style.label_font.clone(),
+            self.style.label_color,
+        );
+
+        // Offset of the label, relative to the circle.
+        let offset = vec2(8., 8.);
+
+        painter.rect_filled(
+            label
+                .rect
+                .translate(screen_position)
+                .translate(offset)
+                .expand(5.),
+            10.,
+            self.style.label_background,
+        );
+
+        painter.galley((screen_position + offset).to_pos2(), label);
+
+        painter.circle(
+            screen_position.to_pos2(),
+            10.,
+            self.style.symbol_background,
+            self.style.symbol_stroke,
+        );
+
+        painter.text(
+            screen_position.to_pos2(),
+            Align2::CENTER_CENTER,
+            self.symbol.to_string(),
+            self.style.symbol_font.clone(),
+            self.style.symbol_color,
+        );
+    }
+}
+
 /// [`Plugin`] which draws list of places on the map.
 pub struct Places {
     places: Vec<Place>,
@@ -56,45 +98,9 @@ impl Places {
 }
 
 impl Plugin for Places {
-    fn draw(&self, _response: &Response, painter: Painter, projector: &crate::Projector) {
+    fn draw(&self, response: &Response, painter: Painter, projector: &crate::Projector) {
         for place in &self.places {
-            let screen_position = projector.project(place.position);
-
-            let label = painter.layout_no_wrap(
-                place.label.to_owned(),
-                place.style.label_font.clone(),
-                place.style.label_color,
-            );
-
-            // Offset of the label, relative to the circle.
-            let offset = vec2(8., 8.);
-
-            painter.rect_filled(
-                label
-                    .rect
-                    .translate(screen_position)
-                    .translate(offset)
-                    .expand(5.),
-                10.,
-                place.style.label_background,
-            );
-
-            painter.galley((screen_position + offset).to_pos2(), label);
-
-            painter.circle(
-                screen_position.to_pos2(),
-                10.,
-                place.style.symbol_background,
-                place.style.symbol_stroke,
-            );
-
-            painter.text(
-                screen_position.to_pos2(),
-                Align2::CENTER_CENTER,
-                place.symbol.to_string(),
-                place.style.symbol_font.clone(),
-                place.style.symbol_color,
-            );
+            place.draw(response, painter.clone(), projector);
         }
     }
 }
