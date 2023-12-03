@@ -64,6 +64,18 @@ impl Position {
     }
 }
 
+impl From<geo_types::Point> for Position {
+    fn from(value: geo_types::Point) -> Self {
+        Self(value)
+    }
+}
+
+impl From<Position> for geo_types::Point {
+    fn from(value: Position) -> Self {
+        value.0
+    }
+}
+
 /// Location projected on the screen or an abstract bitmap.
 pub type Pixels = geo_types::Point;
 
@@ -218,5 +230,16 @@ mod tests {
 
         approx::assert_relative_eq!(calculated.lon(), citadel.lon(), max_relative = 1.0);
         approx::assert_relative_eq!(calculated.lat(), citadel.lat(), max_relative = 1.0);
+    }
+
+    #[test]
+    /// Just to be compatible with the `geo` ecosystem.
+    fn position_is_compatible_with_geo_types() {
+        let original = Position::from_lat_lon(21.00027, 52.26470);
+        let converted: geo_types::Point = original.into();
+        let brought_back: Position = converted.into();
+
+        approx::assert_relative_eq!(original.lon(), brought_back.lon());
+        approx::assert_relative_eq!(original.lat(), brought_back.lat());
     }
 }
