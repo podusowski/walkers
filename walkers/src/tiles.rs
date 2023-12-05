@@ -186,7 +186,7 @@ mod tests {
         let (mut server, source) = mockito_server();
         let tile_mock = server
             .mock("GET", "/3/1/2.png")
-            .with_body(include_bytes!("valid.png"))
+            .with_body(include_bytes!("../assets/blank-255-tile.png"))
             .create();
 
         let mut tiles = Tiles::new(source, Context::default());
