@@ -2,6 +2,10 @@
 
 All notable changes to this project will be documented in this file.
 
+## Unreleased
+
+ * `egui` updated to 0.24. This change requires Rust 1.72 or greater.
+
 ## 0.14.0
 
  * Fixed occasional panic when changing tile providers.
