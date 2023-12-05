@@ -2,7 +2,7 @@
 
 All notable changes to this project will be documented in this file.
 
-## Unreleased
+## 0.14.0
 
  * Fixed occasional panic when changing tile providers.
  * Fixed grabbing mouse events from outside the widget.
