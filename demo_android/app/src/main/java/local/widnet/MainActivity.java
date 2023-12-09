@@ -1,4 +1,4 @@
-package local.widnet;
+package local.walkers;
 
 import android.Manifest;
 import android.content.ClipData;
