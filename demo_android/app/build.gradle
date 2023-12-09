@@ -13,21 +13,10 @@ android {
         versionName "1"
     }
 
-    signingConfigs {
-        release {
-            storeFile file("widawa.jks")
-            storePassword "widawa"
-            keyAlias "widawa"
-            keyPassword "widawa"
-        }
-    }
-
     buildTypes {
         release {
             manifestPlaceholders = [label: "Widawa Tactical Network"]
             minifyEnabled false
-            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
-            signingConfig signingConfigs.release
         }
         debug {
             manifestPlaceholders = [label: "Debug Widnet"]

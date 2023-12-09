@@ -21,15 +21,8 @@
                 android:name="android.app.lib_name"
                 android:value="main" />
         </activity>
-        <service
-            android:name=".LocationService"
-            android:label="Widawa" />
     </application>
 
-    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
-    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
-    <uses-permission android:name="android.permission.ACCESS_BACKGROUND_LOCATION" />
-    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
 </manifest>
