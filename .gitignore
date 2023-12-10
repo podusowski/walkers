@@ -7,3 +7,4 @@ Cargo.lock
 /demo_web/dist
 /demo_android/.gradle
 /demo_android/app/build
+/demo_android/app/src/main/jniLibs
