@@ -15,11 +15,9 @@ android {
 
     buildTypes {
         release {
-            manifestPlaceholders = [label: "Widawa Tactical Network"]
             minifyEnabled false
         }
         debug {
-            manifestPlaceholders = [label: "Debug Widnet"]
             applicationIdSuffix ".debug"
             minifyEnabled false
         }

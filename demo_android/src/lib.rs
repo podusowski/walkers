@@ -10,7 +10,7 @@ fn android_main(app: AndroidApp) -> Result<(), Box<dyn std::error::Error>> {
             .with_max_level(log::LevelFilter::Info),
     );
     let mut options = NativeOptions::default();
-    //options.renderer = Renderer::Wgpu;
+    options.renderer = Renderer::Wgpu;
     options.event_loop_builder = Some(Box::new(move |builder| {
         builder.with_android_app(app);
     }));
