@@ -6,3 +6,4 @@ Cargo.lock
 /demo_web/target
 /demo_web/dist
 /demo_android/.gradle
+/demo_android/app/build
