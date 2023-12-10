@@ -17,7 +17,7 @@ fn android_main(
         builder.with_android_app(app);
     }));
     eframe::run_native(
-        "Widawa Tactical Network",
+        "Walkers",
         options,
         Box::new(|cc| Box::new(demo::MyApp::new(cc.egui_ctx.clone()))),
     )?;
