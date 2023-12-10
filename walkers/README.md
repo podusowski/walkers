@@ -80,3 +80,15 @@ cargo install trunk
 cd demo_web
 trunk serve --release
 ```
+
+### Android
+
+You need to have [Android SDK](https://developer.android.com/) and
+[cargo-ndk](https://github.com/bbqsrc/cargo-ndk) installed.
+
+```sh
+cd demo_android
+cargo ndk --target arm64-v8a -o app/src/main/jniLibs/ build --profile release
+./gradlew installDebug
+adb shell am start -n local.walkers.debug/local.walkers.MainActivity
+```
