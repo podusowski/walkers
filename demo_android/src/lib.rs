@@ -1,12 +1,14 @@
-use eframe::{NativeOptions, Renderer};
-use winit::platform::android::activity::AndroidApp;
-use winit::platform::android::EventLoopBuilderExtAndroid;
-
+#[cfg(target_os = "android")]
 #[no_mangle]
-fn android_main(app: AndroidApp) -> Result<(), Box<dyn std::error::Error>> {
+fn android_main(
+    app: winit::platform::android::activity::AndroidApp,
+) -> Result<(), Box<dyn std::error::Error>> {
+    use eframe::{NativeOptions, Renderer};
+    use winit::platform::android::EventLoopBuilderExtAndroid;
+
     android_logger::init_once(
         android_logger::Config::default()
-            .with_tag("widnet")
+            .with_tag("walkers")
             .with_max_level(log::LevelFilter::Info),
     );
     let mut options = NativeOptions::default();
