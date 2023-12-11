@@ -16,7 +16,7 @@ jobs:
       with:
         toolchain: stable
         components: clippy
-        target: wasm32-unknown-unknown aarch64-linux-android
+        target: wasm32-unknown-unknown, aarch64-linux-android
 
     #- name: Build
     #  run: cargo build --verbose
