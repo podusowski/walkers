@@ -80,9 +80,10 @@ pub fn go_to_my_position(ui: &Ui, map_memory: &mut MapMemory) {
             .title_bar(false)
             .anchor(Align2::RIGHT_BOTTOM, [-10., -10.])
             .show(ui.ctx(), |ui| {
+                ui.label("map center: ");
                 ui.label(format!("{:.04} {:.04}", position.lon(), position.lat()));
                 if ui
-                    .button(RichText::new("go to my (fake) position ").heading())
+                    .button(RichText::new("go to the starting point").heading())
                     .clicked()
                 {
                     map_memory.follow_my_position();
