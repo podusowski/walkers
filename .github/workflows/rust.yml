@@ -16,7 +16,7 @@ jobs:
       with:
         toolchain: stable
         components: clippy
-        target: wasm32-unknown-unknown
+        target: wasm32-unknown-unknown aarch64-linux-android
 
     #- name: Build
     #  run: cargo build --verbose
@@ -58,7 +58,7 @@ jobs:
       uses: android-actions/setup-android@v3
 
     - name: Install Cargo NDK
-      run: cargo install ndk
+      run: cargo install cargo-ndk
 
     - name: Build JNI library
       run: cargo ndk --target arm64-v8a -o app/src/main/jniLibs/ build --profile release
