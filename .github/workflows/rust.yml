@@ -60,11 +60,16 @@ jobs:
     - name: Install Cargo NDK
       run: cargo install cargo-ndk
 
-    - name: Install Rust Stable
+    - name: Install Rust Android Target
       uses: actions-rs/toolchain@v1
       with:
         toolchain: stable
         target: aarch64-linux-android
 
     - name: Build JNI library
+      working-directory: ./demo_android
       run: cargo ndk --target arm64-v8a -o app/src/main/jniLibs/ build --profile release
+
+    - name: Build APK
+      working-directory: ./demo_android
+      run: ./gradlew build
