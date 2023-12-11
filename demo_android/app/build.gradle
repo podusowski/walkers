@@ -14,11 +14,7 @@ android {
     }
 
     buildTypes {
-        release {
-            minifyEnabled false
-        }
         debug {
-            applicationIdSuffix ".debug"
             minifyEnabled false
         }
     }
