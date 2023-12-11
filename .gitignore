@@ -5,3 +5,6 @@ Cargo.lock
 /demo_native/target
 /demo_web/target
 /demo_web/dist
+/demo_android/.gradle
+/demo_android/app/build
+/demo_android/app/src/main/jniLibs

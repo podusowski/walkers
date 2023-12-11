@@ -1,0 +1,19 @@
+[package]
+name = "demo_android"
+version.workspace = true
+edition = "2021"
+publish = false
+
+[dependencies]
+log = "0.4"
+android_logger = "0.13"
+jni = "*"
+eframe = { version = "0.24", features = ["wgpu", "android-game-activity"] }
+ndk-context = "*"
+demo = { path = "../demo" }
+winit = { version = "0.28", features = ["android-game-activity"] }
+thiserror = "1.0.40"
+
+[lib]
+name = "main"
+crate_type = ["cdylib"]

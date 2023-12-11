@@ -1,5 +1,5 @@
 [workspace]
-members = ["walkers", "demo", "demo_native", "demo_web"]
+members = ["walkers", "demo", "demo_native", "demo_web", "demo_android"]
 resolver = "2"
 
 [workspace.package]
@@ -10,4 +10,4 @@ image = "0.24"
 log = "0.4"
 egui = "0.24"
 egui_extras = { version = "0.24", features = ["svg"] }
-eframe = "0.24"
+eframe = {version =  "0.24", features = ["android-game-activity"] }
