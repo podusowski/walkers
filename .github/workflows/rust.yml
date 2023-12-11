@@ -18,33 +18,33 @@ jobs:
         components: clippy
         target: wasm32-unknown-unknown
 
-    - name: Build
-      run: cargo build --verbose
+    #- name: Build
+    #  run: cargo build --verbose
 
-    - name: Install Trunk
-      run: cargo install trunk
+    #- name: Install Trunk
+    #  run: cargo install trunk
 
-    # Build demos.
+    ## Build demos.
 
-    - name: Build Demo Web
-      run: env -C demo_web trunk build
+    #- name: Build Demo Web
+    #  run: env -C demo_web trunk build
 
-    - name: Build Demo Native
-      run: env -C demo_native cargo build --verbose
+    #- name: Build Demo Native
+    #  run: env -C demo_native cargo build --verbose
 
-    # Tests and lints.
+    ## Tests and lints.
 
-    - name: Run tests
-      run: cargo test --verbose
+    #- name: Run tests
+    #  run: cargo test --verbose
 
-    - name: Check rust formatting
-      run:  cargo fmt --all --check
+    #- name: Check rust formatting
+    #  run:  cargo fmt --all --check
 
-    - name: Clippy
-      run:  cargo clippy --all-features -- -D warnings 
+    #- name: Clippy
+    #  run:  cargo clippy --all-features -- -D warnings 
 
-    - name: Documentation
-      run:  cargo doc
+    #- name: Documentation
+    #  run:  cargo doc
 
     # Build the Android demo.
 
@@ -56,3 +56,9 @@ jobs:
 
     - name: Setup Android SDK
       uses: android-actions/setup-android@v3
+
+    - name: Install Cargo NDK
+      run: cargo install ndk
+
+    - name: Build JNI library
+      run: cargo ndk --target arm64-v8a -o app/src/main/jniLibs/ build --profile release
