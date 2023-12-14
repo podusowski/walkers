@@ -1,7 +1,7 @@
 set -e
 
 trap popd EXIT
-pushd demo_android/
+pushd $(dirname $0)
 
 cd rust
 cargo ndk --target arm64-v8a -o ../java/app/src/main/jniLibs/ build --profile release
