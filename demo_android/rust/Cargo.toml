@@ -11,7 +11,7 @@ jni = "*"
 eframe = { version = "0.24", features = ["wgpu", "android-game-activity"] }
 ndk-context = "*"
 demo = { path = "../../demo" }
-winit = { version = "0.28", features = ["android-game-activity"] }
+winit = { version = "0.29", features = ["android-game-activity"] }
 thiserror = "1.0.40"
 
 [lib]
