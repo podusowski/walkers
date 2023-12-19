@@ -1,3 +1,4 @@
+mod local_tiles;
 mod places;
 mod plugins;
 mod windows;
@@ -14,6 +15,7 @@ pub enum Provider {
     Geoportal,
     MapboxStreets,
     MapboxSatellite,
+    LocalTiles,
 }
 
 fn providers(egui_ctx: Context) -> HashMap<Provider, Box<dyn TilesManager + Send>> {
@@ -33,6 +35,11 @@ fn providers(egui_ctx: Context) -> HashMap<Provider, Box<dyn TilesManager + Send
             walkers::providers::Geoportal,
             egui_ctx.to_owned(),
         )),
+    );
+
+    providers.insert(
+        Provider::LocalTiles,
+        Box::new(local_tiles::LocalTiles::new(egui_ctx.to_owned())),
     );
 
     // Pass in a mapbox access token at compile time. May or may not be what you want to do,
