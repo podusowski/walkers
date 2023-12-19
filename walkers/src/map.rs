@@ -6,7 +6,7 @@ use crate::{
     mercator::{screen_to_position, Pixels, PixelsExt, TileId},
     tiles,
     zoom::{InvalidZoom, Zoom},
-    Position, Tiles,
+    Position, TilesManager,
 };
 
 /// Plugins allow drawing custom shapes on the map. After implementing this trait for your type,
@@ -17,7 +17,7 @@ pub trait Plugin {
 }
 
 /// The actual map widget. Instances are to be created on each frame, as all necessary state is
-/// stored in [`Tiles`] and [`MapMemory`].
+/// stored in [`TilesManager`] and [`MapMemory`].
 ///
 /// # Examples
 ///
@@ -33,7 +33,7 @@ pub trait Plugin {
 /// }
 /// ```
 pub struct Map<'a, 'b, 'c> {
-    tiles: Option<&'b mut Tiles>,
+    tiles: Option<&'b mut dyn TilesManager>,
     memory: &'a mut MapMemory,
     my_position: Position,
     plugins: Vec<Box<dyn Plugin + 'c>>,
@@ -41,7 +41,7 @@ pub struct Map<'a, 'b, 'c> {
 
 impl<'a, 'b, 'c> Map<'a, 'b, 'c> {
     pub fn new(
-        tiles: Option<&'b mut Tiles>,
+        tiles: Option<&'b mut dyn TilesManager>,
         memory: &'a mut MapMemory,
         my_position: Position,
     ) -> Self {
@@ -153,7 +153,7 @@ impl Widget for Map<'_, '_, '_> {
             let mut meshes = Default::default();
             flood_fill_tiles(
                 painter.clip_rect(),
-                map_center.tile_id(zoom, tiles.tile_size),
+                map_center.tile_id(zoom, tiles.tile_size()),
                 map_center.project(zoom),
                 tiles,
                 &mut meshes,
@@ -375,19 +375,19 @@ fn flood_fill_tiles(
     viewport: Rect,
     tile_id: TileId,
     map_center_projected_position: Pixels,
-    tiles: &mut Tiles,
+    tiles: &mut dyn TilesManager,
     meshes: &mut HashMap<TileId, Option<Mesh>>,
 ) {
-    let tile_projected = tile_id.project(tiles.tile_size);
+    let tile_projected = tile_id.project(tiles.tile_size());
     let tile_screen_position =
         viewport.center().to_vec2() + (tile_projected - map_center_projected_position).to_vec2();
 
-    if viewport.intersects(tiles::rect(tile_screen_position, tiles.tile_size)) {
+    if viewport.intersects(tiles::rect(tile_screen_position, tiles.tile_size())) {
         if let Entry::Vacant(entry) = meshes.entry(tile_id) {
             // It's still OK to insert an empty one, as we need to mark the spot for the filling algorithm.
             let tile = tiles
                 .at(tile_id)
-                .map(|tile| tile.mesh(tile_screen_position, tiles.tile_size));
+                .map(|tile| tile.mesh(tile_screen_position, tiles.tile_size()));
 
             entry.insert(tile);
 
