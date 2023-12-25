@@ -8,8 +8,8 @@ publish = false
 log = "0.4"
 android_logger = "0.13"
 jni = "*"
-eframe = { version = "0.24", features = ["wgpu", "android-game-activity"] }
-egui-winit = { version = "0.24" }
+eframe.workspace = true
+egui-winit.workspace = true
 ndk-context = "*"
 demo = { path = "../../demo" }
 thiserror = "1.0.40"
