@@ -1,10 +1,10 @@
 #[cfg(target_os = "android")]
 #[no_mangle]
 fn android_main(
-    app: winit::platform::android::activity::AndroidApp,
+    app: egui_winit::winit::platform::android::activity::AndroidApp,
 ) -> Result<(), Box<dyn std::error::Error>> {
     use eframe::{NativeOptions, Renderer};
-    use winit::platform::android::EventLoopBuilderExtAndroid;
+    use egui_winit::winit::platform::android::EventLoopBuilderExtAndroid;
 
     android_logger::init_once(
         android_logger::Config::default()
