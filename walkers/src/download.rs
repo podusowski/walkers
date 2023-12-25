@@ -1,14 +1,19 @@
 use egui::Context;
 use futures::{SinkExt, StreamExt};
+use http_cache_reqwest::{CACacheManager, Cache, CacheMode, HttpCache, HttpCacheOptions};
 use image::ImageError;
 use reqwest::header::USER_AGENT;
+use reqwest_middleware::{ClientBuilder, ClientWithMiddleware};
 
 use crate::{mercator::TileId, providers::TileSource, tiles::Texture};
 
 #[derive(Debug, thiserror::Error)]
 enum Error {
     #[error(transparent)]
-    Http(reqwest::Error),
+    Http(reqwest_middleware::Error),
+
+    #[error(transparent)]
+    Http2(reqwest::Error),
 
     #[error(transparent)]
     Image(ImageError),
@@ -16,7 +21,7 @@ enum Error {
 
 /// Download and decode the tile.
 async fn download_and_decode(
-    client: &reqwest::Client,
+    client: &ClientWithMiddleware,
     url: &str,
     egui_ctx: &Context,
 ) -> Result<Texture, Error> {
@@ -31,10 +36,10 @@ async fn download_and_decode(
 
     let image = image
         .error_for_status()
-        .map_err(Error::Http)?
+        .map_err(Error::Http2)?
         .bytes()
         .await
-        .map_err(Error::Http)?;
+        .map_err(Error::Http2)?;
 
     Texture::new(&image, egui_ctx).map_err(Error::Image)
 }
@@ -49,7 +54,13 @@ where
     S: TileSource + Send + 'static,
 {
     // Keep outside the loop to reuse it as much as possible.
-    let client = reqwest::Client::new();
+    let client = ClientBuilder::new(reqwest::Client::new())
+        .with(Cache(HttpCache {
+            mode: CacheMode::Default,
+            manager: CACacheManager::default(),
+            options: HttpCacheOptions::default(),
+        }))
+        .build();
 
     loop {
         let request = request_rx.next().await.ok_or(())?;
