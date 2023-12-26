@@ -1,7 +1,9 @@
+use std::{cell::Cell, rc::Rc};
+
 use egui::{Color32, Painter, Response};
 use walkers::{
     extras::{Image, Images, Place, Places, Style, Texture},
-    Plugin, Projector,
+    Plugin, Position, Projector,
 };
 
 use crate::places;
@@ -76,5 +78,19 @@ impl Plugin for CustomShapes {
             radius,
             Color32::BLACK.gamma_multiply(if hovered { 0.5 } else { 0.2 }),
         );
+    }
+}
+
+pub struct ClickWatcher {
+    pub last_click: Rc<Cell<Option<Position>>>,
+}
+
+impl Plugin for ClickWatcher {
+    fn draw(&self, response: &Response, _painter: Painter, projector: &Projector) {
+        if response.clicked_by(egui::PointerButton::Primary) {
+            if let Some(offset) = response.hover_pos().map(|p| p - response.rect.center()) {
+                self.last_click.set(Some(projector.reverse(offset)));
+            }
+        }
     }
 }

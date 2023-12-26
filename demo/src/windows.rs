@@ -2,7 +2,7 @@ use crate::plugins::ImagesPluginData;
 
 use crate::Provider;
 use egui::{Align2, RichText, Ui, Window};
-use walkers::{providers::Attribution, MapMemory};
+use walkers::{providers::Attribution, MapMemory, Position};
 
 pub fn acknowledge(ui: &Ui, attribution: Attribution) {
     Window::new("Acknowledge")
@@ -90,4 +90,20 @@ pub fn go_to_my_position(ui: &Ui, map_memory: &mut MapMemory) {
                 }
             });
     }
+}
+
+pub fn show_my_position(ui: &Ui, my_position: &Position) {
+    Window::new("My Position")
+        .collapsible(false)
+        .resizable(false)
+        .title_bar(false)
+        .anchor(Align2::CENTER_BOTTOM, [0., -10.])
+        .show(ui.ctx(), |ui| {
+            ui.label(format!(
+                "{:.04} {:.04}",
+                my_position.lon(),
+                my_position.lat()
+            ))
+            .on_hover_text("my position");
+        });
 }
