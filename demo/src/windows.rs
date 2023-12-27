@@ -64,6 +64,8 @@ pub fn zoom(ui: &Ui, map_memory: &mut MapMemory) {
                     let _ = map_memory.zoom_in();
                 }
 
+                ui.label(format!("{:^3}", map_memory.zoom_get()));
+
                 if ui.button(RichText::new("➖").heading()).clicked() {
                     let _ = map_memory.zoom_out();
                 }
