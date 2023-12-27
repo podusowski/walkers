@@ -2,7 +2,7 @@
 use std::future::Future;
 
 #[cfg(not(target_arch = "wasm32"))]
-pub use native::TokioRuntimeThread as Runtime;
+pub use native::*;
 
 #[cfg(target_arch = "wasm32")]
 pub use web::WasmBindgenFutures as Runtime;
@@ -28,12 +28,12 @@ mod web {
 mod native {
     use super::*;
 
-    pub struct TokioRuntimeThread {
+    pub struct Runtime {
         join_handle: Option<std::thread::JoinHandle<()>>,
         quit_tx: tokio::sync::mpsc::UnboundedSender<()>,
     }
 
-    impl TokioRuntimeThread {
+    impl Runtime {
         pub fn new<F>(f: F) -> Self
         where
             F: Future + Send + 'static,
@@ -58,7 +58,7 @@ mod native {
         }
     }
 
-    impl Drop for TokioRuntimeThread {
+    impl Drop for Runtime {
         fn drop(&mut self) {
             // Tokio thread might be dead, nothing to do in this case.
             let _ = self.quit_tx.send(());
