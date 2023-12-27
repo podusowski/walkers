@@ -53,6 +53,12 @@ impl Texture {
     }
 }
 
+pub trait TilesManager {
+    fn at(&mut self, tile_id: TileId) -> Option<Texture>;
+    fn attribution(&self) -> Attribution;
+    fn tile_size(&self) -> u32;
+}
+
 /// Downloads and keeps cache of the tiles. It must persist between frames.
 pub struct Tiles {
     attribution: Attribution,
@@ -94,15 +100,17 @@ impl Tiles {
             tile_size,
         }
     }
+}
 
+impl TilesManager for Tiles {
     /// Attribution of the source this tile cache pulls images from. Typically,
     /// this should be displayed somewhere on the top of the map widget.
-    pub fn attribution(&self) -> Attribution {
+    fn attribution(&self) -> Attribution {
         self.attribution.clone()
     }
 
     /// Return a tile if already in cache, schedule a download otherwise.
-    pub(crate) fn at(&mut self, tile_id: TileId) -> Option<Texture> {
+    fn at(&mut self, tile_id: TileId) -> Option<Texture> {
         // Just take one at the time.
         match self.tile_rx.try_next() {
             Ok(Some((tile_id, tile))) => {
@@ -128,6 +136,10 @@ impl Tiles {
                 None
             }
         }
+    }
+
+    fn tile_size(&self) -> u32 {
+        self.tile_size
     }
 }
 

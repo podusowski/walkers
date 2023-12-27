@@ -5,6 +5,7 @@ All notable changes to this project will be documented in this file.
 ## 0.15.0
 
  * `egui` updated to 0.24. This change requires Rust 1.72 or greater.
+ * `TileManager` trait and demonstration of local-generated rainbowed tiles
 
 ## 0.14.0
 
