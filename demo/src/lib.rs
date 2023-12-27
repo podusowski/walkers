@@ -17,8 +17,12 @@ pub enum Provider {
 }
 
 fn http_options() -> HttpOptions {
-    HttpOptions {
-        cache: Some(".cache".into()),
+    if std::env::var("NO_HTTP_CACHE").is_ok() {
+        HttpOptions::default()
+    } else {
+        HttpOptions {
+            cache: Some(".cache".into()),
+        }
     }
 }
 
