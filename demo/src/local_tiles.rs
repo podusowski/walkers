@@ -34,4 +34,8 @@ impl TilesManager for LocalTiles {
     fn tile_size(&self) -> u32 {
         256
     }
+
+    fn available_zoom(&self) -> Vec<u8> {
+        return Vec::from_iter(0..23);
+    }
 }

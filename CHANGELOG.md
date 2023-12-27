@@ -7,6 +7,7 @@ All notable changes to this project will be documented in this file.
  * `egui` updated to 0.24. This change requires Rust 1.72 or greater.
  * `TileManager` trait and demonstration of local-generated rainbowed tiles
  * Click to set position in demo
+ * Different zoom levels limit for local-generated tiles and remote
 
 ## 0.14.0
 

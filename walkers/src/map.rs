@@ -45,6 +45,9 @@ impl<'a, 'b, 'c> Map<'a, 'b, 'c> {
         memory: &'a mut MapMemory,
         my_position: Position,
     ) -> Self {
+        if let Some(tiles) = &tiles {
+            memory.zoom_set_limit(tiles.available_zoom());
+        }
         Self {
             tiles,
             memory,
@@ -352,6 +355,10 @@ pub struct MapMemory {
 }
 
 impl MapMemory {
+    pub(super) fn zoom_set_limit(&mut self, available_zoom: Vec<u8>) {
+        self.zoom.limit_set(available_zoom);
+    }
+
     /// Try to zoom in, returning `Err(InvalidZoom)` if already at maximum.
     pub fn zoom_in(&mut self) -> Result<(), InvalidZoom> {
         self.center_mode = self.center_mode.clone().zero_offset(self.zoom.round());
