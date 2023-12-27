@@ -5,7 +5,7 @@ use egui::{pos2, Color32, Context, Mesh, Rect, Vec2};
 use egui::{ColorImage, TextureHandle};
 use image::ImageError;
 
-use crate::download::download_continuously;
+use crate::download::{download_continuously, HttpOptions};
 use crate::io::Runtime;
 use crate::mercator::TileId;
 use crate::providers::{Attribution, TileSource};
@@ -76,6 +76,13 @@ impl Tiles {
     where
         S: TileSource + Send + 'static,
     {
+        Self::with_options(source, HttpOptions::default(), egui_ctx)
+    }
+
+    pub fn with_options<S>(source: S, http_options: HttpOptions, egui_ctx: Context) -> Self
+    where
+        S: TileSource + Send + 'static,
+    {
         // Minimum value which didn't cause any stalls while testing.
         let channel_size = 20;
 
@@ -83,7 +90,14 @@ impl Tiles {
         let (tile_tx, tile_rx) = futures::channel::mpsc::channel(channel_size);
         let attribution = source.attribution();
         let tile_size = source.tile_size();
-        let runtime = Runtime::new(download_continuously(source, request_rx, tile_tx, egui_ctx));
+
+        let runtime = Runtime::new(download_continuously(
+            source,
+            http_options,
+            request_rx,
+            tile_tx,
+            egui_ctx,
+        ));
 
         Self {
             attribution,

@@ -1,3 +1,5 @@
+use std::path::PathBuf;
+
 use egui::Context;
 use futures::{SinkExt, StreamExt};
 use http_cache_reqwest::{CACacheManager, Cache, CacheMode, HttpCache, HttpCacheOptions};
@@ -6,6 +8,11 @@ use reqwest::header::USER_AGENT;
 use reqwest_middleware::{ClientBuilder, ClientWithMiddleware};
 
 use crate::{mercator::TileId, providers::TileSource, tiles::Texture};
+
+#[derive(Default)]
+pub struct HttpOptions {
+    pub cache: Option<PathBuf>,
+}
 
 #[derive(Debug, thiserror::Error)]
 enum Error {
@@ -46,6 +53,7 @@ async fn download_and_decode(
 
 async fn download_continuously_impl<S>(
     source: S,
+    http_options: HttpOptions,
     mut request_rx: futures::channel::mpsc::Receiver<TileId>,
     mut tile_tx: futures::channel::mpsc::Sender<(TileId, Texture)>,
     egui_ctx: Context,
@@ -57,7 +65,9 @@ where
     let client = ClientBuilder::new(reqwest::Client::new())
         .with(Cache(HttpCache {
             mode: CacheMode::Default,
-            manager: CACacheManager::default(),
+            manager: CACacheManager {
+                path: http_options.cache.unwrap(),
+            },
             options: HttpCacheOptions::default(),
         }))
         .build();
@@ -83,13 +93,14 @@ where
 /// Continuously download tiles requested via request channel.
 pub(crate) async fn download_continuously<S>(
     source: S,
+    http_options: HttpOptions,
     request_rx: futures::channel::mpsc::Receiver<TileId>,
     tile_tx: futures::channel::mpsc::Sender<(TileId, Texture)>,
     egui_ctx: Context,
 ) where
     S: TileSource + Send + 'static,
 {
-    if download_continuously_impl(source, request_rx, tile_tx, egui_ctx)
+    if download_continuously_impl(source, http_options, request_rx, tile_tx, egui_ctx)
         .await
         .is_err()
     {
