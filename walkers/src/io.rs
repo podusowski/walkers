@@ -1,22 +1,19 @@
 //! Managed thread for Tokio runtime.
-use std::future::Future;
 
 #[cfg(not(target_arch = "wasm32"))]
 pub use native::*;
 
 #[cfg(target_arch = "wasm32")]
-pub use web::WasmBindgenFutures as Runtime;
+pub use web::*;
 
 #[cfg(target_arch = "wasm32")]
 mod web {
-    use super::*;
+    pub struct Runtime;
 
-    pub struct WasmBindgenFutures;
-
-    impl WasmBindgenFutures {
+    impl Runtime {
         pub fn new<F>(f: F) -> Self
         where
-            F: Future<Output = ()> + 'static,
+            F: std::future::Future<Output = ()> + 'static,
         {
             wasm_bindgen_futures::spawn_local(f);
             Self {}
@@ -26,8 +23,6 @@ mod web {
 
 #[cfg(not(target_arch = "wasm32"))]
 mod native {
-    use super::*;
-
     pub struct Runtime {
         join_handle: Option<std::thread::JoinHandle<()>>,
         quit_tx: tokio::sync::mpsc::UnboundedSender<()>,
@@ -36,7 +31,7 @@ mod native {
     impl Runtime {
         pub fn new<F>(f: F) -> Self
         where
-            F: Future + Send + 'static,
+            F: std::future::Future + Send + 'static,
             F::Output: Send,
         {
             let (quit_tx, mut quit_rx) = tokio::sync::mpsc::unbounded_channel();
