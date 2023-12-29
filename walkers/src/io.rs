@@ -9,6 +9,8 @@ pub use web::WasmBindgenFutures as Runtime;
 
 #[cfg(target_arch = "wasm32")]
 mod web {
+    use reqwest_middleware::ClientWithMiddleware;
+
     use super::*;
 
     pub struct WasmBindgenFutures;
@@ -22,10 +24,19 @@ mod web {
             Self {}
         }
     }
+
+    pub fn http_client(http_options: HttpOptions) -> ClientWithMiddleware {
+        ClientBuilder::new(reqwest::Client::new()).build()
+    }
 }
 
 #[cfg(not(target_arch = "wasm32"))]
 mod native {
+    use http_cache_reqwest::{CACacheManager, Cache, CacheMode, HttpCache, HttpCacheOptions};
+    use reqwest_middleware::{ClientBuilder, ClientWithMiddleware};
+
+    use crate::HttpOptions;
+
     use super::*;
 
     pub struct TokioRuntimeThread {
@@ -71,5 +82,17 @@ mod native {
 
             log::debug!("Tokio thread is down.");
         }
+    }
+
+    pub fn http_client(http_options: HttpOptions) -> ClientWithMiddleware {
+        ClientBuilder::new(reqwest::Client::new())
+            .with(Cache(HttpCache {
+                mode: CacheMode::Default,
+                manager: CACacheManager {
+                    path: http_options.cache.unwrap(),
+                },
+                options: HttpCacheOptions::default(),
+            }))
+            .build()
     }
 }
