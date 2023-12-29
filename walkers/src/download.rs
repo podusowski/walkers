@@ -16,10 +16,10 @@ pub struct HttpOptions {
 #[derive(Debug, thiserror::Error)]
 enum Error {
     #[error(transparent)]
-    Http(reqwest_middleware::Error),
+    HttpMiddleware(reqwest_middleware::Error),
 
     #[error(transparent)]
-    Http2(reqwest::Error),
+    Http(reqwest::Error),
 
     #[error(transparent)]
     Image(ImageError),
@@ -36,16 +36,16 @@ async fn download_and_decode(
         .header(USER_AGENT, "Walkers")
         .send()
         .await
-        .map_err(Error::Http)?;
+        .map_err(Error::HttpMiddleware)?;
 
     log::debug!("Downloaded {:?}.", image.status());
 
     let image = image
         .error_for_status()
-        .map_err(Error::Http2)?
+        .map_err(Error::Http)?
         .bytes()
         .await
-        .map_err(Error::Http2)?;
+        .map_err(Error::Http)?;
 
     Texture::new(&image, egui_ctx).map_err(Error::Image)
 }
