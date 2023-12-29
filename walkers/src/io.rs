@@ -8,7 +8,8 @@ pub use web::*;
 
 #[cfg(target_arch = "wasm32")]
 mod web {
-    use reqwest_middleware::ClientWithMiddleware;
+    use crate::HttpOptions;
+    use reqwest_middleware::{ClientBuilder, ClientWithMiddleware};
 
     pub struct Runtime;
 
@@ -22,7 +23,7 @@ mod web {
         }
     }
 
-    pub fn http_client(http_options: HttpOptions) -> ClientWithMiddleware {
+    pub fn http_client(_http_options: HttpOptions) -> ClientWithMiddleware {
         ClientBuilder::new(reqwest::Client::new()).build()
     }
 }

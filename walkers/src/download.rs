@@ -2,12 +2,11 @@ use std::path::PathBuf;
 
 use egui::Context;
 use futures::{SinkExt, StreamExt};
-use http_cache_reqwest::{CACacheManager, Cache, CacheMode, HttpCache, HttpCacheOptions};
 use image::ImageError;
 use reqwest::header::USER_AGENT;
-use reqwest_middleware::{ClientBuilder, ClientWithMiddleware};
+use reqwest_middleware::ClientWithMiddleware;
 
-use crate::{mercator::TileId, providers::TileSource, tiles::Texture};
+use crate::{io::http_client, mercator::TileId, providers::TileSource, tiles::Texture};
 
 #[derive(Default)]
 pub struct HttpOptions {
@@ -62,15 +61,7 @@ where
     S: TileSource + Send + 'static,
 {
     // Keep outside the loop to reuse it as much as possible.
-    let client = ClientBuilder::new(reqwest::Client::new())
-        .with(Cache(HttpCache {
-            mode: CacheMode::Default,
-            manager: CACacheManager {
-                path: http_options.cache.unwrap(),
-            },
-            options: HttpCacheOptions::default(),
-        }))
-        .build();
+    let client = http_client(http_options);
 
     loop {
         let request = request_rx.next().await.ok_or(())?;
