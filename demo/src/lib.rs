@@ -1,3 +1,4 @@
+mod local_tiles;
 mod places;
 mod plugins;
 mod windows;
@@ -6,7 +7,7 @@ use std::collections::HashMap;
 
 use crate::plugins::ImagesPluginData;
 use egui::Context;
-use walkers::{HttpOptions, Map, MapMemory, Tiles};
+use walkers::{HttpOptions, Map, MapMemory, Tiles, TilesManager};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum Provider {
@@ -14,6 +15,7 @@ pub enum Provider {
     Geoportal,
     MapboxStreets,
     MapboxSatellite,
+    LocalTiles,
 }
 
 fn http_options() -> HttpOptions {
@@ -26,25 +28,30 @@ fn http_options() -> HttpOptions {
     }
 }
 
-fn providers(egui_ctx: Context) -> HashMap<Provider, Tiles> {
-    let mut providers = HashMap::default();
+fn providers(egui_ctx: Context) -> HashMap<Provider, Box<dyn TilesManager + Send>> {
+    let mut providers: HashMap<Provider, Box<dyn TilesManager + Send>> = HashMap::default();
 
     providers.insert(
         Provider::OpenStreetMap,
-        Tiles::with_options(
+        Box::new(Tiles::with_options(
             walkers::providers::OpenStreetMap,
             http_options(),
             egui_ctx.to_owned(),
-        ),
+        )),
     );
 
     providers.insert(
         Provider::Geoportal,
-        Tiles::with_options(
+        Box::new(Tiles::with_options(
             walkers::providers::Geoportal,
             http_options(),
             egui_ctx.to_owned(),
-        ),
+        )),
+    );
+
+    providers.insert(
+        Provider::LocalTiles,
+        Box::new(local_tiles::LocalTiles::new(egui_ctx.to_owned())),
     );
 
     // Pass in a mapbox access token at compile time. May or may not be what you want to do,
@@ -55,7 +62,7 @@ fn providers(egui_ctx: Context) -> HashMap<Provider, Tiles> {
     if let Some(token) = mapbox_access_token {
         providers.insert(
             Provider::MapboxStreets,
-            Tiles::with_options(
+            Box::new(Tiles::with_options(
                 walkers::providers::Mapbox {
                     style: walkers::providers::MapboxStyle::Streets,
                     access_token: token.to_string(),
@@ -63,12 +70,11 @@ fn providers(egui_ctx: Context) -> HashMap<Provider, Tiles> {
                 },
                 http_options(),
                 egui_ctx.to_owned(),
-            ),
+            )),
         );
-
         providers.insert(
             Provider::MapboxSatellite,
-            Tiles::with_options(
+            Box::new(Tiles::with_options(
                 walkers::providers::Mapbox {
                     style: walkers::providers::MapboxStyle::Satellite,
                     access_token: token.to_string(),
@@ -76,7 +82,7 @@ fn providers(egui_ctx: Context) -> HashMap<Provider, Tiles> {
                 },
                 http_options(),
                 egui_ctx.to_owned(),
-            ),
+            )),
         );
     }
 
@@ -84,7 +90,7 @@ fn providers(egui_ctx: Context) -> HashMap<Provider, Tiles> {
 }
 
 pub struct MyApp {
-    providers: HashMap<Provider, Tiles>,
+    providers: HashMap<Provider, Box<dyn TilesManager + Send>>,
     selected_provider: Provider,
     map_memory: MapMemory,
     images_plugin_data: ImagesPluginData,
@@ -119,7 +125,11 @@ impl eframe::App for MyApp {
                 // Typically this would be a GPS acquired position which is tracked by the map.
                 let my_position = places::wroclaw_glowny();
 
-                let tiles = self.providers.get_mut(&self.selected_provider).unwrap();
+                let tiles = self
+                    .providers
+                    .get_mut(&self.selected_provider)
+                    .unwrap()
+                    .as_mut();
                 let attribution = tiles.attribution();
 
                 // In egui, widgets are constructed and consumed in each frame.
