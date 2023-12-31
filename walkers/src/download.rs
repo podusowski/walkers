@@ -10,6 +10,14 @@ use crate::{io::http_client, mercator::TileId, providers::TileSource, tiles::Tex
 
 #[derive(Default)]
 pub struct HttpOptions {
+    /// Path to the directory to store the HTTP cache.
+    ///
+    /// Keep in mind that some providers (such as OpenStreetMap) require clients
+    /// to respect the HTTP `Expires` header.
+    /// https://operations.osmfoundation.org/policies/tiles/
+    ///
+    /// This option is ignored in WASM, as HTTP cache is controlled by the
+    /// browser the app is running on.
     pub cache: Option<PathBuf>,
 }
 
