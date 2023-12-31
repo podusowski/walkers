@@ -80,14 +80,17 @@ mod native {
     }
 
     pub fn http_client(http_options: HttpOptions) -> ClientWithMiddleware {
-        ClientBuilder::new(reqwest::Client::new())
-            .with(Cache(HttpCache {
+        let builder = ClientBuilder::new(reqwest::Client::new());
+
+        if let Some(cache) = http_options.cache {
+            builder.with(Cache(HttpCache {
                 mode: CacheMode::Default,
-                manager: CACacheManager {
-                    path: http_options.cache.unwrap(),
-                },
+                manager: CACacheManager { path: cache },
                 options: HttpCacheOptions::default(),
             }))
-            .build()
+        } else {
+            builder
+        }
+        .build()
     }
 }
