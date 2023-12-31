@@ -8,3 +8,6 @@ Cargo.lock
 /demo_android/java/.gradle
 /demo_android/java/app/build
 /demo_android/java/app/src/main/jniLibs
+
+# Path where `demo_native` stores the HTTP cache.
+.cache
