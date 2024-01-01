@@ -57,10 +57,9 @@ You can see a more complete example [here](https://github.com/podusowski/walkers
 
 ## Running demos
 
-In the future, Walkers will suport numerous build options, such as Android and
-WASM. They all will share a common library - `demo` , but most will probably
-require a different build workflow, not necessarily compatible with Cargo
-workspaces.
+Walkers suports numerous build options, such as Android and WASM. They all share
+a common library - `demo`, but require a different build workflow, not
+necessarily compatible with Cargo alone.
 
 ### Native
 
