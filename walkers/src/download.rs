@@ -14,7 +14,7 @@ pub struct HttpOptions {
     ///
     /// Keep in mind that some providers (such as OpenStreetMap) require clients
     /// to respect the HTTP `Expires` header.
-    /// https://operations.osmfoundation.org/policies/tiles/
+    /// <https://operations.osmfoundation.org/policies/tiles/>
     ///
     /// This option is ignored in WASM, as HTTP cache is controlled by the
     /// browser the app is running on.
