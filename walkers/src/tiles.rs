@@ -78,6 +78,7 @@ pub struct Tiles {
 }
 
 impl Tiles {
+    /// Construct new [`Tiles`] with default [`HttpOptions`].
     pub fn new<S>(source: S, egui_ctx: Context) -> Self
     where
         S: TileSource + Send + 'static,
@@ -85,6 +86,7 @@ impl Tiles {
         Self::with_options(source, HttpOptions::default(), egui_ctx)
     }
 
+    /// Construct new [`Tiles`] with supplied [`HttpOptions`].
     pub fn with_options<S>(source: S, http_options: HttpOptions, egui_ctx: Context) -> Self
     where
         S: TileSource + Send + 'static,
