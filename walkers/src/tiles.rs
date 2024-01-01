@@ -5,7 +5,7 @@ use egui::{pos2, Color32, Context, Mesh, Rect, Vec2};
 use egui::{ColorImage, TextureHandle};
 use image::ImageError;
 
-use crate::download::download_continuously;
+use crate::download::{download_continuously, HttpOptions};
 use crate::io::Runtime;
 use crate::mercator::TileId;
 use crate::providers::{Attribution, TileSource};
@@ -59,7 +59,7 @@ pub trait TilesManager {
     fn tile_size(&self) -> u32;
 }
 
-/// Downloads and keeps cache of the tiles. It must persist between frames.
+/// Downloads the tiles via HTTP. It must persist between frames.
 pub struct Tiles {
     attribution: Attribution,
 
@@ -78,7 +78,16 @@ pub struct Tiles {
 }
 
 impl Tiles {
+    /// Construct new [`Tiles`] with default [`HttpOptions`].
     pub fn new<S>(source: S, egui_ctx: Context) -> Self
+    where
+        S: TileSource + Send + 'static,
+    {
+        Self::with_options(source, HttpOptions::default(), egui_ctx)
+    }
+
+    /// Construct new [`Tiles`] with supplied [`HttpOptions`].
+    pub fn with_options<S>(source: S, http_options: HttpOptions, egui_ctx: Context) -> Self
     where
         S: TileSource + Send + 'static,
     {
@@ -89,7 +98,14 @@ impl Tiles {
         let (tile_tx, tile_rx) = futures::channel::mpsc::channel(channel_size);
         let attribution = source.attribution();
         let tile_size = source.tile_size();
-        let runtime = Runtime::new(download_continuously(source, request_rx, tile_tx, egui_ctx));
+
+        let runtime = Runtime::new(download_continuously(
+            source,
+            http_options,
+            request_rx,
+            tile_tx,
+            egui_ctx,
+        ));
 
         Self {
             attribution,

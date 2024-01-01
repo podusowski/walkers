@@ -10,6 +10,7 @@ pub mod providers;
 mod tiles;
 mod zoom;
 
+pub use download::HttpOptions;
 pub use map::{Map, MapMemory, Plugin, Projector};
 pub use mercator::{screen_to_position, Position, TileId};
 pub use tiles::{Texture, Tiles, TilesManager};

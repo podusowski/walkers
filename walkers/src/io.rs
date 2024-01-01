@@ -8,6 +8,9 @@ pub use web::*;
 
 #[cfg(target_arch = "wasm32")]
 mod web {
+    use crate::HttpOptions;
+    use reqwest_middleware::{ClientBuilder, ClientWithMiddleware};
+
     pub struct Runtime;
 
     impl Runtime {
@@ -19,10 +22,21 @@ mod web {
             Self {}
         }
     }
+
+    pub fn http_client(http_options: HttpOptions) -> ClientWithMiddleware {
+        if http_options.cache.is_some() {
+            log::warn!("HTTP cache directory set, but ignored because, in WASM, caching is handled by the browser.");
+        }
+        ClientBuilder::new(reqwest::Client::new()).build()
+    }
 }
 
 #[cfg(not(target_arch = "wasm32"))]
 mod native {
+    use crate::HttpOptions;
+    use http_cache_reqwest::{CACacheManager, Cache, CacheMode, HttpCache, HttpCacheOptions};
+    use reqwest_middleware::{ClientBuilder, ClientWithMiddleware};
+
     pub struct Runtime {
         join_handle: Option<std::thread::JoinHandle<()>>,
         quit_tx: tokio::sync::mpsc::UnboundedSender<()>,
@@ -66,5 +80,20 @@ mod native {
 
             log::debug!("Tokio thread is down.");
         }
+    }
+
+    pub fn http_client(http_options: HttpOptions) -> ClientWithMiddleware {
+        let builder = ClientBuilder::new(reqwest::Client::new());
+
+        if let Some(cache) = http_options.cache {
+            builder.with(Cache(HttpCache {
+                mode: CacheMode::Default,
+                manager: CACacheManager { path: cache },
+                options: HttpCacheOptions::default(),
+            }))
+        } else {
+            builder
+        }
+        .build()
     }
 }

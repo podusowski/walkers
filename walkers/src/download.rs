@@ -1,12 +1,32 @@
+use std::path::PathBuf;
+
 use egui::Context;
 use futures::{SinkExt, StreamExt};
 use image::ImageError;
 use reqwest::header::USER_AGENT;
+use reqwest_middleware::ClientWithMiddleware;
 
-use crate::{mercator::TileId, providers::TileSource, tiles::Texture};
+use crate::{io::http_client, mercator::TileId, providers::TileSource, tiles::Texture};
+
+/// Controls how [`crate::Tiles`] use the HTTP protocol, such as caching.
+#[derive(Default)]
+pub struct HttpOptions {
+    /// Path to the directory to store the HTTP cache.
+    ///
+    /// Keep in mind that some providers (such as OpenStreetMap) require clients
+    /// to respect the HTTP `Expires` header.
+    /// <https://operations.osmfoundation.org/policies/tiles/>
+    ///
+    /// This option is ignored in WASM, as HTTP cache is controlled by the
+    /// browser the app is running on.
+    pub cache: Option<PathBuf>,
+}
 
 #[derive(Debug, thiserror::Error)]
 enum Error {
+    #[error(transparent)]
+    HttpMiddleware(reqwest_middleware::Error),
+
     #[error(transparent)]
     Http(reqwest::Error),
 
@@ -16,7 +36,7 @@ enum Error {
 
 /// Download and decode the tile.
 async fn download_and_decode(
-    client: &reqwest::Client,
+    client: &ClientWithMiddleware,
     url: &str,
     egui_ctx: &Context,
 ) -> Result<Texture, Error> {
@@ -25,7 +45,7 @@ async fn download_and_decode(
         .header(USER_AGENT, "Walkers")
         .send()
         .await
-        .map_err(Error::Http)?;
+        .map_err(Error::HttpMiddleware)?;
 
     log::debug!("Downloaded {:?}.", image.status());
 
@@ -41,6 +61,7 @@ async fn download_and_decode(
 
 async fn download_continuously_impl<S>(
     source: S,
+    http_options: HttpOptions,
     mut request_rx: futures::channel::mpsc::Receiver<TileId>,
     mut tile_tx: futures::channel::mpsc::Sender<(TileId, Texture)>,
     egui_ctx: Context,
@@ -49,7 +70,7 @@ where
     S: TileSource + Send + 'static,
 {
     // Keep outside the loop to reuse it as much as possible.
-    let client = reqwest::Client::new();
+    let client = http_client(http_options);
 
     loop {
         let request = request_rx.next().await.ok_or(())?;
@@ -72,13 +93,14 @@ where
 /// Continuously download tiles requested via request channel.
 pub(crate) async fn download_continuously<S>(
     source: S,
+    http_options: HttpOptions,
     request_rx: futures::channel::mpsc::Receiver<TileId>,
     tile_tx: futures::channel::mpsc::Sender<(TileId, Texture)>,
     egui_ctx: Context,
 ) where
     S: TileSource + Send + 'static,
 {
-    if download_continuously_impl(source, request_rx, tile_tx, egui_ctx)
+    if download_continuously_impl(source, http_options, request_rx, tile_tx, egui_ctx)
         .await
         .is_err()
     {

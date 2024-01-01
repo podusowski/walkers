@@ -7,7 +7,7 @@ use std::collections::HashMap;
 
 use crate::plugins::ImagesPluginData;
 use egui::Context;
-use walkers::{Map, MapMemory, Tiles, TilesManager};
+use walkers::{HttpOptions, Map, MapMemory, Tiles, TilesManager};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum Provider {
@@ -18,21 +18,33 @@ pub enum Provider {
     LocalTiles,
 }
 
+fn http_options() -> HttpOptions {
+    HttpOptions {
+        cache: if std::env::var("NO_HTTP_CACHE").is_ok() {
+            None
+        } else {
+            Some(".cache".into())
+        },
+    }
+}
+
 fn providers(egui_ctx: Context) -> HashMap<Provider, Box<dyn TilesManager + Send>> {
     let mut providers: HashMap<Provider, Box<dyn TilesManager + Send>> = HashMap::default();
 
     providers.insert(
         Provider::OpenStreetMap,
-        Box::new(Tiles::new(
+        Box::new(Tiles::with_options(
             walkers::providers::OpenStreetMap,
+            http_options(),
             egui_ctx.to_owned(),
         )),
     );
 
     providers.insert(
         Provider::Geoportal,
-        Box::new(Tiles::new(
+        Box::new(Tiles::with_options(
             walkers::providers::Geoportal,
+            http_options(),
             egui_ctx.to_owned(),
         )),
     );
@@ -50,23 +62,25 @@ fn providers(egui_ctx: Context) -> HashMap<Provider, Box<dyn TilesManager + Send
     if let Some(token) = mapbox_access_token {
         providers.insert(
             Provider::MapboxStreets,
-            Box::new(Tiles::new(
+            Box::new(Tiles::with_options(
                 walkers::providers::Mapbox {
                     style: walkers::providers::MapboxStyle::Streets,
                     access_token: token.to_string(),
                     high_resolution: false,
                 },
+                http_options(),
                 egui_ctx.to_owned(),
             )),
         );
         providers.insert(
             Provider::MapboxSatellite,
-            Box::new(Tiles::new(
+            Box::new(Tiles::with_options(
                 walkers::providers::Mapbox {
                     style: walkers::providers::MapboxStyle::Satellite,
                     access_token: token.to_string(),
                     high_resolution: true,
                 },
+                http_options(),
                 egui_ctx.to_owned(),
             )),
         );
