@@ -1,6 +1,6 @@
 use egui::ColorImage;
 use egui::Context;
-use walkers::providers::Attribution;
+use walkers::sources::Attribution;
 use walkers::Texture;
 use walkers::TileId;
 use walkers::TilesManager;

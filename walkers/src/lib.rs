@@ -6,7 +6,7 @@ pub mod extras;
 mod io;
 mod map;
 mod mercator;
-pub mod providers;
+pub mod sources;
 mod tiles;
 mod zoom;
 

@@ -34,7 +34,7 @@ fn providers(egui_ctx: Context) -> HashMap<Provider, Box<dyn TilesManager + Send
     providers.insert(
         Provider::OpenStreetMap,
         Box::new(Tiles::with_options(
-            walkers::providers::OpenStreetMap,
+            walkers::sources::OpenStreetMap,
             http_options(),
             egui_ctx.to_owned(),
         )),
@@ -43,7 +43,7 @@ fn providers(egui_ctx: Context) -> HashMap<Provider, Box<dyn TilesManager + Send
     providers.insert(
         Provider::Geoportal,
         Box::new(Tiles::with_options(
-            walkers::providers::Geoportal,
+            walkers::sources::Geoportal,
             http_options(),
             egui_ctx.to_owned(),
         )),
@@ -63,8 +63,8 @@ fn providers(egui_ctx: Context) -> HashMap<Provider, Box<dyn TilesManager + Send
         providers.insert(
             Provider::MapboxStreets,
             Box::new(Tiles::with_options(
-                walkers::providers::Mapbox {
-                    style: walkers::providers::MapboxStyle::Streets,
+                walkers::sources::Mapbox {
+                    style: walkers::sources::MapboxStyle::Streets,
                     access_token: token.to_string(),
                     high_resolution: false,
                 },
@@ -75,8 +75,8 @@ fn providers(egui_ctx: Context) -> HashMap<Provider, Box<dyn TilesManager + Send
         providers.insert(
             Provider::MapboxSatellite,
             Box::new(Tiles::with_options(
-                walkers::providers::Mapbox {
-                    style: walkers::providers::MapboxStyle::Satellite,
+                walkers::sources::Mapbox {
+                    style: walkers::sources::MapboxStyle::Satellite,
                     access_token: token.to_string(),
                     high_resolution: true,
                 },
