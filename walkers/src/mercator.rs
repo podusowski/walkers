@@ -50,7 +50,7 @@ impl Position {
         let (x, y) = mercator_normalized(*self);
 
         // Some providers provide larger tiles, effectively bundling e.g. 4 256px tiles in one
-        // 512px one. To use this functionality, we zoom out correspondigly so the resolution
+        // 512px one. To use this functionality, we zoom out correspondingly so the resolution
         // remains the same.
         let tile_size_correction = ((tile_size as f64) / (TILE_SIZE as f64)).log2();
         zoom -= tile_size_correction as u8;
