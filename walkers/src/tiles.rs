@@ -74,7 +74,7 @@ pub struct Tiles {
     #[allow(dead_code)] // Significant Drop
     runtime: Runtime,
 
-    pub tile_size: u32,
+    tile_size: u32,
 }
 
 impl Tiles {
