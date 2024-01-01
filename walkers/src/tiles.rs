@@ -59,7 +59,7 @@ pub trait TilesManager {
     fn tile_size(&self) -> u32;
 }
 
-/// Downloads and keeps cache of the tiles. It must persist between frames.
+/// Downloads the tiles via HTTP. It must persist between frames.
 pub struct Tiles {
     attribution: Attribution,
 
