@@ -1,4 +1,4 @@
-//! Some common tile map providers.
+//! Some common HTTP tile sources. Make sure you follow terms of usage of the particular source.
 
 use crate::mercator::TileId;
 

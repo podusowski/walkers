@@ -6,7 +6,7 @@ use image::ImageError;
 use reqwest::header::USER_AGENT;
 use reqwest_middleware::ClientWithMiddleware;
 
-use crate::{io::http_client, mercator::TileId, providers::TileSource, tiles::Texture};
+use crate::{io::http_client, mercator::TileId, sources::TileSource, tiles::Texture};
 
 /// Controls how [`crate::Tiles`] use the HTTP protocol, such as caching.
 #[derive(Default)]

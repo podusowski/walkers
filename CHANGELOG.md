@@ -4,6 +4,7 @@ All notable changes to this project will be documented in this file.
 
 ## Unreleased
 
+ * `mod providers` is now called `mod sources`, to resemble `trait TileSource`.
  * HTTP cache can be now enabled on native platforms (in WASM, is it handled by the browser).
  * `TileManager` trait and demonstration of locally generated tiles.
 

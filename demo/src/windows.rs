@@ -2,7 +2,7 @@ use crate::plugins::ImagesPluginData;
 
 use crate::Provider;
 use egui::{Align2, RichText, Ui, Window};
-use walkers::{providers::Attribution, MapMemory};
+use walkers::{sources::Attribution, MapMemory};
 
 pub fn acknowledge(ui: &Ui, attribution: Attribution) {
     Window::new("Acknowledge")

@@ -8,7 +8,7 @@ use image::ImageError;
 use crate::download::{download_continuously, HttpOptions};
 use crate::io::Runtime;
 use crate::mercator::TileId;
-use crate::providers::{Attribution, TileSource};
+use crate::sources::{Attribution, TileSource};
 
 pub(crate) fn rect(screen_position: Vec2, tile_size: u32) -> Rect {
     Rect::from_min_size(screen_position.to_pos2(), Vec2::splat(tile_size as f32))
