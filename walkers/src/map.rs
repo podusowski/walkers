@@ -107,6 +107,19 @@ impl Projector {
         self.clip_rect.center().to_vec2()
             + (projected_position - map_center_projected_position).to_vec2()
     }
+
+    /// Get coordinates from viewport's pixels position
+    pub fn unproject(&self, position: Vec2) -> Position {
+        let zoom = self.memory.zoom.round();
+        let center = self.memory.center_mode.position(self.my_position, zoom);
+
+        AdjustedPosition {
+            position: center,
+            offset: Default::default(),
+        }
+        .shift(-position)
+        .position(zoom)
+    }
 }
 
 impl Map<'_, '_, '_> {
