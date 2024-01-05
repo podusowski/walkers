@@ -7,6 +7,7 @@ All notable changes to this project will be documented in this file.
  * `mod providers` is now called `mod sources`, to resemble `trait TileSource`.
  * HTTP cache can be now enabled on native platforms (in WASM, is it handled by the browser).
  * `TileManager` trait and demonstration of locally generated tiles.
+ * Add ability to get GPS coordinates from position on screen and display it in demo app
 
 ## 0.15.0
 
