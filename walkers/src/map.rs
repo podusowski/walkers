@@ -13,7 +13,13 @@ use crate::{
 /// you can add it to the map with [`Map::with_plugin`]
 pub trait Plugin {
     /// Function called at each frame.
-    fn draw(&self, response: &Response, painter: Painter, projector: &Projector);
+    fn draw(
+        &self,
+        response: &Response,
+        gesture_handled: bool,
+        painter: Painter,
+        projector: &Projector,
+    );
 }
 
 /// The actual map widget. Instances are to be created on each frame, as all necessary state is
@@ -37,6 +43,9 @@ pub struct Map<'a, 'b, 'c> {
     memory: &'a mut MapMemory,
     my_position: Position,
     plugins: Vec<Box<dyn Plugin + 'c>>,
+
+    zoom_gesture_enabled: bool,
+    drag_gesture_enabled: bool,
 }
 
 impl<'a, 'b, 'c> Map<'a, 'b, 'c> {
@@ -50,12 +59,28 @@ impl<'a, 'b, 'c> Map<'a, 'b, 'c> {
             memory,
             my_position,
             plugins: Vec::default(),
+            zoom_gesture_enabled: true,
+            drag_gesture_enabled: true,
         }
     }
 
     /// Add plugin to the drawing pipeline. Plugins allow drawing custom shapes on the map.
     pub fn with_plugin(mut self, plugin: impl Plugin + 'c) -> Self {
         self.plugins.push(Box::new(plugin));
+        self
+    }
+
+    /// Enable or disable zoom gesture.
+    /// Plugin's input not affected.
+    pub fn zoom_gesture(mut self, enabled: bool) -> Self {
+        self.zoom_gesture_enabled = enabled;
+        self
+    }
+
+    /// Enable or disable drag gesture.
+    /// Plugin's input not affected.
+    pub fn drag_gesture(mut self, enabled: bool) -> Self {
+        self.drag_gesture_enabled = enabled;
         self
     }
 }
@@ -91,12 +116,16 @@ impl Projector {
 
 impl Map<'_, '_, '_> {
     /// Handle zoom and drag inputs, and recalculate everything accordingly.
-    fn zoom_and_drag(&mut self, ui: &mut Ui, response: &Response) {
+    /// Returns `false` if no gesture handled.
+    fn gesture_handle(&mut self, ui: &mut Ui, response: &Response) -> bool {
         let zoom_delta = ui.input(|input| input.zoom_delta());
 
         // Zooming and dragging need to be exclusive, otherwise the map will get dragged when
         // pinch gesture is used.
-        if !(0.99..=1.01).contains(&zoom_delta) && ui.ui_contains_pointer() {
+        if !(0.99..=1.01).contains(&zoom_delta)
+            && ui.ui_contains_pointer()
+            && self.zoom_gesture_enabled
+        {
             // Displacement of mouse pointer relative to widget center
             let offset = response.hover_pos().map(|p| p - response.rect.center());
 
@@ -127,12 +156,21 @@ impl Map<'_, '_, '_> {
             if let Some(offset) = offset {
                 self.memory.center_mode = self.memory.center_mode.clone().shift(offset);
             }
-        } else {
+
+            return true;
+        } else if self.drag_gesture_enabled {
             self.memory
                 .center_mode
                 .recalculate_drag(response, self.my_position);
+
+            return true;
         }
 
+        false
+    }
+
+    /// Update drag movements
+    fn calc_movements(&mut self, ui: &Ui) {
         self.memory
             .center_mode
             .recalculate_inertial_movement(ui.ctx());
@@ -143,7 +181,9 @@ impl Widget for Map<'_, '_, '_> {
     fn ui(mut self, ui: &mut Ui) -> Response {
         let (rect, response) = ui.allocate_exact_size(ui.available_size(), Sense::drag());
 
-        self.zoom_and_drag(ui, &response);
+        let gesture_handled = self.gesture_handle(ui, &response);
+
+        self.calc_movements(ui);
 
         let zoom = self.memory.zoom.round();
         let map_center = self.memory.center_mode.position(self.my_position, zoom);
@@ -171,7 +211,7 @@ impl Widget for Map<'_, '_, '_> {
                 my_position: self.my_position,
             };
 
-            plugin.draw(&response, painter.to_owned(), &projector);
+            plugin.draw(&response, gesture_handled, painter.to_owned(), &projector);
         }
 
         response

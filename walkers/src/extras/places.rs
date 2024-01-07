@@ -45,7 +45,13 @@ pub struct Place {
 }
 
 impl Place {
-    fn draw(&self, _response: &Response, painter: Painter, projector: &crate::Projector) {
+    fn draw(
+        &self,
+        _response: &Response,
+        _gesture_handled: bool,
+        painter: Painter,
+        projector: &crate::Projector,
+    ) {
         let screen_position = projector.project(self.position);
 
         let label = painter.layout_no_wrap(
@@ -98,9 +104,15 @@ impl Places {
 }
 
 impl Plugin for Places {
-    fn draw(&self, response: &Response, painter: Painter, projector: &crate::Projector) {
+    fn draw(
+        &self,
+        response: &Response,
+        gesture_handled: bool,
+        painter: Painter,
+        projector: &crate::Projector,
+    ) {
         for place in &self.places {
-            place.draw(response, painter.clone(), projector);
+            place.draw(response, gesture_handled, painter.clone(), projector);
         }
     }
 }

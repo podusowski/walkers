@@ -57,7 +57,13 @@ pub fn images(images_plugin_data: &mut ImagesPluginData) -> impl Plugin {
 pub struct CustomShapes {}
 
 impl Plugin for CustomShapes {
-    fn draw(&self, response: &Response, painter: Painter, projector: &Projector) {
+    fn draw(
+        &self,
+        response: &Response,
+        _gesture_handled: bool,
+        painter: Painter,
+        projector: &Projector,
+    ) {
         // Position of the point we want to put our shapes.
         let position = places::capitol();
 
