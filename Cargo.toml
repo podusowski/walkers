@@ -10,5 +10,5 @@ image = "0.24"
 log = "0.4"
 egui = "0.24"
 egui_extras = { version = "0.24", features = ["svg"] }
-eframe = "0.24"
+eframe = "0.25"
 egui-winit = "0.24"
