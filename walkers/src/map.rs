@@ -170,11 +170,9 @@ impl Map<'_, '_, '_> {
         }
     }
 
-    /// Update drag movements
-    fn calc_movements(&mut self, ui: &Ui) {
-        self.memory
-            .center_mode
-            .recalculate_inertial_movement(ui.ctx());
+    /// Handles the inertial movement of a map after it has been dragged.
+    fn update_inertial_movement(&mut self, ui: &Ui) {
+        self.memory.center_mode.update_inertial_movement(ui.ctx());
     }
 }
 
@@ -183,8 +181,7 @@ impl Widget for Map<'_, '_, '_> {
         let (rect, response) = ui.allocate_exact_size(ui.available_size(), Sense::drag());
 
         let gesture_handled = self.handle_gestures(ui, &response);
-
-        self.calc_movements(ui);
+        self.update_inertial_movement(ui);
 
         let zoom = self.memory.zoom.round();
         let map_center = self.memory.center_mode.position(self.my_position, zoom);
@@ -292,7 +289,7 @@ impl Center {
         }
     }
 
-    fn recalculate_inertial_movement(&mut self, ctx: &Context) {
+    fn update_inertial_movement(&mut self, ctx: &Context) {
         if let Center::Inertia {
             position,
             direction,
