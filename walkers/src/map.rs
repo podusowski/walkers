@@ -118,7 +118,7 @@ impl Projector {
 impl Map<'_, '_, '_> {
     /// Handle zoom and drag inputs, and recalculate everything accordingly.
     /// Returns `false` if no gesture handled.
-    fn gesture_handle(&mut self, ui: &mut Ui, response: &Response) -> bool {
+    fn handle_gestures(&mut self, ui: &mut Ui, response: &Response) -> bool {
         let zoom_delta = ui.input(|input| input.zoom_delta());
 
         // Zooming and dragging need to be exclusive, otherwise the map will get dragged when
@@ -158,16 +158,16 @@ impl Map<'_, '_, '_> {
                 self.memory.center_mode = self.memory.center_mode.clone().shift(offset);
             }
 
-            return true;
+            true
         } else if self.drag_gesture_enabled {
             self.memory
                 .center_mode
                 .recalculate_drag(response, self.my_position);
 
-            return true;
+            true
+        } else {
+            false
         }
-
-        false
     }
 
     /// Update drag movements
@@ -182,7 +182,7 @@ impl Widget for Map<'_, '_, '_> {
     fn ui(mut self, ui: &mut Ui) -> Response {
         let (rect, response) = ui.allocate_exact_size(ui.available_size(), Sense::drag());
 
-        let gesture_handled = self.gesture_handle(ui, &response);
+        let gesture_handled = self.handle_gestures(ui, &response);
 
         self.calc_movements(ui);
 
