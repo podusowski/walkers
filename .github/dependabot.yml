@@ -4,3 +4,9 @@ updates:
     directory: "/"
     schedule:
       interval: "weekly"
+    groups:
+      # Egui family of crates need to go together.
+      egui:
+        patterns:
+          - "egui*"
+          - "eframe"
