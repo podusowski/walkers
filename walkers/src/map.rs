@@ -70,15 +70,16 @@ impl<'a, 'b, 'c> Map<'a, 'b, 'c> {
         self
     }
 
-    /// Enable or disable zoom gesture.
-    /// Plugin's input not affected.
+    /// Set whether map should perform zoom gesture.
+    ///
+    /// Zoom is typically triggered by the mouse wheel while holding <kbd>ctrl</kbd> key on native
+    /// and web, and by pinch gesture on Android.
     pub fn zoom_gesture(mut self, enabled: bool) -> Self {
         self.zoom_gesture_enabled = enabled;
         self
     }
 
-    /// Enable or disable drag gesture.
-    /// Plugin's input not affected.
+    /// Set whether map should perform drag gesture.
     pub fn drag_gesture(mut self, enabled: bool) -> Self {
         self.drag_gesture_enabled = enabled;
         self

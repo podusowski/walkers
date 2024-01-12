@@ -7,8 +7,8 @@ All notable changes to this project will be documented in this file.
  * `mod providers` is now called `mod sources`, to resemble `trait TileSource`.
  * HTTP cache can be now enabled on native platforms (in WASM, is it handled by the browser).
  * `TileManager` trait and demonstration of locally generated tiles.
- * Map: add ability to disable zoom and drag gestures
- * Map plugins: add `gesture_handled` flag to let plugins know if it the map's gesture
+ * Zoom and drag gestures can now be disabled.
+ * Add `gesture_handled` to `Plugin::draw()` to let plugins know if the gesture was handled by the map.
 
 ## 0.15.0
 
