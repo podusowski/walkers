@@ -70,15 +70,16 @@ impl<'a, 'b, 'c> Map<'a, 'b, 'c> {
         self
     }
 
-    /// Enable or disable zoom gesture.
-    /// Plugin's input not affected.
+    /// Set whether map should perform zoom gesture.
+    ///
+    /// Zoom is typically triggered by the mouse wheel while holding <kbd>ctrl</kbd> key on native
+    /// and web, and by pinch gesture on Android.
     pub fn zoom_gesture(mut self, enabled: bool) -> Self {
         self.zoom_gesture_enabled = enabled;
         self
     }
 
-    /// Enable or disable drag gesture.
-    /// Plugin's input not affected.
+    /// Set whether map should perform drag gesture.
     pub fn drag_gesture(mut self, enabled: bool) -> Self {
         self.drag_gesture_enabled = enabled;
         self
@@ -117,7 +118,7 @@ impl Projector {
 impl Map<'_, '_, '_> {
     /// Handle zoom and drag inputs, and recalculate everything accordingly.
     /// Returns `false` if no gesture handled.
-    fn gesture_handle(&mut self, ui: &mut Ui, response: &Response) -> bool {
+    fn handle_gestures(&mut self, ui: &mut Ui, response: &Response) -> bool {
         let zoom_delta = ui.input(|input| input.zoom_delta());
 
         // Zooming and dragging need to be exclusive, otherwise the map will get dragged when
@@ -157,23 +158,21 @@ impl Map<'_, '_, '_> {
                 self.memory.center_mode = self.memory.center_mode.clone().shift(offset);
             }
 
-            return true;
+            true
         } else if self.drag_gesture_enabled {
             self.memory
                 .center_mode
                 .recalculate_drag(response, self.my_position);
 
-            return true;
+            true
+        } else {
+            false
         }
-
-        false
     }
 
-    /// Update drag movements
-    fn calc_movements(&mut self, ui: &Ui) {
-        self.memory
-            .center_mode
-            .recalculate_inertial_movement(ui.ctx());
+    /// Handles the inertial movement of a map after it has been dragged.
+    fn update_inertial_movement(&mut self, ui: &Ui) {
+        self.memory.center_mode.update_inertial_movement(ui.ctx());
     }
 }
 
@@ -181,9 +180,8 @@ impl Widget for Map<'_, '_, '_> {
     fn ui(mut self, ui: &mut Ui) -> Response {
         let (rect, response) = ui.allocate_exact_size(ui.available_size(), Sense::drag());
 
-        let gesture_handled = self.gesture_handle(ui, &response);
-
-        self.calc_movements(ui);
+        let gesture_handled = self.handle_gestures(ui, &response);
+        self.update_inertial_movement(ui);
 
         let zoom = self.memory.zoom.round();
         let map_center = self.memory.center_mode.position(self.my_position, zoom);
@@ -291,7 +289,7 @@ impl Center {
         }
     }
 
-    fn recalculate_inertial_movement(&mut self, ctx: &Context) {
+    fn update_inertial_movement(&mut self, ctx: &Context) {
         if let Center::Inertia {
             position,
             direction,
