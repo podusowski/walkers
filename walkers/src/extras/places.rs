@@ -73,7 +73,11 @@ impl Place {
             self.style.label_background,
         );
 
-        painter.galley((screen_position + offset).to_pos2(), label);
+        painter.galley(
+            (screen_position + offset).to_pos2(),
+            label,
+            egui::Color32::BLACK,
+        );
 
         painter.circle(
             screen_position.to_pos2(),
