@@ -9,7 +9,7 @@ use reqwest_middleware::ClientWithMiddleware;
 use crate::{io::http_client, mercator::TileId, sources::TileSource, tiles::Texture};
 
 /// Controls how [`crate::Tiles`] use the HTTP protocol, such as caching.
-#[derive(Default)]
+#[derive(Default, Clone)]
 pub struct HttpOptions {
     /// Path to the directory to store the HTTP cache.
     ///
@@ -70,7 +70,10 @@ where
     S: TileSource + Send + 'static,
 {
     // Keep outside the loop to reuse it as much as possible.
-    let client = http_client(http_options);
+    let client = http_client(http_options.clone());
+    let client2 = http_client(http_options);
+
+    let clients = [client, client2];
 
     loop {
         let request = request_rx.next().await.ok_or(())?;
