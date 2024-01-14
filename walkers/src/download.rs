@@ -34,12 +34,19 @@ enum Error {
     Image(ImageError),
 }
 
+struct Download {
+    client: ClientWithMiddleware,
+    tile_id: TileId,
+    result: Result<Texture, Error>,
+}
+
 /// Download and decode the tile.
 async fn download_and_decode(
-    client: &ClientWithMiddleware,
-    url: &str,
+    client: ClientWithMiddleware,
+    tile_id: TileId,
+    url: String,
     egui_ctx: &Context,
-) -> Result<Texture, Error> {
+) -> Download {
     let image = client
         .get(url)
         .header(USER_AGENT, "Walkers")
@@ -56,7 +63,11 @@ async fn download_and_decode(
         .await
         .map_err(Error::Http)?;
 
-    Texture::new(&image, egui_ctx).map_err(Error::Image)
+    Download {
+        client,
+        tile_id,
+        result: Texture::new(&image, egui_ctx).map_err(Error::Image),
+    }
 }
 
 async fn download_continuously_impl<S>(
@@ -73,23 +84,83 @@ where
     let client = http_client(http_options.clone());
     let client2 = http_client(http_options);
 
-    let clients = [client, client2];
+    let mut free_clients = vec![client, client2];
+    let mut ongoing_downloads = Vec::<_>::new();
 
     loop {
-        let request = request_rx.next().await.ok_or(())?;
-        let url = source.tile_url(request);
+        let request = request_rx.next();
 
-        log::debug!("Getting {:?} from {}.", request, url);
+        // TODO: Put the rest of the futures back to `ongoing_downloads`.
+        let download = if !ongoing_downloads.is_empty() {
+            Some(futures::future::select_all(ongoing_downloads.drain(..)))
+        } else {
+            None
+        };
 
-        match download_and_decode(&client, &url, &egui_ctx).await {
-            Ok(tile) => {
-                tile_tx.send((request, tile)).await.map_err(|_| ())?;
-                egui_ctx.request_repaint();
+        match (download, free_clients.pop()) {
+            (None, None) => {
+                unreachable!("it is not possible to have no ongoing downloads and no free clients");
             }
-            Err(e) => {
-                log::warn!("Could not download '{}': {}", &url, e);
+            (None, Some(free_client)) => {
+                // No ongoing downloads, so we need to only focus on waiting for a request.
+                let request = request.await.ok_or(())?;
+                let url = source.tile_url(request);
+
+                let download = download_and_decode(free_client, request, url, &egui_ctx);
+                // TODO: Put the client back when it finishes.
+                ongoing_downloads.push(Box::pin(download));
             }
+            (Some(ongoing_download), None) => {
+                // No free clients, so we do not care about incoming requests.
+                let (result, _, r) = ongoing_download.await;
+                ongoing_downloads = r;
+
+                match result.result {
+                    Ok(tile) => {
+                        tile_tx.send((result.tile_id, tile)).await.map_err(|_| ())?;
+                        egui_ctx.request_repaint();
+                    }
+                    Err(e) => {
+                        // TODO
+                        //log::warn!("Could not download '{}': {}", &url, e);
+                    }
+                }
+            }
+            (Some(_), Some(_)) => todo!(),
         }
+
+        //if let Some(free_client) = free_clients.pop() {
+        //    // Having free client means that we can both handle the new request, and completed download.
+        //    match futures::future::select(request, download).await {
+        //        futures::future::Either::Left((request, _)) => {
+        //            let request = request.ok_or(())?;
+        //            let url = source.tile_url(request);
+
+        //            let download = download_and_decode(free_client, url, &egui_ctx);
+        //            // TODO: Put the client back when it finishes.
+        //            ongoing_downloads.push(Box::pin(download));
+        //        }
+        //        futures::future::Either::Right(_) => todo!(),
+        //    }
+        //} else {
+        //    // Without a free client, we can only wait until some download completes.
+        //    let result = todo!();
+        //}
+
+        //let request = request_rx.next().await.ok_or(())?;
+        //let url = source.tile_url(request);
+
+        //log::debug!("Getting {:?} from {}.", request, url);
+
+        //match download_and_decode(&client, &url, &egui_ctx).await {
+        //    Ok(tile) => {
+        //        tile_tx.send((request, tile)).await.map_err(|_| ())?;
+        //        egui_ctx.request_repaint();
+        //    }
+        //    Err(e) => {
+        //        log::warn!("Could not download '{}': {}", &url, e);
+        //    }
+        //}
     }
 }
 
