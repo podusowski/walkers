@@ -6,7 +6,7 @@ use std::time::Duration;
 async fn expectation_then_request() {
     let _ = env_logger::try_init();
 
-    let mock = Mock::bind().await.unwrap();
+    let mock = Mock::bind().await;
     let url = format!("http://localhost:{}/foo", mock.port);
     let request = mock.expect("/foo".to_string()).await;
 
@@ -27,10 +27,11 @@ async fn expectation_then_request() {
 }
 
 #[tokio::test]
+#[should_panic(expected = "there are unexpected requests")]
 async fn unexpected_request() {
     let _ = env_logger::try_init();
 
-    let mock = Mock::bind().await.unwrap();
+    let mock = Mock::bind().await;
     let url = format!("http://localhost:{}/foo", mock.port);
 
     let response = reqwest::get(url).await.unwrap();

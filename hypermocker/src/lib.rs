@@ -1,8 +1,14 @@
 use http_body_util::Full;
 use hyper::{body::Bytes, server::conn::http1, service::Service, Request, Response};
 use hyper_util::rt::TokioIo;
-use std::{collections::HashMap, future::Future, net::SocketAddr, pin::Pin, sync::Arc};
-use tokio::{net::TcpListener, sync::Mutex};
+use std::{
+    collections::HashMap,
+    future::Future,
+    net::SocketAddr,
+    pin::Pin,
+    sync::{Arc, Mutex},
+};
+use tokio::net::TcpListener;
 
 #[derive(Default)]
 struct State {
@@ -18,7 +24,7 @@ pub struct Mock {
 }
 
 impl Mock {
-    pub async fn bind() -> Result<Mock, Box<dyn std::error::Error + Send + Sync>> {
+    pub async fn bind() -> Mock {
         let state = Arc::new(Mutex::new(State::default()));
 
         let addr = SocketAddr::from(([127, 0, 0, 1], 0));
@@ -45,14 +51,22 @@ impl Mock {
             }
         });
 
-        Ok(Mock { port, state })
+        Mock { port, state }
     }
 
     pub async fn expect(&self, url: String) -> Expectation {
         log::info!("Expecting '{}'.", url);
         let (tx, rx) = tokio::sync::oneshot::channel();
-        self.state.lock().await.expectations.insert(url, rx);
+        self.state.lock().unwrap().expectations.insert(url, rx);
         Expectation { tx }
+    }
+}
+
+impl Drop for Mock {
+    fn drop(&mut self) {
+        if !self.state.lock().unwrap().unexpected.is_empty() {
+            panic!("there are unexpected requests");
+        }
     }
 }
 
@@ -82,7 +96,7 @@ impl Service<Request<hyper::body::Incoming>> for MockRequest {
         Box::pin(async move {
             let expectation = state
                 .lock()
-                .await
+                .unwrap()
                 .expectations
                 .remove(&request.uri().path().to_string());
 
@@ -94,7 +108,7 @@ impl Service<Request<hyper::body::Incoming>> for MockRequest {
                 log::warn!("Unexpected '{}'.", request.uri());
                 state
                     .lock()
-                    .await
+                    .unwrap()
                     .unexpected
                     .push(request.uri().to_string());
                 Ok(Response::builder()
