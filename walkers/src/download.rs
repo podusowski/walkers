@@ -97,6 +97,27 @@ where
     let mut free_clients = vec![client, client2];
     let mut ongoing_downloads = Vec::<_>::new();
 
+    async fn download_complete(
+        mut tile_tx: futures::channel::mpsc::Sender<(TileId, Texture)>,
+        egui_ctx: Context,
+        tile_id: TileId,
+        result: Result<Texture, Error>,
+    ) -> Result<(), ()> {
+        match result {
+            Ok(tile) => {
+                tile_tx.send((tile_id, tile)).await.map_err(|_| ())?;
+                egui_ctx.request_repaint();
+            }
+            Err(e) => {
+                // TODO
+                //log::warn!("Could not download '{}': {}", &url, e);
+                log::warn!("{}", e);
+            }
+        };
+
+        Ok(())
+    }
+
     loop {
         let request = request_rx.next();
 
@@ -120,21 +141,16 @@ where
             }
             (Some(ongoing_download), None) => {
                 // No free clients, so we do not care about incoming requests.
-                let (result, _, r) = ongoing_download.await;
-                ongoing_downloads = r;
+                let (result, _, rest) = ongoing_download.await;
+                ongoing_downloads = rest;
                 free_clients.push(result.client);
-
-                match result.result {
-                    Ok(tile) => {
-                        tile_tx.send((result.tile_id, tile)).await.map_err(|_| ())?;
-                        egui_ctx.request_repaint();
-                    }
-                    Err(e) => {
-                        // TODO
-                        //log::warn!("Could not download '{}': {}", &url, e);
-                        log::warn!("{}", e);
-                    }
-                }
+                download_complete(
+                    tile_tx.to_owned(),
+                    egui_ctx.to_owned(),
+                    result.tile_id,
+                    result.result,
+                )
+                .await?;
             }
             (Some(ongoing_download), Some(free_client)) => {
                 match futures::future::select(request, ongoing_download).await {
@@ -146,21 +162,16 @@ where
                         ongoing_downloads.push(Box::pin(download));
                     }
                     futures::future::Either::Right((ongoing_download, _)) => {
-                        let (result, _, r) = ongoing_download;
-
-                        ongoing_downloads = r;
+                        let (result, _, rest) = ongoing_download;
+                        ongoing_downloads = rest;
                         free_clients.push(result.client);
-
-                        match result.result {
-                            Ok(tile) => {
-                                tile_tx.send((result.tile_id, tile)).await.map_err(|_| ())?;
-                                egui_ctx.request_repaint();
-                            }
-                            Err(e) => {
-                                // TODO
-                                log::warn!("{}", e);
-                            }
-                        }
+                        download_complete(
+                            tile_tx.to_owned(),
+                            egui_ctx.to_owned(),
+                            result.tile_id,
+                            result.result,
+                        )
+                        .await?;
                     }
                 }
             }
