@@ -52,10 +52,6 @@ impl Service<Request<hyper::body::Incoming>> for MockRequest {
     }
 }
 
-async fn hello(_: Request<hyper::body::Incoming>) -> Result<Response<Full<Bytes>>, Infallible> {
-    Ok(Response::new(Full::new(Bytes::from("Hello, World!"))))
-}
-
 async fn start_mock() -> Result<Mock, Box<dyn std::error::Error + Send + Sync>> {
     tokio::spawn(async {
         let addr = SocketAddr::from(([127, 0, 0, 1], 3000));
@@ -69,7 +65,7 @@ async fn start_mock() -> Result<Mock, Box<dyn std::error::Error + Send + Sync>> 
                 // Finally, we bind the incoming connection to our `hello` service
                 if let Err(err) = http1::Builder::new()
                     // `service_fn` converts our function in a `Service`
-                    .serve_connection(io, service_fn(hello))
+                    .serve_connection(io, MockRequest)
                     .await
                 {
                     println!("Error serving connection: {:?}", err);
