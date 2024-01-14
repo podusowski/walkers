@@ -24,6 +24,7 @@ pub struct Mock {
 }
 
 impl Mock {
+    /// Create new [`Mock`], and bind it to a random port.
     pub async fn bind() -> Mock {
         let state = Arc::new(Mutex::new(State::default()));
 
@@ -39,14 +40,10 @@ impl Mock {
 
                 let state = state_clone.clone();
                 tokio::task::spawn(async move {
-                    // Finally, we bind the incoming connection to our `hello` service
-                    if let Err(err) = http1::Builder::new()
-                        // `service_fn` converts our function in a `Service`
+                    http1::Builder::new()
                         .serve_connection(io, MockRequest { state })
                         .await
-                    {
-                        println!("Error serving connection: {:?}", err);
-                    }
+                        .unwrap();
                 });
             }
         });
