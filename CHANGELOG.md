@@ -4,6 +4,8 @@ All notable changes to this project will be documented in this file.
 
 ## Unreleased
 
+ * `egui` updated to 0.25.
+
 ## 0.16.0
 
  * `mod providers` is now called `mod sources`, to resemble `trait TileSource`.
