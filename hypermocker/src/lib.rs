@@ -51,6 +51,7 @@ impl Mock {
         Mock { port, state }
     }
 
+    /// Expect a HTTP request, but do not respond to it yet.
     pub async fn expect(&self, url: String) -> Expectation {
         log::info!("Expecting '{}'.", url);
         let (tx, rx) = tokio::sync::oneshot::channel();
