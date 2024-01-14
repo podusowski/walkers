@@ -17,7 +17,6 @@ struct State {
     requests: HashMap<String, tokio::sync::oneshot::Receiver<Bytes>>,
 }
 
-#[derive(Default)]
 struct Mock {
     state: Arc<Mutex<State>>,
 }
@@ -40,7 +39,9 @@ impl Expectation {
     }
 }
 
-struct MockRequest;
+struct MockRequest {
+    state: Arc<Mutex<State>>,
+}
 
 impl Service<Request<hyper::body::Incoming>> for MockRequest {
     type Response = Response<Full<Bytes>>;
@@ -53,7 +54,10 @@ impl Service<Request<hyper::body::Incoming>> for MockRequest {
 }
 
 async fn start_mock() -> Result<Mock, Box<dyn std::error::Error + Send + Sync>> {
-    tokio::spawn(async {
+    let state = Arc::new(Mutex::new(State::default()));
+
+    let state_clone = state.clone();
+    tokio::spawn(async move {
         let addr = SocketAddr::from(([127, 0, 0, 1], 3000));
         let listener = TcpListener::bind(addr).await.unwrap();
 
@@ -61,11 +65,12 @@ async fn start_mock() -> Result<Mock, Box<dyn std::error::Error + Send + Sync>> 
             let (stream, _) = listener.accept().await.unwrap();
             let io = TokioIo::new(stream);
 
+            let state = state_clone.clone();
             tokio::task::spawn(async move {
                 // Finally, we bind the incoming connection to our `hello` service
                 if let Err(err) = http1::Builder::new()
                     // `service_fn` converts our function in a `Service`
-                    .serve_connection(io, MockRequest)
+                    .serve_connection(io, MockRequest { state })
                     .await
                 {
                     println!("Error serving connection: {:?}", err);
@@ -74,7 +79,7 @@ async fn start_mock() -> Result<Mock, Box<dyn std::error::Error + Send + Sync>> 
         }
     });
 
-    Ok(Mock::default())
+    Ok(Mock { state })
 }
 
 #[cfg(test)]
