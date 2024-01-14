@@ -1,20 +1,7 @@
-use std::{
-    collections::HashMap,
-    convert::Infallible,
-    future::Future,
-    net::{SocketAddr, SocketAddrV4},
-    pin::Pin,
-    sync::Arc,
-};
-
 use http_body_util::Full;
-use hyper::{
-    body::Bytes,
-    server::conn::http1,
-    service::{service_fn, Service},
-    Request, Response,
-};
+use hyper::{body::Bytes, server::conn::http1, service::Service, Request, Response};
 use hyper_util::rt::TokioIo;
+use std::{collections::HashMap, future::Future, net::SocketAddr, pin::Pin, sync::Arc};
 use tokio::{net::TcpListener, sync::Mutex};
 
 #[derive(Default)]

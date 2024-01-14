@@ -1,8 +1,6 @@
-use std::time::Duration;
-
 use hyper::body::Bytes;
-
 use hypermocker::Mock;
+use std::time::Duration;
 
 #[tokio::test]
 async fn expectation_then_request() {
