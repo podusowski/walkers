@@ -30,7 +30,9 @@ impl Mock {
     pub async fn expect(&self, url: String) -> Expectation {
         log::info!("Expecting '{}'.", url);
 
-        if let Some(tx) = self.state.lock().await.requests.remove(&url) {
+        let request = self.state.lock().await.requests.remove(&url);
+
+        if let Some(tx) = request {
             log::debug!("Found matching request.");
             Expectation { tx }
         } else {
@@ -66,12 +68,13 @@ impl Service<Request<hyper::body::Incoming>> for MockRequest {
         log::info!("Incoming request '{}'.", request.uri());
         let state = self.state.clone();
         Box::pin(async move {
-            if let Some(rx) = state
+            let expectation = state
                 .lock()
                 .await
                 .expectations
-                .remove(&request.uri().path().to_string())
-            {
+                .remove(&request.uri().path().to_string());
+
+            if let Some(rx) = expectation {
                 log::debug!("Already expecting, responding.");
                 let payload = rx.await.unwrap();
                 Ok(Response::new(Full::new(payload)))
