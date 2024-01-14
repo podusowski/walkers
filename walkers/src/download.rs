@@ -76,6 +76,25 @@ async fn download_and_decode_impl(
     Texture::new(&image, egui_ctx).map_err(Error::Image)
 }
 
+async fn download_complete(
+    mut tile_tx: futures::channel::mpsc::Sender<(TileId, Texture)>,
+    egui_ctx: Context,
+    tile_id: TileId,
+    result: Result<Texture, Error>,
+) -> Result<(), ()> {
+    match result {
+        Ok(tile) => {
+            tile_tx.send((tile_id, tile)).await.map_err(|_| ())?;
+            egui_ctx.request_repaint();
+        }
+        Err(e) => {
+            log::warn!("{}", e);
+        }
+    };
+
+    Ok(())
+}
+
 async fn download_continuously_impl<S>(
     source: S,
     http_options: HttpOptions,
@@ -90,27 +109,6 @@ where
     let client = http_client(http_options);
 
     let mut ongoing_downloads = Vec::<_>::new();
-
-    async fn download_complete(
-        mut tile_tx: futures::channel::mpsc::Sender<(TileId, Texture)>,
-        egui_ctx: Context,
-        tile_id: TileId,
-        result: Result<Texture, Error>,
-    ) -> Result<(), ()> {
-        match result {
-            Ok(tile) => {
-                tile_tx.send((tile_id, tile)).await.map_err(|_| ())?;
-                egui_ctx.request_repaint();
-            }
-            Err(e) => {
-                // TODO
-                //log::warn!("Could not download '{}': {}", &url, e);
-                log::warn!("{}", e);
-            }
-        };
-
-        Ok(())
-    }
 
     loop {
         let request = request_rx.next();
