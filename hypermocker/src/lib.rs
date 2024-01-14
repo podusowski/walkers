@@ -8,6 +8,8 @@ use tokio::{net::TcpListener, sync::Mutex};
 struct State {
     /// Expectations [`Mock::except`], made before incoming HTTP request.
     expectations: HashMap<String, tokio::sync::oneshot::Receiver<Bytes>>,
+
+    unexpected: Vec<String>,
 }
 
 pub struct Mock {
@@ -89,7 +91,12 @@ impl Service<Request<hyper::body::Incoming>> for MockRequest {
                 let payload = rx.await.unwrap();
                 Ok(Response::new(Full::new(payload)))
             } else {
-                log::debug!("Unexpected.");
+                log::warn!("Unexpected '{}'.", request.uri());
+                state
+                    .lock()
+                    .await
+                    .unexpected
+                    .push(request.uri().to_string());
                 Ok(Response::builder()
                     .status(418)
                     .body(Full::new(Bytes::from_static(b"unexpected")))
