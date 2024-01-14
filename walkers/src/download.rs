@@ -35,25 +35,20 @@ enum Error {
 }
 
 struct Download {
-    client: ClientWithMiddleware,
     tile_id: TileId,
     result: Result<Texture, Error>,
 }
 
 /// Download and decode the tile.
 async fn download_and_decode(
-    client: ClientWithMiddleware,
+    client: &ClientWithMiddleware,
     tile_id: TileId,
     url: String,
     egui_ctx: &Context,
 ) -> Download {
-    let result = download_and_decode_impl(&client, url, egui_ctx).await;
+    let result = download_and_decode_impl(client, url, egui_ctx).await;
 
-    Download {
-        client,
-        tile_id,
-        result,
-    }
+    Download { tile_id, result }
 }
 
 async fn download_and_decode_impl(
@@ -91,10 +86,8 @@ where
     S: TileSource + Send + 'static,
 {
     // Keep outside the loop to reuse it as much as possible.
-    let client = http_client(http_options.clone());
-    let client2 = http_client(http_options);
+    let client = http_client(http_options);
 
-    let mut free_clients = vec![client, client2];
     let mut ongoing_downloads = Vec::<_>::new();
 
     async fn download_complete(
@@ -121,6 +114,8 @@ where
     loop {
         let request = request_rx.next();
 
+        let below_concurrent_downloads_limit = ongoing_downloads.len() < 2;
+
         // TODO: Put the rest of the futures back to `ongoing_downloads`.
         let download = if !ongoing_downloads.is_empty() {
             Some(futures::future::select_all(ongoing_downloads.drain(..)))
@@ -128,22 +123,21 @@ where
             None
         };
 
-        match (download, free_clients.pop()) {
-            (None, None) => {
+        match (download, below_concurrent_downloads_limit) {
+            (None, false) => {
                 unreachable!("it is not possible to have no ongoing downloads and no free clients");
             }
-            (None, Some(free_client)) => {
+            (None, true) => {
                 // No ongoing downloads, so we need to only focus on waiting for a request.
                 let request = request.await.ok_or(())?;
                 let url = source.tile_url(request);
-                let download = download_and_decode(free_client, request, url, &egui_ctx);
+                let download = download_and_decode(&client, request, url, &egui_ctx);
                 ongoing_downloads.push(Box::pin(download));
             }
-            (Some(ongoing_download), None) => {
+            (Some(ongoing_download), false) => {
                 // No free clients, so we do not care about incoming requests.
                 let (result, _, rest) = ongoing_download.await;
                 ongoing_downloads = rest;
-                free_clients.push(result.client);
                 download_complete(
                     tile_tx.to_owned(),
                     egui_ctx.to_owned(),
@@ -152,19 +146,18 @@ where
                 )
                 .await?;
             }
-            (Some(ongoing_download), Some(free_client)) => {
+            (Some(ongoing_download), true) => {
                 match futures::future::select(request, ongoing_download).await {
                     futures::future::Either::Left((request, r)) => {
                         ongoing_downloads = r.into_inner();
                         let request = request.ok_or(())?;
                         let url = source.tile_url(request);
-                        let download = download_and_decode(free_client, request, url, &egui_ctx);
+                        let download = download_and_decode(&client, request, url, &egui_ctx);
                         ongoing_downloads.push(Box::pin(download));
                     }
                     futures::future::Either::Right((ongoing_download, _)) => {
                         let (result, _, rest) = ongoing_download;
                         ongoing_downloads = rest;
-                        free_clients.push(result.client);
                         download_complete(
                             tile_tx.to_owned(),
                             egui_ctx.to_owned(),
