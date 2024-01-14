@@ -62,13 +62,13 @@ async fn download_and_decode_impl(
     egui_ctx: &Context,
 ) -> Result<Texture, Error> {
     let image = client
-        .get(url)
+        .get(&url)
         .header(USER_AGENT, "Walkers")
         .send()
         .await
         .map_err(Error::HttpMiddleware)?;
 
-    log::debug!("Downloaded {:?}.", image.status());
+    log::debug!("Downloaded '{}': {:?}.", url, image.status());
 
     let image = image
         .error_for_status()
@@ -138,7 +138,8 @@ where
             }
             (Some(ongoing_download), Some(free_client)) => {
                 match futures::future::select(request, ongoing_download).await {
-                    futures::future::Either::Left((request, _)) => {
+                    futures::future::Either::Left((request, r)) => {
+                        ongoing_downloads = r.into_inner();
                         let request = request.ok_or(())?;
                         let url = source.tile_url(request);
                         let download = download_and_decode(free_client, request, url, &egui_ctx);
