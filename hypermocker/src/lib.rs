@@ -49,7 +49,17 @@ impl Service<Request<hyper::body::Incoming>> for MockRequest {
     type Future = Pin<Box<dyn Future<Output = Result<Self::Response, Self::Error>> + Send>>;
 
     fn call(&self, request: Request<hyper::body::Incoming>) -> Self::Future {
-        Box::pin(async { Ok(Response::new(Full::new(Bytes::from("Hello, World!")))) })
+        let state = self.state.clone();
+        Box::pin(async move {
+            let expectation = state
+                .lock()
+                .await
+                .requests
+                .remove(&request.uri().path().to_string())
+                .unwrap();
+            let payload = expectation.await.unwrap();
+            Ok(Response::new(Full::new(payload)))
+        })
     }
 }
 
