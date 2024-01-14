@@ -14,7 +14,8 @@ use tokio::{net::TcpListener, sync::Mutex};
 
 #[derive(Default)]
 struct State {
-    requests: HashMap<String, tokio::sync::oneshot::Receiver<Bytes>>,
+    /// Expectations [`Mock::except`], made before incoming HTTP request.
+    expectations: HashMap<String, tokio::sync::oneshot::Receiver<Bytes>>,
 }
 
 struct Mock {
@@ -24,7 +25,7 @@ struct Mock {
 impl Mock {
     pub async fn expect(&self, url: String) -> Expectation {
         let (tx, rx) = tokio::sync::oneshot::channel();
-        self.state.lock().await.requests.insert(url, rx);
+        self.state.lock().await.expectations.insert(url, rx);
         Expectation { tx }
     }
 }
@@ -54,7 +55,7 @@ impl Service<Request<hyper::body::Incoming>> for MockRequest {
             let expectation = state
                 .lock()
                 .await
-                .requests
+                .expectations
                 .remove(&request.uri().path().to_string())
                 .unwrap();
             let payload = expectation.await.unwrap();
