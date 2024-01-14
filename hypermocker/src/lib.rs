@@ -8,9 +8,6 @@ use tokio::{net::TcpListener, sync::Mutex};
 struct State {
     /// Expectations [`Mock::except`], made before incoming HTTP request.
     expectations: HashMap<String, tokio::sync::oneshot::Receiver<Bytes>>,
-
-    /// Incoming requests that came before expectation was made.
-    requests: HashMap<String, tokio::sync::oneshot::Sender<Bytes>>,
 }
 
 pub struct Mock {
@@ -51,18 +48,9 @@ impl Mock {
 
     pub async fn expect(&self, url: String) -> Expectation {
         log::info!("Expecting '{}'.", url);
-
-        let request = self.state.lock().await.requests.remove(&url);
-
-        if let Some(tx) = request {
-            log::debug!("Found matching request.");
-            Expectation { tx }
-        } else {
-            log::debug!("Waiting for request.");
-            let (tx, rx) = tokio::sync::oneshot::channel();
-            self.state.lock().await.expectations.insert(url, rx);
-            Expectation { tx }
-        }
+        let (tx, rx) = tokio::sync::oneshot::channel();
+        self.state.lock().await.expectations.insert(url, rx);
+        Expectation { tx }
     }
 }
 
@@ -97,19 +85,15 @@ impl Service<Request<hyper::body::Incoming>> for MockRequest {
                 .remove(&request.uri().path().to_string());
 
             if let Some(rx) = expectation {
-                log::debug!("Already expecting, responding.");
+                log::debug!("Responding.");
                 let payload = rx.await.unwrap();
                 Ok(Response::new(Full::new(payload)))
             } else {
-                log::debug!("Not yet expected, waiting.");
-                let (tx, rx) = tokio::sync::oneshot::channel();
-                state
-                    .lock()
-                    .await
-                    .requests
-                    .insert(request.uri().to_string(), tx);
-                let payload = rx.await.unwrap();
-                Ok(Response::new(Full::new(payload)))
+                log::debug!("Unexpected.");
+                Ok(Response::builder()
+                    .status(418)
+                    .body(Full::new(Bytes::from_static(b"unexpected")))
+                    .unwrap())
             }
         })
     }
