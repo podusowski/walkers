@@ -22,6 +22,7 @@ struct State {
 }
 
 struct Mock {
+    port: u16,
     state: Arc<Mutex<State>>,
 }
 
@@ -85,11 +86,12 @@ impl Service<Request<hyper::body::Incoming>> for MockRequest {
 async fn start_mock() -> Result<Mock, Box<dyn std::error::Error + Send + Sync>> {
     let state = Arc::new(Mutex::new(State::default()));
 
+    let addr = SocketAddr::from(([127, 0, 0, 1], 0));
+    let listener = TcpListener::bind(addr).await.unwrap();
+    let port = listener.local_addr().unwrap().port();
+
     let state_clone = state.clone();
     tokio::spawn(async move {
-        let addr = SocketAddr::from(([127, 0, 0, 1], 3000));
-        let listener = TcpListener::bind(addr).await.unwrap();
-
         loop {
             let (stream, _) = listener.accept().await.unwrap();
             let io = TokioIo::new(stream);
@@ -108,7 +110,7 @@ async fn start_mock() -> Result<Mock, Box<dyn std::error::Error + Send + Sync>> 
         }
     });
 
-    Ok(Mock { state })
+    Ok(Mock { port, state })
 }
 
 #[cfg(test)]
@@ -122,6 +124,7 @@ mod tests {
     #[tokio::test]
     async fn expectation_then_request() {
         let mock = start_mock().await.unwrap();
+        let url = format!("http://localhost:{}/foo", mock.port);
         let request = mock.expect("/foo".to_string()).await;
 
         // Make sure that mock's internals kick in.
@@ -129,7 +132,7 @@ mod tests {
 
         futures::future::join(
             async {
-                let response = reqwest::get("http://localhost:3000/foo").await.unwrap();
+                let response = reqwest::get(url).await.unwrap();
                 let bytes = response.bytes().await.unwrap();
                 assert_eq!(&bytes[..], b"hello");
             },
@@ -143,10 +146,11 @@ mod tests {
     #[tokio::test]
     async fn request_then_expectation() {
         let mock = start_mock().await.unwrap();
+        let url = format!("http://localhost:{}/foo", mock.port);
 
         futures::future::join(
             async {
-                let response = reqwest::get("http://localhost:3000/foo").await.unwrap();
+                let response = reqwest::get(url).await.unwrap();
                 let bytes = response.bytes().await.unwrap();
                 assert_eq!(&bytes[..], b"hello");
             },
