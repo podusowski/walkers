@@ -1,14 +1,33 @@
-pub fn add(left: usize, right: usize) -> usize {
-    left + right
+use std::{convert::Infallible, net::SocketAddr};
+
+use http_body_util::Full;
+use hyper::{body::Bytes, server::conn::http1, service::service_fn, Request, Response};
+use hyper_util::rt::TokioIo;
+use tokio::net::TcpListener;
+
+async fn hello(_: Request<hyper::body::Incoming>) -> Result<Response<Full<Bytes>>, Infallible> {
+    Ok(Response::new(Full::new(Bytes::from("Hello, World!"))))
 }
 
-#[cfg(test)]
-mod tests {
-    use super::*;
+async fn start_mock() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
+    let addr = SocketAddr::from(([127, 0, 0, 1], 3000));
+    let listener = TcpListener::bind(addr).await?;
 
-    #[test]
-    fn it_works() {
-        let result = add(2, 2);
-        assert_eq!(result, 4);
+    loop {
+        let (stream, _) = listener.accept().await?;
+
+        let io = TokioIo::new(stream);
+
+        // Spawn a tokio task to serve multiple connections concurrently
+        tokio::task::spawn(async move {
+            // Finally, we bind the incoming connection to our `hello` service
+            if let Err(err) = http1::Builder::new()
+                // `service_fn` converts our function in a `Service`
+                .serve_connection(io, service_fn(hello))
+                .await
+            {
+                println!("Error serving connection: {:?}", err);
+            }
+        });
     }
 }

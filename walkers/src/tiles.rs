@@ -228,6 +228,27 @@ mod tests {
         tile_mock.assert();
     }
 
+    #[test]
+    fn download_two_tiles_simultaneously() {
+        let _ = env_logger::try_init();
+
+        let (mut server, source) = mockito_server();
+        let tile_mock = server
+            .mock("GET", "/3/1/2.png")
+            .with_body(include_bytes!("../assets/blank-255-tile.png"))
+            .create();
+
+        let mut tiles = Tiles::new(source, Context::default());
+
+        // First query start the download, but it will always return None.
+        assert!(tiles.at(TILE_ID).is_none());
+
+        // Eventually it gets downloaded and become available in cache.
+        while tiles.at(TILE_ID).is_none() {}
+
+        tile_mock.assert();
+    }
+
     fn assert_tile_is_empty_forever(tiles: &mut Tiles) {
         // Should be None now, and forever.
         assert!(tiles.at(TILE_ID).is_none());

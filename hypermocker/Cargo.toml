@@ -3,6 +3,8 @@ name = "hypermocker"
 edition = "2021"
 version.workspace = true
 
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
-
 [dependencies]
+hyper = { version = "1.1.0", features = ["full"] }
+tokio = { version = "1.28", features = ["macros"] }
+hyper-util = { version = "0.1", features = ["full"] }
+http-body-util = "0.1"
