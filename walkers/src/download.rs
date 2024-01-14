@@ -79,7 +79,7 @@ async fn download_continuously_impl<S>(
     source: S,
     http_options: HttpOptions,
     mut request_rx: futures::channel::mpsc::Receiver<TileId>,
-    mut tile_tx: futures::channel::mpsc::Sender<(TileId, Texture)>,
+    tile_tx: futures::channel::mpsc::Sender<(TileId, Texture)>,
     egui_ctx: Context,
 ) -> Result<(), ()>
 where
