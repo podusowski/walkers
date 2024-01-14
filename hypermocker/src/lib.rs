@@ -16,6 +16,9 @@ use tokio::{net::TcpListener, sync::Mutex};
 struct State {
     /// Expectations [`Mock::except`], made before incoming HTTP request.
     expectations: HashMap<String, tokio::sync::oneshot::Receiver<Bytes>>,
+
+    /// Incoming requests that came before expectation was made.
+    requests: HashMap<String, tokio::sync::oneshot::Sender<Bytes>>,
 }
 
 struct Mock {
@@ -24,9 +27,14 @@ struct Mock {
 
 impl Mock {
     pub async fn expect(&self, url: String) -> Expectation {
-        let (tx, rx) = tokio::sync::oneshot::channel();
-        self.state.lock().await.expectations.insert(url, rx);
-        Expectation { tx }
+        println!("Expecting");
+        if let Some(tx) = self.state.lock().await.requests.remove(&url) {
+            Expectation { tx }
+        } else {
+            let (tx, rx) = tokio::sync::oneshot::channel();
+            self.state.lock().await.expectations.insert(url, rx);
+            Expectation { tx }
+        }
     }
 }
 
@@ -52,14 +60,24 @@ impl Service<Request<hyper::body::Incoming>> for MockRequest {
     fn call(&self, request: Request<hyper::body::Incoming>) -> Self::Future {
         let state = self.state.clone();
         Box::pin(async move {
-            let expectation = state
+            if let Some(rx) = state
                 .lock()
                 .await
                 .expectations
                 .remove(&request.uri().path().to_string())
-                .unwrap();
-            let payload = expectation.await.unwrap();
-            Ok(Response::new(Full::new(payload)))
+            {
+                let payload = rx.await.unwrap();
+                Ok(Response::new(Full::new(payload)))
+            } else {
+                let (tx, rx) = tokio::sync::oneshot::channel();
+                state
+                    .lock()
+                    .await
+                    .requests
+                    .insert(request.uri().to_string(), tx);
+                let payload = rx.await.unwrap();
+                Ok(Response::new(Full::new(payload)))
+            }
         })
     }
 }
@@ -116,6 +134,27 @@ mod tests {
                 assert_eq!(&bytes[..], b"hello");
             },
             async {
+                request.respond(Bytes::from_static(b"hello")).await;
+            },
+        )
+        .await;
+    }
+
+    #[tokio::test]
+    async fn request_then_expectation() {
+        let mock = start_mock().await.unwrap();
+
+        futures::future::join(
+            async {
+                let response = reqwest::get("http://localhost:3000/foo").await.unwrap();
+                let bytes = response.bytes().await.unwrap();
+                assert_eq!(&bytes[..], b"hello");
+            },
+            async {
+                // Make sure we first do the request.
+                tokio::time::sleep(Duration::from_secs(1)).await;
+
+                let request = mock.expect("/foo".to_string()).await;
                 request.respond(Bytes::from_static(b"hello")).await;
             },
         )
