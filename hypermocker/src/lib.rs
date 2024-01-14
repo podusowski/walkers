@@ -28,10 +28,13 @@ struct Mock {
 
 impl Mock {
     pub async fn expect(&self, url: String) -> Expectation {
-        println!("Expecting");
+        log::info!("Expecting '{}'.", url);
+
         if let Some(tx) = self.state.lock().await.requests.remove(&url) {
+            log::debug!("Found matching request.");
             Expectation { tx }
         } else {
+            log::debug!("Waiting for request.");
             let (tx, rx) = tokio::sync::oneshot::channel();
             self.state.lock().await.expectations.insert(url, rx);
             Expectation { tx }
@@ -45,6 +48,7 @@ struct Expectation {
 
 impl Expectation {
     pub async fn respond(self, payload: Bytes) {
+        log::info!("Responding.");
         self.tx.send(payload).unwrap();
     }
 }
@@ -59,6 +63,7 @@ impl Service<Request<hyper::body::Incoming>> for MockRequest {
     type Future = Pin<Box<dyn Future<Output = Result<Self::Response, Self::Error>> + Send>>;
 
     fn call(&self, request: Request<hyper::body::Incoming>) -> Self::Future {
+        log::info!("Incoming request '{}'.", request.uri());
         let state = self.state.clone();
         Box::pin(async move {
             if let Some(rx) = state
@@ -67,9 +72,11 @@ impl Service<Request<hyper::body::Incoming>> for MockRequest {
                 .expectations
                 .remove(&request.uri().path().to_string())
             {
+                log::debug!("Already expecting, responding.");
                 let payload = rx.await.unwrap();
                 Ok(Response::new(Full::new(payload)))
             } else {
+                log::debug!("Not yet expected, waiting.");
                 let (tx, rx) = tokio::sync::oneshot::channel();
                 state
                     .lock()
@@ -123,6 +130,8 @@ mod tests {
 
     #[tokio::test]
     async fn expectation_then_request() {
+        let _ = env_logger::try_init();
+
         let mock = start_mock().await.unwrap();
         let url = format!("http://localhost:{}/foo", mock.port);
         let request = mock.expect("/foo".to_string()).await;
@@ -145,6 +154,8 @@ mod tests {
 
     #[tokio::test]
     async fn request_then_expectation() {
+        let _ = env_logger::try_init();
+
         let mock = start_mock().await.unwrap();
         let url = format!("http://localhost:{}/foo", mock.port);
 
