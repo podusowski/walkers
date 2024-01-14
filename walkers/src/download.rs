@@ -113,10 +113,8 @@ where
 
     loop {
         let request = request_rx.next();
-
         let below_concurrent_downloads_limit = ongoing_downloads.len() < 2;
 
-        // TODO: Put the rest of the futures back to `ongoing_downloads`.
         let download = if !ongoing_downloads.is_empty() {
             Some(futures::future::select_all(ongoing_downloads.drain(..)))
         } else {
