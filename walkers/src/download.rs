@@ -46,9 +46,10 @@ async fn download_and_decode(
     url: String,
     egui_ctx: &Context,
 ) -> Download {
-    let result = download_and_decode_impl(client, url, egui_ctx).await;
-
-    Download { tile_id, result }
+    Download {
+        tile_id,
+        result: download_and_decode_impl(client, url, egui_ctx).await,
+    }
 }
 
 async fn download_and_decode_impl(
