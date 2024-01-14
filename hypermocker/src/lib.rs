@@ -1,5 +1,5 @@
 use http_body_util::Full;
-use hyper::{body::Bytes, server::conn::http1, service::Service, Request, Response};
+use hyper::{server::conn::http1, service::Service, Request, Response};
 use hyper_util::rt::TokioIo;
 use std::{
     collections::HashMap,
@@ -9,6 +9,8 @@ use std::{
     sync::{Arc, Mutex},
 };
 use tokio::net::TcpListener;
+
+pub use hyper::body::Bytes;
 
 #[derive(Default)]
 struct State {
