@@ -9,13 +9,19 @@ use std::{
     sync::{Arc, Mutex},
 };
 use tokio::net::TcpListener;
+use tokio::sync::oneshot;
 
 pub use hyper::body::Bytes;
 
+struct Expectation {
+    payload_rx: tokio::sync::oneshot::Receiver<Bytes>,
+    happened_tx: tokio::sync::oneshot::Sender<()>,
+}
+
 #[derive(Default)]
 struct State {
-    /// Expectations [`Mock::except`], made before incoming HTTP request.
-    expectations: HashMap<String, tokio::sync::oneshot::Receiver<Bytes>>,
+    /// Expectations and anticipations [`Mock::anticipate`], made before incoming HTTP request.
+    expectations: HashMap<String, Expectation>,
 
     unexpected: Vec<String>,
 }
@@ -53,12 +59,22 @@ impl Mock {
         Mock { port, state }
     }
 
-    /// Expect a HTTP request, but do not respond to it yet.
-    pub async fn expect(&self, url: String) -> Expectation {
+    /// Anticipate a HTTP request, but do not respond to it yet.
+    pub async fn anticipate(&self, url: String) -> Anticipation {
         log::info!("Expecting '{}'.", url);
         let (tx, rx) = tokio::sync::oneshot::channel();
-        self.state.lock().unwrap().expectations.insert(url, rx);
-        Expectation { tx }
+        let (happened_tx, happened_rx) = tokio::sync::oneshot::channel();
+        self.state.lock().unwrap().expectations.insert(
+            url,
+            Expectation {
+                payload_rx: rx,
+                happened_tx,
+            },
+        );
+        Anticipation {
+            tx,
+            happened_rx: Some(happened_rx),
+        }
     }
 }
 
@@ -70,14 +86,24 @@ impl Drop for Mock {
     }
 }
 
-pub struct Expectation {
+pub struct Anticipation {
     tx: tokio::sync::oneshot::Sender<Bytes>,
+    happened_rx: Option<oneshot::Receiver<()>>,
 }
 
-impl Expectation {
+impl Anticipation {
     pub async fn respond(self, payload: Bytes) {
         log::info!("Responding.");
         self.tx.send(payload).unwrap();
+    }
+
+    /// Expect the request to come, but still do not respond to it yet.
+    pub async fn expect(&mut self) {
+        if let Some(happened_tx) = self.happened_rx.take() {
+            happened_tx.await.unwrap();
+        } else {
+            panic!("this request was already expected");
+        }
     }
 }
 
@@ -100,9 +126,14 @@ impl Service<Request<hyper::body::Incoming>> for MockRequest {
                 .expectations
                 .remove(&request.uri().path().to_string());
 
-            if let Some(rx) = expectation {
+            if let Some(expectation) = expectation {
                 log::debug!("Responding.");
-                let payload = rx.await.unwrap();
+
+                // [`AnticipatedRequest`] might be dropped by now, and there is no one to receive it,
+                // but that is OK.
+                let _ =expectation.happened_tx.send(());
+
+                let payload = expectation.payload_rx.await.unwrap();
                 Ok(Response::new(Full::new(payload)))
             } else {
                 log::warn!("Unexpected '{}'.", request.uri());
