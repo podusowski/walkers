@@ -14,15 +14,16 @@ use tokio::sync::oneshot;
 pub use hyper::body::Bytes;
 
 struct Expectation {
-    payload_rx: tokio::sync::oneshot::Receiver<Bytes>,
-    happened_tx: tokio::sync::oneshot::Sender<()>,
+    payload_rx: oneshot::Receiver<Bytes>,
+    happened_tx: oneshot::Sender<()>,
 }
 
 #[derive(Default)]
 struct State {
-    /// Expectations and anticipations [`Mock::anticipate`], made before incoming HTTP request.
+    /// Anticipations made by [`Mock::anticipate`].
     expectations: HashMap<String, Expectation>,
 
+    /// Requests that were unexpected.
     unexpected: Vec<String>,
 }
 
@@ -62,17 +63,17 @@ impl Mock {
     /// Anticipate a HTTP request, but do not respond to it yet.
     pub async fn anticipate(&self, url: String) -> Anticipation {
         log::info!("Expecting '{}'.", url);
-        let (tx, rx) = tokio::sync::oneshot::channel();
-        let (happened_tx, happened_rx) = tokio::sync::oneshot::channel();
+        let (payload_tx, payload_rx) = oneshot::channel();
+        let (happened_tx, happened_rx) = oneshot::channel();
         self.state.lock().unwrap().expectations.insert(
             url,
             Expectation {
-                payload_rx: rx,
+                payload_rx,
                 happened_tx,
             },
         );
         Anticipation {
-            tx,
+            payload_tx,
             happened_rx: Some(happened_rx),
         }
     }
@@ -87,14 +88,14 @@ impl Drop for Mock {
 }
 
 pub struct Anticipation {
-    tx: tokio::sync::oneshot::Sender<Bytes>,
+    payload_tx: tokio::sync::oneshot::Sender<Bytes>,
     happened_rx: Option<oneshot::Receiver<()>>,
 }
 
 impl Anticipation {
     pub async fn respond(self, payload: Bytes) {
         log::info!("Responding.");
-        self.tx.send(payload).unwrap();
+        self.payload_tx.send(payload).unwrap();
     }
 
     /// Expect the request to come, but still do not respond to it yet.
@@ -131,7 +132,7 @@ impl Service<Request<hyper::body::Incoming>> for MockRequest {
 
                 // [`AnticipatedRequest`] might be dropped by now, and there is no one to receive it,
                 // but that is OK.
-                let _ =expectation.happened_tx.send(());
+                let _ = expectation.happened_tx.send(());
 
                 let payload = expectation.payload_rx.await.unwrap();
                 Ok(Response::new(Full::new(payload)))
