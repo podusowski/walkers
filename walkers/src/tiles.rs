@@ -161,12 +161,24 @@ impl TilesManager for Tiles {
 
 #[cfg(test)]
 mod tests {
-    use std::time::Duration;
-
     use super::*;
+    use hypermocker::Bytes;
+    use std::time::Duration;
 
     static TILE_ID: TileId = TileId {
         x: 1,
+        y: 2,
+        zoom: 3,
+    };
+
+    static SECOND_TILE_ID: TileId = TileId {
+        x: 2,
+        y: 2,
+        zoom: 3,
+    };
+
+    static THIRD_TILE_ID: TileId = TileId {
+        x: 3,
         y: 2,
         zoom: 3,
     };
@@ -207,6 +219,13 @@ mod tests {
         (server, TestSource::new(url))
     }
 
+    /// Creates [`hypermocker::Mock`], and function mapping `TileId` to its URL.
+    async fn hypermocker_mock() -> (hypermocker::Mock, TestSource) {
+        let mock = hypermocker::Mock::bind().await;
+        let url = format!("http://localhost:{}", mock.port);
+        (mock, TestSource::new(url))
+    }
+
     #[test]
     fn download_single_tile() {
         let _ = env_logger::try_init();
@@ -228,25 +247,40 @@ mod tests {
         tile_mock.assert();
     }
 
-    #[test]
-    fn download_two_tiles_simultaneously() {
+    #[tokio::test]
+    async fn download_two_tiles_simultaneously() {
         let _ = env_logger::try_init();
 
-        let (mut server, source) = mockito_server();
-        let tile_mock = server
-            .mock("GET", "/3/1/2.png")
-            .with_body(include_bytes!("../assets/blank-255-tile.png"))
-            .create();
+        let (server, source) = hypermocker_mock().await;
+        let mut first_request = server.anticipate("/3/1/2.png".to_string()).await;
+        let mut second_request = server.anticipate("/3/2/2.png".to_string()).await;
 
         let mut tiles = Tiles::new(source, Context::default());
 
-        // First query start the download, but it will always return None.
+        // First download is started immediately.
         assert!(tiles.at(TILE_ID).is_none());
+        first_request.expect().await;
 
-        // Eventually it gets downloaded and become available in cache.
-        while tiles.at(TILE_ID).is_none() {}
+        // Second one is also started right away.
+        assert!(tiles.at(SECOND_TILE_ID).is_none());
+        second_request.expect().await;
 
-        tile_mock.assert();
+        // Third download is NOT started, because there can be no more than 2 at once.
+        assert!(tiles.at(THIRD_TILE_ID).is_none());
+
+        // Make sure it does not come.
+        tokio::time::sleep(Duration::from_secs(1)).await;
+
+        // Third download will start as soon as one of the previous ones are responded to.
+        let mut third_request = server.anticipate("/3/3/2.png".to_string()).await;
+
+        first_request
+            .respond(Bytes::from_static(include_bytes!(
+                "../assets/blank-255-tile.png"
+            )))
+            .await;
+
+        third_request.expect().await;
     }
 
     fn assert_tile_is_empty_forever(tiles: &mut Tiles) {
