@@ -63,3 +63,14 @@ async fn unanticipated_request() {
     let bytes = response.bytes().await.unwrap();
     assert_eq!(&bytes[..], b"unexpected");
 }
+
+#[tokio::test]
+#[should_panic(expected = "already anticipating")]
+async fn can_not_anticipate_twice() {
+    let _ = env_logger::try_init();
+
+    let mock = Server::bind().await;
+
+    mock.anticipate("/foo".to_string()).await;
+    mock.anticipate("/foo".to_string()).await;
+}
