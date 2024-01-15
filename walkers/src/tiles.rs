@@ -220,8 +220,8 @@ mod tests {
     }
 
     /// Creates [`hypermocker::Mock`], and function mapping `TileId` to its URL.
-    async fn hypermocker_mock() -> (hypermocker::Mock, TestSource) {
-        let mock = hypermocker::Mock::bind().await;
+    async fn hypermocker_mock() -> (hypermocker::Server, TestSource) {
+        let mock = hypermocker::Server::bind().await;
         let url = format!("http://localhost:{}", mock.port);
         (mock, TestSource::new(url))
     }

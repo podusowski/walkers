@@ -27,14 +27,14 @@ struct State {
     unexpected: Vec<String>,
 }
 
-pub struct Mock {
+pub struct Server {
     pub port: u16,
     state: Arc<Mutex<State>>,
 }
 
-impl Mock {
+impl Server {
     /// Create new [`Mock`], and bind it to a random port.
-    pub async fn bind() -> Mock {
+    pub async fn bind() -> Server {
         let state = Arc::new(Mutex::new(State::default()));
 
         let addr = SocketAddr::from(([127, 0, 0, 1], 0));
@@ -57,7 +57,7 @@ impl Mock {
             }
         });
 
-        Mock { port, state }
+        Server { port, state }
     }
 
     /// Anticipate a HTTP request, but do not respond to it yet.
@@ -79,7 +79,7 @@ impl Mock {
     }
 }
 
-impl Drop for Mock {
+impl Drop for Server {
     fn drop(&mut self) {
         if !self.state.lock().unwrap().unexpected.is_empty() {
             panic!("there are unexpected requests");
@@ -94,6 +94,7 @@ pub struct AnticipatedRequest {
 }
 
 impl AnticipatedRequest {
+    /// Respond to this request with the given body.
     pub async fn respond(self, payload: Bytes) {
         log::info!("Responding.");
         self.payload_tx.send(payload).unwrap();

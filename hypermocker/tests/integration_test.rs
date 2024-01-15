@@ -1,12 +1,12 @@
 use hyper::body::Bytes;
-use hypermocker::Mock;
+use hypermocker::Server;
 use std::time::Duration;
 
 #[tokio::test]
 async fn anticipate_then_request() {
     let _ = env_logger::try_init();
 
-    let mock = Mock::bind().await;
+    let mock = Server::bind().await;
     let url = format!("http://localhost:{}/foo", mock.port);
     let request = mock.anticipate("/foo".to_string()).await;
 
@@ -30,7 +30,7 @@ async fn anticipate_then_request() {
 async fn anticipate_expect_then_request() {
     let _ = env_logger::try_init();
 
-    let mock = Mock::bind().await;
+    let mock = Server::bind().await;
     let url = format!("http://localhost:{}/foo", mock.port);
     let mut request = mock.anticipate("/foo".to_string()).await;
 
@@ -56,7 +56,7 @@ async fn anticipate_expect_then_request() {
 async fn unexpected_and_not_anticipated_request() {
     let _ = env_logger::try_init();
 
-    let mock = Mock::bind().await;
+    let mock = Server::bind().await;
     let url = format!("http://localhost:{}/foo", mock.port);
 
     let response = reqwest::get(url).await.unwrap();
