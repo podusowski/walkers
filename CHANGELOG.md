@@ -2,7 +2,11 @@
 
 All notable changes to this project will be documented in this file.
 
-## Unreleased
+## 0.17.0
+
+ * `egui` updated to 0.25.
+
+## 0.16.0
 
  * `mod providers` is now called `mod sources`, to resemble `trait TileSource`.
  * HTTP cache can be now enabled on native platforms (in WASM, is it handled by the browser).
