@@ -53,7 +53,7 @@ async fn anticipate_expect_then_request() {
 
 #[tokio::test]
 #[should_panic(expected = "there are unexpected requests")]
-async fn unexpected_and_not_anticipated_request() {
+async fn unanticipated_request() {
     let _ = env_logger::try_init();
 
     let mock = Server::bind().await;
