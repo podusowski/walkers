@@ -1,5 +1,5 @@
 use http_body_util::Full;
-use hyper::{server::conn::http1, service::Service, Request, Response};
+use hyper::{server::conn::http1, service::Service, Response};
 use hyper_util::rt::TokioIo;
 use std::{
     collections::HashMap,
@@ -61,7 +61,7 @@ impl Mock {
     }
 
     /// Anticipate a HTTP request, but do not respond to it yet.
-    pub async fn anticipate(&self, url: String) -> Anticipation {
+    pub async fn anticipate(&self, url: String) -> AnticipatedRequest {
         log::info!("Expecting '{}'.", url);
         let (payload_tx, payload_rx) = oneshot::channel();
         let (happened_tx, happened_rx) = oneshot::channel();
@@ -72,7 +72,7 @@ impl Mock {
                 happened_tx,
             },
         );
-        Anticipation {
+        AnticipatedRequest {
             payload_tx,
             happened_rx: Some(happened_rx),
         }
@@ -87,12 +87,13 @@ impl Drop for Mock {
     }
 }
 
-pub struct Anticipation {
+/// HTTP request that was anticipated to arrive.
+pub struct AnticipatedRequest {
     payload_tx: tokio::sync::oneshot::Sender<Bytes>,
     happened_rx: Option<oneshot::Receiver<()>>,
 }
 
-impl Anticipation {
+impl AnticipatedRequest {
     pub async fn respond(self, payload: Bytes) {
         log::info!("Responding.");
         self.payload_tx.send(payload).unwrap();
@@ -112,12 +113,12 @@ struct MockRequest {
     state: Arc<Mutex<State>>,
 }
 
-impl Service<Request<hyper::body::Incoming>> for MockRequest {
+impl Service<hyper::Request<hyper::body::Incoming>> for MockRequest {
     type Response = Response<Full<Bytes>>;
     type Error = hyper::Error;
     type Future = Pin<Box<dyn Future<Output = Result<Self::Response, Self::Error>> + Send>>;
 
-    fn call(&self, request: Request<hyper::body::Incoming>) -> Self::Future {
+    fn call(&self, request: hyper::Request<hyper::body::Incoming>) -> Self::Future {
         log::info!("Incoming request '{}'.", request.uri());
         let state = self.state.clone();
         Box::pin(async move {
