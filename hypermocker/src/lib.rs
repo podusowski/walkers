@@ -1,5 +1,5 @@
 use http_body_util::Full;
-use hyper::{server::conn::http1, service::Service, Response};
+use hyper::{server::conn::http1, Response};
 use hyper_util::rt::TokioIo;
 use std::{
     collections::HashMap,
@@ -28,7 +28,7 @@ struct State {
 }
 
 pub struct Server {
-    pub port: u16,
+    port: u16,
     state: Arc<Mutex<State>>,
 }
 
@@ -50,7 +50,7 @@ impl Server {
                 let state = state_clone.clone();
                 tokio::task::spawn(async move {
                     http1::Builder::new()
-                        .serve_connection(io, MockRequest { state })
+                        .serve_connection(io, Service { state })
                         .await
                         .unwrap();
                 });
@@ -58,6 +58,11 @@ impl Server {
         });
 
         Server { port, state }
+    }
+
+    /// Port, which this server listens on.
+    pub fn port(&self) -> u16 {
+        self.port
     }
 
     /// Anticipate a HTTP request, but do not respond to it yet.
@@ -110,11 +115,11 @@ impl AnticipatedRequest {
     }
 }
 
-struct MockRequest {
+struct Service {
     state: Arc<Mutex<State>>,
 }
 
-impl Service<hyper::Request<hyper::body::Incoming>> for MockRequest {
+impl hyper::service::Service<hyper::Request<hyper::body::Incoming>> for Service {
     type Response = Response<Full<Bytes>>;
     type Error = hyper::Error;
     type Future = Pin<Box<dyn Future<Output = Result<Self::Response, Self::Error>> + Send>>;

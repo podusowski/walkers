@@ -7,7 +7,7 @@ async fn anticipate_then_request() {
     let _ = env_logger::try_init();
 
     let mock = Server::bind().await;
-    let url = format!("http://localhost:{}/foo", mock.port);
+    let url = format!("http://localhost:{}/foo", mock.port());
     let request = mock.anticipate("/foo".to_string()).await;
 
     // Make sure that mock's internals kick in.
@@ -31,7 +31,7 @@ async fn anticipate_expect_then_request() {
     let _ = env_logger::try_init();
 
     let mock = Server::bind().await;
-    let url = format!("http://localhost:{}/foo", mock.port);
+    let url = format!("http://localhost:{}/foo", mock.port());
     let mut request = mock.anticipate("/foo".to_string()).await;
 
     // Make sure that mock's internals kick in.
@@ -57,7 +57,7 @@ async fn unexpected_and_not_anticipated_request() {
     let _ = env_logger::try_init();
 
     let mock = Server::bind().await;
-    let url = format!("http://localhost:{}/foo", mock.port);
+    let url = format!("http://localhost:{}/foo", mock.port());
 
     let response = reqwest::get(url).await.unwrap();
     let bytes = response.bytes().await.unwrap();
