@@ -248,20 +248,19 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn download_two_tiles_simultaneously() {
+    async fn there_can_be_2_simultaneous_downloads_at_most() {
         let _ = env_logger::try_init();
 
         let (server, source) = hypermocker_mock().await;
-        let mut first_request = server.anticipate("/3/1/2.png".to_string()).await;
-        let mut second_request = server.anticipate("/3/2/2.png".to_string()).await;
-
         let mut tiles = Tiles::new(source, Context::default());
 
         // First download is started immediately.
+        let mut first_request = server.anticipate("/3/1/2.png".to_string()).await;
         assert!(tiles.at(TILE_ID).is_none());
         first_request.expect().await;
 
         // Second one is also started right away.
+        let mut second_request = server.anticipate("/3/2/2.png".to_string()).await;
         assert!(tiles.at(SECOND_TILE_ID).is_none());
         second_request.expect().await;
 
