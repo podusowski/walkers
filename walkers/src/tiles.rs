@@ -248,7 +248,7 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn there_can_be_2_simultaneous_downloads_at_most() {
+    async fn there_can_be_6_simultaneous_downloads_at_most() {
         let _ = env_logger::try_init();
 
         let (server, source) = hypermocker_mock().await;
