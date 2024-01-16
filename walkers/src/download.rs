@@ -46,6 +46,7 @@ async fn download_and_decode(
     url: String,
     egui_ctx: &Context,
 ) -> Download {
+    log::debug!("Downloading '{}'.", url);
     Download {
         tile_id,
         result: download_and_decode_impl(client, url, egui_ctx).await,
@@ -112,7 +113,7 @@ where
 
     loop {
         let request = request_rx.next();
-        let below_concurrent_downloads_limit = ongoing_downloads.len() < 2;
+        let below_concurrent_downloads_limit = ongoing_downloads.len() < 6;
 
         let download = if !ongoing_downloads.is_empty() {
             Some(futures::future::select_all(ongoing_downloads.drain(..)))

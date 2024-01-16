@@ -76,7 +76,7 @@ impl Server {
             .unwrap()
             .expectations
             .insert(
-                url,
+                url.to_owned(),
                 Expectation {
                     payload_rx,
                     happened_tx,
@@ -87,6 +87,7 @@ impl Server {
             panic!("already anticipating");
         };
         AnticipatedRequest {
+            url,
             payload_tx,
             happened_rx: Some(happened_rx),
         }
@@ -103,6 +104,7 @@ impl Drop for Server {
 
 /// HTTP request that was anticipated to arrive.
 pub struct AnticipatedRequest {
+    url: String,
     payload_tx: tokio::sync::oneshot::Sender<Bytes>,
     happened_rx: Option<oneshot::Receiver<()>>,
 }
@@ -110,12 +112,13 @@ pub struct AnticipatedRequest {
 impl AnticipatedRequest {
     /// Respond to this request with the given body.
     pub async fn respond(self, payload: Bytes) {
-        log::info!("Responding.");
+        log::info!("Responding to '{}'.", self.url);
         self.payload_tx.send(payload).unwrap();
     }
 
     /// Expect the request to come, but still do not respond to it yet.
     pub async fn expect(&mut self) {
+        log::info!("Expecting '{}'.", self.url);
         if let Some(happened_tx) = self.happened_rx.take() {
             happened_tx.await.unwrap();
         } else {
@@ -144,14 +147,31 @@ impl hyper::service::Service<hyper::Request<hyper::body::Incoming>> for Service 
                 .remove(&request.uri().path().to_string());
 
             if let Some(expectation) = expectation {
-                log::debug!("Responding.");
-
                 // [`AnticipatedRequest`] might be dropped by now, and there is no one to receive it,
                 // but that is OK.
                 let _ = expectation.happened_tx.send(());
 
-                let payload = expectation.payload_rx.await.unwrap();
-                Ok(Response::new(Full::new(payload)))
+                match expectation.payload_rx.await {
+                    Ok(payload) => {
+                        log::debug!(
+                            "Proper responding to '{}' with {} bytes.",
+                            request.uri(),
+                            payload.len()
+                        );
+                        Ok(Response::new(Full::new(payload)))
+                    }
+                    Err(_) => {
+                        log::error!(
+                            "AnticipatedRequest for '{}' was dropped before responding.",
+                            request.uri()
+                        );
+                        // TODO: This panic will be ignored by hyper/tokio stack.
+                        panic!(
+                            "AnticipatedRequest for '{}' was dropped before responding.",
+                            request.uri()
+                        );
+                    }
+                }
             } else {
                 log::warn!("Unexpected '{}'.", request.uri());
                 state
