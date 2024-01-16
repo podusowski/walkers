@@ -171,18 +171,6 @@ mod tests {
         zoom: 3,
     };
 
-    static SECOND_TILE_ID: TileId = TileId {
-        x: 2,
-        y: 2,
-        zoom: 3,
-    };
-
-    static THIRD_TILE_ID: TileId = TileId {
-        x: 3,
-        y: 2,
-        zoom: 3,
-    };
-
     struct TestSource {
         base_url: String,
     }
