@@ -132,18 +132,16 @@ where
     let mut downloads = Downloads::None;
 
     loop {
-        let request = request_rx.next();
-
         downloads = match downloads {
             Downloads::None => {
-                let request = request.await.ok_or(())?;
+                let request = request_rx.next().await.ok_or(())?;
                 let url = source.tile_url(request);
                 let download = download_and_decode(&client, request, url, &egui_ctx);
                 Downloads::Ongoing(vec![Box::pin(download)])
             }
-            Downloads::Ongoing(ref mut dls) => {
-                let download = select_all(dls.drain(..));
-                match select(request, download).await {
+            Downloads::Ongoing(ref mut downloads) => {
+                let download = select_all(downloads.drain(..));
+                match select(request_rx.next(), download).await {
                     Either::Left((request, r)) => {
                         let request = request.ok_or(())?;
                         let url = source.tile_url(request);
