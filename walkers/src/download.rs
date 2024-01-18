@@ -136,12 +136,12 @@ where
                         let request = request.ok_or(())?;
                         let url = source.tile_url(request);
                         let download = download_and_decode(&client, request, url, &egui_ctx);
-                        let mut ongoing_downloads = r.into_inner();
-                        ongoing_downloads.push(Box::pin(download));
-                        if ongoing_downloads.len() < 6 {
-                            Downloads::Ongoing(ongoing_downloads)
+                        let mut downloads = r.into_inner();
+                        downloads.push(Box::pin(download));
+                        if downloads.len() < 6 {
+                            Downloads::Ongoing(downloads)
                         } else {
-                            Downloads::OngoingSaturated(ongoing_downloads)
+                            Downloads::OngoingSaturated(downloads)
                         }
                     }
                     Either::Right((ongoing_download, _)) => {
