@@ -114,18 +114,10 @@ where
 {
     // Keep outside the loop to reuse it as much as possible.
     let client = http_client(http_options);
-
-    let mut ongoing_downloads = Vec::<_>::new();
     let mut downloads = Downloads::None;
 
     loop {
         let request = request_rx.next();
-
-        let download = if !ongoing_downloads.is_empty() {
-            Some(futures::future::select_all(ongoing_downloads.drain(..)))
-        } else {
-            None
-        };
 
         match downloads {
             Downloads::None => {
@@ -177,64 +169,6 @@ where
                     result.result,
                 )
                 .await?;
-            }
-        }
-    }
-
-    loop {
-        let request = request_rx.next();
-        let below_concurrent_downloads_limit = ongoing_downloads.len() < 6;
-
-        let download = if !ongoing_downloads.is_empty() {
-            Some(futures::future::select_all(ongoing_downloads.drain(..)))
-        } else {
-            None
-        };
-
-        match (download, below_concurrent_downloads_limit) {
-            (None, false) => {
-                unreachable!("it is not possible to have no ongoing downloads and no free clients");
-            }
-            (None, true) => {
-                // No ongoing downloads, so we need to only focus on waiting for a request.
-                let request = request.await.ok_or(())?;
-                let url = source.tile_url(request);
-                let download = download_and_decode(&client, request, url, &egui_ctx);
-                ongoing_downloads.push(Box::pin(download));
-            }
-            (Some(ongoing_download), false) => {
-                // No free clients, so we do not care about incoming requests.
-                let (result, _, rest) = ongoing_download.await;
-                ongoing_downloads = rest;
-                download_complete(
-                    tile_tx.to_owned(),
-                    egui_ctx.to_owned(),
-                    result.tile_id,
-                    result.result,
-                )
-                .await?;
-            }
-            (Some(ongoing_download), true) => {
-                match futures::future::select(request, ongoing_download).await {
-                    futures::future::Either::Left((request, r)) => {
-                        ongoing_downloads = r.into_inner();
-                        let request = request.ok_or(())?;
-                        let url = source.tile_url(request);
-                        let download = download_and_decode(&client, request, url, &egui_ctx);
-                        ongoing_downloads.push(Box::pin(download));
-                    }
-                    futures::future::Either::Right((ongoing_download, _)) => {
-                        let (result, _, rest) = ongoing_download;
-                        ongoing_downloads = rest;
-                        download_complete(
-                            tile_tx.to_owned(),
-                            egui_ctx.to_owned(),
-                            result.tile_id,
-                            result.result,
-                        )
-                        .await?;
-                    }
-                }
             }
         }
     }
