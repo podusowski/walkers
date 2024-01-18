@@ -1,4 +1,4 @@
-use std::path::PathBuf;
+use std::{path::PathBuf, pin::Pin};
 
 use egui::Context;
 use futures::{SinkExt, StreamExt};
@@ -96,6 +96,12 @@ async fn download_complete(
     Ok(())
 }
 
+enum Downloads<F> {
+    None,
+    Ongoing(Vec<Pin<Box<F>>>),
+    OngoingSaturated(Vec<Pin<Box<F>>>),
+}
+
 async fn download_continuously_impl<S>(
     source: S,
     http_options: HttpOptions,
@@ -110,6 +116,70 @@ where
     let client = http_client(http_options);
 
     let mut ongoing_downloads = Vec::<_>::new();
+    let mut downloads = Downloads::None;
+
+    loop {
+        let request = request_rx.next();
+
+        let download = if !ongoing_downloads.is_empty() {
+            Some(futures::future::select_all(ongoing_downloads.drain(..)))
+        } else {
+            None
+        };
+
+        match downloads {
+            Downloads::None => {
+                let request = request.await.ok_or(())?;
+                let url = source.tile_url(request);
+                let download = download_and_decode(&client, request, url, &egui_ctx);
+                downloads = Downloads::Ongoing(vec![Box::pin(download)]);
+            }
+            Downloads::Ongoing(ref mut dls) => {
+                let download = futures::future::select_all(dls.drain(..));
+                match futures::future::select(request, download).await {
+                    futures::future::Either::Left((request, r)) => {
+                        let request = request.ok_or(())?;
+                        let url = source.tile_url(request);
+                        let download = download_and_decode(&client, request, url, &egui_ctx);
+                        let mut ongoing_downloads = r.into_inner();
+                        ongoing_downloads.push(Box::pin(download));
+                        downloads = if ongoing_downloads.len() < 6 {
+                            Downloads::Ongoing(ongoing_downloads)
+                        } else {
+                            Downloads::OngoingSaturated(ongoing_downloads)
+                        }
+                    }
+                    futures::future::Either::Right((ongoing_download, _)) => {
+                        let (result, _, rest) = ongoing_download;
+                        downloads = if rest.is_empty() {
+                            Downloads::None
+                        } else {
+                            Downloads::Ongoing(rest)
+                        };
+                        download_complete(
+                            tile_tx.to_owned(),
+                            egui_ctx.to_owned(),
+                            result.tile_id,
+                            result.result,
+                        )
+                        .await?;
+                    }
+                }
+            }
+            Downloads::OngoingSaturated(ref mut dls) => {
+                let download = futures::future::select_all(dls.drain(..));
+                let (result, _, rest) = download.await;
+                downloads = Downloads::Ongoing(rest);
+                download_complete(
+                    tile_tx.to_owned(),
+                    egui_ctx.to_owned(),
+                    result.tile_id,
+                    result.result,
+                )
+                .await?;
+            }
+        }
+    }
 
     loop {
         let request = request_rx.next();
