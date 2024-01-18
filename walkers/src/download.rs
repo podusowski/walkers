@@ -105,6 +105,18 @@ enum Downloads<F> {
     OngoingSaturated(Vec<Pin<Box<F>>>),
 }
 
+impl<F> Downloads<F> {
+    fn new(downloads: Vec<Pin<Box<F>>>) -> Self {
+        if downloads.is_empty() {
+            Self::None
+        } else if downloads.len() < 6 {
+            Self::Ongoing(downloads)
+        } else {
+            Self::OngoingSaturated(downloads)
+        }
+    }
+}
+
 async fn download_continuously_impl<S>(
     source: S,
     http_options: HttpOptions,
@@ -138,14 +150,10 @@ where
                         let download = download_and_decode(&client, request, url, &egui_ctx);
                         let mut downloads = r.into_inner();
                         downloads.push(Box::pin(download));
-                        if downloads.len() < 6 {
-                            Downloads::Ongoing(downloads)
-                        } else {
-                            Downloads::OngoingSaturated(downloads)
-                        }
+                        Downloads::new(downloads)
                     }
-                    Either::Right((ongoing_download, _)) => {
-                        let (result, _, rest) = ongoing_download;
+                    Either::Right((downloads, _)) => {
+                        let (result, _, rest) = downloads;
                         download_complete(
                             tile_tx.to_owned(),
                             egui_ctx.to_owned(),
@@ -153,11 +161,7 @@ where
                             result.result,
                         )
                         .await?;
-                        if rest.is_empty() {
-                            Downloads::None
-                        } else {
-                            Downloads::Ongoing(rest)
-                        }
+                        Downloads::new(rest)
                     }
                 }
             }
