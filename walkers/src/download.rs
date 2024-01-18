@@ -1,7 +1,10 @@
 use std::{path::PathBuf, pin::Pin};
 
 use egui::Context;
-use futures::{SinkExt, StreamExt};
+use futures::{
+    future::{select, select_all, Either},
+    SinkExt, StreamExt,
+};
 use image::ImageError;
 use reqwest::header::USER_AGENT;
 use reqwest_middleware::ClientWithMiddleware;
@@ -127,9 +130,9 @@ where
                 Downloads::Ongoing(vec![Box::pin(download)])
             }
             Downloads::Ongoing(ref mut dls) => {
-                let download = futures::future::select_all(dls.drain(..));
-                match futures::future::select(request, download).await {
-                    futures::future::Either::Left((request, r)) => {
+                let download = select_all(dls.drain(..));
+                match select(request, download).await {
+                    Either::Left((request, r)) => {
                         let request = request.ok_or(())?;
                         let url = source.tile_url(request);
                         let download = download_and_decode(&client, request, url, &egui_ctx);
@@ -141,7 +144,7 @@ where
                             Downloads::OngoingSaturated(ongoing_downloads)
                         }
                     }
-                    futures::future::Either::Right((ongoing_download, _)) => {
+                    Either::Right((ongoing_download, _)) => {
                         let (result, _, rest) = ongoing_download;
                         download_complete(
                             tile_tx.to_owned(),
@@ -158,8 +161,8 @@ where
                     }
                 }
             }
-            Downloads::OngoingSaturated(ref mut dls) => {
-                let download = futures::future::select_all(dls.drain(..));
+            Downloads::OngoingSaturated(ref mut downloads) => {
+                let download = select_all(downloads.drain(..));
                 let (result, _, rest) = download.await;
                 download_complete(
                     tile_tx.to_owned(),
