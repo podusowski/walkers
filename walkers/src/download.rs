@@ -119,12 +119,12 @@ where
     loop {
         let request = request_rx.next();
 
-        match downloads {
+        downloads = match downloads {
             Downloads::None => {
                 let request = request.await.ok_or(())?;
                 let url = source.tile_url(request);
                 let download = download_and_decode(&client, request, url, &egui_ctx);
-                downloads = Downloads::Ongoing(vec![Box::pin(download)]);
+                Downloads::Ongoing(vec![Box::pin(download)])
             }
             Downloads::Ongoing(ref mut dls) => {
                 let download = futures::future::select_all(dls.drain(..));
@@ -135,7 +135,7 @@ where
                         let download = download_and_decode(&client, request, url, &egui_ctx);
                         let mut ongoing_downloads = r.into_inner();
                         ongoing_downloads.push(Box::pin(download));
-                        downloads = if ongoing_downloads.len() < 6 {
+                        if ongoing_downloads.len() < 6 {
                             Downloads::Ongoing(ongoing_downloads)
                         } else {
                             Downloads::OngoingSaturated(ongoing_downloads)
@@ -143,11 +143,6 @@ where
                     }
                     futures::future::Either::Right((ongoing_download, _)) => {
                         let (result, _, rest) = ongoing_download;
-                        downloads = if rest.is_empty() {
-                            Downloads::None
-                        } else {
-                            Downloads::Ongoing(rest)
-                        };
                         download_complete(
                             tile_tx.to_owned(),
                             egui_ctx.to_owned(),
@@ -155,13 +150,17 @@ where
                             result.result,
                         )
                         .await?;
+                        if rest.is_empty() {
+                            Downloads::None
+                        } else {
+                            Downloads::Ongoing(rest)
+                        }
                     }
                 }
             }
             Downloads::OngoingSaturated(ref mut dls) => {
                 let download = futures::future::select_all(dls.drain(..));
                 let (result, _, rest) = download.await;
-                downloads = Downloads::Ongoing(rest);
                 download_complete(
                     tile_tx.to_owned(),
                     egui_ctx.to_owned(),
@@ -169,6 +168,7 @@ where
                     result.result,
                 )
                 .await?;
+                Downloads::Ongoing(rest)
             }
         }
     }
