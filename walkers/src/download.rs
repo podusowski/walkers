@@ -165,7 +165,7 @@ where
             }
             Downloads::OngoingSaturated(ref mut downloads) => {
                 let download = select_all(downloads.drain(..));
-                let (result, _, rest) = download.await;
+                let (result, _, downloads) = download.await;
                 download_complete(
                     tile_tx.to_owned(),
                     egui_ctx.to_owned(),
@@ -173,7 +173,7 @@ where
                     result.result,
                 )
                 .await?;
-                Downloads::Ongoing(rest)
+                Downloads::Ongoing(downloads)
             }
         }
     }
