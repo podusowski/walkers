@@ -34,3 +34,4 @@ eframe.workspace = true
 env_logger = "0.10"
 approx = "0.5"
 mockito = "1.1"
+hypermocker = { path = "../hypermocker" }

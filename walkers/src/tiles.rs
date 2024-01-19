@@ -161,9 +161,9 @@ impl TilesManager for Tiles {
 
 #[cfg(test)]
 mod tests {
-    use std::time::Duration;
-
     use super::*;
+    use hypermocker::Bytes;
+    use std::time::Duration;
 
     static TILE_ID: TileId = TileId {
         x: 1,
@@ -207,6 +207,13 @@ mod tests {
         (server, TestSource::new(url))
     }
 
+    /// Creates [`hypermocker::Mock`], and function mapping `TileId` to its URL.
+    async fn hypermocker_mock() -> (hypermocker::Server, TestSource) {
+        let server = hypermocker::Server::bind().await;
+        let url = format!("http://localhost:{}", server.port());
+        (server, TestSource::new(url))
+    }
+
     #[test]
     fn download_single_tile() {
         let _ = env_logger::try_init();
@@ -226,6 +233,53 @@ mod tests {
         while tiles.at(TILE_ID).is_none() {}
 
         tile_mock.assert();
+    }
+
+    #[tokio::test]
+    async fn there_can_be_6_simultaneous_downloads_at_most() {
+        let _ = env_logger::try_init();
+
+        let (server, source) = hypermocker_mock().await;
+        let mut tiles = Tiles::new(source, Context::default());
+
+        // First download is started immediately.
+        let mut first_outstanding_request = server.anticipate(format!("/3/1/2.png")).await;
+        assert!(tiles.at(TILE_ID).is_none());
+        first_outstanding_request.expect().await;
+
+        let tile_ids: Vec<_> = (2..7).map(|x| TileId { x, y: 1, zoom: 1 }).collect();
+
+        // Rest of the downloads are started right away too, but they remain active.
+        let mut requests = Vec::new();
+        for tile_id in tile_ids {
+            let mut request = server.anticipate(format!("/1/{}/1.png", tile_id.x)).await;
+            assert!(tiles.at(tile_id).is_none());
+            request.expect().await;
+            requests.push(request);
+        }
+
+        // Last download is NOT started, because we are at the limit of concurrent downloads.
+        assert!(tiles
+            .at(TileId {
+                x: 99,
+                y: 99,
+                zoom: 1
+            })
+            .is_none());
+
+        // Make sure it does not come.
+        tokio::time::sleep(Duration::from_secs(1)).await;
+
+        // Last download will start as soon as one of the previous ones are responded to.
+        let mut awaiting_request = server.anticipate("/1/99/99.png".to_string()).await;
+
+        first_outstanding_request
+            .respond(Bytes::from_static(include_bytes!(
+                "../assets/blank-255-tile.png"
+            )))
+            .await;
+
+        awaiting_request.expect().await;
     }
 
     fn assert_tile_is_empty_forever(tiles: &mut Tiles) {

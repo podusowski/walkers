@@ -2,6 +2,10 @@
 
 All notable changes to this project will be documented in this file.
 
+## Unreleased
+
+ * Tiles are now downloaded in parallel.
+
 ## 0.17.0
 
  * `egui` updated to 0.25.
