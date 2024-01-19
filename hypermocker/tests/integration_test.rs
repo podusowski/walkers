@@ -8,7 +8,7 @@ async fn anticipate_then_request() {
 
     let mock = Server::bind().await;
     let url = format!("http://localhost:{}/foo", mock.port());
-    let request = mock.anticipate("/foo".to_string()).await;
+    let request = mock.anticipate("/foo").await;
 
     // Make sure that mock's internals kick in.
     tokio::time::sleep(Duration::from_secs(1)).await;
@@ -32,7 +32,7 @@ async fn anticipate_expect_then_request() {
 
     let mock = Server::bind().await;
     let url = format!("http://localhost:{}/foo", mock.port());
-    let mut request = mock.anticipate("/foo".to_string()).await;
+    let mut request = mock.anticipate("/foo").await;
 
     // Make sure that mock's internals kick in.
     tokio::time::sleep(Duration::from_secs(1)).await;
@@ -71,6 +71,6 @@ async fn can_not_anticipate_twice() {
 
     let mock = Server::bind().await;
 
-    mock.anticipate("/foo".to_string()).await;
-    mock.anticipate("/foo".to_string()).await;
+    mock.anticipate("/foo").await;
+    mock.anticipate("/foo").await;
 }

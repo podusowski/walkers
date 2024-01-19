@@ -66,7 +66,8 @@ impl Server {
     }
 
     /// Anticipate a HTTP request, but do not respond to it yet.
-    pub async fn anticipate(&self, url: String) -> AnticipatedRequest {
+    pub async fn anticipate(&self, url: impl Into<String>) -> AnticipatedRequest {
+        let url = url.into();
         log::info!("Anticipating '{}'.", url);
         let (payload_tx, payload_rx) = oneshot::channel();
         let (happened_tx, happened_rx) = oneshot::channel();
