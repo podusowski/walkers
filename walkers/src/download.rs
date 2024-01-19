@@ -142,16 +142,16 @@ where
             Downloads::Ongoing(ref mut downloads) => {
                 let download = select_all(downloads.drain(..));
                 match select(request_rx.next(), download).await {
-                    Either::Left((request, r)) => {
+                    Either::Left((request, downloads)) => {
                         let request = request.ok_or(())?;
                         let url = source.tile_url(request);
                         let download = download_and_decode(&client, request, url, &egui_ctx);
-                        let mut downloads = r.into_inner();
+                        let mut downloads = downloads.into_inner();
                         downloads.push(Box::pin(download));
                         Downloads::new(downloads)
                     }
                     Either::Right((downloads, _)) => {
-                        let (result, _, rest) = downloads;
+                        let (result, _, downloads) = downloads;
                         download_complete(
                             tile_tx.to_owned(),
                             egui_ctx.to_owned(),
@@ -159,7 +159,7 @@ where
                             result.result,
                         )
                         .await?;
-                        Downloads::new(rest)
+                        Downloads::new(downloads)
                     }
                 }
             }
