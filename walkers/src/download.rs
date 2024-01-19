@@ -142,6 +142,7 @@ where
             Downloads::Ongoing(ref mut downloads) => {
                 let download = select_all(downloads.drain(..));
                 match select(request_rx.next(), download).await {
+                    // New download was requested.
                     Either::Left((request, downloads)) => {
                         let request = request.ok_or(())?;
                         let url = source.tile_url(request);
@@ -150,8 +151,8 @@ where
                         downloads.push(Box::pin(download));
                         Downloads::new(downloads)
                     }
-                    Either::Right((downloads, _)) => {
-                        let (result, _, downloads) = downloads;
+                    // Ongoing download was completed.
+                    Either::Right(((result, _, downloads), _)) => {
                         download_complete(
                             tile_tx.to_owned(),
                             egui_ctx.to_owned(),
@@ -164,8 +165,7 @@ where
                 }
             }
             Downloads::OngoingSaturated(ref mut downloads) => {
-                let download = select_all(downloads.drain(..));
-                let (result, _, downloads) = download.await;
+                let (result, _, downloads) = select_all(downloads.drain(..)).await;
                 download_complete(
                     tile_tx.to_owned(),
                     egui_ctx.to_owned(),
