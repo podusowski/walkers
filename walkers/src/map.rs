@@ -228,20 +228,27 @@ pub struct AdjustedPosition {
 }
 
 impl AdjustedPosition {
+    pub fn new(position: Position, offset: Vec2) -> Self {
+        Self {
+            position,
+            offset: Pixels::new(offset.x as f64, offset.y as f64),
+        }
+    }
+
     /// Calculate the real position, i.e. including the offset.
-    fn position(&self, zoom: u8) -> Position {
+    pub fn position(&self, zoom: u8) -> Position {
         screen_to_position(self.position.project(zoom) - self.offset, zoom)
     }
 
     /// Recalculate `position` so that `offset` is zero.
-    fn zero_offset(self, zoom: u8) -> Self {
+    pub fn zero_offset(self, zoom: u8) -> Self {
         Self {
             position: screen_to_position(self.position.project(zoom) - self.offset, zoom),
             offset: Default::default(),
         }
     }
 
-    fn shift(self, offset: Vec2) -> Self {
+    pub fn shift(self, offset: Vec2) -> Self {
         Self {
             position: self.position,
             offset: self.offset + Pixels::new(offset.x as f64, offset.y as f64),
