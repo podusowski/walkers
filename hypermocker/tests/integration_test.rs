@@ -74,3 +74,25 @@ async fn can_not_anticipate_twice() {
     mock.anticipate("/foo").await;
     mock.anticipate("/foo").await;
 }
+
+#[tokio::test]
+#[should_panic(expected = "this request was already expected")]
+async fn can_not_expect_twice() {
+    let _ = env_logger::try_init();
+
+    let mock = Server::bind().await;
+    let url = format!("http://localhost:{}/foo", mock.port());
+
+    let mut request = mock.anticipate("/foo").await;
+
+    futures::future::join(
+        async {
+            reqwest::get(url).await.unwrap();
+        },
+        async {
+            request.expect().await;
+            request.expect().await;
+        },
+    )
+    .await;
+}
