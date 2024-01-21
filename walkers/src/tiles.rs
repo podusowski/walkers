@@ -214,15 +214,23 @@ mod tests {
         (server, TestSource::new(url))
     }
 
-    #[test]
-    fn download_single_tile() {
+    async fn assert_tile_to_become_available_eventually(tiles: &mut Tiles, tile_id: TileId) {
+        log::info!("Waiting for {:?} to become available.", tile_id);
+        while tiles.at(tile_id).is_none() {
+            // Need to yield to the runtime for things to move.
+            tokio::time::sleep(Duration::from_millis(10)).await;
+        }
+    }
+
+    #[tokio::test]
+    async fn download_single_tile() {
         let _ = env_logger::try_init();
 
-        let (mut server, source) = mockito_server();
-        let tile_mock = server
-            .mock("GET", "/3/1/2.png")
-            .with_body(include_bytes!("../assets/blank-255-tile.png"))
-            .create();
+        let (server, source) = hypermocker_mock().await;
+        let request = server.anticipate("/3/1/2.png").await;
+        request
+            .respond(include_bytes!("../assets/blank-255-tile.png"))
+            .await;
 
         let mut tiles = Tiles::new(source, Context::default());
 
@@ -230,9 +238,7 @@ mod tests {
         assert!(tiles.at(TILE_ID).is_none());
 
         // Eventually it gets downloaded and become available in cache.
-        while tiles.at(TILE_ID).is_none() {}
-
-        tile_mock.assert();
+        assert_tile_to_become_available_eventually(&mut tiles, TILE_ID).await;
     }
 
     #[tokio::test]

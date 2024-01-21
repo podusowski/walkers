@@ -65,7 +65,7 @@ impl Server {
         self.port
     }
 
-    /// Anticipate a HTTP request, but do not respond to it yet.
+    /// Anticipate a HTTP request, but do not respond to it yet, nor wait for it to happen.
     pub async fn anticipate(&self, url: impl Into<String>) -> AnticipatedRequest {
         let url = url.into();
         log::info!("Anticipating '{}'.", url);
@@ -111,13 +111,15 @@ pub struct AnticipatedRequest {
 }
 
 impl AnticipatedRequest {
-    /// Respond to this request with the given body.
-    pub async fn respond(self, payload: Bytes) {
-        log::info!("Responding to '{}'.", self.url);
-        self.payload_tx.send(payload).unwrap();
+    /// Respond to this request immediately if active, or save it for later.
+    pub async fn respond(self, payload: impl AsRef<[u8]>) {
+        log::info!("Saving response for '{}'.", self.url);
+        self.payload_tx
+            .send(payload.as_ref().to_owned().into())
+            .unwrap();
     }
 
-    /// Expect the request to come, but still do not respond to it yet.
+    /// Expect the request to come, but do not respond to it yet.
     pub async fn expect(&mut self) {
         log::info!("Expecting '{}'.", self.url);
         if let Some(happened_tx) = self.happened_rx.take() {
@@ -154,8 +156,8 @@ impl hyper::service::Service<hyper::Request<hyper::body::Incoming>> for Service 
 
                 match expectation.payload_rx.await {
                     Ok(payload) => {
-                        log::debug!(
-                            "Proper responding to '{}' with {} bytes.",
+                        log::info!(
+                            "Responding to '{}' with {} bytes.",
                             request.uri(),
                             payload.len()
                         );
