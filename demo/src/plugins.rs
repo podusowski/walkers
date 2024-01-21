@@ -1,7 +1,7 @@
 use egui::{Color32, Painter, Response};
 use walkers::{
     extras::{Image, Images, Place, Places, Style, Texture},
-    Plugin, Projector,
+    Plugin, Position, Projector,
 };
 
 use crate::places;
@@ -76,5 +76,42 @@ impl Plugin for CustomShapes {
             radius,
             Color32::BLACK.gamma_multiply(if hovered { 0.5 } else { 0.2 }),
         );
+    }
+}
+
+#[derive(Default, Clone)]
+pub struct ClickWatcher {
+    pub clicked_at: Option<Position>,
+}
+
+impl ClickWatcher {
+    pub fn handle_event(&mut self, response: &Response, projector: &Projector) {
+        if response.clicked_by(egui::PointerButton::Primary) {
+            if let Some(offset) = response.hover_pos().map(|p| p - response.rect.center()) {
+                self.clicked_at = Some(projector.unproject(offset));
+            }
+        }
+    }
+
+    pub fn show_position(&self, ui: &egui::Ui) {
+        if let Some(clicked_at) = self.clicked_at {
+            egui::Window::new("Clicked Position")
+                .collapsible(false)
+                .resizable(false)
+                .title_bar(false)
+                .anchor(egui::Align2::CENTER_BOTTOM, [0., -10.])
+                .show(ui.ctx(), |ui| {
+                    ui.label(format!("{:.04} {:.04}", clicked_at.lon(), clicked_at.lat()))
+                        .on_hover_text("last clicked position");
+                });
+        }
+    }
+}
+
+impl Plugin for ClickWatcher {
+    fn draw(&self, _response: &Response, painter: Painter, projector: &Projector) {
+        if let Some(position) = self.clicked_at {
+            painter.circle_filled(projector.project(position).to_pos2(), 5.0, Color32::BLUE);
+        }
     }
 }

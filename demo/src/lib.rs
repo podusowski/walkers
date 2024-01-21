@@ -7,7 +7,7 @@ use std::collections::HashMap;
 
 use crate::plugins::ImagesPluginData;
 use egui::Context;
-use walkers::{HttpOptions, Map, MapMemory, Tiles, TilesManager};
+use walkers::{HttpOptions, Map, MapMemory, Projector, Tiles, TilesManager};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum Provider {
@@ -94,6 +94,7 @@ pub struct MyApp {
     selected_provider: Provider,
     map_memory: MapMemory,
     images_plugin_data: ImagesPluginData,
+    click_watcher: plugins::ClickWatcher,
 }
 
 impl MyApp {
@@ -108,6 +109,7 @@ impl MyApp {
             selected_provider: Provider::OpenStreetMap,
             map_memory: MapMemory::default(),
             images_plugin_data,
+            click_watcher: Default::default(),
         }
     }
 }
@@ -139,10 +141,14 @@ impl eframe::App for MyApp {
                 let map = map
                     .with_plugin(plugins::places())
                     .with_plugin(plugins::images(&mut self.images_plugin_data))
-                    .with_plugin(plugins::CustomShapes {});
+                    .with_plugin(plugins::CustomShapes {})
+                    .with_plugin(self.click_watcher.clone());
 
                 // Draw the map widget.
-                ui.add(map);
+                let map_response = ui.add(map);
+                // Collect events on map widget
+                let projector = Projector::new(map_response.rect, &self.map_memory, my_position);
+                self.click_watcher.handle_event(&map_response, &projector);
 
                 // Draw utility windows.
                 {
@@ -150,6 +156,7 @@ impl eframe::App for MyApp {
 
                     zoom(ui, &mut self.map_memory);
                     go_to_my_position(ui, &mut self.map_memory);
+                    self.click_watcher.show_position(ui);
                     controls(
                         ui,
                         &mut self.selected_provider,
