@@ -13,13 +13,7 @@ use crate::{
 /// you can add it to the map with [`Map::with_plugin`]
 pub trait Plugin {
     /// Function called at each frame.
-    fn draw(
-        &self,
-        response: &Response,
-        gesture_handled: bool,
-        painter: Painter,
-        projector: &Projector,
-    );
+    fn draw(&self, response: &Response, painter: Painter, projector: &Projector);
 }
 
 /// The actual map widget. Instances are to be created on each frame, as all necessary state is
@@ -162,26 +156,28 @@ impl Map<'_, '_, '_> {
         } else if self.drag_gesture_enabled {
             self.memory
                 .center_mode
-                .recalculate_drag(response, self.my_position);
-
-            true
+                .recalculate_drag(response, self.my_position)
         } else {
             false
         }
     }
 
     /// Handles the inertial movement of a map after it has been dragged.
-    fn update_inertial_movement(&mut self, ui: &Ui) {
-        self.memory.center_mode.update_inertial_movement(ui.ctx());
+    fn update_inertial_movement(&mut self, ui: &Ui) -> bool {
+        self.memory.center_mode.update_inertial_movement(ui.ctx())
     }
 }
 
 impl Widget for Map<'_, '_, '_> {
     fn ui(mut self, ui: &mut Ui) -> Response {
-        let (rect, response) = ui.allocate_exact_size(ui.available_size(), Sense::drag());
+        let (rect, mut response) = ui.allocate_exact_size(ui.available_size(), Sense::drag());
 
         let gesture_handled = self.handle_gestures(ui, &response);
-        self.update_inertial_movement(ui);
+        let movements_performed = self.update_inertial_movement(ui);
+
+        if gesture_handled || movements_performed {
+            response.mark_changed();
+        }
 
         let zoom = self.memory.zoom.round();
         let map_center = self.memory.center_mode.position(self.my_position, zoom);
@@ -209,7 +205,7 @@ impl Widget for Map<'_, '_, '_> {
                 my_position: self.my_position,
             };
 
-            plugin.draw(&response, gesture_handled, painter.to_owned(), &projector);
+            plugin.draw(&response, painter.to_owned(), &projector);
         }
 
         response
@@ -271,7 +267,7 @@ pub enum Center {
 }
 
 impl Center {
-    fn recalculate_drag(&mut self, response: &Response, my_position: Position) {
+    fn recalculate_drag(&mut self, response: &Response, my_position: Position) -> bool {
         if response.dragged_by(egui::PointerButton::Primary) {
             let position = match &self {
                 Center::MyPosition => AdjustedPosition {
@@ -286,10 +282,14 @@ impl Center {
                 direction: response.drag_delta(),
                 amount: 1.0,
             };
+
+            true
+        } else {
+            false
         }
     }
 
-    fn update_inertial_movement(&mut self, ctx: &Context) {
+    fn update_inertial_movement(&mut self, ctx: &Context) -> bool {
         if let Center::Inertia {
             position,
             direction,
@@ -315,6 +315,9 @@ impl Center {
             // Map is moving due to interia, therefore we need to recalculate in the next frame.
             log::trace!("Requesting repaint due to non-zero inertia.");
             ctx.request_repaint();
+            true
+        } else {
+            false
         }
     }
 
