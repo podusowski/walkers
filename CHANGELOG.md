@@ -5,7 +5,10 @@ All notable changes to this project will be documented in this file.
 ## Unreleased
 
  * Tiles are now downloaded in parallel.
- * `Plugins::draw()`: remove `gesture_handled` argument in preference to `response.changed()`
+ * `Plugin::draw()`: remove `gesture_handled` argument in preference to `response.changed()`
+ * Add ability to convert screen coordinates to GPS using `Projector` and use `Projector` outside of plugins
+ * Display PrimaryButton click on the map
+ * rename `Plugin::draw()` to `Plugin::run()`
 
 ## 0.17.0
 
