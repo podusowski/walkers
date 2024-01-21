@@ -162,7 +162,7 @@ impl TilesManager for Tiles {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use hypermocker::Bytes;
+    use hypermocker::{Bytes, StatusCode};
     use std::time::Duration;
 
     static TILE_ID: TileId = TileId {
@@ -295,16 +295,16 @@ mod tests {
         assert!(tiles.at(TILE_ID).is_none());
     }
 
-    #[test]
-    fn tile_is_empty_forever_if_http_returns_error() {
+    #[tokio::test]
+    async fn tile_is_empty_forever_if_http_returns_error() {
         let _ = env_logger::try_init();
 
-        let (mut server, source) = mockito_server();
+        let (server, source) = hypermocker_mock().await;
         let mut tiles = Tiles::new(source, Context::default());
-        let tile_mock = server.mock("GET", "/3/1/2.png").with_status(404).create();
+        let response = server.anticipate("/3/1/2.png").await;
+        response.respond_with_status(StatusCode::NOT_FOUND).await;
 
         assert_tile_is_empty_forever(&mut tiles);
-        tile_mock.assert();
     }
 
     #[test]
