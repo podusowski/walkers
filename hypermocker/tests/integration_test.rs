@@ -1,5 +1,5 @@
 use hyper::body::Bytes;
-use hypermocker::Server;
+use hypermocker::{Server, StatusCode};
 use std::time::Duration;
 
 #[tokio::test]
@@ -49,6 +49,19 @@ async fn anticipate_expect_then_request() {
         },
     )
     .await;
+}
+
+#[tokio::test]
+async fn respond_with_http_status() {
+    let _ = env_logger::try_init();
+
+    let mock = Server::bind().await;
+    let url = format!("http://localhost:{}/foo", mock.port());
+    let request = mock.anticipate("/foo").await;
+    request.respond_with_status(StatusCode::NOT_FOUND).await;
+
+    let response = reqwest::get(url).await.unwrap();
+    assert_eq!(404, response.status());
 }
 
 #[tokio::test]

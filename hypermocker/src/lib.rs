@@ -1,7 +1,7 @@
 #![doc = include_str!("../README.md")]
 
 use http_body_util::Full;
-use hyper::{server::conn::http1, Response};
+use hyper::server::conn::http1;
 use hyper_util::rt::TokioIo;
 use std::{
     collections::HashMap,
@@ -15,8 +15,11 @@ use tokio::sync::oneshot;
 
 pub use hyper::body::Bytes;
 
+type Response = hyper::Response<Full<Bytes>>;
+pub type StatusCode = hyper::StatusCode;
+
 struct Expectation {
-    payload_rx: oneshot::Receiver<Bytes>,
+    payload_rx: oneshot::Receiver<Response>,
     happened_tx: oneshot::Sender<()>,
 }
 
@@ -108,7 +111,7 @@ impl Drop for Server {
 /// HTTP request that was anticipated to arrive.
 pub struct AnticipatedRequest {
     url: String,
-    payload_tx: tokio::sync::oneshot::Sender<Bytes>,
+    payload_tx: tokio::sync::oneshot::Sender<Response>,
     happened_rx: Option<oneshot::Receiver<()>>,
 }
 
@@ -116,9 +119,23 @@ impl AnticipatedRequest {
     /// Respond to this request immediately if active, or save it for later.
     pub async fn respond(self, payload: impl AsRef<[u8]>) {
         log::info!("Saving response for '{}'.", self.url);
-        self.payload_tx
-            .send(payload.as_ref().to_owned().into())
+        let payload: hyper::body::Bytes = payload.as_ref().to_owned().into();
+        let response = hyper::Response::new(Full::new(payload));
+        self.payload_tx.send(response).unwrap();
+    }
+
+    /// Respond to this request with given status, and empty body.
+    pub async fn respond_with_status(self, status: hyper::StatusCode) {
+        log::info!(
+            "Saving response (with status: {}) for '{}'.",
+            status,
+            self.url
+        );
+        let response = hyper::Response::builder()
+            .status(status)
+            .body(Full::new(Bytes::default()))
             .unwrap();
+        self.payload_tx.send(response).unwrap();
     }
 
     /// Expect the request to come, but do not respond to it yet.
@@ -137,7 +154,7 @@ struct Service {
 }
 
 impl hyper::service::Service<hyper::Request<hyper::body::Incoming>> for Service {
-    type Response = Response<Full<Bytes>>;
+    type Response = hyper::Response<Full<Bytes>>;
     type Error = hyper::Error;
     type Future = Pin<Box<dyn Future<Output = Result<Self::Response, Self::Error>> + Send>>;
 
@@ -158,12 +175,8 @@ impl hyper::service::Service<hyper::Request<hyper::body::Incoming>> for Service 
 
                 match expectation.payload_rx.await {
                     Ok(payload) => {
-                        log::info!(
-                            "Responding to '{}' with {} bytes.",
-                            request.uri(),
-                            payload.len()
-                        );
-                        Ok(Response::new(Full::new(payload)))
+                        log::info!("Responding to '{}' with {:?}.", request.uri(), payload);
+                        Ok(payload)
                     }
                     Err(_) => {
                         log::error!(
@@ -184,7 +197,7 @@ impl hyper::service::Service<hyper::Request<hyper::body::Incoming>> for Service 
                     .unwrap()
                     .unexpected
                     .push(request.uri().to_string());
-                Ok(Response::builder()
+                Ok(hyper::Response::builder()
                     .status(418)
                     .body(Full::new(Bytes::from_static(b"unexpected")))
                     .unwrap())
