@@ -1,3 +1,5 @@
+#![doc = include_str!("../README.md")]
+
 use http_body_util::Full;
 use hyper::{server::conn::http1, Response};
 use hyper_util::rt::TokioIo;
