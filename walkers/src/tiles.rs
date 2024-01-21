@@ -334,6 +334,7 @@ mod tests {
         tile_mock.assert();
     }
 
+    /// Tile source, which gives invalid urls.
     struct GarbageSource;
 
     impl TileSource for GarbageSource {
