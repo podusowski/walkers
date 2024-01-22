@@ -330,15 +330,15 @@ mod tests {
     async fn tile_is_empty_forever_if_http_returns_garbage() {
         let _ = env_logger::try_init();
 
-        let (mut server, source) = mockito_server();
+        let (server, source) = hypermocker_mock().await;
         let mut tiles = Tiles::new(source, Context::default());
-        let tile_mock = server
-            .mock("GET", "/3/1/2.png")
-            .with_body("definitely not an image")
-            .create();
+        server
+            .anticipate("/3/1/2.png")
+            .await
+            .respond("definitely not an image")
+            .await;
 
         assert_tile_is_empty_forever(&mut tiles).await;
-        tile_mock.assert();
     }
 
     /// Tile source, which gives invalid urls.
