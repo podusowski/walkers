@@ -227,8 +227,9 @@ mod tests {
         let _ = env_logger::try_init();
 
         let (server, source) = hypermocker_mock().await;
-        let request = server.anticipate("/3/1/2.png").await;
-        request
+        server
+            .anticipate("/3/1/2.png")
+            .await
             .respond(include_bytes!("../assets/blank-255-tile.png"))
             .await;
 
@@ -301,8 +302,11 @@ mod tests {
 
         let (server, source) = hypermocker_mock().await;
         let mut tiles = Tiles::new(source, Context::default());
-        let response = server.anticipate("/3/1/2.png").await;
-        response.respond_with_status(StatusCode::NOT_FOUND).await;
+        server
+            .anticipate("/3/1/2.png")
+            .await
+            .respond_with_status(StatusCode::NOT_FOUND)
+            .await;
 
         assert_tile_is_empty_forever(&mut tiles);
     }
