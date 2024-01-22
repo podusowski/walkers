@@ -8,4 +8,4 @@ publish = false
 demo = { path = "../demo" }
 eframe.workspace = true
 egui.workspace = true
-env_logger = "0.10"
+env_logger = "0.11"
