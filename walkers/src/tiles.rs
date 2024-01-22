@@ -311,16 +311,19 @@ mod tests {
         assert_tile_is_empty_forever(&mut tiles);
     }
 
-    #[test]
-    fn tile_is_empty_forever_if_http_returns_no_body() {
+    #[tokio::test]
+    async fn tile_is_empty_forever_if_http_returns_no_body() {
         let _ = env_logger::try_init();
 
-        let (mut server, source) = mockito_server();
+        let (server, source) = hypermocker_mock().await;
         let mut tiles = Tiles::new(source, Context::default());
-        let tile_mock = server.mock("GET", "/3/1/2.png").create();
+        server
+            .anticipate("/3/1/2.png")
+            .await
+            .respond_with_status(StatusCode::OK)
+            .await;
 
         assert_tile_is_empty_forever(&mut tiles);
-        tile_mock.assert();
     }
 
     #[test]
