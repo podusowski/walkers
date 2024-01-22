@@ -199,14 +199,6 @@ mod tests {
         }
     }
 
-    /// Creates `mockito::Server` and function mapping `TileId` to this
-    /// server's URL.
-    fn mockito_server() -> (mockito::ServerGuard, TestSource) {
-        let server = mockito::Server::new();
-        let url = server.url();
-        (server, TestSource::new(url))
-    }
-
     /// Creates [`hypermocker::Mock`], and function mapping `TileId` to its URL.
     async fn hypermocker_mock() -> (hypermocker::Server, TestSource) {
         let server = hypermocker::Server::bind().await;
