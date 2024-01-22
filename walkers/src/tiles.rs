@@ -162,7 +162,7 @@ impl TilesManager for Tiles {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use hypermocker::Bytes;
+    use hypermocker::{Bytes, StatusCode};
     use std::time::Duration;
 
     static TILE_ID: TileId = TileId {
@@ -199,14 +199,6 @@ mod tests {
         }
     }
 
-    /// Creates `mockito::Server` and function mapping `TileId` to this
-    /// server's URL.
-    fn mockito_server() -> (mockito::ServerGuard, TestSource) {
-        let server = mockito::Server::new();
-        let url = server.url();
-        (server, TestSource::new(url))
-    }
-
     /// Creates [`hypermocker::Mock`], and function mapping `TileId` to its URL.
     async fn hypermocker_mock() -> (hypermocker::Server, TestSource) {
         let server = hypermocker::Server::bind().await;
@@ -214,15 +206,24 @@ mod tests {
         (server, TestSource::new(url))
     }
 
-    #[test]
-    fn download_single_tile() {
+    async fn assert_tile_to_become_available_eventually(tiles: &mut Tiles, tile_id: TileId) {
+        log::info!("Waiting for {:?} to become available.", tile_id);
+        while tiles.at(tile_id).is_none() {
+            // Need to yield to the runtime for things to move.
+            tokio::time::sleep(Duration::from_millis(10)).await;
+        }
+    }
+
+    #[tokio::test]
+    async fn download_single_tile() {
         let _ = env_logger::try_init();
 
-        let (mut server, source) = mockito_server();
-        let tile_mock = server
-            .mock("GET", "/3/1/2.png")
-            .with_body(include_bytes!("../assets/blank-255-tile.png"))
-            .create();
+        let (server, source) = hypermocker_mock().await;
+        server
+            .anticipate("/3/1/2.png")
+            .await
+            .respond(include_bytes!("../assets/blank-255-tile.png"))
+            .await;
 
         let mut tiles = Tiles::new(source, Context::default());
 
@@ -230,9 +231,7 @@ mod tests {
         assert!(tiles.at(TILE_ID).is_none());
 
         // Eventually it gets downloaded and become available in cache.
-        while tiles.at(TILE_ID).is_none() {}
-
-        tile_mock.assert();
+        assert_tile_to_become_available_eventually(&mut tiles, TILE_ID).await;
     }
 
     #[tokio::test]
@@ -282,52 +281,59 @@ mod tests {
         awaiting_request.expect().await;
     }
 
-    fn assert_tile_is_empty_forever(tiles: &mut Tiles) {
+    async fn assert_tile_is_empty_forever(tiles: &mut Tiles) {
         // Should be None now, and forever.
         assert!(tiles.at(TILE_ID).is_none());
-        std::thread::sleep(Duration::from_secs(1));
+        tokio::time::sleep(Duration::from_secs(1)).await;
         assert!(tiles.at(TILE_ID).is_none());
     }
 
-    #[test]
-    fn tile_is_empty_forever_if_http_returns_error() {
+    #[tokio::test]
+    async fn tile_is_empty_forever_if_http_returns_error() {
         let _ = env_logger::try_init();
 
-        let (mut server, source) = mockito_server();
+        let (server, source) = hypermocker_mock().await;
         let mut tiles = Tiles::new(source, Context::default());
-        let tile_mock = server.mock("GET", "/3/1/2.png").with_status(404).create();
+        server
+            .anticipate("/3/1/2.png")
+            .await
+            .respond_with_status(StatusCode::NOT_FOUND)
+            .await;
 
-        assert_tile_is_empty_forever(&mut tiles);
-        tile_mock.assert();
+        assert_tile_is_empty_forever(&mut tiles).await;
     }
 
-    #[test]
-    fn tile_is_empty_forever_if_http_returns_no_body() {
+    #[tokio::test]
+    async fn tile_is_empty_forever_if_http_returns_no_body() {
         let _ = env_logger::try_init();
 
-        let (mut server, source) = mockito_server();
+        let (server, source) = hypermocker_mock().await;
         let mut tiles = Tiles::new(source, Context::default());
-        let tile_mock = server.mock("GET", "/3/1/2.png").create();
+        server
+            .anticipate("/3/1/2.png")
+            .await
+            .respond_with_status(StatusCode::OK)
+            .await;
 
-        assert_tile_is_empty_forever(&mut tiles);
-        tile_mock.assert();
+        assert_tile_is_empty_forever(&mut tiles).await;
     }
 
-    #[test]
-    fn tile_is_empty_forever_if_http_returns_garbage() {
+    #[tokio::test]
+    async fn tile_is_empty_forever_if_http_returns_garbage() {
         let _ = env_logger::try_init();
 
-        let (mut server, source) = mockito_server();
+        let (server, source) = hypermocker_mock().await;
         let mut tiles = Tiles::new(source, Context::default());
-        let tile_mock = server
-            .mock("GET", "/3/1/2.png")
-            .with_body("definitely not an image")
-            .create();
+        server
+            .anticipate("/3/1/2.png")
+            .await
+            .respond("definitely not an image")
+            .await;
 
-        assert_tile_is_empty_forever(&mut tiles);
-        tile_mock.assert();
+        assert_tile_is_empty_forever(&mut tiles).await;
     }
 
+    /// Tile source, which gives invalid urls.
     struct GarbageSource;
 
     impl TileSource for GarbageSource {
@@ -345,10 +351,10 @@ mod tests {
         }
     }
 
-    #[test]
-    fn tile_is_empty_forever_if_http_can_not_even_connect() {
+    #[tokio::test]
+    async fn tile_is_empty_forever_if_http_can_not_even_connect() {
         let _ = env_logger::try_init();
         let mut tiles = Tiles::new(GarbageSource, Context::default());
-        assert_tile_is_empty_forever(&mut tiles);
+        assert_tile_is_empty_forever(&mut tiles).await;
     }
 }
