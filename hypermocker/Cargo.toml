@@ -14,4 +14,4 @@ log = "0.4"
 [dev-dependencies]
 reqwest = "0.11"
 futures = "0.3.28"
-env_logger = "0.10"
+env_logger = "0.11"
