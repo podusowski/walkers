@@ -13,7 +13,7 @@ use crate::{
 /// you can add it to the map with [`Map::with_plugin`]
 pub trait Plugin {
     /// Function called at each frame.
-    fn draw(&self, response: &Response, painter: Painter, projector: &Projector);
+    fn run(&mut self, response: &Response, painter: Painter, projector: &Projector);
 }
 
 /// The actual map widget. Instances are to be created on each frame, as all necessary state is
@@ -219,10 +219,10 @@ impl Widget for Map<'_, '_, '_> {
             }
         }
 
-        for plugin in self.plugins {
+        for mut plugin in self.plugins {
             let projector = Projector::new(response.rect, self.memory, self.my_position);
 
-            plugin.draw(&response, painter.to_owned(), &projector);
+            plugin.run(&response, painter.to_owned(), &projector);
         }
 
         response

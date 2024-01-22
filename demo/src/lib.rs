@@ -7,7 +7,7 @@ use std::collections::HashMap;
 
 use crate::plugins::ImagesPluginData;
 use egui::Context;
-use walkers::{HttpOptions, Map, MapMemory, Projector, Tiles, TilesManager};
+use walkers::{HttpOptions, Map, MapMemory, Tiles, TilesManager};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum Provider {
@@ -142,13 +142,10 @@ impl eframe::App for MyApp {
                     .with_plugin(plugins::places())
                     .with_plugin(plugins::images(&mut self.images_plugin_data))
                     .with_plugin(plugins::CustomShapes {})
-                    .with_plugin(self.click_watcher.clone());
+                    .with_plugin(&mut self.click_watcher);
 
                 // Draw the map widget.
-                let map_response = ui.add(map);
-                // Collect events on map widget
-                let projector = Projector::new(map_response.rect, &self.map_memory, my_position);
-                self.click_watcher.handle_event(&map_response, &projector);
+                ui.add(map);
 
                 // Draw utility windows.
                 {
