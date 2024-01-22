@@ -289,10 +289,10 @@ mod tests {
         awaiting_request.expect().await;
     }
 
-    fn assert_tile_is_empty_forever(tiles: &mut Tiles) {
+    async fn assert_tile_is_empty_forever(tiles: &mut Tiles) {
         // Should be None now, and forever.
         assert!(tiles.at(TILE_ID).is_none());
-        std::thread::sleep(Duration::from_secs(1));
+        tokio::time::sleep(Duration::from_secs(1)).await;
         assert!(tiles.at(TILE_ID).is_none());
     }
 
@@ -308,7 +308,7 @@ mod tests {
             .respond_with_status(StatusCode::NOT_FOUND)
             .await;
 
-        assert_tile_is_empty_forever(&mut tiles);
+        assert_tile_is_empty_forever(&mut tiles).await;
     }
 
     #[tokio::test]
@@ -323,11 +323,11 @@ mod tests {
             .respond_with_status(StatusCode::OK)
             .await;
 
-        assert_tile_is_empty_forever(&mut tiles);
+        assert_tile_is_empty_forever(&mut tiles).await;
     }
 
-    #[test]
-    fn tile_is_empty_forever_if_http_returns_garbage() {
+    #[tokio::test]
+    async fn tile_is_empty_forever_if_http_returns_garbage() {
         let _ = env_logger::try_init();
 
         let (mut server, source) = mockito_server();
@@ -337,7 +337,7 @@ mod tests {
             .with_body("definitely not an image")
             .create();
 
-        assert_tile_is_empty_forever(&mut tiles);
+        assert_tile_is_empty_forever(&mut tiles).await;
         tile_mock.assert();
     }
 
@@ -359,10 +359,10 @@ mod tests {
         }
     }
 
-    #[test]
-    fn tile_is_empty_forever_if_http_can_not_even_connect() {
+    #[tokio::test]
+    async fn tile_is_empty_forever_if_http_can_not_even_connect() {
         let _ = env_logger::try_init();
         let mut tiles = Tiles::new(GarbageSource, Context::default());
-        assert_tile_is_empty_forever(&mut tiles);
+        assert_tile_is_empty_forever(&mut tiles).await;
     }
 }
