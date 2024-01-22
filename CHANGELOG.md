@@ -5,6 +5,7 @@ All notable changes to this project will be documented in this file.
 ## Unreleased
 
  * Tiles are now downloaded in parallel.
+ * `Plugins::draw()`: remove `gesture_handled` argument in preference to `response.changed()`
 
 ## 0.17.0
 

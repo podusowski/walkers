@@ -60,13 +60,7 @@ impl Images {
 }
 
 impl Plugin for Images {
-    fn draw(
-        &self,
-        response: &Response,
-        _gesture_handled: bool,
-        painter: Painter,
-        projector: &crate::Projector,
-    ) {
+    fn draw(&self, response: &Response, painter: Painter, projector: &crate::Projector) {
         for image in &self.images {
             image.draw(response, painter.clone(), projector);
         }
