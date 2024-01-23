@@ -102,7 +102,7 @@ impl Places {
 }
 
 impl Plugin for Places {
-    fn draw(&self, response: &Response, painter: Painter, projector: &crate::Projector) {
+    fn run(&mut self, response: &Response, painter: Painter, projector: &crate::Projector) {
         for place in &self.places {
             place.draw(response, painter.clone(), projector);
         }

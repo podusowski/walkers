@@ -60,7 +60,7 @@ impl Images {
 }
 
 impl Plugin for Images {
-    fn draw(&self, response: &Response, painter: Painter, projector: &crate::Projector) {
+    fn run(&mut self, response: &Response, painter: Painter, projector: &crate::Projector) {
         for image in &self.images {
             image.draw(response, painter.clone(), projector);
         }

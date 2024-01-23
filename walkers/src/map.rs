@@ -13,7 +13,7 @@ use crate::{
 /// you can add it to the map with [`Map::with_plugin`]
 pub trait Plugin {
     /// Function called at each frame.
-    fn draw(&self, response: &Response, painter: Painter, projector: &Projector);
+    fn run(&mut self, response: &Response, painter: Painter, projector: &Projector);
 }
 
 /// The actual map widget. Instances are to be created on each frame, as all necessary state is
@@ -89,6 +89,14 @@ pub struct Projector {
 }
 
 impl Projector {
+    pub fn new(clip_rect: Rect, map_memory: &MapMemory, my_position: Position) -> Self {
+        Self {
+            clip_rect,
+            memory: map_memory.to_owned(),
+            my_position,
+        }
+    }
+
     /// Project `position` into pixels on the viewport.
     pub fn project(&self, position: Position) -> Vec2 {
         // Turn that into a flat, mercator projection.
@@ -106,6 +114,19 @@ impl Projector {
         // From the two points above we can calculate the actual point on the screen.
         self.clip_rect.center().to_vec2()
             + (projected_position - map_center_projected_position).to_vec2()
+    }
+
+    /// Get coordinates from viewport's pixels position
+    pub fn unproject(&self, position: Vec2) -> Position {
+        let zoom = self.memory.zoom.round();
+        let center = self.memory.center_mode.position(self.my_position, zoom);
+
+        AdjustedPosition {
+            position: center,
+            offset: Default::default(),
+        }
+        .shift(-position)
+        .position(zoom)
     }
 }
 
@@ -198,14 +219,10 @@ impl Widget for Map<'_, '_, '_> {
             }
         }
 
-        for plugin in self.plugins {
-            let projector = Projector {
-                clip_rect: response.rect,
-                memory: self.memory.to_owned(),
-                my_position: self.my_position,
-            };
+        for mut plugin in self.plugins {
+            let projector = Projector::new(response.rect, self.memory, self.my_position);
 
-            plugin.draw(&response, painter.to_owned(), &projector);
+            plugin.run(&response, painter.to_owned(), &projector);
         }
 
         response
@@ -268,7 +285,9 @@ pub enum Center {
 
 impl Center {
     fn recalculate_drag(&mut self, response: &Response, my_position: Position) -> bool {
-        if response.dragged_by(egui::PointerButton::Primary) {
+        if response.dragged_by(egui::PointerButton::Primary)
+            && response.drag_delta() != Vec2::default()
+        {
             let position = match &self {
                 Center::MyPosition => AdjustedPosition {
                     position: my_position,

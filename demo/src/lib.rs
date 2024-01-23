@@ -94,6 +94,7 @@ pub struct MyApp {
     selected_provider: Provider,
     map_memory: MapMemory,
     images_plugin_data: ImagesPluginData,
+    click_watcher: plugins::ClickWatcher,
 }
 
 impl MyApp {
@@ -108,6 +109,7 @@ impl MyApp {
             selected_provider: Provider::OpenStreetMap,
             map_memory: MapMemory::default(),
             images_plugin_data,
+            click_watcher: Default::default(),
         }
     }
 }
@@ -139,7 +141,8 @@ impl eframe::App for MyApp {
                 let map = map
                     .with_plugin(plugins::places())
                     .with_plugin(plugins::images(&mut self.images_plugin_data))
-                    .with_plugin(plugins::CustomShapes {});
+                    .with_plugin(plugins::CustomShapes {})
+                    .with_plugin(&mut self.click_watcher);
 
                 // Draw the map widget.
                 ui.add(map);
@@ -150,6 +153,7 @@ impl eframe::App for MyApp {
 
                     zoom(ui, &mut self.map_memory);
                     go_to_my_position(ui, &mut self.map_memory);
+                    self.click_watcher.show_position(ui);
                     controls(
                         ui,
                         &mut self.selected_provider,
