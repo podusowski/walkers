@@ -5,10 +5,10 @@ All notable changes to this project will be documented in this file.
 ## Unreleased
 
  * Tiles are now downloaded in parallel.
- * `Plugin::draw()`: remove `gesture_handled` argument in preference to `response.changed()`
- * Add ability to convert screen coordinates to GPS using `Projector` and use `Projector` outside of plugins
- * Display PrimaryButton click on the map
- * rename `Plugin::draw()` to `Plugin::run()`
+ * `Plugin::draw()` is now called `Plugin::run()` and no longer has `gesture_handled` argument,
+   in preference to `egui::Response::changed()`.
+ * New `Projector::unproject()` function converts screen coordinates to a geographical position.
+ * New `Projector::new()` allows `Projector` to be used outside plugins.
 
 ## 0.17.0
 
