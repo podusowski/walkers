@@ -103,9 +103,9 @@ impl ClickWatcher {
 impl Plugin for &mut ClickWatcher {
     fn run(&mut self, response: &Response, painter: Painter, projector: &Projector) {
         if !response.changed() && response.clicked_by(egui::PointerButton::Primary) {
-            if let Some(offset) = response.hover_pos().map(|p| p - response.rect.center()) {
-                self.clicked_at = Some(projector.unproject(offset));
-            }
+            self.clicked_at = response
+                .interact_pointer_pos()
+                .map(|p| projector.unproject(p - response.rect.center()));
         }
 
         if let Some(position) = self.clicked_at {
