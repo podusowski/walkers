@@ -2,7 +2,7 @@
 
 All notable changes to this project will be documented in this file.
 
-## Unreleased
+## 0.18.0
 
  * Tiles are now downloaded in parallel.
  * `Plugin::draw()` is now called `Plugin::run()` and no longer has `gesture_handled` argument,
