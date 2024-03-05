@@ -191,7 +191,8 @@ impl Map<'_, '_, '_> {
 
 impl Widget for Map<'_, '_, '_> {
     fn ui(mut self, ui: &mut Ui) -> Response {
-        let (rect, mut response) = ui.allocate_exact_size(ui.available_size(), Sense::drag());
+        let (rect, mut response) =
+            ui.allocate_exact_size(ui.available_size(), Sense::click_and_drag());
 
         let gesture_handled = self.handle_gestures(ui, &response);
         let movements_performed = self.update_inertial_movement(ui);

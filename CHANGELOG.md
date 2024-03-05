@@ -2,6 +2,10 @@
 
 All notable changes to this project will be documented in this file.
 
+## Unreleased
+
+ * Plugins: Fixed problem of handle clicks after update to egui 0.26
+
 ## 0.19.0
 
  * `egui` updated to 0.26.
