@@ -100,16 +100,18 @@ impl Projector {
     /// Project `position` into pixels on the viewport.
     pub fn project(&self, position: Position) -> Vec2 {
         // Turn that into a flat, mercator projection.
-        let projected_position = position.project(self.memory.zoom.round());
+        let projected_position = position.project(self.memory.zoom.into());
 
-        let zoom = self.memory.zoom.round();
+        // We need the precision of f64 here,
+        // since some "gaps" between tiles are noticable on large zoom levels (e.g. 16+)
+        let zoom: f64 = self.memory.zoom.into();
 
         // We also need to know where the map center is.
         let map_center_projected_position = self
             .memory
             .center_mode
             .position(self.my_position, zoom)
-            .project(self.memory.zoom.round());
+            .project(self.memory.zoom.into());
 
         // From the two points above we can calculate the actual point on the screen.
         self.clip_rect.center().to_vec2()
@@ -118,7 +120,7 @@ impl Projector {
 
     /// Get coordinates from viewport's pixels position
     pub fn unproject(&self, position: Vec2) -> Position {
-        let zoom = self.memory.zoom.round();
+        let zoom: f64 = self.memory.zoom.into();
         let center = self.memory.center_mode.position(self.my_position, zoom);
 
         AdjustedPosition {
@@ -155,7 +157,7 @@ impl Map<'_, '_, '_> {
                     .center_mode
                     .clone()
                     .shift(-offset)
-                    .zero_offset(self.memory.zoom.round());
+                    .zero_offset(self.memory.zoom.into());
             }
 
             // Shift by 1 because of the values given by zoom_delta(). Multiple by 2, because
@@ -167,7 +169,7 @@ impl Map<'_, '_, '_> {
                 .memory
                 .center_mode
                 .clone()
-                .zero_offset(self.memory.zoom.round());
+                .zero_offset(self.memory.zoom.into());
 
             if let Some(offset) = offset {
                 self.memory.center_mode = self.memory.center_mode.clone().shift(offset);
@@ -201,16 +203,20 @@ impl Widget for Map<'_, '_, '_> {
             response.mark_changed();
         }
 
-        let zoom = self.memory.zoom.round();
-        let map_center = self.memory.center_mode.position(self.my_position, zoom);
+        let zoom = self.memory.zoom;
+        let map_center = self
+            .memory
+            .center_mode
+            .position(self.my_position, zoom.into());
         let painter = ui.painter().with_clip_rect(rect);
 
         if let Some(tiles) = self.tiles {
             let mut meshes = Default::default();
             flood_fill_tiles(
                 painter.clip_rect(),
-                map_center.tile_id(zoom, tiles.tile_size()),
-                map_center.project(zoom),
+                map_center.tile_id(zoom.round(), tiles.tile_size()),
+                map_center.project(zoom.into()),
+                zoom.into(),
                 tiles,
                 &mut meshes,
             );
@@ -243,12 +249,12 @@ pub struct AdjustedPosition {
 
 impl AdjustedPosition {
     /// Calculate the real position, i.e. including the offset.
-    fn position(&self, zoom: u8) -> Position {
+    fn position(&self, zoom: f64) -> Position {
         screen_to_position(self.position.project(zoom) - self.offset, zoom)
     }
 
     /// Recalculate `position` so that `offset` is zero.
-    fn zero_offset(self, zoom: u8) -> Self {
+    fn zero_offset(self, zoom: f64) -> Self {
         Self {
             position: screen_to_position(self.position.project(zoom) - self.offset, zoom),
             offset: Default::default(),
@@ -343,7 +349,7 @@ impl Center {
 
     /// Returns exact position if map is detached (i.e. not following `my_position`),
     /// `None` otherwise.
-    fn detached(&self, zoom: u8) -> Option<Position> {
+    fn detached(&self, zoom: f64) -> Option<Position> {
         match self {
             Center::MyPosition => None,
             Center::Exact(position) | Center::Inertia { position, .. } => {
@@ -353,11 +359,11 @@ impl Center {
     }
 
     /// Get the real position at the map's center.
-    pub fn position(&self, my_position: Position, zoom: u8) -> Position {
+    pub fn position(&self, my_position: Position, zoom: f64) -> Position {
         self.detached(zoom).unwrap_or(my_position)
     }
 
-    pub fn zero_offset(self, zoom: u8) -> Self {
+    pub fn zero_offset(self, zoom: f64) -> Self {
         match self {
             Center::MyPosition => Center::MyPosition,
             Center::Exact(position) => Center::Exact(position.zero_offset(zoom)),
@@ -401,20 +407,20 @@ pub struct MapMemory {
 impl MapMemory {
     /// Try to zoom in, returning `Err(InvalidZoom)` if already at maximum.
     pub fn zoom_in(&mut self) -> Result<(), InvalidZoom> {
-        self.center_mode = self.center_mode.clone().zero_offset(self.zoom.round());
+        self.center_mode = self.center_mode.clone().zero_offset(self.zoom.into());
         self.zoom.zoom_in()
     }
 
     /// Try to zoom out, returning `Err(InvalidZoom)` if already at minimum.
     pub fn zoom_out(&mut self) -> Result<(), InvalidZoom> {
-        self.center_mode = self.center_mode.clone().zero_offset(self.zoom.round());
+        self.center_mode = self.center_mode.clone().zero_offset(self.zoom.into());
         self.zoom.zoom_out()
     }
 
     /// Returns exact position if map is detached (i.e. not following `my_position`),
     /// `None` otherwise.
     pub fn detached(&self) -> Option<Position> {
-        self.center_mode.detached(self.zoom.round())
+        self.center_mode.detached(self.zoom.into())
     }
 
     /// Center exactly at the given position.
@@ -436,19 +442,22 @@ fn flood_fill_tiles(
     viewport: Rect,
     tile_id: TileId,
     map_center_projected_position: Pixels,
+    zoom: f64,
     tiles: &mut dyn TilesManager,
     meshes: &mut HashMap<TileId, Option<Mesh>>,
 ) {
-    let tile_projected = tile_id.project(tiles.tile_size());
+    // We need to make up the difference between integer and floating point zoom levels.
+    let corrected_tile_size = tiles.tile_size() as f64 * 2f64.powf(zoom - zoom.round());
+    let tile_projected = tile_id.project(corrected_tile_size);
     let tile_screen_position =
         viewport.center().to_vec2() + (tile_projected - map_center_projected_position).to_vec2();
 
-    if viewport.intersects(tiles::rect(tile_screen_position, tiles.tile_size())) {
+    if viewport.intersects(tiles::rect(tile_screen_position, corrected_tile_size)) {
         if let Entry::Vacant(entry) = meshes.entry(tile_id) {
             // It's still OK to insert an empty one, as we need to mark the spot for the filling algorithm.
             let tile = tiles
                 .at(tile_id)
-                .map(|tile| tile.mesh(tile_screen_position, tiles.tile_size()));
+                .map(|tile| tile.mesh(tile_screen_position, corrected_tile_size));
 
             entry.insert(tile);
 
@@ -465,6 +474,7 @@ fn flood_fill_tiles(
                     viewport,
                     *next_tile_id,
                     map_center_projected_position,
+                    zoom,
                     tiles,
                     meshes,
                 );

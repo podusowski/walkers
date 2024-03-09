@@ -34,13 +34,13 @@ impl Position {
     }
 
     /// Project geographical position into a 2D plane using Mercator.
-    pub(crate) fn project(&self, zoom: u8) -> Pixels {
+    pub(crate) fn project(&self, zoom: f64) -> Pixels {
         let (x, y) = mercator_normalized(*self);
 
         // Map that into a big bitmap made out of web tiles.
-        let number_of_pixels = 2u32.pow(zoom as u32) * TILE_SIZE;
-        let x = x * number_of_pixels as f64;
-        let y = y * number_of_pixels as f64;
+        let number_of_pixels = 2f64.powf(zoom) * (TILE_SIZE as f64);
+        let x = x * number_of_pixels;
+        let y = y * number_of_pixels;
 
         Pixels::new(x, y)
     }
@@ -122,8 +122,8 @@ pub struct TileId {
 
 impl TileId {
     /// Tile position (in pixels) on the "World bitmap".
-    pub fn project(&self, tile_size: u32) -> Pixels {
-        Pixels::new((self.x * tile_size) as f64, (self.y * tile_size) as f64)
+    pub fn project(&self, tile_size: f64) -> Pixels {
+        Pixels::new(self.x as f64 * tile_size, self.y as f64 * tile_size)
     }
 
     pub fn east(&self) -> Option<TileId> {
@@ -160,9 +160,8 @@ impl TileId {
 }
 
 /// Transforms screen pixels into a geographical position.
-pub fn screen_to_position(pixels: Pixels, zoom: u8) -> Position {
-    let number_of_pixels = 2u32.pow(zoom as u32) * TILE_SIZE;
-    let number_of_pixels: f64 = number_of_pixels.into();
+pub fn screen_to_position(pixels: Pixels, zoom: f64) -> Position {
+    let number_of_pixels: f64 = 2f64.powf(zoom) * (TILE_SIZE as f64);
 
     let lon = pixels.x();
     let lon = lon / number_of_pixels;
@@ -211,12 +210,12 @@ mod tests {
         // Projected tile is just its x, y multiplied by the size of tiles.
         assert_eq!(
             Pixels::new(585455. * 256., 345104. * 256.),
-            citadel.tile_id(zoom, 256).project(256)
+            citadel.tile_id(zoom, 256).project(256.)
         );
 
         // Projected Citadel position should be somewhere near projected tile, shifted only by the
         // position on the tile.
-        let calculated = citadel.project(zoom);
+        let calculated = citadel.project(zoom as f64);
         let citadel_proj = Pixels::new(585455. * 256. + 184., 345104. * 256. + 116.5);
         approx::assert_relative_eq!(calculated.x(), citadel_proj.x(), max_relative = 0.5);
         approx::assert_relative_eq!(calculated.y(), citadel_proj.y(), max_relative = 0.5);
@@ -226,7 +225,7 @@ mod tests {
     fn project_there_and_back() {
         let citadel = Position::from_lat_lon(21.00027, 52.26470);
         let zoom = 16;
-        let calculated = screen_to_position(citadel.project(zoom), zoom);
+        let calculated = screen_to_position(citadel.project(zoom as f64), zoom as f64);
 
         approx::assert_relative_eq!(calculated.lon(), citadel.lon(), max_relative = 1.0);
         approx::assert_relative_eq!(calculated.lat(), citadel.lat(), max_relative = 1.0);

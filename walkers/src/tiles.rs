@@ -10,7 +10,7 @@ use crate::io::Runtime;
 use crate::mercator::TileId;
 use crate::sources::{Attribution, TileSource};
 
-pub(crate) fn rect(screen_position: Vec2, tile_size: u32) -> Rect {
+pub(crate) fn rect(screen_position: Vec2, tile_size: f64) -> Rect {
     Rect::from_min_size(screen_position.to_pos2(), Vec2::splat(tile_size as f32))
 }
 
@@ -38,7 +38,7 @@ impl Texture {
         self.0.size_vec2()
     }
 
-    pub(crate) fn mesh(&self, screen_position: Vec2, tile_size: u32) -> Mesh {
+    pub(crate) fn mesh(&self, screen_position: Vec2, tile_size: f64) -> Mesh {
         self.mesh_with_rect(rect(screen_position, tile_size))
     }
 
