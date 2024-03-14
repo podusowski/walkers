@@ -11,3 +11,5 @@ Cargo.lock
 
 # Path where `demo_native` stores the HTTP cache.
 .cache
+
+.DS_Store
