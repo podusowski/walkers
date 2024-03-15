@@ -192,7 +192,7 @@ impl Widget for Map<'_, '_, '_> {
             ui.allocate_exact_size(ui.available_size(), Sense::click_and_drag());
 
         let mut moved = self.handle_gestures(ui, &response);
-        moved |= self.memory.center_mode.update_inertial_movement();
+        moved |= self.memory.center_mode.update_movement();
 
         if moved {
             response.mark_changed();
@@ -328,7 +328,7 @@ impl Center {
         }
     }
 
-    fn update_inertial_movement(&mut self) -> bool {
+    fn update_movement(&mut self) -> bool {
         match &self {
             Center::Moving {
                 position,
