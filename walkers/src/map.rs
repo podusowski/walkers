@@ -1,6 +1,6 @@
 use std::collections::{hash_map::Entry, HashMap};
 
-use egui::{Context, Mesh, Painter, Rect, Response, Sense, Ui, Vec2, Widget};
+use egui::{Mesh, Painter, Rect, Response, Sense, Ui, Vec2, Widget};
 
 use crate::{
     mercator::{screen_to_position, Pixels, PixelsExt, TileId},
@@ -184,11 +184,6 @@ impl Map<'_, '_, '_> {
             false
         }
     }
-
-    /// Handles the inertial movement of a map after it has been dragged.
-    fn update_inertial_movement(&mut self, ui: &Ui) -> bool {
-        self.memory.center_mode.update_inertial_movement(ui.ctx())
-    }
 }
 
 impl Widget for Map<'_, '_, '_> {
@@ -196,11 +191,12 @@ impl Widget for Map<'_, '_, '_> {
         let (rect, mut response) =
             ui.allocate_exact_size(ui.available_size(), Sense::click_and_drag());
 
-        let gesture_handled = self.handle_gestures(ui, &response);
-        let movements_performed = self.update_inertial_movement(ui);
+        let mut moved = self.handle_gestures(ui, &response);
+        moved |= self.memory.center_mode.update_movement();
 
-        if gesture_handled || movements_performed {
+        if moved {
             response.mark_changed();
+            ui.ctx().request_repaint();
         }
 
         let zoom = self.memory.zoom;
@@ -282,6 +278,11 @@ pub enum Center {
     /// Centered at the exact position.
     Exact(AdjustedPosition),
 
+    Moving {
+        position: AdjustedPosition,
+        direction: Vec2,
+    },
+
     /// Map's currently moving due to inertia, and will slow down and stop after a short while.
     Inertia {
         position: AdjustedPosition,
@@ -292,58 +293,82 @@ pub enum Center {
 
 impl Center {
     fn recalculate_drag(&mut self, response: &Response, my_position: Position) -> bool {
-        if response.dragged_by(egui::PointerButton::Primary)
-            && response.drag_delta() != Vec2::default()
-        {
+        if response.dragged_by(egui::PointerButton::Primary) {
             let position = match &self {
                 Center::MyPosition => AdjustedPosition {
                     position: my_position,
                     offset: Default::default(),
                 },
-                Center::Exact(position) | Center::Inertia { position, .. } => position.to_owned(),
+                Center::Exact(position)
+                | Center::Moving { position, .. }
+                | Center::Inertia { position, .. } => position.to_owned(),
             };
 
-            *self = Center::Inertia {
+            *self = Center::Moving {
                 position,
                 direction: response.drag_delta(),
-                amount: 1.0,
             };
 
+            true
+        } else if response.drag_released() {
+            if let Center::Moving {
+                position,
+                direction,
+            } = &self
+            {
+                *self = Center::Inertia {
+                    position: position.clone(),
+                    direction: *direction,
+                    amount: 1.0,
+                };
+            }
             true
         } else {
             false
         }
     }
 
-    fn update_inertial_movement(&mut self, ctx: &Context) -> bool {
-        if let Center::Inertia {
-            position,
-            direction,
-            amount,
-        } = &self
-        {
-            *self = if amount <= &mut 0.0 {
-                Center::Exact(position.to_owned())
-            } else {
-                let delta = *direction * *amount;
+    fn update_movement(&mut self) -> bool {
+        match &self {
+            Center::Moving {
+                position,
+                direction,
+            } => {
+                let delta = *direction;
                 let offset = position.offset + Pixels::new(delta.x as f64, delta.y as f64);
 
-                Center::Inertia {
+                *self = Center::Moving {
                     position: AdjustedPosition {
                         position: position.position,
                         offset,
                     },
                     direction: *direction,
-                    amount: *amount - 0.03,
-                }
-            };
+                };
+                true
+            }
+            Center::Inertia {
+                position,
+                direction,
+                amount,
+            } => {
+                *self = if amount <= &mut 0.0 {
+                    Center::Exact(position.to_owned())
+                } else {
+                    let delta = *direction * *amount;
+                    let offset = position.offset + Pixels::new(delta.x as f64, delta.y as f64);
 
-            // Map is moving due to interia, therefore we need to recalculate in the next frame.
-            log::trace!("Requesting repaint due to non-zero inertia.");
-            ctx.request_repaint();
-            true
-        } else {
-            false
+                    Center::Inertia {
+                        position: AdjustedPosition {
+                            position: position.position,
+                            offset,
+                        },
+                        direction: *direction,
+                        amount: *amount - 0.03,
+                    }
+                };
+                true
+            }
+            _ => false,
         }
     }
 
@@ -352,9 +377,9 @@ impl Center {
     fn detached(&self, zoom: f64) -> Option<Position> {
         match self {
             Center::MyPosition => None,
-            Center::Exact(position) | Center::Inertia { position, .. } => {
-                Some(position.position(zoom))
-            }
+            Center::Exact(position)
+            | Center::Moving { position, .. }
+            | Center::Inertia { position, .. } => Some(position.position(zoom)),
         }
     }
 
@@ -367,6 +392,13 @@ impl Center {
         match self {
             Center::MyPosition => Center::MyPosition,
             Center::Exact(position) => Center::Exact(position.zero_offset(zoom)),
+            Center::Moving {
+                position,
+                direction,
+            } => Center::Moving {
+                position: position.zero_offset(zoom),
+                direction,
+            },
             Center::Inertia {
                 position,
                 direction,
@@ -384,6 +416,13 @@ impl Center {
         match self {
             Center::MyPosition => Center::MyPosition,
             Center::Exact(position) => Center::Exact(position.shift(offset)),
+            Center::Moving {
+                position,
+                direction,
+            } => Center::Moving {
+                position: position.shift(offset),
+                direction,
+            },
             Center::Inertia {
                 position,
                 direction,
