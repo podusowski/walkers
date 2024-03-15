@@ -197,21 +197,6 @@ impl Widget for Map<'_, '_, '_> {
             ui.allocate_exact_size(ui.available_size(), Sense::click_and_drag());
 
         let gesture_handled = self.handle_gestures(ui, &response);
-
-        if response.drag_released() {
-            if let Center::Moving {
-                position,
-                direction,
-            } = &self.memory.center_mode
-            {
-                self.memory.center_mode = Center::Inertia {
-                    position: position.clone(),
-                    direction: *direction,
-                    amount: 1.0,
-                };
-            }
-        }
-
         let movements_performed = self.update_inertial_movement(ui);
 
         if gesture_handled || movements_performed {
@@ -328,6 +313,19 @@ impl Center {
                 direction: response.drag_delta(),
             };
 
+            true
+        } else if response.drag_released() {
+            if let Center::Moving {
+                position,
+                direction,
+            } = &self
+            {
+                *self = Center::Inertia {
+                    position: position.clone(),
+                    direction: *direction,
+                    amount: 1.0,
+                };
+            }
             true
         } else {
             false
