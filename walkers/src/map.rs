@@ -312,9 +312,7 @@ pub enum Center {
 
 impl Center {
     fn recalculate_drag(&mut self, response: &Response, my_position: Position) -> bool {
-        if response.dragged_by(egui::PointerButton::Primary)
-        //&& response.drag_delta() != Vec2::default()
-        {
+        if response.dragged_by(egui::PointerButton::Primary) {
             let position = match &self {
                 Center::MyPosition => AdjustedPosition {
                     position: my_position,
