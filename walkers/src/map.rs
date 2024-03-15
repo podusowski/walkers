@@ -196,11 +196,12 @@ impl Widget for Map<'_, '_, '_> {
         let (rect, mut response) =
             ui.allocate_exact_size(ui.available_size(), Sense::click_and_drag());
 
-        let gesture_handled = self.handle_gestures(ui, &response);
-        let movements_performed = self.update_inertial_movement(ui);
+        let mut moved = self.handle_gestures(ui, &response);
+        moved |= self.update_inertial_movement(ui);
 
-        if gesture_handled || movements_performed {
+        if moved {
             response.mark_changed();
+            ui.ctx().request_repaint();
         }
 
         let zoom = self.memory.zoom;
@@ -348,7 +349,6 @@ impl Center {
                     },
                     direction: *direction,
                 };
-                ctx.request_repaint();
                 true
             }
             Center::Inertia {
@@ -371,10 +371,6 @@ impl Center {
                         amount: *amount - 0.03,
                     }
                 };
-
-                // Map is moving due to interia, therefore we need to recalculate in the next frame.
-                log::trace!("Requesting repaint due to non-zero inertia.");
-                ctx.request_repaint();
                 true
             }
             _ => false,
