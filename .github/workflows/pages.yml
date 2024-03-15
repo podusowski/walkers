@@ -19,7 +19,7 @@ jobs:
           profile: minimal
           target: wasm32-unknown-unknown
       - name: Install Trunk
-        run: cargo install trunk
+        run: cargo install trunk@0.18.8
       - name: Build
         run: env -C demo_web trunk build --release --public-url "${GITHUB_REPOSITORY#*/}"
       - name: Deploy
