@@ -184,11 +184,6 @@ impl Map<'_, '_, '_> {
             false
         }
     }
-
-    /// Handles the inertial movement of a map after it has been dragged.
-    fn update_inertial_movement(&mut self) -> bool {
-        self.memory.center_mode.update_inertial_movement()
-    }
 }
 
 impl Widget for Map<'_, '_, '_> {
@@ -197,7 +192,7 @@ impl Widget for Map<'_, '_, '_> {
             ui.allocate_exact_size(ui.available_size(), Sense::click_and_drag());
 
         let mut moved = self.handle_gestures(ui, &response);
-        moved |= self.update_inertial_movement();
+        moved |= self.memory.center_mode.update_inertial_movement();
 
         if moved {
             response.mark_changed();
