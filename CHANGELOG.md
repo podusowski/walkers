@@ -4,6 +4,7 @@ All notable changes to this project will be documented in this file.
 
 ## Unreleased
 
+ * Fix weird quirks while dragging by small amounts.
  * Plugins: Fixed problem of handle clicks after update to egui 0.26
  * Map can be zoomed to decimal zoom levels with gestures or scrolling.
 
