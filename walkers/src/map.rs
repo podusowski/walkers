@@ -1,6 +1,6 @@
 use std::collections::{hash_map::Entry, HashMap};
 
-use egui::{Context, Mesh, Painter, Rect, Response, Sense, Ui, Vec2, Widget};
+use egui::{Mesh, Painter, Rect, Response, Sense, Ui, Vec2, Widget};
 
 use crate::{
     mercator::{screen_to_position, Pixels, PixelsExt, TileId},
@@ -186,8 +186,8 @@ impl Map<'_, '_, '_> {
     }
 
     /// Handles the inertial movement of a map after it has been dragged.
-    fn update_inertial_movement(&mut self, ui: &Ui) -> bool {
-        self.memory.center_mode.update_inertial_movement(ui.ctx())
+    fn update_inertial_movement(&mut self) -> bool {
+        self.memory.center_mode.update_inertial_movement()
     }
 }
 
@@ -197,7 +197,7 @@ impl Widget for Map<'_, '_, '_> {
             ui.allocate_exact_size(ui.available_size(), Sense::click_and_drag());
 
         let mut moved = self.handle_gestures(ui, &response);
-        moved |= self.update_inertial_movement(ui);
+        moved |= self.update_inertial_movement();
 
         if moved {
             response.mark_changed();
@@ -333,7 +333,7 @@ impl Center {
         }
     }
 
-    fn update_inertial_movement(&mut self, ctx: &Context) -> bool {
+    fn update_inertial_movement(&mut self) -> bool {
         match &self {
             Center::Moving {
                 position,
