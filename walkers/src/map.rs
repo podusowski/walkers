@@ -282,6 +282,11 @@ pub enum Center {
     /// Centered at the exact position.
     Exact(AdjustedPosition),
 
+    Moving {
+        position: AdjustedPosition,
+        direction: Vec2,
+    },
+
     /// Map's currently moving due to inertia, and will slow down and stop after a short while.
     Inertia {
         position: AdjustedPosition,
@@ -300,7 +305,9 @@ impl Center {
                     position: my_position,
                     offset: Default::default(),
                 },
-                Center::Exact(position) | Center::Inertia { position, .. } => position.to_owned(),
+                Center::Exact(position)
+                | Center::Moving { position, .. }
+                | Center::Inertia { position, .. } => position.to_owned(),
             };
 
             *self = Center::Inertia {
@@ -352,9 +359,9 @@ impl Center {
     fn detached(&self, zoom: f64) -> Option<Position> {
         match self {
             Center::MyPosition => None,
-            Center::Exact(position) | Center::Inertia { position, .. } => {
-                Some(position.position(zoom))
-            }
+            Center::Exact(position)
+            | Center::Moving { position, .. }
+            | Center::Inertia { position, .. } => Some(position.position(zoom)),
         }
     }
 
@@ -367,6 +374,13 @@ impl Center {
         match self {
             Center::MyPosition => Center::MyPosition,
             Center::Exact(position) => Center::Exact(position.zero_offset(zoom)),
+            Center::Moving {
+                position,
+                direction,
+            } => Center::Moving {
+                position: position.zero_offset(zoom),
+                direction,
+            },
             Center::Inertia {
                 position,
                 direction,
@@ -384,6 +398,13 @@ impl Center {
         match self {
             Center::MyPosition => Center::MyPosition,
             Center::Exact(position) => Center::Exact(position.shift(offset)),
+            Center::Moving {
+                position,
+                direction,
+            } => Center::Moving {
+                position: position.shift(offset),
+                direction,
+            },
             Center::Inertia {
                 position,
                 direction,
