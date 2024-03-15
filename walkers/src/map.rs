@@ -197,6 +197,21 @@ impl Widget for Map<'_, '_, '_> {
             ui.allocate_exact_size(ui.available_size(), Sense::click_and_drag());
 
         let gesture_handled = self.handle_gestures(ui, &response);
+
+        if response.drag_released() {
+            if let Center::Moving {
+                position,
+                direction,
+            } = &self.memory.center_mode
+            {
+                self.memory.center_mode = Center::Inertia {
+                    position: position.clone(),
+                    direction: *direction,
+                    amount: 1.0,
+                };
+            }
+        }
+
         let movements_performed = self.update_inertial_movement(ui);
 
         if gesture_handled || movements_performed {
@@ -298,7 +313,7 @@ pub enum Center {
 impl Center {
     fn recalculate_drag(&mut self, response: &Response, my_position: Position) -> bool {
         if response.dragged_by(egui::PointerButton::Primary)
-            && response.drag_delta() != Vec2::default()
+        //&& response.drag_delta() != Vec2::default()
         {
             let position = match &self {
                 Center::MyPosition => AdjustedPosition {
@@ -310,10 +325,9 @@ impl Center {
                 | Center::Inertia { position, .. } => position.to_owned(),
             };
 
-            *self = Center::Inertia {
+            *self = Center::Moving {
                 position,
                 direction: response.drag_delta(),
-                amount: 1.0,
             };
 
             true
@@ -323,34 +337,51 @@ impl Center {
     }
 
     fn update_inertial_movement(&mut self, ctx: &Context) -> bool {
-        if let Center::Inertia {
-            position,
-            direction,
-            amount,
-        } = &self
-        {
-            *self = if amount <= &mut 0.0 {
-                Center::Exact(position.to_owned())
-            } else {
-                let delta = *direction * *amount;
+        match &self {
+            Center::Moving {
+                position,
+                direction,
+            } => {
+                let delta = *direction;
                 let offset = position.offset + Pixels::new(delta.x as f64, delta.y as f64);
 
-                Center::Inertia {
+                *self = Center::Moving {
                     position: AdjustedPosition {
                         position: position.position,
                         offset,
                     },
                     direction: *direction,
-                    amount: *amount - 0.03,
-                }
-            };
+                };
+                ctx.request_repaint();
+                true
+            }
+            Center::Inertia {
+                position,
+                direction,
+                amount,
+            } => {
+                *self = if amount <= &mut 0.0 {
+                    Center::Exact(position.to_owned())
+                } else {
+                    let delta = *direction * *amount;
+                    let offset = position.offset + Pixels::new(delta.x as f64, delta.y as f64);
 
-            // Map is moving due to interia, therefore we need to recalculate in the next frame.
-            log::trace!("Requesting repaint due to non-zero inertia.");
-            ctx.request_repaint();
-            true
-        } else {
-            false
+                    Center::Inertia {
+                        position: AdjustedPosition {
+                            position: position.position,
+                            offset,
+                        },
+                        direction: *direction,
+                        amount: *amount - 0.03,
+                    }
+                };
+
+                // Map is moving due to interia, therefore we need to recalculate in the next frame.
+                log::trace!("Requesting repaint due to non-zero inertia.");
+                ctx.request_repaint();
+                true
+            }
+            _ => false,
         }
     }
 
