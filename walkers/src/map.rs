@@ -294,16 +294,13 @@ pub enum Center {
 impl Center {
     fn recalculate_drag(&mut self, response: &Response, my_position: Position) -> bool {
         if response.dragged_by(egui::PointerButton::Primary) {
-            let position = self.adjusted_position().unwrap_or(AdjustedPosition {
-                position: my_position,
-                offset: Default::default(),
-            });
-
             *self = Center::Moving {
-                position,
+                position: self.adjusted_position().unwrap_or(AdjustedPosition {
+                    position: my_position,
+                    offset: Default::default(),
+                }),
                 direction: response.drag_delta(),
             };
-
             true
         } else if response.drag_released() {
             if let Center::Moving {
