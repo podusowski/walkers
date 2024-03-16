@@ -33,10 +33,9 @@ impl Center {
     pub(crate) fn recalculate_drag(&mut self, response: &Response, my_position: Position) -> bool {
         if response.dragged_by(egui::PointerButton::Primary) {
             *self = Center::Moving {
-                position: self.adjusted_position().unwrap_or(AdjustedPosition {
-                    position: my_position,
-                    offset: Default::default(),
-                }),
+                position: self
+                    .adjusted_position()
+                    .unwrap_or(AdjustedPosition::new(my_position, Default::default())),
                 direction: response.drag_delta(),
             };
             true
@@ -68,10 +67,7 @@ impl Center {
                 let offset = position.offset + Pixels::new(delta.x as f64, delta.y as f64);
 
                 *self = Center::Moving {
-                    position: AdjustedPosition {
-                        position: position.position,
-                        offset,
-                    },
+                    position: AdjustedPosition::new(position.position, offset),
                     direction: *direction,
                 };
                 true
@@ -88,10 +84,7 @@ impl Center {
                     let offset = position.offset + Pixels::new(delta.x as f64, delta.y as f64);
 
                     Center::Inertia {
-                        position: AdjustedPosition {
-                            position: position.position,
-                            offset,
-                        },
+                        position: AdjustedPosition::new(position.position, offset),
                         direction: *direction,
                         amount: *amount - 0.03,
                     }

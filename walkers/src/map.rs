@@ -245,6 +245,10 @@ pub struct AdjustedPosition {
 }
 
 impl AdjustedPosition {
+    pub(crate) fn new(position: Position, offset: Pixels) -> Self {
+        Self { position, offset }
+    }
+
     /// Calculate the real position, i.e. including the offset.
     pub(crate) fn position(&self, zoom: f64) -> Position {
         screen_to_position(self.position.project(zoom) - self.offset, zoom)
