@@ -3,6 +3,7 @@ use std::collections::{hash_map::Entry, HashMap};
 use egui::{Mesh, Painter, Rect, Response, Sense, Ui, Vec2, Widget};
 
 use crate::{
+    center::Center,
     mercator::{screen_to_position, Pixels, PixelsExt, TileId},
     tiles,
     zoom::{InvalidZoom, Zoom},
@@ -237,198 +238,30 @@ impl Widget for Map<'_, '_, '_> {
 #[derive(Debug, Clone, PartialEq)]
 pub struct AdjustedPosition {
     /// Base geographical position.
-    position: Position,
+    pub position: Position,
 
     /// Offset in pixels.
-    offset: Pixels,
+    pub offset: Pixels,
 }
 
 impl AdjustedPosition {
     /// Calculate the real position, i.e. including the offset.
-    fn position(&self, zoom: f64) -> Position {
+    pub(crate) fn position(&self, zoom: f64) -> Position {
         screen_to_position(self.position.project(zoom) - self.offset, zoom)
     }
 
     /// Recalculate `position` so that `offset` is zero.
-    fn zero_offset(self, zoom: f64) -> Self {
+    pub(crate) fn zero_offset(self, zoom: f64) -> Self {
         Self {
             position: screen_to_position(self.position.project(zoom) - self.offset, zoom),
             offset: Default::default(),
         }
     }
 
-    fn shift(self, offset: Vec2) -> Self {
+    pub(crate) fn shift(self, offset: Vec2) -> Self {
         Self {
             position: self.position,
             offset: self.offset + Pixels::new(offset.x as f64, offset.y as f64),
-        }
-    }
-}
-
-/// Position at the map's center. Initially, the map follows `my_position` argument which typically
-/// is meant to be fed by a GPS sensor or other geo-localization method. If user drags the map,
-/// it becomes "detached" and stays this way until [`MapMemory::center_mode`] is changed back to
-/// [`Center::MyPosition`].
-#[derive(Debug, Clone, PartialEq, Default)]
-pub enum Center {
-    /// Centered at `my_position` argument of the [`Map::new()`] function.
-    #[default]
-    MyPosition,
-
-    /// Centered at the exact position.
-    Exact(AdjustedPosition),
-
-    /// Map is currently being dragged.
-    Moving {
-        position: AdjustedPosition,
-        direction: Vec2,
-    },
-
-    /// Map is currently moving due to inertia, and will slow down and stop after a short while.
-    Inertia {
-        position: AdjustedPosition,
-        direction: Vec2,
-        amount: f32,
-    },
-}
-
-impl Center {
-    fn recalculate_drag(&mut self, response: &Response, my_position: Position) -> bool {
-        if response.dragged_by(egui::PointerButton::Primary) {
-            *self = Center::Moving {
-                position: self.adjusted_position().unwrap_or(AdjustedPosition {
-                    position: my_position,
-                    offset: Default::default(),
-                }),
-                direction: response.drag_delta(),
-            };
-            true
-        } else if response.drag_released() {
-            if let Center::Moving {
-                position,
-                direction,
-            } = &self
-            {
-                *self = Center::Inertia {
-                    position: position.clone(),
-                    direction: *direction,
-                    amount: 1.0,
-                };
-            }
-            true
-        } else {
-            false
-        }
-    }
-
-    fn update_movement(&mut self) -> bool {
-        match &self {
-            Center::Moving {
-                position,
-                direction,
-            } => {
-                let delta = *direction;
-                let offset = position.offset + Pixels::new(delta.x as f64, delta.y as f64);
-
-                *self = Center::Moving {
-                    position: AdjustedPosition {
-                        position: position.position,
-                        offset,
-                    },
-                    direction: *direction,
-                };
-                true
-            }
-            Center::Inertia {
-                position,
-                direction,
-                amount,
-            } => {
-                *self = if amount <= &mut 0.0 {
-                    Center::Exact(position.to_owned())
-                } else {
-                    let delta = *direction * *amount;
-                    let offset = position.offset + Pixels::new(delta.x as f64, delta.y as f64);
-
-                    Center::Inertia {
-                        position: AdjustedPosition {
-                            position: position.position,
-                            offset,
-                        },
-                        direction: *direction,
-                        amount: *amount - 0.03,
-                    }
-                };
-                true
-            }
-            _ => false,
-        }
-    }
-
-    /// Returns exact position if map is detached (i.e. not following `my_position`),
-    /// `None` otherwise.
-    fn detached(&self, zoom: f64) -> Option<Position> {
-        self.adjusted_position().map(|p| p.position(zoom))
-    }
-
-    fn adjusted_position(&self) -> Option<AdjustedPosition> {
-        match self {
-            Center::MyPosition => None,
-            Center::Exact(position)
-            | Center::Moving { position, .. }
-            | Center::Inertia { position, .. } => Some(position.to_owned()),
-        }
-    }
-
-    /// Get the real position at the map's center.
-    pub fn position(&self, my_position: Position, zoom: f64) -> Position {
-        self.detached(zoom).unwrap_or(my_position)
-    }
-
-    pub fn zero_offset(self, zoom: f64) -> Self {
-        match self {
-            Center::MyPosition => Center::MyPosition,
-            Center::Exact(position) => Center::Exact(position.zero_offset(zoom)),
-            Center::Moving {
-                position,
-                direction,
-            } => Center::Moving {
-                position: position.zero_offset(zoom),
-                direction,
-            },
-            Center::Inertia {
-                position,
-                direction,
-                amount,
-            } => Center::Inertia {
-                position: position.zero_offset(zoom),
-                direction,
-                amount,
-            },
-        }
-    }
-
-    /// Shift position by given number of pixels, if detached.
-    fn shift(self, offset: Vec2) -> Self {
-        match self {
-            Center::MyPosition => Center::MyPosition,
-            Center::Exact(position) => Center::Exact(position.shift(offset)),
-            Center::Moving {
-                position,
-                direction,
-            } => Center::Moving {
-                position: position.shift(offset),
-                direction,
-            },
-            Center::Inertia {
-                position,
-                direction,
-                amount,
-            } => Center::Inertia {
-                position: position.shift(offset),
-                direction,
-                amount,
-            },
         }
     }
 }
