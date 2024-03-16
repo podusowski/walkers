@@ -2,7 +2,7 @@
 
 All notable changes to this project will be documented in this file.
 
-## Unreleased
+## 0.20.0
 
  * Fix weird quirks while dragging by small amounts.
  * Plugins: Fixed problem of handle clicks after update to egui 0.26
