@@ -294,15 +294,10 @@ pub enum Center {
 impl Center {
     fn recalculate_drag(&mut self, response: &Response, my_position: Position) -> bool {
         if response.dragged_by(egui::PointerButton::Primary) {
-            let position = match &self {
-                Center::MyPosition => AdjustedPosition {
-                    position: my_position,
-                    offset: Default::default(),
-                },
-                Center::Exact(position)
-                | Center::Moving { position, .. }
-                | Center::Inertia { position, .. } => position.to_owned(),
-            };
+            let position = self.adjusted_position().unwrap_or(AdjustedPosition {
+                position: my_position,
+                offset: Default::default(),
+            });
 
             *self = Center::Moving {
                 position,
@@ -375,11 +370,15 @@ impl Center {
     /// Returns exact position if map is detached (i.e. not following `my_position`),
     /// `None` otherwise.
     fn detached(&self, zoom: f64) -> Option<Position> {
+        self.adjusted_position().map(|p| p.position(zoom))
+    }
+
+    fn adjusted_position(&self) -> Option<AdjustedPosition> {
         match self {
             Center::MyPosition => None,
             Center::Exact(position)
             | Center::Moving { position, .. }
-            | Center::Inertia { position, .. } => Some(position.position(zoom)),
+            | Center::Inertia { position, .. } => Some(position.to_owned()),
         }
     }
 
