@@ -14,6 +14,7 @@ use tokio::net::TcpListener;
 use tokio::sync::oneshot;
 
 pub use hyper::body::Bytes;
+pub use hyper;
 
 type Response = hyper::Response<Full<Bytes>>;
 pub type StatusCode = hyper::StatusCode;
