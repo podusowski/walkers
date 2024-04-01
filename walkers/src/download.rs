@@ -11,8 +11,9 @@ use reqwest_middleware::ClientWithMiddleware;
 
 use crate::{io::http_client, mercator::TileId, sources::TileSource, tiles::Texture};
 
+pub use reqwest::header::HeaderValue;
+
 /// Controls how [`crate::Tiles`] use the HTTP protocol, such as caching.
-#[derive(Default)]
 pub struct HttpOptions {
     /// Path to the directory to store the HTTP cache.
     ///
@@ -23,6 +24,18 @@ pub struct HttpOptions {
     /// This option is ignored in WASM, as HTTP cache is controlled by the
     /// browser the app is running on.
     pub cache: Option<PathBuf>,
+
+    /// User agent to be sent to the tile servers.
+    pub user_agent: HeaderValue,
+}
+
+impl Default for HttpOptions {
+    fn default() -> Self {
+        Self {
+            cache: None,
+            user_agent: HeaderValue::from_static("Walkers"),
+        }
+    }
 }
 
 #[derive(Debug, thiserror::Error)]

@@ -26,6 +26,7 @@ fn http_options() -> HttpOptions {
         } else {
             Some(".cache".into())
         },
+        ..Default::default()
     }
 }
 
