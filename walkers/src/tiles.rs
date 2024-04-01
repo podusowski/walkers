@@ -232,7 +232,7 @@ mod tests {
         let request = anticipated.expect().await;
         assert_eq!(
             request.headers().get(header::USER_AGENT),
-            Some(&HeaderValue::from_str("Walkers").unwrap())
+            Some(&HeaderValue::from_static("Walkers"))
         );
 
         // Eventually it gets downloaded and become available in cache.
@@ -264,7 +264,7 @@ mod tests {
         let request = anticipated.expect().await;
         assert_eq!(
             request.headers().get(header::USER_AGENT),
-            Some(&HeaderValue::from_str("MyApp").unwrap())
+            Some(&HeaderValue::from_static("MyApp"))
         );
     }
 
