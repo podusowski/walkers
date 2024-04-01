@@ -13,8 +13,8 @@ use std::{
 use tokio::net::TcpListener;
 use tokio::sync::oneshot;
 
-pub use hyper::body::Bytes;
 pub use hyper;
+pub use hyper::body::Bytes;
 
 type Response = hyper::Response<Full<Bytes>>;
 pub type StatusCode = hyper::StatusCode;
