@@ -1,10 +1,10 @@
 //! Managed thread for Tokio runtime.
 
 #[cfg(not(target_arch = "wasm32"))]
-pub use native::*;
+pub(crate) use native::*;
 
 #[cfg(target_arch = "wasm32")]
-pub use web::*;
+pub(crate) use web::*;
 
 #[cfg(target_arch = "wasm32")]
 mod web {
