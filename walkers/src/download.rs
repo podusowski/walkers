@@ -11,8 +11,9 @@ use reqwest_middleware::ClientWithMiddleware;
 
 use crate::{io::http_client, mercator::TileId, sources::TileSource, tiles::Texture};
 
+pub use reqwest::header::HeaderValue;
+
 /// Controls how [`crate::Tiles`] use the HTTP protocol, such as caching.
-#[derive(Default)]
 pub struct HttpOptions {
     /// Path to the directory to store the HTTP cache.
     ///
@@ -23,6 +24,18 @@ pub struct HttpOptions {
     /// This option is ignored in WASM, as HTTP cache is controlled by the
     /// browser the app is running on.
     pub cache: Option<PathBuf>,
+
+    /// User agent to be sent to the tile servers.
+    pub user_agent: HeaderValue,
+}
+
+impl Default for HttpOptions {
+    fn default() -> Self {
+        Self {
+            cache: None,
+            user_agent: HeaderValue::from_static("Walkers"),
+        }
+    }
 }
 
 #[derive(Debug, thiserror::Error)]
@@ -47,23 +60,25 @@ async fn download_and_decode(
     client: &ClientWithMiddleware,
     tile_id: TileId,
     url: String,
+    user_agent: &HeaderValue,
     egui_ctx: &Context,
 ) -> Download {
     log::debug!("Downloading '{}'.", url);
     Download {
         tile_id,
-        result: download_and_decode_impl(client, url, egui_ctx).await,
+        result: download_and_decode_impl(client, url, user_agent, egui_ctx).await,
     }
 }
 
 async fn download_and_decode_impl(
     client: &ClientWithMiddleware,
     url: String,
+    user_agent: &HeaderValue,
     egui_ctx: &Context,
 ) -> Result<Texture, Error> {
     let image = client
         .get(&url)
-        .header(USER_AGENT, "Walkers")
+        .header(USER_AGENT, user_agent)
         .send()
         .await
         .map_err(Error::HttpMiddleware)?;
@@ -127,6 +142,8 @@ async fn download_continuously_impl<S>(
 where
     S: TileSource + Send + 'static,
 {
+    let user_agent = http_options.user_agent.to_owned();
+
     // Keep outside the loop to reuse it as much as possible.
     let client = http_client(http_options);
     let mut downloads = Downloads::None;
@@ -136,7 +153,7 @@ where
             Downloads::None => {
                 let request = request_rx.next().await.ok_or(())?;
                 let url = source.tile_url(request);
-                let download = download_and_decode(&client, request, url, &egui_ctx);
+                let download = download_and_decode(&client, request, url, &user_agent, &egui_ctx);
                 Downloads::Ongoing(vec![Box::pin(download)])
             }
             Downloads::Ongoing(ref mut downloads) => {
@@ -146,7 +163,8 @@ where
                     Either::Left((request, downloads)) => {
                         let request = request.ok_or(())?;
                         let url = source.tile_url(request);
-                        let download = download_and_decode(&client, request, url, &egui_ctx);
+                        let download =
+                            download_and_decode(&client, request, url, &user_agent, &egui_ctx);
                         let mut downloads = downloads.into_inner();
                         downloads.push(Box::pin(download));
                         Downloads::new(downloads)

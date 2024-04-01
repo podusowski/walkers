@@ -13,14 +13,18 @@ use std::{
 use tokio::net::TcpListener;
 use tokio::sync::oneshot;
 
+pub use hyper;
 pub use hyper::body::Bytes;
 
 type Response = hyper::Response<Full<Bytes>>;
 pub type StatusCode = hyper::StatusCode;
 
+/// Request that already came.
+type HyperRequest = hyper::Request<hyper::body::Incoming>;
+
 struct Expectation {
     payload_rx: oneshot::Receiver<Response>,
-    happened_tx: oneshot::Sender<()>,
+    happened_tx: oneshot::Sender<HyperRequest>,
 }
 
 #[derive(Default)]
@@ -112,7 +116,9 @@ impl Drop for Server {
 pub struct AnticipatedRequest {
     url: String,
     payload_tx: tokio::sync::oneshot::Sender<Response>,
-    happened_rx: Option<oneshot::Receiver<()>>,
+
+    /// Notifies when the request is actually received by the server.
+    happened_rx: Option<oneshot::Receiver<HyperRequest>>,
 }
 
 impl AnticipatedRequest {
@@ -139,10 +145,10 @@ impl AnticipatedRequest {
     }
 
     /// Expect the request to come, but do not respond to it yet.
-    pub async fn expect(&mut self) {
+    pub async fn expect(&mut self) -> HyperRequest {
         log::info!("Expecting '{}'.", self.url);
         if let Some(happened_tx) = self.happened_rx.take() {
-            happened_tx.await.unwrap();
+            happened_tx.await.unwrap()
         } else {
             panic!("this request was already expected");
         }
@@ -169,24 +175,26 @@ impl hyper::service::Service<hyper::Request<hyper::body::Incoming>> for Service 
                 .remove(&request.uri().path().to_string());
 
             if let Some(expectation) = expectation {
+                let uri = request.uri().to_owned();
+
                 // [`AnticipatedRequest`] might be dropped by now, and there is no one to receive it,
                 // but that is OK.
-                let _ = expectation.happened_tx.send(());
+                let _ = expectation.happened_tx.send(request);
 
                 match expectation.payload_rx.await {
                     Ok(payload) => {
-                        log::info!("Responding to '{}' with {:?}.", request.uri(), payload);
+                        log::info!("Responding to '{}' with {:?}.", uri, payload);
                         Ok(payload)
                     }
                     Err(_) => {
                         log::error!(
                             "AnticipatedRequest for '{}' was dropped before responding.",
-                            request.uri()
+                            uri
                         );
                         // TODO: This panic will be ignored by hyper/tokio stack.
                         panic!(
                             "AnticipatedRequest for '{}' was dropped before responding.",
-                            request.uri()
+                            uri
                         );
                     }
                 }

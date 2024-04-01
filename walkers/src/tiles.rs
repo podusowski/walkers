@@ -162,7 +162,10 @@ impl TilesManager for Tiles {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use hypermocker::{Bytes, StatusCode};
+    use hypermocker::{
+        hyper::header::{self, HeaderValue},
+        Bytes, StatusCode,
+    };
     use std::time::Duration;
 
     static TILE_ID: TileId = TileId {
@@ -219,19 +222,50 @@ mod tests {
         let _ = env_logger::try_init();
 
         let (server, source) = hypermocker_mock().await;
-        server
-            .anticipate("/3/1/2.png")
-            .await
-            .respond(include_bytes!("../assets/blank-255-tile.png"))
-            .await;
+        let mut anticipated = server.anticipate("/3/1/2.png").await;
 
         let mut tiles = Tiles::new(source, Context::default());
 
         // First query start the download, but it will always return None.
         assert!(tiles.at(TILE_ID).is_none());
 
+        let request = anticipated.expect().await;
+        assert_eq!(
+            request.headers().get(header::USER_AGENT),
+            Some(&HeaderValue::from_static("Walkers"))
+        );
+
         // Eventually it gets downloaded and become available in cache.
+        anticipated
+            .respond(include_bytes!("../assets/blank-255-tile.png"))
+            .await;
         assert_tile_to_become_available_eventually(&mut tiles, TILE_ID).await;
+    }
+
+    #[tokio::test]
+    async fn custom_user_agent_header() {
+        let _ = env_logger::try_init();
+
+        let (server, source) = hypermocker_mock().await;
+        let mut anticipated = server.anticipate("/3/1/2.png").await;
+
+        let mut tiles = Tiles::with_options(
+            source,
+            HttpOptions {
+                cache: None,
+                user_agent: crate::HeaderValue::from_static("MyApp"),
+            },
+            Context::default(),
+        );
+
+        // Initiate the download.
+        tiles.at(TILE_ID);
+
+        let request = anticipated.expect().await;
+        assert_eq!(
+            request.headers().get(header::USER_AGENT),
+            Some(&HeaderValue::from_static("MyApp"))
+        );
     }
 
     #[tokio::test]

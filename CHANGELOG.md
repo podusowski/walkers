@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## Unreleased
+
+ * New `HttpOptions::user_agent` field. Note that in case of providers like OSM, it is highly
+   advised to set it accordingly to the application's name.
+   https://operations.osmfoundation.org/policies/tiles/
+
 ## 0.20.0
 
  * Fix weird quirks while dragging by small amounts.
