@@ -39,7 +39,7 @@ impl Center {
                 direction: response.drag_delta(),
             };
             true
-        } else if response.drag_released() {
+        } else if response.drag_stopped() {
             if let Center::Moving {
                 position,
                 direction,
