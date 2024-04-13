@@ -2,6 +2,10 @@
 
 All notable changes to this project will be documented in this file.
 
+## Unreleased
+
+ * `egui` updated to 0.27.
+
 ## 0.21.0
 
  * New `HttpOptions::user_agent` field. Note that in case of providers like OSM, it is highly
