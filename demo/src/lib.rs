@@ -7,7 +7,7 @@ use std::collections::HashMap;
 
 use crate::plugins::ImagesPluginData;
 use egui::Context;
-use walkers::{HttpOptions, Map, MapMemory, Tiles, TilesManager};
+use walkers::{HttpOptions, Map, MapMemory, Position, Tiles, TilesManager};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum Provider {
@@ -97,6 +97,7 @@ pub struct MyApp {
     map_memory: MapMemory,
     images_plugin_data: ImagesPluginData,
     click_watcher: plugins::ClickWatcher,
+    gpx: walkers_gpx::WalkerGpx,
 }
 
 impl MyApp {
@@ -112,6 +113,11 @@ impl MyApp {
             map_memory: MapMemory::default(),
             images_plugin_data,
             click_watcher: Default::default(),
+            gpx: walkers_gpx::WalkerGpx::read(
+                std::fs::File::open("/home/johan/proj/map/walkers/walkers_gpx/assets/st_joris.gpx")
+                    .unwrap(),
+            )
+            .unwrap(),
         }
     }
 }
@@ -127,7 +133,9 @@ impl eframe::App for MyApp {
             .frame(rimless)
             .show(ctx, |ui| {
                 // Typically this would be a GPS acquired position which is tracked by the map.
-                let my_position = places::wroclaw_glowny();
+                // let my_position = places::wroclaw_glowny();
+
+                let my_position = Position::from_lon_lat(5.7315, 52.0345);
 
                 let tiles = self
                     .providers
@@ -141,10 +149,11 @@ impl eframe::App for MyApp {
 
                 // Optionally, plugins can be attached.
                 let map = map
-                    .with_plugin(plugins::places())
-                    .with_plugin(plugins::images(&mut self.images_plugin_data))
-                    .with_plugin(plugins::CustomShapes {})
-                    .with_plugin(&mut self.click_watcher);
+                    // .with_plugin(plugins::places())
+                    // .with_plugin(plugins::images(&mut self.images_plugin_data))
+                    // .with_plugin(plugins::CustomShapes {})
+                    // .with_plugin(&mut self.click_watcher);
+                    .with_plugin(&mut self.gpx);
 
                 // Draw the map widget.
                 ui.add(map);

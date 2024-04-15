@@ -6,6 +6,7 @@ publish = false
 
 [dependencies]
 walkers = { path = "../walkers" }
+walkers_gpx = { path = "../walkers_gpx" }
 eframe.workspace = true
 egui.workspace = true
 egui_extras.workspace = true

@@ -1,6 +1,7 @@
 [workspace]
 members = [
     "walkers",
+    "walkers_gpx",
     "demo",
     "demo_native",
     "demo_web",
