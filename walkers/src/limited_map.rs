@@ -1,4 +1,5 @@
 use std::collections::hash_map::Entry as StdEntry;
+use std::collections::hash_map::OccupiedEntry as StdOccupiedEntry;
 use std::collections::{HashMap, VecDeque};
 
 struct LimitedMap<K, V> {
@@ -21,17 +22,21 @@ where
         self.values.insert(k, v);
     }
 
-    pub fn entry(&mut self, key: K) -> Entry {
+    pub fn entry(&mut self, key: K) -> Entry<'_, K, V> {
         match self.values.entry(key) {
-            StdEntry::Occupied(_) => Entry::Occupied,
+            StdEntry::Occupied(value) => Entry::Occupied(value),
             StdEntry::Vacant(_) => Entry::Vacant,
         }
     }
 }
 
-enum Entry {
-    Occupied,
+enum Entry<'a, K, V> {
+    Occupied(StdOccupiedEntry<'a, K, V>),
     Vacant,
+}
+
+struct OccupiedEntry<'a, K, V> {
+    inner: StdOccupiedEntry<'a, K, V>,
 }
 
 #[cfg(test)]
@@ -54,7 +59,7 @@ mod tests {
         m.insert(1, "one".to_string());
 
         let entry = m.entry(1);
-        let Entry::Occupied = entry else {
+        let Entry::Occupied(entry) = entry else {
             panic!();
         };
     }
