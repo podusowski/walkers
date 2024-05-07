@@ -36,10 +36,6 @@ enum Entry<'a, K, V> {
     Vacant(StdVacantEntry<'a, K, V>),
 }
 
-struct OccupiedEntry<'a, K, V> {
-    inner: StdOccupiedEntry<'a, K, V>,
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -52,6 +48,10 @@ mod tests {
         let Entry::Vacant(entry) = entry else {
             panic!();
         };
+
+        entry.insert("one".to_string());
+
+        assert_existence_with_entry_api(&mut m, 1, "one".to_string());
     }
 
     #[test]
@@ -59,11 +59,19 @@ mod tests {
         let mut m = LimitedMap::<usize, String>::new();
         m.insert(1, "one".to_string());
 
-        let entry = m.entry(1);
+        assert_existence_with_entry_api(&mut m, 1, "one".to_string());
+    }
+
+    fn assert_existence_with_entry_api(
+        m: &mut LimitedMap<usize, String>,
+        key: usize,
+        value: String,
+    ) {
+        let entry = m.entry(key);
         let Entry::Occupied(entry) = entry else {
             panic!();
         };
 
-        assert_eq!("one".to_string(), *entry.get());
+        assert_eq!(value, *entry.get());
     }
 }
