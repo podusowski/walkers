@@ -62,5 +62,7 @@ mod tests {
         let Entry::Occupied(entry) = entry else {
             panic!();
         };
+
+        assert_eq!("one".to_string(), *entry.get());
     }
 }
