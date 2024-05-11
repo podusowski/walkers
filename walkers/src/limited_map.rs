@@ -6,16 +6,18 @@ use std::collections::{HashMap, VecDeque};
 struct LimitedMap<K, V> {
     pub values: std::collections::HashMap<K, V>,
     pub queue: std::collections::VecDeque<K>,
+    limit: usize,
 }
 
 impl<K, V> LimitedMap<K, V>
 where
     K: std::cmp::Eq + PartialEq + std::hash::Hash,
 {
-    pub fn new() -> Self {
+    pub fn new(limit: usize) -> Self {
         Self {
             values: HashMap::new(),
             queue: VecDeque::new(),
+            limit,
         }
     }
 
@@ -42,7 +44,7 @@ mod tests {
 
     #[test]
     fn vacant_entry() {
-        let mut m = LimitedMap::<usize, String>::new();
+        let mut m = LimitedMap::<usize, String>::new(1);
 
         let entry = m.entry(1);
         let Entry::Vacant(entry) = entry else {
@@ -56,7 +58,7 @@ mod tests {
 
     #[test]
     fn just_insert_something() {
-        let mut m = LimitedMap::<usize, String>::new();
+        let mut m = LimitedMap::<usize, String>::new(1);
         m.insert(1, "one".to_string());
 
         assert_existence_with_entry_api(&mut m, 1, "one".to_string());
