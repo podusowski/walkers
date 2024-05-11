@@ -2,6 +2,7 @@ use std::collections::hash_map::Entry as StdEntry;
 use std::collections::hash_map::OccupiedEntry as StdOccupiedEntry;
 use std::collections::hash_map::VacantEntry as StdVacantEntry;
 use std::collections::{HashMap, VecDeque};
+use std::ops::Deref;
 
 struct LimitedMap<K, V> {
     pub values: std::collections::HashMap<K, V>,
@@ -11,7 +12,7 @@ struct LimitedMap<K, V> {
 
 impl<K, V> LimitedMap<K, V>
 where
-    K: std::cmp::Eq + PartialEq + std::hash::Hash,
+    K: std::cmp::Eq + PartialEq + std::hash::Hash + Clone,
 {
     pub fn new(limit: usize) -> Self {
         Self {
@@ -22,20 +23,19 @@ where
     }
 
     pub fn insert(&mut self, k: K, v: V) {
-        self.values.insert(k, v);
-    }
-
-    pub fn entry(&mut self, key: K) -> Entry<'_, K, V> {
-        match self.values.entry(key) {
-            StdEntry::Occupied(entry) => Entry::Occupied(entry),
-            StdEntry::Vacant(entry) => Entry::Vacant(entry),
+        if self.values.len() == self.limit {
+            if let Some(front) = self.queue.pop_front() {
+                self.values.remove(&front);
+            }
         }
-    }
-}
 
-enum Entry<'a, K, V> {
-    Occupied(StdOccupiedEntry<'a, K, V>),
-    Vacant(StdVacantEntry<'a, K, V>),
+        self.values.insert(k.clone(), v);
+        self.queue.push_back(k);
+    }
+
+    pub fn get(&self, k: &K) -> Option<&V> {
+        self.values.get(k)
+    }
 }
 
 #[cfg(test)]
@@ -43,37 +43,21 @@ mod tests {
     use super::*;
 
     #[test]
-    fn vacant_entry() {
-        let mut m = LimitedMap::<usize, String>::new(1);
-
-        let entry = m.entry(1);
-        let Entry::Vacant(entry) = entry else {
-            panic!();
-        };
-
-        entry.insert("one".to_string());
-
-        assert_existence_with_entry_api(&mut m, 1, "one".to_string());
-    }
-
-    #[test]
     fn just_insert_something() {
         let mut m = LimitedMap::<usize, String>::new(1);
         m.insert(1, "one".to_string());
-
-        assert_existence_with_entry_api(&mut m, 1, "one".to_string());
+        assert_eq!(m.get(&1), Some(&"one".to_string()));
     }
 
-    fn assert_existence_with_entry_api(
-        m: &mut LimitedMap<usize, String>,
-        key: usize,
-        value: String,
-    ) {
-        let entry = m.entry(key);
-        let Entry::Occupied(entry) = entry else {
-            panic!();
-        };
+    #[test]
+    fn try_to_insert_something_above_limit() {
+        let mut m = LimitedMap::<usize, String>::new(1);
+        m.insert(1, "one".to_string());
+        m.insert(2, "two".to_string());
 
-        assert_eq!(value, *entry.get());
+        assert_eq!(m.get(&2), Some(&"two".to_string()));
+
+        // First gets swept.
+        assert_eq!(m.get(&1), None);
     }
 }
