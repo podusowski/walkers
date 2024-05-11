@@ -1,8 +1,5 @@
-use std::collections::hash_map::Entry as StdEntry;
-use std::collections::hash_map::OccupiedEntry as StdOccupiedEntry;
-use std::collections::hash_map::VacantEntry as StdVacantEntry;
 use std::collections::{HashMap, VecDeque};
-use std::ops::Deref;
+use std::hash::Hash;
 
 struct LimitedMap<K, V> {
     pub values: std::collections::HashMap<K, V>,
@@ -12,7 +9,7 @@ struct LimitedMap<K, V> {
 
 impl<K, V> LimitedMap<K, V>
 where
-    K: std::cmp::Eq + PartialEq + std::hash::Hash + Clone,
+    K: Eq + PartialEq + Hash + Clone,
 {
     pub fn new(limit: usize) -> Self {
         Self {
