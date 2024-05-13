@@ -107,7 +107,7 @@ impl Tiles {
 
         Self {
             attribution,
-            cache: LimitedMap::new(256),
+            cache: LimitedMap::new(256), // Just arbitrary value which seemed right.
             request_tx,
             tile_rx,
             runtime,
