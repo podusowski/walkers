@@ -1,6 +1,7 @@
 use std::collections::{HashMap, VecDeque};
 use std::hash::Hash;
 
+/// Map which deletes old entries when a limit is hit.
 pub struct LimitedMap<K, V> {
     values: std::collections::HashMap<K, V>,
     queue: std::collections::VecDeque<K>,
