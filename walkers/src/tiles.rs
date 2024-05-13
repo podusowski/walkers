@@ -1,12 +1,10 @@
-use std::collections::hash_map::Entry;
-use std::collections::HashMap;
-
 use egui::{pos2, Color32, Context, Mesh, Rect, Vec2};
 use egui::{ColorImage, TextureHandle};
 use image::ImageError;
 
 use crate::download::{download_continuously, HttpOptions};
 use crate::io::Runtime;
+use crate::limited_map::LimitedMap;
 use crate::mercator::TileId;
 use crate::sources::{Attribution, TileSource};
 
@@ -63,7 +61,7 @@ pub trait TilesManager {
 pub struct Tiles {
     attribution: Attribution,
 
-    cache: HashMap<TileId, Option<Texture>>,
+    cache: LimitedMap<TileId, Option<Texture>>,
 
     /// Tiles to be downloaded by the IO thread.
     request_tx: futures::channel::mpsc::Sender<TileId>,
@@ -109,7 +107,7 @@ impl Tiles {
 
         Self {
             attribution,
-            cache: Default::default(),
+            cache: LimitedMap::new(256),
             request_tx,
             tile_rx,
             runtime,
@@ -140,17 +138,17 @@ impl TilesManager for Tiles {
             }
         }
 
-        match self.cache.entry(tile_id) {
-            Entry::Occupied(entry) => entry.get().clone(),
-            Entry::Vacant(entry) => {
-                if let Ok(()) = self.request_tx.try_send(tile_id) {
-                    log::debug!("Requested tile: {:?}", tile_id);
-                    entry.insert(None);
-                } else {
-                    log::debug!("Request queue is full.");
-                }
-                None
+        // TODO: Double lookup.
+        if let Some(texture) = self.cache.get(&tile_id).cloned() {
+            texture
+        } else {
+            if let Ok(()) = self.request_tx.try_send(tile_id) {
+                log::debug!("Requested tile: {:?}", tile_id);
+                self.cache.insert(tile_id, None);
+            } else {
+                log::debug!("Request queue is full.");
             }
+            None
         }
     }
 
