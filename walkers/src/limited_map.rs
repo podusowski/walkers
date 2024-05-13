@@ -2,8 +2,8 @@ use std::collections::{HashMap, VecDeque};
 use std::hash::Hash;
 
 struct LimitedMap<K, V> {
-    pub values: std::collections::HashMap<K, V>,
-    pub queue: std::collections::VecDeque<K>,
+    values: std::collections::HashMap<K, V>,
+    queue: std::collections::VecDeque<K>,
     limit: usize,
 }
 
