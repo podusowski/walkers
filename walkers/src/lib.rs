@@ -5,12 +5,12 @@ mod center;
 mod download;
 pub mod extras;
 mod io;
+mod limited_map;
 mod map;
 mod mercator;
 pub mod sources;
 mod tiles;
 mod zoom;
-mod limited_map;
 
 pub use download::{HeaderValue, HttpOptions};
 pub use map::{Map, MapMemory, Plugin, Projector};
