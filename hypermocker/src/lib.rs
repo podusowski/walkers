@@ -172,7 +172,7 @@ impl hyper::service::Service<hyper::Request<hyper::body::Incoming>> for Service 
                 .lock()
                 .unwrap()
                 .expectations
-                .remove(&request.uri().path().to_string());
+                .remove(request.uri().path());
 
             if let Some(expectation) = expectation {
                 let uri = request.uri().to_owned();
