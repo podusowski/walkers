@@ -24,7 +24,7 @@ type HyperRequest = hyper::Request<hyper::body::Incoming>;
 
 struct Expectation {
     payload_rx: oneshot::Receiver<Response>,
-    happened_tx: oneshot::Sender<HyperRequest>,
+    request_tx: oneshot::Sender<HyperRequest>,
 }
 
 #[derive(Default)]
@@ -79,7 +79,7 @@ impl Server {
         let url = url.into();
         log::info!("Anticipating '{}'.", url);
         let (payload_tx, payload_rx) = oneshot::channel();
-        let (happened_tx, happened_rx) = oneshot::channel();
+        let (request_tx, happened_rx) = oneshot::channel();
         if self
             .state
             .lock()
@@ -89,7 +89,7 @@ impl Server {
                 url.to_owned(),
                 Expectation {
                     payload_rx,
-                    happened_tx,
+                    request_tx,
                 },
             )
             .is_some()
@@ -99,7 +99,7 @@ impl Server {
         AnticipatedRequest {
             url,
             payload_tx,
-            happened_rx: Some(happened_rx),
+            request_rx: Some(happened_rx),
         }
     }
 }
@@ -120,7 +120,7 @@ pub struct AnticipatedRequest {
     payload_tx: tokio::sync::oneshot::Sender<Response>,
 
     /// Notifies when the request is actually received by the server.
-    happened_rx: Option<oneshot::Receiver<HyperRequest>>,
+    request_rx: Option<oneshot::Receiver<HyperRequest>>,
 }
 
 impl AnticipatedRequest {
@@ -149,8 +149,8 @@ impl AnticipatedRequest {
     /// Expect the request to come, but do not respond to it yet.
     pub async fn expect(&mut self) -> HyperRequest {
         log::info!("Expecting '{}'.", self.url);
-        if let Some(happened_tx) = self.happened_rx.take() {
-            happened_tx.await.unwrap()
+        if let Some(request_tx) = self.request_rx.take() {
+            request_tx.await.unwrap()
         } else {
             panic!("this request was already expected");
         }
@@ -181,7 +181,7 @@ impl hyper::service::Service<hyper::Request<hyper::body::Incoming>> for Service 
 
                 // [`AnticipatedRequest`] might be dropped by now, and there is no one to receive it,
                 // but that is OK.
-                let _ = expectation.happened_tx.send(request);
+                let _ = expectation.request_tx.send(request);
 
                 match expectation.payload_rx.await {
                     Ok(payload) => {
