@@ -29,7 +29,7 @@ struct Expectation {
 
 #[derive(Default)]
 struct State {
-    /// Anticipations made by [`Mock::anticipate`].
+    /// Anticipations made by [`Server::anticipate`].
     expectations: HashMap<String, Expectation>,
 
     /// Requests that were unexpected.
@@ -115,6 +115,8 @@ impl Drop for Server {
 /// HTTP request that was anticipated to arrive.
 pub struct AnticipatedRequest {
     url: String,
+
+    /// Used to send the response.
     payload_tx: tokio::sync::oneshot::Sender<Response>,
 
     /// Notifies when the request is actually received by the server.
