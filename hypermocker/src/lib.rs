@@ -24,25 +24,27 @@ type HyperRequest = hyper::Request<hyper::body::Incoming>;
 
 struct Expectation {
     payload_rx: oneshot::Receiver<Response>,
-    happened_tx: oneshot::Sender<HyperRequest>,
+    request_tx: oneshot::Sender<HyperRequest>,
 }
 
 #[derive(Default)]
 struct State {
-    /// Anticipations made by [`Mock::anticipate`].
+    /// Anticipations made by [`Server::anticipate`].
     expectations: HashMap<String, Expectation>,
 
     /// Requests that were unexpected.
     unexpected: Vec<String>,
 }
 
+/// Central part of the library. All HTTP requests need to be anticipated, otherwise it will panic
+/// when dropped.
 pub struct Server {
     port: u16,
     state: Arc<Mutex<State>>,
 }
 
 impl Server {
-    /// Create new [`Mock`], and bind it to a random port.
+    /// Create new [`Server`], and bind it to a random port.
     pub async fn bind() -> Server {
         let state = Arc::new(Mutex::new(State::default()));
 
@@ -69,7 +71,7 @@ impl Server {
         Server { port, state }
     }
 
-    /// Port, which this server listens on.
+    /// Returns the port, which this server listens on.
     pub fn port(&self) -> u16 {
         self.port
     }
@@ -79,7 +81,7 @@ impl Server {
         let url = url.into();
         log::info!("Anticipating '{}'.", url);
         let (payload_tx, payload_rx) = oneshot::channel();
-        let (happened_tx, happened_rx) = oneshot::channel();
+        let (request_tx, happened_rx) = oneshot::channel();
         if self
             .state
             .lock()
@@ -89,7 +91,7 @@ impl Server {
                 url.to_owned(),
                 Expectation {
                     payload_rx,
-                    happened_tx,
+                    request_tx,
                 },
             )
             .is_some()
@@ -99,7 +101,7 @@ impl Server {
         AnticipatedRequest {
             url,
             payload_tx,
-            happened_rx: Some(happened_rx),
+            request_rx: Some(happened_rx),
         }
     }
 }
@@ -115,10 +117,12 @@ impl Drop for Server {
 /// HTTP request that was anticipated to arrive.
 pub struct AnticipatedRequest {
     url: String,
+
+    /// Used to send the response.
     payload_tx: tokio::sync::oneshot::Sender<Response>,
 
     /// Notifies when the request is actually received by the server.
-    happened_rx: Option<oneshot::Receiver<HyperRequest>>,
+    request_rx: Option<oneshot::Receiver<HyperRequest>>,
 }
 
 impl AnticipatedRequest {
@@ -147,8 +151,8 @@ impl AnticipatedRequest {
     /// Expect the request to come, but do not respond to it yet.
     pub async fn expect(&mut self) -> HyperRequest {
         log::info!("Expecting '{}'.", self.url);
-        if let Some(happened_tx) = self.happened_rx.take() {
-            happened_tx.await.unwrap()
+        if let Some(request_tx) = self.request_rx.take() {
+            request_tx.await.unwrap()
         } else {
             panic!("this request was already expected");
         }
@@ -179,7 +183,7 @@ impl hyper::service::Service<hyper::Request<hyper::body::Incoming>> for Service 
 
                 // [`AnticipatedRequest`] might be dropped by now, and there is no one to receive it,
                 // but that is OK.
-                let _ = expectation.happened_tx.send(request);
+                let _ = expectation.request_tx.send(request);
 
                 match expectation.payload_rx.await {
                     Ok(payload) => {
