@@ -42,7 +42,7 @@ pub struct Server {
 }
 
 impl Server {
-    /// Create new [`Mock`], and bind it to a random port.
+    /// Create new [`Server`], and bind it to a random port.
     pub async fn bind() -> Server {
         let state = Arc::new(Mutex::new(State::default()));
 
@@ -69,7 +69,7 @@ impl Server {
         Server { port, state }
     }
 
-    /// Port, which this server listens on.
+    /// Returns the port, which this server listens on.
     pub fn port(&self) -> u16 {
         self.port
     }
