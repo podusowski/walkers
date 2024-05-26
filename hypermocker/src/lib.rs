@@ -36,6 +36,8 @@ struct State {
     unexpected: Vec<String>,
 }
 
+/// Central part of the library. All HTTP requests need to be anticipated, otherwise it will panic
+/// when dropped.
 pub struct Server {
     port: u16,
     state: Arc<Mutex<State>>,
