@@ -116,7 +116,7 @@ pub struct TileId {
     pub y: u32,
 
     /// Zoom level, where 0 means no zoom.
-    /// See: https://wiki.openstreetmap.org/wiki/Zoom_levels
+    /// See: <https://wiki.openstreetmap.org/wiki/Zoom_levels>
     pub zoom: u8,
 }
 

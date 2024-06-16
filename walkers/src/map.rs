@@ -18,7 +18,7 @@ pub trait Plugin {
 }
 
 /// The actual map widget. Instances are to be created on each frame, as all necessary state is
-/// stored in [`TilesManager`] and [`MapMemory`].
+/// stored in [`Tiles`] and [`MapMemory`].
 ///
 /// # Examples
 ///
