@@ -231,7 +231,7 @@ mod tests {
         assert_eq!(
             request.headers().get(header::USER_AGENT),
             Some(&HeaderValue::from_static(concat!(
-                "Walkers",
+                "walkers",
                 "/",
                 env!("CARGO_PKG_VERSION"),
             )))
