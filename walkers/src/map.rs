@@ -25,7 +25,7 @@ pub trait Plugin {
 /// ```
 /// # use walkers::{Map, Tiles, MapMemory, Position};
 ///
-/// fn update(ui: &mut egui::Ui, tiles: &mut Tiles, map_memory: &mut MapMemory) {
+/// fn update(ui: &mut egui::Ui, tiles: &mut dyn Tiles, map_memory: &mut MapMemory) {
 ///     ui.add(Map::new(
 ///         Some(tiles), // `None`, if you don't want to show any tiles.
 ///         map_memory,
