@@ -7,7 +7,7 @@ use std::collections::HashMap;
 
 use crate::plugins::ImagesPluginData;
 use egui::Context;
-use walkers::{HttpOptions, Map, MapMemory, HttpTiles, Tiles};
+use walkers::{HttpOptions, HttpTiles, Map, MapMemory, Tiles};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum Provider {
