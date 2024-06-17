@@ -6,7 +6,7 @@ publish = false
 
 [dependencies]
 log = "0.4"
-android_logger = "0.13"
+android_logger = "0.14"
 jni = "*"
 eframe = { workspace = true, features = ["wgpu", "android-game-activity"] }
 egui-winit.workspace = true
