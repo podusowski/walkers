@@ -13,7 +13,7 @@ resolver = "2"
 version = "0.22.0"
 
 [workspace.dependencies]
-image = "0.25"
+image = { version = "0.25", default-features = false }
 log = "0.4"
 egui = "0.27"
 egui_extras = { version = "0.27", features = ["svg"] }
