@@ -5,6 +5,7 @@ All notable changes to this project will be documented in this file.
 ## Unreleased
 
  * In-memory cache is now limited to 256 tiles. Previously it grew indefinitely.
+ * `TilesManager` trait is now called `Tiles` and `Tiles` struct is now called `HttpTiles`.
 
 ## 0.22.0
 
