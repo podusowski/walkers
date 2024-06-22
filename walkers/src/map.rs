@@ -290,6 +290,18 @@ impl MapMemory {
         self.zoom.zoom_out()
     }
 
+    /// Set exact zoom level
+    pub fn set_zoom(&mut self, zoom: f32) -> Result<(), InvalidZoom> {
+        self.center_mode = self.center_mode.clone().zero_offset(self.zoom.into());
+        self.zoom = Zoom::try_from(zoom)?;
+        Ok(())
+    }
+
+    /// Returns the current zoom level
+    pub fn zoom(&self) -> f32 {
+        self.zoom.into()
+    }
+
     /// Returns exact position if map is detached (i.e. not following `my_position`),
     /// `None` otherwise.
     pub fn detached(&self) -> Option<Position> {
