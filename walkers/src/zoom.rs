@@ -27,6 +27,13 @@ impl Into<f64> for Zoom {
     }
 }
 
+#[allow(clippy::from_over_into)]
+impl Into<f32> for Zoom {
+    fn into(self) -> f32 {
+        self.0
+    }
+}
+
 impl Default for Zoom {
     fn default() -> Self {
         Self(16.)
