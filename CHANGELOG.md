@@ -4,6 +4,7 @@ All notable changes to this project will be documented in this file.
 
 ## Unreleased
 
+ * New functions in `MapMemory` for getting and setting the zoom level: `zoom` and `set_zoom`.
  * In-memory cache is now limited to 256 tiles. Previously it grew indefinitely.
  * `TilesManager` trait is now called `Tiles` and `Tiles` struct is now called `HttpTiles`.
 

@@ -104,7 +104,7 @@ impl Projector {
         let projected_position = position.project(self.memory.zoom.into());
 
         // We need the precision of f64 here,
-        // since some "gaps" between tiles are noticable on large zoom levels (e.g. 16+)
+        // since some "gaps" between tiles are noticeable on large zoom levels (e.g. 16+)
         let zoom: f64 = self.memory.zoom.into();
 
         // We also need to know where the map center is.
