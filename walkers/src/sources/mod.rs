@@ -1,9 +1,10 @@
 //! Some common HTTP tile sources. Make sure you follow terms of usage of the particular source.
 
-mod openstreetmap;
 mod geoportal;
+mod openstreetmap;
 
 use crate::mercator::TileId;
+pub use geoportal::Geoportal;
 pub use openstreetmap::OpenStreetMap;
 
 #[derive(Clone)]
