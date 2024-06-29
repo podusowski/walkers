@@ -17,11 +17,12 @@ pub struct Attribution {
     pub logo_dark: Option<egui::ImageSource<'static>>,
 }
 
+/// Remote tile server definition, source for the [`crate::HttpTiles`].
 pub trait TileSource {
     fn tile_url(&self, tile_id: TileId) -> String;
     fn attribution(&self) -> Attribution;
 
-    /// Size of each tile, should be a multiple of 256
+    /// Size of each tile, should be a multiple of 256.
     fn tile_size(&self) -> u32 {
         256
     }
