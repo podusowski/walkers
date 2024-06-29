@@ -1,6 +1,7 @@
 # Walkers, a map widget for Rust
 
 [![crates.io](https://img.shields.io/crates/v/walkers.svg)](https://crates.io/crates/walkers)
+[![docs.rs](https://img.shields.io/docsrs/walkers/latest)](https://docs.rs/walkers/latest/)
 
 Walkers is a slippy maps widget for [egui](https://github.com/emilk/egui), 
 similar to very popular [Leaflet](https://leafletjs.com/), but written in Rust.
