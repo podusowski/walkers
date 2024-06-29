@@ -134,7 +134,7 @@ impl AnticipatedRequest {
         self.payload_tx.send(response).unwrap();
     }
 
-    /// Respond to this request with given status, and empty body.
+    /// Similar to [AnticipatedRequest], but with status and empty body.
     pub async fn respond_with_status(self, status: hyper::StatusCode) {
         log::info!(
             "Saving response (with status: {}) for '{}'.",
