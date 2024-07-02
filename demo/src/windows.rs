@@ -38,7 +38,11 @@ pub fn controls(
                     .selected_text(format!("{:?}", selected_provider))
                     .show_ui(ui, |ui| {
                         for p in possible_providers {
-                            ui.selectable_value(selected_provider, *p, format!("{:?}", p));
+                            let text = match p {
+                                Provider::Custom(name) => name.clone(),
+                                _ => format!("{:?}", p),
+                            };
+                            ui.selectable_value(selected_provider, p.clone(), text);
                         }
                     });
             });

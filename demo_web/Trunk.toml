@@ -1,0 +1,3 @@
+[build]
+
+watch = ["src", "../demo/", "../walkers/"]

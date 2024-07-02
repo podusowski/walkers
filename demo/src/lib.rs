@@ -9,13 +9,14 @@ use crate::plugins::ImagesPluginData;
 use egui::Context;
 use walkers::{HttpOptions, HttpTiles, Map, MapMemory, Tiles};
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub enum Provider {
     OpenStreetMap,
     Geoportal,
     MapboxStreets,
     MapboxSatellite,
     LocalTiles,
+    Custom(String),
 }
 
 fn http_options() -> HttpOptions {
@@ -113,6 +114,15 @@ impl MyApp {
             images_plugin_data,
             click_watcher: Default::default(),
         }
+    }
+    pub fn with_provider(
+        mut self,
+        name: Provider,
+        new_provider: Box<dyn TilesManager + Send>,
+    ) -> Self {
+        self.providers.insert(name, new_provider);
+
+        self
     }
 }
 

@@ -9,4 +9,5 @@ demo = { path = "../demo" }
 eframe.workspace = true
 egui.workspace = true
 log.workspace = true
+walkers = { path = "../walkers" }
 wasm-bindgen-futures = "0.4"
