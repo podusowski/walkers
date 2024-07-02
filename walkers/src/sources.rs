@@ -2,16 +2,28 @@
 
 use crate::mercator::TileId;
 
+/// Attribution information for a tile source.
 #[derive(Clone)]
 pub struct Attribution {
+    /// Text to display
     pub text: &'static str,
+
+    /// URL to open when the text is clicked
     pub url: &'static str,
+
+    /// Light logo to display
     pub logo_light: Option<egui::ImageSource<'static>>,
+
+    /// Dark logo to display
     pub logo_dark: Option<egui::ImageSource<'static>>,
 }
 
+/// Common tile source interface.
 pub trait TileSource {
+    /// URL of the tile image.
     fn tile_url(&self, tile_id: TileId) -> String;
+
+    /// Attribution information.
     fn attribution(&self) -> Attribution;
 
     /// Size of each tile, should be a multiple of 256
@@ -75,14 +87,22 @@ impl TileSource for Geoportal {
 /// <https://docs.mapbox.com/api/maps/styles/#classic-mapbox-styles>
 #[derive(Clone, Copy, Default)]
 pub enum MapboxStyle {
+    /// Mapbox Streets style
     #[default]
     Streets,
+    /// Mapbox Outdoors style
     Outdoors,
+    /// Mapbox Light style
     Light,
+    /// Mapbox Dark style
     Dark,
+    /// Mapbox Satellite style
     Satellite,
+    /// Mapbox Satellite Streets style
     SatelliteStreets,
+    /// Mapbox Navigation Day style
     NavigationDay,
+    /// Mapbox Navigation Night style
     NavigationNight,
 }
 
