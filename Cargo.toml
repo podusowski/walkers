@@ -10,12 +10,12 @@ members = [
 resolver = "2"
 
 [workspace.package]
-version = "0.23.0"
+version = "0.24.0"
 
 [workspace.dependencies]
 image = { version = "0.25", default-features = false }
 log = "0.4"
-egui = "0.27"
-egui_extras = { version = "0.27", features = ["svg"] }
-eframe = "0.27"
-egui-winit = "0.27"
+egui = "0.28"
+egui_extras = { version = "0.28", features = ["svg"] }
+eframe = "0.28"
+egui-winit = "0.28"
