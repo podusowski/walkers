@@ -67,7 +67,7 @@ impl<'a, 'b, 'c> Map<'a, 'b, 'c> {
     }
 
     /// Set tiles manager to be used by the map.
-    pub fn with_tiles_manager(mut self, tiles: &'b mut dyn TilesManager) -> Self {
+    pub fn with_tiles_manager(mut self, tiles: &'b mut dyn Tiles) -> Self {
         self.tiles = Some(tiles);
         self
     }

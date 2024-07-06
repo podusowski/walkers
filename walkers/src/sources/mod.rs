@@ -10,16 +10,23 @@ pub use mapbox::{Mapbox, MapboxStyle};
 pub use openstreetmap::OpenStreetMap;
 
 #[derive(Clone)]
+/// Attribution information for the tile source.
 pub struct Attribution {
+    /// Attribution text.
     pub text: &'static str,
+    /// URL to the attribution source.
     pub url: &'static str,
+    /// Logo for the attribution.
     pub logo_light: Option<egui::ImageSource<'static>>,
+    /// Dark version of the logo.
     pub logo_dark: Option<egui::ImageSource<'static>>,
 }
 
 /// Remote tile server definition, source for the [`crate::HttpTiles`].
 pub trait TileSource {
+    /// URL for the tile with the given id.
     fn tile_url(&self, tile_id: TileId) -> String;
+    /// Attribution information for the tile source.
     fn attribution(&self) -> Attribution;
 
     /// Size of each tile, should be a multiple of 256.
