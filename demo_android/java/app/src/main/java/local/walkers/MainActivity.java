@@ -44,7 +44,7 @@ public class MainActivity extends GameActivity {
 
   @Override
   public boolean onTouchEvent(MotionEvent event) {
-      // Correct inputs events so they match the view.
+      // Offset the location so it fits the view with margins caused by insets.
 
       int[] location = new int[2];
       findViewById(android.R.id.content).getLocationOnScreen(location);
