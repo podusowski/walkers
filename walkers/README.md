@@ -1,6 +1,7 @@
 # Walkers, a map widget for Rust
 
 [![crates.io](https://img.shields.io/crates/v/walkers.svg)](https://crates.io/crates/walkers)
+[![docs.rs](https://img.shields.io/docsrs/walkers/latest)](https://docs.rs/walkers/latest/)
 
 Walkers is a slippy maps widget for [egui](https://github.com/emilk/egui), 
 similar to very popular [Leaflet](https://leafletjs.com/), but written in Rust.
@@ -22,19 +23,19 @@ such as OpenStreetMap and stores them in a cache, `MapMemory` keeps track of
 the widget's state and `Map` is the widget itself.
 
 ```rust
-use walkers::{Tiles, Map, MapMemory, Position, sources::OpenStreetMap};
+use walkers::{HttpTiles, Map, MapMemory, Position, sources::OpenStreetMap};
 use egui::{Context, CentralPanel};
 use eframe::{App, Frame};
 
 struct MyApp {
-    tiles: Tiles,
+    tiles: HttpTiles,
     map_memory: MapMemory,
 }
 
 impl MyApp {
     fn new(egui_ctx: Context) -> Self {
         Self {
-            tiles: Tiles::new(OpenStreetMap, egui_ctx),
+            tiles: HttpTiles::new(OpenStreetMap, egui_ctx),
             map_memory: MapMemory::default(),
         }
     }

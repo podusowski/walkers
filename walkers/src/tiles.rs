@@ -54,7 +54,7 @@ impl Texture {
 }
 
 /// Manages the tiles cache and downloads the missing ones.
-pub trait TilesManager {
+pub trait Tiles {
     /// Get the tile at the given `TileId`
     fn at(&mut self, tile_id: TileId) -> Option<Texture>;
 
@@ -66,7 +66,7 @@ pub trait TilesManager {
 }
 
 /// Downloads the tiles via HTTP. It must persist between frames.
-pub struct Tiles {
+pub struct HttpTiles {
     attribution: Attribution,
 
     cache: LimitedMap<TileId, Option<Texture>>,
@@ -83,7 +83,7 @@ pub struct Tiles {
     tile_size: u32,
 }
 
-impl Tiles {
+impl HttpTiles {
     /// Construct new [`Tiles`] with default [`HttpOptions`].
     pub fn new<S>(source: S, egui_ctx: Context) -> Self
     where
@@ -124,7 +124,7 @@ impl Tiles {
     }
 }
 
-impl TilesManager for Tiles {
+impl Tiles for HttpTiles {
     /// Attribution of the source this tile cache pulls images from. Typically,
     /// this should be displayed somewhere on the top of the map widget.
     fn attribution(&self) -> Attribution {
@@ -215,7 +215,7 @@ mod tests {
         (server, TestSource::new(url))
     }
 
-    async fn assert_tile_to_become_available_eventually(tiles: &mut Tiles, tile_id: TileId) {
+    async fn assert_tile_to_become_available_eventually(tiles: &mut HttpTiles, tile_id: TileId) {
         log::info!("Waiting for {:?} to become available.", tile_id);
         while tiles.at(tile_id).is_none() {
             // Need to yield to the runtime for things to move.
@@ -230,7 +230,7 @@ mod tests {
         let (server, source) = hypermocker_mock().await;
         let mut anticipated = server.anticipate("/3/1/2.png").await;
 
-        let mut tiles = Tiles::new(source, Context::default());
+        let mut tiles = HttpTiles::new(source, Context::default());
 
         // First query start the download, but it will always return None.
         assert!(tiles.at(TILE_ID).is_none());
@@ -238,7 +238,11 @@ mod tests {
         let request = anticipated.expect().await;
         assert_eq!(
             request.headers().get(header::USER_AGENT),
-            Some(&HeaderValue::from_static("Walkers"))
+            Some(&HeaderValue::from_static(concat!(
+                "walkers",
+                "/",
+                env!("CARGO_PKG_VERSION"),
+            )))
         );
 
         // Eventually it gets downloaded and become available in cache.
@@ -255,7 +259,7 @@ mod tests {
         let (server, source) = hypermocker_mock().await;
         let mut anticipated = server.anticipate("/3/1/2.png").await;
 
-        let mut tiles = Tiles::with_options(
+        let mut tiles = HttpTiles::with_options(
             source,
             HttpOptions {
                 cache: None,
@@ -279,7 +283,7 @@ mod tests {
         let _ = env_logger::try_init();
 
         let (server, source) = hypermocker_mock().await;
-        let mut tiles = Tiles::new(source, Context::default());
+        let mut tiles = HttpTiles::new(source, Context::default());
 
         // First download is started immediately.
         let mut first_outstanding_request = server.anticipate(format!("/3/1/2.png")).await;
@@ -321,7 +325,7 @@ mod tests {
         awaiting_request.expect().await;
     }
 
-    async fn assert_tile_is_empty_forever(tiles: &mut Tiles) {
+    async fn assert_tile_is_empty_forever(tiles: &mut HttpTiles) {
         // Should be None now, and forever.
         assert!(tiles.at(TILE_ID).is_none());
         tokio::time::sleep(Duration::from_secs(1)).await;
@@ -333,7 +337,7 @@ mod tests {
         let _ = env_logger::try_init();
 
         let (server, source) = hypermocker_mock().await;
-        let mut tiles = Tiles::new(source, Context::default());
+        let mut tiles = HttpTiles::new(source, Context::default());
         server
             .anticipate("/3/1/2.png")
             .await
@@ -348,7 +352,7 @@ mod tests {
         let _ = env_logger::try_init();
 
         let (server, source) = hypermocker_mock().await;
-        let mut tiles = Tiles::new(source, Context::default());
+        let mut tiles = HttpTiles::new(source, Context::default());
         server
             .anticipate("/3/1/2.png")
             .await
@@ -363,7 +367,7 @@ mod tests {
         let _ = env_logger::try_init();
 
         let (server, source) = hypermocker_mock().await;
-        let mut tiles = Tiles::new(source, Context::default());
+        let mut tiles = HttpTiles::new(source, Context::default());
         server
             .anticipate("/3/1/2.png")
             .await
@@ -394,7 +398,7 @@ mod tests {
     #[tokio::test]
     async fn tile_is_empty_forever_if_http_can_not_even_connect() {
         let _ = env_logger::try_init();
-        let mut tiles = Tiles::new(GarbageSource, Context::default());
+        let mut tiles = HttpTiles::new(GarbageSource, Context::default());
         assert_tile_is_empty_forever(&mut tiles).await;
     }
 }

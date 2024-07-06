@@ -2,9 +2,15 @@
 
 All notable changes to this project will be documented in this file.
 
-## Unreleased
+## 0.24.0
 
+ * `egui` updated to 0.28.
+
+## 0.23.0
+
+ * New functions in `MapMemory` for getting and setting the zoom level: `zoom` and `set_zoom`.
  * In-memory cache is now limited to 256 tiles. Previously it grew indefinitely.
+ * `TilesManager` trait is now called `Tiles` and `Tiles` struct is now called `HttpTiles`.
 
 ## 0.22.0
 

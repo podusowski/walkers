@@ -7,7 +7,7 @@ use crate::{
     mercator::{screen_to_position, Pixels, PixelsExt, TileId},
     tiles,
     zoom::{InvalidZoom, Zoom},
-    Position, TilesManager,
+    Position, Tiles,
 };
 
 /// Plugins allow drawing custom shapes on the map. After implementing this trait for your type,
@@ -18,14 +18,14 @@ pub trait Plugin {
 }
 
 /// The actual map widget. Instances are to be created on each frame, as all necessary state is
-/// stored in [`TilesManager`] and [`MapMemory`].
+/// stored in [`Tiles`] and [`MapMemory`].
 ///
 /// # Examples
 ///
 /// ```
 /// # use walkers::{Map, Tiles, MapMemory, Position};
 ///
-/// fn update(ui: &mut egui::Ui, tiles: &mut Tiles, map_memory: &mut MapMemory) {
+/// fn update(ui: &mut egui::Ui, tiles: &mut dyn Tiles, map_memory: &mut MapMemory) {
 ///     ui.add(Map::new(
 ///         Some(tiles), // `None`, if you don't want to show any tiles.
 ///         map_memory,
@@ -34,7 +34,7 @@ pub trait Plugin {
 /// }
 /// ```
 pub struct Map<'a, 'b, 'c> {
-    tiles: Option<&'b mut dyn TilesManager>,
+    tiles: Option<&'b mut dyn Tiles>,
     memory: &'a mut MapMemory,
     my_position: Position,
     plugins: Vec<Box<dyn Plugin + 'c>>,
@@ -46,7 +46,7 @@ pub struct Map<'a, 'b, 'c> {
 impl<'a, 'b, 'c> Map<'a, 'b, 'c> {
     /// Create a new map widget.
     pub fn new(
-        tiles: Option<&'b mut dyn TilesManager>,
+        tiles: Option<&'b mut dyn Tiles>,
         memory: &'a mut MapMemory,
         my_position: Position,
     ) -> Self {
@@ -112,7 +112,7 @@ impl Projector {
         let projected_position = position.project(self.memory.zoom.into());
 
         // We need the precision of f64 here,
-        // since some "gaps" between tiles are noticable on large zoom levels (e.g. 16+)
+        // since some "gaps" between tiles are noticeable on large zoom levels (e.g. 16+)
         let zoom: f64 = self.memory.zoom.into();
 
         // We also need to know where the map center is.
@@ -298,6 +298,18 @@ impl MapMemory {
         self.zoom.zoom_out()
     }
 
+    /// Set exact zoom level
+    pub fn set_zoom(&mut self, zoom: f32) -> Result<(), InvalidZoom> {
+        self.center_mode = self.center_mode.clone().zero_offset(self.zoom.into());
+        self.zoom = Zoom::try_from(zoom)?;
+        Ok(())
+    }
+
+    /// Returns the current zoom level
+    pub fn zoom(&self) -> f32 {
+        self.zoom.into()
+    }
+
     /// Returns exact position if map is detached (i.e. not following `my_position`),
     /// `None` otherwise.
     pub fn detached(&self) -> Option<Position> {
@@ -324,7 +336,7 @@ fn flood_fill_tiles(
     tile_id: TileId,
     map_center_projected_position: Pixels,
     zoom: f64,
-    tiles: &mut dyn TilesManager,
+    tiles: &mut dyn Tiles,
     meshes: &mut HashMap<TileId, Option<Mesh>>,
 ) {
     // We need to make up the difference between integer and floating point zoom levels.

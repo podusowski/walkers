@@ -3,7 +3,7 @@ use egui::Context;
 use walkers::sources::Attribution;
 use walkers::Texture;
 use walkers::TileId;
-use walkers::TilesManager;
+use walkers::Tiles;
 
 pub struct LocalTiles {
     egui_ctx: Context,
@@ -15,7 +15,7 @@ impl LocalTiles {
     }
 }
 
-impl TilesManager for LocalTiles {
+impl Tiles for LocalTiles {
     fn at(&mut self, _tile_id: TileId) -> Option<Texture> {
         let image = ColorImage::example();
 
