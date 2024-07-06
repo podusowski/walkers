@@ -19,7 +19,7 @@ fn android_main(
     eframe::run_native(
         "Walkers",
         options,
-        Box::new(|cc| Box::new(demo::MyApp::new(cc.egui_ctx.clone()))),
+        Box::new(|cc| Ok(Box::new(demo::MyApp::new(cc.egui_ctx.clone())))),
     )?;
 
     Ok(())
