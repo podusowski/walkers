@@ -2,6 +2,10 @@
 
 All notable changes to this project will be documented in this file.
 
+## 0.24.0
+
+ * `egui` updated to 0.28.
+
 ## 0.23.0
 
  * New functions in `MapMemory` for getting and setting the zoom level: `zoom` and `set_zoom`.
