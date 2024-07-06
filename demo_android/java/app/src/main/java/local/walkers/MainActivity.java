@@ -2,6 +2,7 @@ package local.walkers;
 
 import android.os.Bundle;
 import android.util.Log;
+import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewGroup;
 
@@ -19,105 +20,35 @@ public class MainActivity extends GameActivity {
   }
 
   @Override
-          protected void onCreate(Bundle savedInstanceState) {
-
-      Log.i("walkers", "setting listener.");
+  protected void onCreate(Bundle savedInstanceState) {
+      // Shrink view so it does not get covered by insets.
 
       View content = getWindow().getDecorView().findViewById(android.R.id.content);
-    ViewCompat.setOnApplyWindowInsetsListener(content, (v, windowInsets) -> {
-
-
-        Log.i("walkers", "apply window insets.");
+      ViewCompat.setOnApplyWindowInsetsListener(content, (v, windowInsets) -> {
         Insets insets = windowInsets.getInsets(WindowInsetsCompat.Type.systemBars());
-        // Apply the insets as a margin to the view. This solution sets only the
-        // bottom, left, and right dimensions, but you can apply whichever insets are
-        // appropriate to your layout. You can also update the view padding if that's
-        // more appropriate.
+
         ViewGroup.MarginLayoutParams mlp = (ViewGroup.MarginLayoutParams) v.getLayoutParams();
-        mlp.topMargin = 50;// insets.top;
+        mlp.topMargin = insets.top;
         mlp.leftMargin = insets.left;
         mlp.bottomMargin = insets.bottom;
         mlp.rightMargin = insets.right;
         v.setLayoutParams(mlp);
 
-        // Return CONSUMED if you don't want want the window insets to keep passing
-        // down to descendant views.
         return WindowInsetsCompat.CONSUMED;
+      });
 
-
-    //  Insets insets = windowInsets.getInsets(WindowInsetsCompat.Type.systemBars());
-    //  // Apply the insets as a margin to the view. This solution sets only the
-    //  // bottom, left, and right dimensions, but you can apply whichever insets are
-    //  // appropriate to your layout. You can also update the view padding if that's
-    //  // more appropriate.
-    //  MarginLayoutParams mlp = (MarginLayoutParams) v.getLayoutParams();
-    //  mlp.leftMargin = insets.left;
-    //  mlp.bottomMargin = insets.bottom;
-    //  mlp.rightMargin = insets.right;
-    //  v.setLayoutParams(mlp);
-
-    //  // Return CONSUMED if you don't want want the window insets to keep passing
-    //  // down to descendant views.
-    //  return WindowInsetsCompat.CONSUMED;
-    });
-
-    WindowCompat.setDecorFitsSystemWindows(getWindow(), true);
+      WindowCompat.setDecorFitsSystemWindows(getWindow(), true);
 
       super.onCreate(savedInstanceState);
   }
 
-
   @Override
-  public WindowInsetsCompat onApplyWindowInsets(View v, WindowInsetsCompat windowInsets) {
-      Log.i("walkers", "apply window insets.");
-      Insets insets = windowInsets.getInsets(WindowInsetsCompat.Type.systemBars());
-      // Apply the insets as a margin to the view. This solution sets only the
-      // bottom, left, and right dimensions, but you can apply whichever insets are
-      // appropriate to your layout. You can also update the view padding if that's
-      // more appropriate.
-      ViewGroup.MarginLayoutParams mlp = (ViewGroup.MarginLayoutParams) v.getLayoutParams();
-      mlp.topMargin = insets.top;
-      mlp.leftMargin = insets.left;
-      mlp.bottomMargin = insets.bottom;
-      mlp.rightMargin = insets.right;
-      v.setLayoutParams(mlp);
+  public boolean onTouchEvent(MotionEvent event) {
+      // Correct inputs events so they match the view.
 
-      // Return CONSUMED if you don't want want the window insets to keep passing
-      // down to descendant views.
-      return WindowInsetsCompat.CONSUMED;
-      }
-
-  //          // Setup cutouts values.
-  //          DisplayCutoutCompat dc = insets.getDisplayCutout();
-  //          int cutoutTop = 0;
-  //          int cutoutRight = 0;
-  //          int cutoutBottom = 0;
-  //          int cutoutLeft = 0;
-  //          if (dc != null) {
-  //              cutoutTop = dc.getSafeInsetTop();
-  //              cutoutRight = dc.getSafeInsetRight();
-  //              cutoutBottom = dc.getSafeInsetBottom();
-  //              cutoutLeft = dc.getSafeInsetLeft();
-  //          }
-
-  //          // Get display insets.
-  //          Insets systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars());
-
-  //          // Setup values to pass into native code.
-  //          int[] values = new int[]{0, 0, 0, 0};
-  //          values[0] = Utils.pxToDp(Integer.max(cutoutTop, systemBars.top), this);
-  //          values[1] = Utils.pxToDp(Integer.max(cutoutRight, systemBars.right), this);
-  //          values[2] = Utils.pxToDp(Integer.max(cutoutBottom, systemBars.bottom), this);
-  //          values[3] = Utils.pxToDp(Integer.max(cutoutLeft, systemBars.left), this);
-
-  //          // Pass values into native code.
-  //          onDisplayInsets(values);
-
-  //          return insets;
-
-
-
-  //    return WindowInsetsCompat.CONSUMED;
-  //}
+      int[] location = new int[2];
+      findViewById(android.R.id.content).getLocationOnScreen(location);
+      event.offsetLocation(-location[0], -location[1]);
+      return super.onTouchEvent(event);
+  }
 }
-
