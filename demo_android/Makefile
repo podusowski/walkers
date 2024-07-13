@@ -10,3 +10,4 @@ apk: jni
 run-on-device: jni
 	cd java && ./gradlew installDebug
 	adb shell am start -n local.walkers/.MainActivity
+	adb logcat -v color -s walkers RustStdoutStderr

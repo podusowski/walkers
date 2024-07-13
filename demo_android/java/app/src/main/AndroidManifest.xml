@@ -9,6 +9,7 @@
             android:name=".MainActivity"
             android:configChanges="orientation|screenSize|screenLayout|keyboardHidden"
             android:exported="true"
+            android:launchMode="singleTask"
         >
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
