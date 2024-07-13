@@ -10,3 +10,6 @@ updates:
         patterns:
           - "egui*"
           - "eframe"
+      reqwest:
+        patterns:
+          - "*reqwest*"
