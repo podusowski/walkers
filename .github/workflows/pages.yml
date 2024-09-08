@@ -21,7 +21,7 @@ jobs:
       - name: Install Trunk
         run: cargo install trunk@0.20.3
       - name: Build
-        run: env -C demo_web trunk build --release --public-url "${GITHUB_REPOSITORY#*/}"
+        run: env -C demo_web trunk build --release
       - name: Deploy
         uses: JamesIves/github-pages-deploy-action@v4
         with:
