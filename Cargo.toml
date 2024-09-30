@@ -15,7 +15,7 @@ version = "0.24.0"
 [workspace.dependencies]
 image = { version = "0.25", default-features = false }
 log = "0.4"
-egui = "0.28"
-egui_extras = { version = "0.28", features = ["svg"] }
-eframe = "0.28"
-egui-winit = "0.28"
+egui = "0.29"
+egui_extras = { version = "0.29", features = ["svg"] }
+eframe = "0.29"
+egui-winit = "0.29"
