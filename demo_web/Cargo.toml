@@ -10,3 +10,4 @@ eframe.workspace = true
 egui.workspace = true
 log.workspace = true
 wasm-bindgen-futures = "0.4"
+web-sys = "0.3.70"
