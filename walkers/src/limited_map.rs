@@ -12,6 +12,7 @@ impl<K, V> LimitedMap<K, V>
 where
     K: Eq + PartialEq + Hash + Clone,
 {
+    /// Create a new LimitedMap with a limit.
     pub fn new(limit: usize) -> Self {
         Self {
             values: HashMap::new(),
@@ -20,6 +21,8 @@ where
         }
     }
 
+    /// Insert a key-value pair into the map. If the map is at its limit, the oldest entry will be
+    /// removed.
     pub fn insert(&mut self, k: K, v: V) {
         if self.values.len() == self.limit {
             if let Some(front) = self.queue.pop_front() {
