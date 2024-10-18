@@ -12,10 +12,12 @@ pub(crate) fn rect(screen_position: Vec2, tile_size: f64) -> Rect {
     Rect::from_min_size(screen_position.to_pos2(), Vec2::splat(tile_size as f32))
 }
 
+/// Texture handle with a size.
 #[derive(Clone)]
 pub struct Texture(TextureHandle);
 
 impl Texture {
+    /// Load the texture from the image bytes.
     pub fn new(image: &[u8], ctx: &Context) -> Result<Self, ImageError> {
         let image = image::load_from_memory(image)?.to_rgba8();
         let pixels = image.as_flat_samples();
@@ -51,9 +53,15 @@ impl Texture {
     }
 }
 
+/// Manages the tiles cache and downloads the missing ones.
 pub trait Tiles {
+    /// Get the tile at the given `TileId`
     fn at(&mut self, tile_id: TileId) -> Option<Texture>;
+
+    /// Attribution of the source this tile cache pulls images from
     fn attribution(&self) -> Attribution;
+
+    /// Size of each tile
     fn tile_size(&self) -> u32;
 }
 
