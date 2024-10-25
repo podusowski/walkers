@@ -41,12 +41,12 @@ impl Position {
     }
 
     /// Tile this position is on.
-    pub(crate) fn tile_id(&self, mut zoom: u8, tile_size: u32) -> TileId {
+    pub(crate) fn tile_id(&self, mut zoom: u8, source_tile_size: u32) -> TileId {
         let (x, y) = mercator_normalized(*self);
 
         // Some sources provide larger tiles, effectively bundling e.g. 4 256px tiles in one
         // 512px one. Walkers uses 256px internally, so we need to adjust the zoom level.
-        zoom -= (tile_size as f64 / TILE_SIZE as f64).log2() as u8;
+        zoom -= (source_tile_size as f64 / TILE_SIZE as f64).log2() as u8;
 
         // Map that into a big bitmap made out of web tiles.
         let number_of_tiles = 2u32.pow(zoom as u32) as f64;
