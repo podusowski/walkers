@@ -37,8 +37,7 @@ impl Position {
     pub(crate) fn project(&self, zoom: f64) -> Pixels {
         let (x, y) = mercator_normalized(*self);
 
-        // Map that into a big bitmap made out of web tiles.
-        let number_of_pixels = 2f64.powf(zoom) * (TILE_SIZE as f64);
+        let number_of_pixels = total_pixels(zoom);
         let x = x * number_of_pixels;
         let y = y * number_of_pixels;
 
@@ -62,6 +61,12 @@ impl Position {
 
         TileId { x, y, zoom }
     }
+}
+
+/// Zoom specifies how many pixels are in the whole map. For example, zoom 0 means that the whole
+/// map is just one 256x256 tile, zoom 1 means that it is 2x2 tiles, and so on.
+fn total_pixels(zoom: f64) -> f64 {
+    2f64.powf(zoom) * (TILE_SIZE as f64)
 }
 
 impl From<geo_types::Point> for Position {
