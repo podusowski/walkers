@@ -35,34 +35,36 @@ impl Position {
 
     /// Project geographical position into a 2D plane using Mercator.
     pub(crate) fn project(&self, zoom: f64) -> Pixels {
+        let total_pixels = total_pixels(zoom);
         let (x, y) = mercator_normalized(*self);
-
-        // Map that into a big bitmap made out of web tiles.
-        let number_of_pixels = 2f64.powf(zoom) * (TILE_SIZE as f64);
-        let x = x * number_of_pixels;
-        let y = y * number_of_pixels;
-
-        Pixels::new(x, y)
+        Pixels::new(x * total_pixels, y * total_pixels)
     }
 
     /// Tile this position is on.
-    pub(crate) fn tile_id(&self, mut zoom: u8, tile_size: u32) -> TileId {
+    pub(crate) fn tile_id(&self, mut zoom: u8, source_tile_size: u32) -> TileId {
         let (x, y) = mercator_normalized(*self);
 
-        // Some providers provide larger tiles, effectively bundling e.g. 4 256px tiles in one
-        // 512px one. To use this functionality, we zoom out correspondingly so the resolution
-        // remains the same.
-        let tile_size_correction = ((tile_size as f64) / (TILE_SIZE as f64)).log2();
-        zoom -= tile_size_correction as u8;
+        // Some sources provide larger tiles, effectively bundling e.g. 4 256px tiles in one
+        // 512px one. Walkers uses 256px internally, so we need to adjust the zoom level.
+        zoom -= (source_tile_size as f64 / TILE_SIZE as f64).log2() as u8;
 
         // Map that into a big bitmap made out of web tiles.
-        let number_of_tiles = 2u32.pow(zoom as u32);
-        let x = (x * number_of_tiles as f64).floor() as u32;
-        let y = (y * number_of_tiles as f64).floor() as u32;
+        let number_of_tiles = 2u32.pow(zoom as u32) as f64;
+        let x = (x * number_of_tiles).floor() as u32;
+        let y = (y * number_of_tiles).floor() as u32;
 
         TileId { x, y, zoom }
     }
 }
+
+/// Zoom specifies how many pixels are in the whole map. For example, zoom 0 means that the whole
+/// map is just one 256x256 tile, zoom 1 means that it is 2x2 tiles, and so on.
+fn total_pixels(zoom: f64) -> f64 {
+    2f64.powf(zoom) * (TILE_SIZE as f64)
+}
+
+/// Size of a single tile in pixels. Walkers uses 256px tiles as most of the tile sources do.
+const TILE_SIZE: u32 = 256;
 
 impl From<geo_types::Point> for Position {
     fn from(value: geo_types::Point) -> Self {
@@ -91,9 +93,7 @@ impl PixelsExt for Pixels {
     }
 }
 
-/// Size of the tiles used by the services like the OSM.
-pub(crate) const TILE_SIZE: u32 = 256;
-
+/// Project the position into the Mercator projection and normalize it to 0-1 range.
 fn mercator_normalized(position: Position) -> (f64, f64) {
     // Project into Mercator (cylindrical map projection).
     let x = position.lon().to_radians();
