@@ -46,8 +46,7 @@ impl Position {
 
         // Some sources provide larger tiles, effectively bundling e.g. 4 256px tiles in one
         // 512px one. Walkers uses 256px internally, so we need to adjust the zoom level.
-        let tile_size_correction = ((tile_size as f64) / (TILE_SIZE as f64)).log2();
-        zoom -= tile_size_correction as u8;
+        zoom -= (tile_size as f64 / TILE_SIZE as f64).log2() as u8;
 
         // Map that into a big bitmap made out of web tiles.
         let number_of_tiles = 2u32.pow(zoom as u32);
