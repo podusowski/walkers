@@ -49,9 +49,9 @@ impl Position {
         zoom -= (tile_size as f64 / TILE_SIZE as f64).log2() as u8;
 
         // Map that into a big bitmap made out of web tiles.
-        let number_of_tiles = 2u32.pow(zoom as u32);
-        let x = (x * number_of_tiles as f64).floor() as u32;
-        let y = (y * number_of_tiles as f64).floor() as u32;
+        let number_of_tiles = 2u32.pow(zoom as u32) as f64;
+        let x = (x * number_of_tiles).floor() as u32;
+        let y = (y * number_of_tiles).floor() as u32;
 
         TileId { x, y, zoom }
     }
