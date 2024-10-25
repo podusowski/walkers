@@ -37,9 +37,9 @@ impl Position {
     pub(crate) fn project(&self, zoom: f64) -> Pixels {
         let (x, y) = mercator_normalized(*self);
 
-        let number_of_pixels = total_pixels(zoom);
-        let x = x * number_of_pixels;
-        let y = y * number_of_pixels;
+        let total_pixels = total_pixels(zoom);
+        let x = x * total_pixels;
+        let y = y * total_pixels;
 
         Pixels::new(x, y)
     }
