@@ -92,7 +92,7 @@ impl PixelsExt for Pixels {
 }
 
 /// Size of the tiles used by the services like the OSM.
-pub(crate) const TILE_SIZE: u32 = 256;
+const TILE_SIZE: u32 = 256;
 
 fn mercator_normalized(position: Position) -> (f64, f64) {
     // Project into Mercator (cylindrical map projection).
