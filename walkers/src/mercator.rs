@@ -44,9 +44,8 @@ impl Position {
     pub(crate) fn tile_id(&self, mut zoom: u8, tile_size: u32) -> TileId {
         let (x, y) = mercator_normalized(*self);
 
-        // Some providers provide larger tiles, effectively bundling e.g. 4 256px tiles in one
-        // 512px one. To use this functionality, we zoom out correspondingly so the resolution
-        // remains the same.
+        // Some sources provide larger tiles, effectively bundling e.g. 4 256px tiles in one
+        // 512px one. Walkers uses 256px internally, so we need to adjust the zoom level.
         let tile_size_correction = ((tile_size as f64) / (TILE_SIZE as f64)).log2();
         zoom -= tile_size_correction as u8;
 
@@ -64,6 +63,9 @@ impl Position {
 fn total_pixels(zoom: f64) -> f64 {
     2f64.powf(zoom) * (TILE_SIZE as f64)
 }
+
+/// Size of a single tile in pixels. Walkers uses 256px tiles as most of the tile sources do.
+const TILE_SIZE: u32 = 256;
 
 impl From<geo_types::Point> for Position {
     fn from(value: geo_types::Point) -> Self {
@@ -91,9 +93,6 @@ impl PixelsExt for Pixels {
         egui::Vec2::new(self.x() as f32, self.y() as f32)
     }
 }
-
-/// Size of the tiles used by the services like the OSM.
-const TILE_SIZE: u32 = 256;
 
 /// Project the position into the Mercator projection and normalize it to 0-1 range.
 fn mercator_normalized(position: Position) -> (f64, f64) {
