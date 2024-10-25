@@ -94,6 +94,7 @@ impl PixelsExt for Pixels {
 /// Size of the tiles used by the services like the OSM.
 const TILE_SIZE: u32 = 256;
 
+/// Project the position into the Mercator projection and normalize it to 0-1 range.
 fn mercator_normalized(position: Position) -> (f64, f64) {
     // Project into Mercator (cylindrical map projection).
     let x = position.lon().to_radians();
