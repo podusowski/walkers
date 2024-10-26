@@ -114,18 +114,9 @@ impl HttpTiles {
             tile_size,
         }
     }
-}
 
-impl Tiles for HttpTiles {
-    /// Attribution of the source this tile cache pulls images from. Typically,
-    /// this should be displayed somewhere on the top of the map widget.
-    fn attribution(&self) -> Attribution {
-        self.attribution.clone()
-    }
-
-    /// Return a tile if already in cache, schedule a download otherwise.
-    fn at(&mut self, tile_id: TileId) -> Option<Texture> {
-        // Just take one at the time.
+    fn put_next_downloaded_tile_in_cache(&mut self) {
+        // This is called every frame, so take just one at the time.
         match self.tile_rx.try_next() {
             Ok(Some((tile_id, tile))) => {
                 self.cache.insert(tile_id, Some(tile));
@@ -137,6 +128,19 @@ impl Tiles for HttpTiles {
                 log::error!("IO thread is dead")
             }
         }
+    }
+}
+
+impl Tiles for HttpTiles {
+    /// Attribution of the source this tile cache pulls images from. Typically,
+    /// this should be displayed somewhere on the top of the map widget.
+    fn attribution(&self) -> Attribution {
+        self.attribution.clone()
+    }
+
+    /// Return a tile if already in cache, schedule a download otherwise.
+    fn at(&mut self, tile_id: TileId) -> Option<Texture> {
+        self.put_next_downloaded_tile_in_cache();
 
         // TODO: Double lookup.
         if let Some(texture) = self.cache.get(&tile_id).cloned() {
