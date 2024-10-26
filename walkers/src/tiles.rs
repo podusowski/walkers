@@ -171,10 +171,7 @@ impl HttpTiles {
         );
 
         if let Some(Some(texture)) = self.cache.get(&zoomed_tile_id) {
-            Some((
-                texture.clone(),
-                Rect::from_min_max(pos2(0.0, 0.0), pos2(0.5, 0.5)),
-            ))
+            Some((texture.clone(), uv))
         } else {
             None
         }
