@@ -105,7 +105,6 @@ async fn download_complete(
     tile_id: TileId,
     result: Result<Texture, Error>,
 ) -> Result<(), ()> {
-    tokio::time::sleep(std::time::Duration::from_millis(1000)).await;
     match result {
         Ok(tile) => {
             tile_tx.send((tile_id, tile)).await.map_err(|_| ())?;
@@ -129,7 +128,7 @@ impl<F> Downloads<F> {
     fn new(downloads: Vec<Pin<Box<F>>>) -> Self {
         if downloads.is_empty() {
             Self::None
-        } else if downloads.len() < 1 {
+        } else if downloads.len() < 6 {
             Self::Ongoing(downloads)
         } else {
             Self::OngoingSaturated(downloads)
