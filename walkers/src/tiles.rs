@@ -141,6 +141,25 @@ impl HttpTiles {
             log::debug!("Request queue is full.");
         }
     }
+
+    /// Find tile with a different zoom, which could be used as a placeholder.
+    fn find_placeholder_with_different_zoom(&self, tile_id: TileId) -> Option<Texture> {
+        let mut zoom = tile_id.zoom;
+        while zoom > 0 {
+            zoom -= 1;
+            let zoomed_tile_id = TileId {
+                x: tile_id.x / 2,
+                y: tile_id.y / 2,
+                zoom,
+            };
+
+            if let Some(texture) = self.cache.get(&zoomed_tile_id) {
+                return texture.clone();
+            }
+        }
+
+        None
+    }
 }
 
 impl Tiles for HttpTiles {
@@ -158,7 +177,7 @@ impl Tiles for HttpTiles {
             texture
         } else {
             self.request_download(tile_id);
-            None
+            self.find_placeholder_with_different_zoom(tile_id)
         }
     }
 
