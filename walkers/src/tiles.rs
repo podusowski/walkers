@@ -154,7 +154,6 @@ impl Tiles for HttpTiles {
     fn at(&mut self, tile_id: TileId) -> Option<Texture> {
         self.put_next_downloaded_tile_in_cache();
 
-        // TODO: Double lookup.
         if let Some(texture) = self.cache.get(&tile_id).cloned() {
             texture
         } else {
