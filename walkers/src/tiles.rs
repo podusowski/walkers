@@ -40,6 +40,10 @@ impl Texture {
         self.mesh_with_rect(rect(screen_position, tile_size))
     }
 
+    pub(crate) fn mesh_with_uv(&self, screen_position: Vec2, tile_size: f64, uv: Rect) -> Mesh {
+        self.mesh_with_rect_and_uv(rect(screen_position, tile_size), uv)
+    }
+
     pub(crate) fn mesh_with_rect(&self, rect: Rect) -> Mesh {
         let mut mesh = Mesh::with_texture(self.0.id());
         mesh.add_rect_with_uv(
@@ -49,10 +53,16 @@ impl Texture {
         );
         mesh
     }
+
+    pub(crate) fn mesh_with_rect_and_uv(&self, rect: Rect, uv: Rect) -> Mesh {
+        let mut mesh = Mesh::with_texture(self.0.id());
+        mesh.add_rect_with_uv(rect, uv, Color32::WHITE);
+        mesh
+    }
 }
 
 pub trait Tiles {
-    fn at(&mut self, tile_id: TileId) -> Option<Texture>;
+    fn at(&mut self, tile_id: TileId) -> Option<(Texture, Rect)>;
     fn attribution(&self) -> Attribution;
     fn tile_size(&self) -> u32;
 }
@@ -143,22 +153,31 @@ impl HttpTiles {
     }
 
     /// Find tile with a different zoom, which could be used as a placeholder.
-    fn find_placeholder_with_different_zoom(&self, tile_id: TileId) -> Option<Texture> {
-        let mut zoom = tile_id.zoom;
-        while zoom > 0 {
-            zoom -= 1;
-            let zoomed_tile_id = TileId {
-                x: tile_id.x / 2,
-                y: tile_id.y / 2,
-                zoom,
-            };
+    fn find_placeholder_with_different_zoom(&self, tile_id: TileId) -> Option<(Texture, Rect)> {
+        let zoom = tile_id.zoom - 1;
 
-            if let Some(texture) = self.cache.get(&zoomed_tile_id) {
-                return texture.clone();
-            }
+        let x = (tile_id.x / 2, tile_id.x % 2);
+        let y = (tile_id.y / 2, tile_id.y % 2);
+
+        let zoomed_tile_id = TileId {
+            x: x.0,
+            y: y.0,
+            zoom,
+        };
+
+        let uv = Rect::from_min_max(
+            pos2(x.1 as f32 * 0.5, y.1 as f32 * 0.5),
+            pos2(x.1 as f32 * 0.5 + 0.5, y.1 as f32 * 0.5 + 0.5),
+        );
+
+        if let Some(Some(texture)) = self.cache.get(&zoomed_tile_id) {
+            Some((
+                texture.clone(),
+                Rect::from_min_max(pos2(0.0, 0.0), pos2(0.5, 0.5)),
+            ))
+        } else {
+            None
         }
-
-        None
     }
 }
 
@@ -170,7 +189,7 @@ impl Tiles for HttpTiles {
     }
 
     /// Return a tile if already in cache, schedule a download otherwise.
-    fn at(&mut self, tile_id: TileId) -> Option<Texture> {
+    fn at(&mut self, tile_id: TileId) -> Option<(Texture, Rect)> {
         self.put_next_downloaded_tile_in_cache();
 
         if let Some(texture) = self.cache.get(&tile_id).cloned() {
@@ -179,6 +198,7 @@ impl Tiles for HttpTiles {
             self.request_download(tile_id);
             None
         }
+        .map(|texture| (texture, Rect::from_min_max(pos2(0.0, 0.0), pos2(1.0, 1.0))))
         .or_else(|| self.find_placeholder_with_different_zoom(tile_id))
     }
 

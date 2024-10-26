@@ -342,7 +342,7 @@ fn flood_fill_tiles(
             // It's still OK to insert an empty one, as we need to mark the spot for the filling algorithm.
             let tile = tiles
                 .at(tile_id)
-                .map(|tile| tile.mesh(tile_screen_position, corrected_tile_size));
+                .map(|(tile, uv)| tile.mesh_with_uv(tile_screen_position, corrected_tile_size, uv));
 
             entry.insert(tile);
 
