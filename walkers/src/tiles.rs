@@ -129,6 +129,18 @@ impl HttpTiles {
             }
         }
     }
+
+    fn request_download(&mut self, tile_id: TileId) {
+        if let Ok(()) = self.request_tx.try_send(tile_id) {
+            log::debug!("Requested tile: {:?}", tile_id);
+
+            // None acts as a placeholder for the tile, preventing multiple
+            // requests for the same tile.
+            self.cache.insert(tile_id, None);
+        } else {
+            log::debug!("Request queue is full.");
+        }
+    }
 }
 
 impl Tiles for HttpTiles {
@@ -146,12 +158,7 @@ impl Tiles for HttpTiles {
         if let Some(texture) = self.cache.get(&tile_id).cloned() {
             texture
         } else {
-            if let Ok(()) = self.request_tx.try_send(tile_id) {
-                log::debug!("Requested tile: {:?}", tile_id);
-                self.cache.insert(tile_id, None);
-            } else {
-                log::debug!("Request queue is full.");
-            }
+            self.request_download(tile_id);
             None
         }
     }
