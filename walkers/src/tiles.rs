@@ -177,8 +177,9 @@ impl Tiles for HttpTiles {
             texture
         } else {
             self.request_download(tile_id);
-            self.find_placeholder_with_different_zoom(tile_id)
+            None
         }
+        .or_else(|| self.find_placeholder_with_different_zoom(tile_id))
     }
 
     fn tile_size(&self) -> u32 {
