@@ -124,11 +124,15 @@ enum Downloads<F> {
     OngoingSaturated(Vec<Pin<Box<F>>>),
 }
 
+/// Maximum number of parallel downloads. Following modern browsers' behavior.
+/// https://stackoverflow.com/questions/985431/max-parallel-http-connections-in-a-browser
+const MAX_PARALLEL_DOWNLOADS: usize = 6;
+
 impl<F> Downloads<F> {
     fn new(downloads: Vec<Pin<Box<F>>>) -> Self {
         if downloads.is_empty() {
             Self::None
-        } else if downloads.len() < 6 {
+        } else if downloads.len() < MAX_PARALLEL_DOWNLOADS {
             Self::Ongoing(downloads)
         } else {
             Self::OngoingSaturated(downloads)
