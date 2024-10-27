@@ -36,10 +36,6 @@ impl Texture {
         self.0.size_vec2()
     }
 
-    pub(crate) fn mesh(&self, screen_position: Vec2, tile_size: f64) -> Mesh {
-        self.mesh_with_rect(rect(screen_position, tile_size))
-    }
-
     pub(crate) fn mesh_with_uv(&self, screen_position: Vec2, tile_size: f64, uv: Rect) -> Mesh {
         self.mesh_with_rect_and_uv(rect(screen_position, tile_size), uv)
     }
