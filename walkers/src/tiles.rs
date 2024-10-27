@@ -153,7 +153,7 @@ impl HttpTiles {
     }
 
     /// Find tile with a different zoom, which could be used as a placeholder.
-    fn find_placeholder_with_different_zoom(&self, tile_id: TileId) -> Option<(Texture, Rect)> {
+    fn placeholder_with_different_zoom(&self, tile_id: TileId) -> Option<(Texture, Rect)> {
         let zoom = tile_id.zoom - 1;
 
         let x = (tile_id.x / 2, tile_id.x % 2);
@@ -196,7 +196,7 @@ impl Tiles for HttpTiles {
             None
         }
         .map(|texture| (texture, Rect::from_min_max(pos2(0.0, 0.0), pos2(1.0, 1.0))))
-        .or_else(|| self.find_placeholder_with_different_zoom(tile_id))
+        .or_else(|| self.placeholder_with_different_zoom(tile_id))
     }
 
     fn tile_size(&self) -> u32 {
