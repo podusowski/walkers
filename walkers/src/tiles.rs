@@ -156,8 +156,9 @@ impl HttpTiles {
 
     /// Find tile with a different zoom, which could be used as a placeholder.
     fn placeholder_with_different_zoom(&self, tile_id: TileId) -> Option<TextureWithUv> {
-        let zoom = tile_id.zoom - 1;
+        // Currently, only a single zoom level down is supported.
 
+        let zoom = tile_id.zoom - 1;
         let x = (tile_id.x / 2, tile_id.x % 2);
         let y = (tile_id.y / 2, tile_id.y % 2);
 
