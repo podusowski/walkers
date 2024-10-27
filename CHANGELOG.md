@@ -8,6 +8,7 @@ All notable changes to this project will be documented in this file.
   placeholders.
 * `Tiles::at()` now returns a new `TextureWithUv` instead of `Texture`. This change is relevant
   only for `Tiles` implementers and provides the ability to use part of the texture as a tile.
+* Zoom is now represented as `f64` instead of `f32` which makes it consistent with other types.
 
 ## 0.25.0
 

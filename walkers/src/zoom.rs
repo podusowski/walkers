@@ -23,7 +23,7 @@ impl TryFrom<f64> for Zoom {
 #[allow(clippy::from_over_into)]
 impl Into<f64> for Zoom {
     fn into(self) -> f64 {
-        self.0 as f64
+        self.0
     }
 }
 
