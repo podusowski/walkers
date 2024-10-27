@@ -13,7 +13,7 @@ use crate::{io::http_client, mercator::TileId, sources::TileSource, tiles::Textu
 
 pub use reqwest::header::HeaderValue;
 
-/// Controls how [`crate::Tiles`] use the HTTP protocol, such as caching.
+/// Controls how [`crate::HttpTiles`] use the HTTP protocol, such as caching.
 pub struct HttpOptions {
     /// Path to the directory to store the HTTP cache.
     ///
