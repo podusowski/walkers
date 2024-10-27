@@ -340,9 +340,10 @@ fn flood_fill_tiles(
     if viewport.intersects(tiles::rect(tile_screen_position, corrected_tile_size)) {
         if let Entry::Vacant(entry) = meshes.entry(tile_id) {
             // It's still OK to insert an empty one, as we need to mark the spot for the filling algorithm.
-            let tile = tiles
-                .at(tile_id)
-                .map(|tile| tile.mesh(tile_screen_position, corrected_tile_size));
+            let tile = tiles.at(tile_id).map(|tile| {
+                tile.texture
+                    .mesh_with_uv(tile_screen_position, corrected_tile_size, tile.uv)
+            });
 
             entry.insert(tile);
 

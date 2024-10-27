@@ -36,8 +36,8 @@ impl Texture {
         self.0.size_vec2()
     }
 
-    pub(crate) fn mesh(&self, screen_position: Vec2, tile_size: f64) -> Mesh {
-        self.mesh_with_rect(rect(screen_position, tile_size))
+    pub(crate) fn mesh_with_uv(&self, screen_position: Vec2, tile_size: f64, uv: Rect) -> Mesh {
+        self.mesh_with_rect_and_uv(rect(screen_position, tile_size), uv)
     }
 
     pub(crate) fn mesh_with_rect(&self, rect: Rect) -> Mesh {
@@ -49,10 +49,22 @@ impl Texture {
         );
         mesh
     }
+
+    pub(crate) fn mesh_with_rect_and_uv(&self, rect: Rect, uv: Rect) -> Mesh {
+        let mut mesh = Mesh::with_texture(self.0.id());
+        mesh.add_rect_with_uv(rect, uv, Color32::WHITE);
+        mesh
+    }
+}
+
+/// Texture with UV coordinates.
+pub struct TextureWithUv {
+    pub texture: Texture,
+    pub uv: Rect,
 }
 
 pub trait Tiles {
-    fn at(&mut self, tile_id: TileId) -> Option<Texture>;
+    fn at(&mut self, tile_id: TileId) -> Option<TextureWithUv>;
     fn attribution(&self) -> Attribution;
     fn tile_size(&self) -> u32;
 }
@@ -114,18 +126,9 @@ impl HttpTiles {
             tile_size,
         }
     }
-}
 
-impl Tiles for HttpTiles {
-    /// Attribution of the source this tile cache pulls images from. Typically,
-    /// this should be displayed somewhere on the top of the map widget.
-    fn attribution(&self) -> Attribution {
-        self.attribution.clone()
-    }
-
-    /// Return a tile if already in cache, schedule a download otherwise.
-    fn at(&mut self, tile_id: TileId) -> Option<Texture> {
-        // Just take one at the time.
+    fn put_next_downloaded_tile_in_cache(&mut self) {
+        // This is called every frame, so take just one at the time.
         match self.tile_rx.try_next() {
             Ok(Some((tile_id, tile))) => {
                 self.cache.insert(tile_id, Some(tile));
@@ -137,19 +140,72 @@ impl Tiles for HttpTiles {
                 log::error!("IO thread is dead")
             }
         }
+    }
 
-        // TODO: Double lookup.
+    fn request_download(&mut self, tile_id: TileId) {
+        if let Ok(()) = self.request_tx.try_send(tile_id) {
+            log::debug!("Requested tile: {:?}", tile_id);
+
+            // None acts as a placeholder for the tile, preventing multiple
+            // requests for the same tile.
+            self.cache.insert(tile_id, None);
+        } else {
+            log::debug!("Request queue is full.");
+        }
+    }
+
+    /// Find tile with a different zoom, which could be used as a placeholder.
+    fn placeholder_with_different_zoom(&self, tile_id: TileId) -> Option<TextureWithUv> {
+        // Currently, only a single zoom level down is supported.
+
+        let zoom = tile_id.zoom - 1;
+        let x = (tile_id.x / 2, tile_id.x % 2);
+        let y = (tile_id.y / 2, tile_id.y % 2);
+
+        let zoomed_tile_id = TileId {
+            x: x.0,
+            y: y.0,
+            zoom,
+        };
+
+        let uv = Rect::from_min_max(
+            pos2(x.1 as f32 * 0.5, y.1 as f32 * 0.5),
+            pos2(x.1 as f32 * 0.5 + 0.5, y.1 as f32 * 0.5 + 0.5),
+        );
+
+        if let Some(Some(texture)) = self.cache.get(&zoomed_tile_id) {
+            Some(TextureWithUv {
+                texture: texture.clone(),
+                uv,
+            })
+        } else {
+            None
+        }
+    }
+}
+
+impl Tiles for HttpTiles {
+    /// Attribution of the source this tile cache pulls images from. Typically,
+    /// this should be displayed somewhere on the top of the map widget.
+    fn attribution(&self) -> Attribution {
+        self.attribution.clone()
+    }
+
+    /// Return a tile if already in cache, schedule a download otherwise.
+    fn at(&mut self, tile_id: TileId) -> Option<TextureWithUv> {
+        self.put_next_downloaded_tile_in_cache();
+
         if let Some(texture) = self.cache.get(&tile_id).cloned() {
             texture
         } else {
-            if let Ok(()) = self.request_tx.try_send(tile_id) {
-                log::debug!("Requested tile: {:?}", tile_id);
-                self.cache.insert(tile_id, None);
-            } else {
-                log::debug!("Request queue is full.");
-            }
+            self.request_download(tile_id);
             None
         }
+        .map(|texture| TextureWithUv {
+            texture,
+            uv: Rect::from_min_max(pos2(0.0, 0.0), pos2(1.0, 1.0)),
+        })
+        .or_else(|| self.placeholder_with_different_zoom(tile_id))
     }
 
     fn tile_size(&self) -> u32 {
