@@ -137,7 +137,7 @@ impl Map<'_, '_, '_> {
     /// Handle zoom and drag inputs, and recalculate everything accordingly.
     /// Returns `false` if no gesture handled.
     fn handle_gestures(&mut self, ui: &mut Ui, response: &Response) -> bool {
-        let zoom_delta = ui.input(|input| input.zoom_delta());
+        let zoom_delta = ui.input(|input| input.zoom_delta()) as f64;
 
         // Zooming and dragging need to be exclusive, otherwise the map will get dragged when
         // pinch gesture is used.
@@ -291,14 +291,14 @@ impl MapMemory {
     }
 
     /// Set exact zoom level
-    pub fn set_zoom(&mut self, zoom: f32) -> Result<(), InvalidZoom> {
+    pub fn set_zoom(&mut self, zoom: f64) -> Result<(), InvalidZoom> {
         self.center_mode = self.center_mode.clone().zero_offset(self.zoom.into());
         self.zoom = Zoom::try_from(zoom)?;
         Ok(())
     }
 
     /// Returns the current zoom level
-    pub fn zoom(&self) -> f32 {
+    pub fn zoom(&self) -> f64 {
         self.zoom.into()
     }
 
