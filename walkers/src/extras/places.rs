@@ -1,4 +1,4 @@
-use egui::{vec2, Align2, Color32, FontId, Ui, Stroke, Response};
+use egui::{vec2, Align2, Color32, FontId, Response, Stroke, Ui};
 
 use crate::{Plugin, Position};
 
@@ -68,11 +68,7 @@ impl Place {
             self.style.label_background,
         );
 
-        painter.galley(
-            (screen_position + offset).to_pos2(),
-            label,
-            Color32::BLACK,
-        );
+        painter.galley((screen_position + offset).to_pos2(), label, Color32::BLACK);
 
         painter.circle(
             screen_position.to_pos2(),

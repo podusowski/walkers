@@ -1,6 +1,6 @@
-use egui::{Rect, Ui, Vec2, emath::Rot2, Response};
+use egui::{emath::Rot2, Rect, Response, Ui, Vec2};
 
-use crate::{Plugin, Position, tiles::Texture};
+use crate::{tiles::Texture, Plugin, Position};
 
 /// An image to be drawn on the map.
 pub struct Image {

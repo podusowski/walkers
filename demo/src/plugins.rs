@@ -66,7 +66,6 @@ impl Plugin for CustomShapes {
 
         let radius = 30.;
 
-
         let hovered = response
             .hover_pos()
             .map(|hover_pos| hover_pos.distance(position) < radius)
@@ -110,7 +109,8 @@ impl Plugin for &mut ClickWatcher {
         }
 
         if let Some(position) = self.clicked_at {
-            ui.painter().circle_filled(projector.project(position).to_pos2(), 5.0, Color32::BLUE);
+            ui.painter()
+                .circle_filled(projector.project(position).to_pos2(), 5.0, Color32::BLUE);
         }
     }
 }
