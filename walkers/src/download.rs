@@ -67,7 +67,7 @@ async fn download_and_decode(
     user_agent: &HeaderValue,
     egui_ctx: &Context,
 ) -> Download {
-    log::debug!("Downloading '{}'.", url);
+    log::trace!("Downloading '{}'.", url);
     Download {
         tile_id,
         result: download_and_decode_impl(client, url, user_agent, egui_ctx).await,
@@ -87,7 +87,7 @@ async fn download_and_decode_impl(
         .await
         .map_err(Error::HttpMiddleware)?;
 
-    log::debug!("Downloaded '{}': {:?}.", url, image.status());
+    log::trace!("Downloaded '{}': {:?}.", url, image.status());
 
     let image = image
         .error_for_status()
