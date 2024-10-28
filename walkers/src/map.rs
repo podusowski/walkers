@@ -1,6 +1,6 @@
 use std::collections::{hash_map::Entry, HashMap};
 
-use egui::{Mesh, Painter, Rect, Response, Sense, Ui, Vec2, Widget};
+use egui::{Mesh, Rect, Response, Sense, Ui, UiBuilder, Vec2, Widget};
 
 use crate::{
     center::Center,
@@ -14,7 +14,15 @@ use crate::{
 /// you can add it to the map with [`Map::with_plugin`]
 pub trait Plugin {
     /// Function called at each frame.
-    fn run(&mut self, response: &Response, painter: Painter, projector: &Projector);
+    ///
+    /// The provided [`Ui`] has its [`Ui::max_rect`] set to the full rect that was allocated
+    /// by the map widget. Implementations should typically use the provided [`Projector`] to
+    /// compute target screen coordinates and use one of the various egui methods to draw at these
+    /// coordinates instead of relying on [`Ui`] layout system.
+    ///
+    /// The provided [`Response`] is the response of the map widget itself and can be used to test
+    /// if the mouse is hovering or clicking on the map.
+    fn run(self: Box<Self>, ui: &mut Ui, response: &Response, projector: &Projector);
 }
 
 /// The actual map widget. Instances are to be created on each frame, as all necessary state is
@@ -137,7 +145,7 @@ impl Map<'_, '_, '_> {
     /// Handle zoom and drag inputs, and recalculate everything accordingly.
     /// Returns `false` if no gesture handled.
     fn handle_gestures(&mut self, ui: &mut Ui, response: &Response) -> bool {
-        let zoom_delta = ui.input(|input| input.zoom_delta());
+        let zoom_delta = ui.input(|input| input.zoom_delta()) as f64;
 
         // Zooming and dragging need to be exclusive, otherwise the map will get dragged when
         // pinch gesture is used.
@@ -223,10 +231,10 @@ impl Widget for Map<'_, '_, '_> {
             }
         }
 
-        for mut plugin in self.plugins {
-            let projector = Projector::new(response.rect, self.memory, self.my_position);
-
-            plugin.run(&response, painter.to_owned(), &projector);
+        let projector = Projector::new(response.rect, self.memory, self.my_position);
+        for (idx, plugin) in self.plugins.into_iter().enumerate() {
+            let mut child_ui = ui.new_child(UiBuilder::new().max_rect(rect).id_salt(idx));
+            plugin.run(&mut child_ui, &response, &projector);
         }
 
         response
@@ -291,14 +299,14 @@ impl MapMemory {
     }
 
     /// Set exact zoom level
-    pub fn set_zoom(&mut self, zoom: f32) -> Result<(), InvalidZoom> {
+    pub fn set_zoom(&mut self, zoom: f64) -> Result<(), InvalidZoom> {
         self.center_mode = self.center_mode.clone().zero_offset(self.zoom.into());
         self.zoom = Zoom::try_from(zoom)?;
         Ok(())
     }
 
     /// Returns the current zoom level
-    pub fn zoom(&self) -> f32 {
+    pub fn zoom(&self) -> f64 {
         self.zoom.into()
     }
 

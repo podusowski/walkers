@@ -13,7 +13,7 @@ use crate::{io::http_client, mercator::TileId, sources::TileSource, tiles::Textu
 
 pub use reqwest::header::HeaderValue;
 
-/// Controls how [`crate::Tiles`] use the HTTP protocol, such as caching.
+/// Controls how [`crate::HttpTiles`] use the HTTP protocol, such as caching.
 pub struct HttpOptions {
     /// Path to the directory to store the HTTP cache.
     ///
@@ -67,7 +67,7 @@ async fn download_and_decode(
     user_agent: &HeaderValue,
     egui_ctx: &Context,
 ) -> Download {
-    log::debug!("Downloading '{}'.", url);
+    log::trace!("Downloading '{}'.", url);
     Download {
         tile_id,
         result: download_and_decode_impl(client, url, user_agent, egui_ctx).await,
@@ -87,7 +87,7 @@ async fn download_and_decode_impl(
         .await
         .map_err(Error::HttpMiddleware)?;
 
-    log::debug!("Downloaded '{}': {:?}.", url, image.status());
+    log::trace!("Downloaded '{}': {:?}.", url, image.status());
 
     let image = image
         .error_for_status()

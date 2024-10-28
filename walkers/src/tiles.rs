@@ -144,7 +144,7 @@ impl HttpTiles {
 
     fn request_download(&mut self, tile_id: TileId) {
         if let Ok(()) = self.request_tx.try_send(tile_id) {
-            log::debug!("Requested tile: {:?}", tile_id);
+            log::trace!("Requested tile: {:?}", tile_id);
 
             // None acts as a placeholder for the tile, preventing multiple
             // requests for the same tile.
