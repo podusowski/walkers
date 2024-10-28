@@ -1,4 +1,4 @@
-use egui::{Color32, Painter, Response};
+use egui::{Color32, Response, Ui};
 use walkers::{
     extras::{Image, Images, Place, Places, Style, Texture},
     Plugin, Position, Projector,
@@ -57,7 +57,7 @@ pub fn images(images_plugin_data: &mut ImagesPluginData) -> impl Plugin {
 pub struct CustomShapes {}
 
 impl Plugin for CustomShapes {
-    fn run(&mut self, response: &Response, painter: Painter, projector: &Projector) {
+    fn run(self: Box<Self>, ui: &mut Ui, response: &Response, projector: &Projector) {
         // Position of the point we want to put our shapes.
         let position = places::capitol();
 
@@ -66,12 +66,13 @@ impl Plugin for CustomShapes {
 
         let radius = 30.;
 
+
         let hovered = response
             .hover_pos()
             .map(|hover_pos| hover_pos.distance(position) < radius)
             .unwrap_or(false);
 
-        painter.circle_filled(
+        ui.painter().circle_filled(
             position,
             radius,
             Color32::BLACK.gamma_multiply(if hovered { 0.5 } else { 0.2 }),
@@ -101,7 +102,7 @@ impl ClickWatcher {
 }
 
 impl Plugin for &mut ClickWatcher {
-    fn run(&mut self, response: &Response, painter: Painter, projector: &Projector) {
+    fn run(self: Box<Self>, ui: &mut Ui, response: &Response, projector: &Projector) {
         if !response.changed() && response.clicked_by(egui::PointerButton::Primary) {
             self.clicked_at = response
                 .interact_pointer_pos()
@@ -109,7 +110,7 @@ impl Plugin for &mut ClickWatcher {
         }
 
         if let Some(position) = self.clicked_at {
-            painter.circle_filled(projector.project(position).to_pos2(), 5.0, Color32::BLUE);
+            ui.painter().circle_filled(projector.project(position).to_pos2(), 5.0, Color32::BLUE);
         }
     }
 }

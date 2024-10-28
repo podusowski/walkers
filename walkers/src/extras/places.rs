@@ -1,4 +1,4 @@
-use egui::{vec2, Align2, Color32, FontId, Painter, Response, Stroke};
+use egui::{vec2, Align2, Color32, FontId, Ui, Stroke, Response};
 
 use crate::{Plugin, Position};
 
@@ -45,8 +45,9 @@ pub struct Place {
 }
 
 impl Place {
-    fn draw(&self, _response: &Response, painter: Painter, projector: &crate::Projector) {
+    fn draw(&self, ui: &Ui, projector: &crate::Projector) {
         let screen_position = projector.project(self.position);
+        let painter = ui.painter();
 
         let label = painter.layout_no_wrap(
             self.label.to_owned(),
@@ -70,7 +71,7 @@ impl Place {
         painter.galley(
             (screen_position + offset).to_pos2(),
             label,
-            egui::Color32::BLACK,
+            Color32::BLACK,
         );
 
         painter.circle(
@@ -102,9 +103,9 @@ impl Places {
 }
 
 impl Plugin for Places {
-    fn run(&mut self, response: &Response, painter: Painter, projector: &crate::Projector) {
+    fn run(self: Box<Self>, ui: &mut Ui, _response: &Response, projector: &crate::Projector) {
         for place in &self.places {
-            place.draw(response, painter.clone(), projector);
+            place.draw(ui, projector);
         }
     }
 }
