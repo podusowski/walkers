@@ -2,7 +2,7 @@
 
 All notable changes to this project will be documented in this file.
 
-## Unreleased
+## 0.26.0
 
  * `HttpTiles` will now attempt to use already downloaded tiles with a lower zoom level as
    placeholders.
