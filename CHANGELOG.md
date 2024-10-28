@@ -4,11 +4,12 @@ All notable changes to this project will be documented in this file.
 
 ## Unreleased
 
-* `HttpTiles` will now attempt to use already downloaded tiles with a lower zoom level as
-  placeholders.
-* `Tiles::at()` now returns a new `TextureWithUv` instead of `Texture`. This change is relevant
-  only for `Tiles` implementers and provides the ability to use part of the texture as a tile.
-* Zoom is now represented as `f64` instead of `f32` which makes it consistent with other types.
+ * `HttpTiles` will now attempt to use already downloaded tiles with a lower zoom level as
+   placeholders.
+ * `Tiles::at()` now returns a new `TextureWithUv` instead of `Texture`. This change is relevant
+   only for `Tiles` implementers and provides the ability to use part of the texture as a tile.
+ * Zoom is now represented as `f64` instead of `f32` which makes it consistent with other types.
+ * `Plugin::run()` has a new signature. Refer to `demo/src/plugins.rs` for usage.
 
 ## 0.25.0
 
