@@ -1,7 +1,6 @@
-use crate::tiles::Texture;
-use crate::{Plugin, Position};
-use egui::epaint::emath::Rot2;
-use egui::{Painter, Rect, Response, Vec2};
+use egui::{emath::Rot2, Rect, Response, Ui, Vec2};
+
+use crate::{tiles::Texture, Plugin, Position};
 
 /// An image to be drawn on the map.
 pub struct Image {
@@ -34,7 +33,8 @@ impl Image {
         self.angle = Rot2::from_angle(angle);
     }
 
-    pub fn draw(&self, _response: &Response, painter: Painter, projector: &crate::Projector) {
+    pub fn draw(&self, ui: &Ui, projector: &crate::Projector) {
+        let painter = ui.painter();
         let rect = Rect::from_center_size(
             projector.project(self.position).to_pos2(),
             self.texture.size() * self.scale,
@@ -60,9 +60,9 @@ impl Images {
 }
 
 impl Plugin for Images {
-    fn run(&mut self, response: &Response, painter: Painter, projector: &crate::Projector) {
+    fn run(self: Box<Self>, ui: &mut Ui, _response: &Response, projector: &crate::Projector) {
         for image in &self.images {
-            image.draw(response, painter.clone(), projector);
+            image.draw(ui, projector);
         }
     }
 }
