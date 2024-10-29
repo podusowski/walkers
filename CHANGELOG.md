@@ -2,6 +2,10 @@
 
 All notable changes to this project will be documented in this file.
 
+## Unreleased
+
+ * Fixed crash when zoom is maxed far out.
+
 ## 0.26.0
 
  * `HttpTiles` will now attempt to use already downloaded tiles with a lower zoom level as
