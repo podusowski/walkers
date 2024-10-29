@@ -87,6 +87,11 @@ impl<'a, 'b, 'c> Map<'a, 'b, 'c> {
         self.drag_gesture_enabled = enabled;
         self
     }
+
+    /// Returns the current tile size (defaults to 256 since it's the most common).
+    pub fn tile_size(&self) -> u32 {
+        self.tiles.as_ref().map(|t| t.tile_size()).unwrap_or(256)
+    }
 }
 
 /// Projects geographical position into pixels on the viewport, suitable for [`egui::Painter`].
@@ -95,14 +100,21 @@ pub struct Projector {
     clip_rect: Rect,
     memory: MapMemory,
     my_position: Position,
+    tile_size: u32,
 }
 
 impl Projector {
-    pub fn new(clip_rect: Rect, map_memory: &MapMemory, my_position: Position) -> Self {
+    pub fn new(
+        clip_rect: Rect,
+        map_memory: &MapMemory,
+        my_position: Position,
+        tile_size: u32,
+    ) -> Self {
         Self {
             clip_rect,
             memory: map_memory.to_owned(),
             my_position,
+            tile_size,
         }
     }
 
@@ -138,6 +150,15 @@ impl Projector {
         }
         .shift(-position)
         .position(zoom)
+    }
+
+    /// What is the local scale of the map at the provided position and given the current zoom
+    /// level?
+    pub fn scale_pixel_per_meter(&self, position: Position) -> f32 {
+        let zoom = self.memory.zoom.into();
+
+        // return f32 for ergonomics, as the result is typically used for egui code
+        calculate_meters_per_pixel(position.lat(), zoom, self.tile_size) as f32
     }
 }
 
@@ -214,6 +235,7 @@ impl Widget for Map<'_, '_, '_> {
             .center_mode
             .position(self.my_position, zoom.into());
         let painter = ui.painter().with_clip_rect(rect);
+        let tile_size = self.tile_size();
 
         if let Some(tiles) = self.tiles {
             let mut meshes = Default::default();
@@ -231,7 +253,7 @@ impl Widget for Map<'_, '_, '_> {
             }
         }
 
-        let projector = Projector::new(response.rect, self.memory, self.my_position);
+        let projector = Projector::new(response.rect, self.memory, self.my_position, tile_size);
         for (idx, plugin) in self.plugins.into_iter().enumerate() {
             let mut child_ui = ui.new_child(UiBuilder::new().max_rect(rect).id_salt(idx));
             plugin.run(&mut child_ui, &response, &projector);
@@ -374,5 +396,47 @@ fn flood_fill_tiles(
                 );
             }
         }
+    }
+}
+
+/// Implementation of the scale computation.
+fn calculate_meters_per_pixel(latitude: f64, zoom: f64, tile_size: u32) -> f64 {
+    const EARTH_CIRCUMFERENCE: f64 = 40_075_016.686;
+
+    // Number of pixels for width of world at this zoom level
+    let num_tiles = 2f64.powf(zoom);
+    let pixels_per_tile = tile_size as f64;
+    let total_pixels = num_tiles * pixels_per_tile;
+
+    let pixel_per_meter_equator = total_pixels / EARTH_CIRCUMFERENCE;
+    let latitude_rad = latitude.abs().to_radians();
+    pixel_per_meter_equator / latitude_rad.cos()
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn assert_approx_eq(a: f64, b: f64) {
+        let diff = (a - b).abs();
+        let tolerance = 0.01;
+        assert!(
+            diff < tolerance,
+            "Values differ by more than {tolerance}: {a} vs {b}"
+        );
+    }
+
+    #[test]
+    fn test_equator_zoom_0() {
+        // At zoom 0 (whole world), equator should be about 156.5km per pixel
+        let scale = calculate_meters_per_pixel(0.0, 0., 256);
+        assert_approx_eq(scale, 1. / 156_543.03);
+    }
+
+    #[test]
+    fn test_equator_zoom_19() {
+        // At max zoom (19), equator should be about 0.3m per pixel
+        let scale = calculate_meters_per_pixel(0.0, 19., 256);
+        assert_approx_eq(scale, 1. / 0.298);
     }
 }
