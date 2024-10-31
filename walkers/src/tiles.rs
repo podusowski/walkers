@@ -85,6 +85,8 @@ pub struct HttpTiles {
     runtime: Runtime,
 
     tile_size: u32,
+
+    max_zoom: u8,
 }
 
 impl HttpTiles {
@@ -108,6 +110,7 @@ impl HttpTiles {
         let (tile_tx, tile_rx) = futures::channel::mpsc::channel(channel_size);
         let attribution = source.attribution();
         let tile_size = source.tile_size();
+        let max_zoom = source.max_zoom();
 
         let runtime = Runtime::new(download_continuously(
             source,
@@ -127,6 +130,7 @@ impl HttpTiles {
             tile_rx,
             runtime,
             tile_size,
+            max_zoom,
         }
     }
 

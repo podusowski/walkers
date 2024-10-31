@@ -26,4 +26,8 @@ pub trait TileSource {
     fn tile_size(&self) -> u32 {
         256
     }
+
+    fn max_zoom(&self) -> u8 {
+        19
+    }
 }
