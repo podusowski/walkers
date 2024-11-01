@@ -202,17 +202,45 @@ impl Tiles for HttpTiles {
     fn at(&mut self, tile_id: TileId) -> Option<TextureWithUv> {
         self.put_next_downloaded_tile_in_cache();
 
-        if let Some(texture) = self.cache.get(&tile_id).cloned() {
-            texture
+        if tile_id.zoom <= self.max_zoom {
+            if let Some(texture) = self.cache.get(&tile_id).cloned() {
+                texture
+            } else {
+                self.request_download(tile_id);
+                None
+            }
+            .map(|texture| TextureWithUv {
+                texture,
+                uv: Rect::from_min_max(pos2(0.0, 0.0), pos2(1.0, 1.0)),
+            })
+            .or_else(|| self.placeholder_with_different_zoom(tile_id))
         } else {
-            self.request_download(tile_id);
-            None
+            let dzoom = 2u32.pow((tile_id.zoom - self.max_zoom) as u32);
+            let x = (tile_id.x / dzoom, tile_id.x % dzoom);
+            let y = (tile_id.y / dzoom, tile_id.y % dzoom);
+
+            let zoomed_tile_id = TileId {
+                x: x.0,
+                y: y.0,
+                zoom: self.max_zoom,
+            };
+
+            if let Some(Some(texture)) = self.cache.get(&zoomed_tile_id) {
+                let z = (dzoom as f32).recip();
+                let uv = Rect::from_min_max(
+                    pos2(x.1 as f32 * z, y.1 as f32 * z),
+                    pos2(x.1 as f32 * z + z, y.1 as f32 * z + z),
+                );
+
+                Some(TextureWithUv {
+                    texture: texture.clone(),
+                    uv,
+                })
+            } else {
+                self.request_download(zoomed_tile_id);
+                None
+            }
         }
-        .map(|texture| TextureWithUv {
-            texture,
-            uv: Rect::from_min_max(pos2(0.0, 0.0), pos2(1.0, 1.0)),
-        })
-        .or_else(|| self.placeholder_with_different_zoom(tile_id))
     }
 
     fn tile_size(&self) -> u32 {
