@@ -139,6 +139,15 @@ impl Projector {
         .shift(-position)
         .position(zoom)
     }
+
+    /// What is the local scale of the map at the provided position and given the current zoom
+    /// level?
+    pub fn scale_pixel_per_meter(&self, position: Position) -> f32 {
+        let zoom = self.memory.zoom.into();
+
+        // return f32 for ergonomics, as the result is typically used for egui code
+        calculate_meters_per_pixel(position.lat(), zoom) as f32
+    }
 }
 
 impl Map<'_, '_, '_> {
@@ -374,5 +383,45 @@ fn flood_fill_tiles(
                 );
             }
         }
+    }
+}
+
+/// Implementation of the scale computation.
+fn calculate_meters_per_pixel(latitude: f64, zoom: f64) -> f64 {
+    const EARTH_CIRCUMFERENCE: f64 = 40_075_016.686;
+
+    // Number of pixels for width of world at this zoom level
+    let total_pixels = crate::mercator::total_pixels(zoom);
+
+    let pixel_per_meter_equator = total_pixels / EARTH_CIRCUMFERENCE;
+    let latitude_rad = latitude.abs().to_radians();
+    pixel_per_meter_equator / latitude_rad.cos()
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn assert_approx_eq(a: f64, b: f64) {
+        let diff = (a - b).abs();
+        let tolerance = 0.01;
+        assert!(
+            diff < tolerance,
+            "Values differ by more than {tolerance}: {a} vs {b}"
+        );
+    }
+
+    #[test]
+    fn test_equator_zoom_0() {
+        // At zoom 0 (whole world), equator should be about 156.5km per pixel
+        let scale = calculate_meters_per_pixel(0.0, 0.);
+        assert_approx_eq(scale, 1. / 156_543.03);
+    }
+
+    #[test]
+    fn test_equator_zoom_19() {
+        // At max zoom (19), equator should be about 0.3m per pixel
+        let scale = calculate_meters_per_pixel(0.0, 19.);
+        assert_approx_eq(scale, 1. / 0.298);
     }
 }

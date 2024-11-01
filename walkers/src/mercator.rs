@@ -59,7 +59,7 @@ impl Position {
 
 /// Zoom specifies how many pixels are in the whole map. For example, zoom 0 means that the whole
 /// map is just one 256x256 tile, zoom 1 means that it is 2x2 tiles, and so on.
-fn total_pixels(zoom: f64) -> f64 {
+pub(crate) fn total_pixels(zoom: f64) -> f64 {
     2f64.powf(zoom) * (TILE_SIZE as f64)
 }
 

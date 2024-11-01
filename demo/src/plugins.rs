@@ -61,10 +61,11 @@ impl Plugin for CustomShapes {
         // Position of the point we want to put our shapes.
         let position = places::capitol();
 
+        // Compute pixel radius for a 100-meter circle.
+        let radius = 100.0 * projector.scale_pixel_per_meter(position);
+
         // Project it into the position on the screen.
         let position = projector.project(position).to_pos2();
-
-        let radius = 30.;
 
         let hovered = response
             .hover_pos()
