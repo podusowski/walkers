@@ -6,6 +6,8 @@ All notable changes to this project will be documented in this file.
 
 * Fixed crash when zoom is maxed far out.
 * Add `Project::scale_pixel_per_meter()` to provide the local meter-to-pixel scale.
+* Map can be zoomed in farther than what is supported by the tile provider. The max. zoom level
+  for which tile images are available can be configured via `TileSource::max_zoom()`.
 
 ## 0.26.0
 
