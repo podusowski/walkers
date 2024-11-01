@@ -87,11 +87,6 @@ impl<'a, 'b, 'c> Map<'a, 'b, 'c> {
         self.drag_gesture_enabled = enabled;
         self
     }
-
-    /// Returns the current tile size (defaults to 256 since it's the most common).
-    pub fn tile_size(&self) -> u32 {
-        self.tiles.as_ref().map(|t| t.tile_size()).unwrap_or(256)
-    }
 }
 
 /// Projects geographical position into pixels on the viewport, suitable for [`egui::Painter`].
