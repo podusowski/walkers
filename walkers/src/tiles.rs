@@ -149,16 +149,19 @@ impl HttpTiles {
         }
     }
 
-    fn request_download(&mut self, tile_id: TileId) {
-        if let Ok(()) = self.request_tx.try_send(tile_id) {
-            log::trace!("Requested tile: {:?}", tile_id);
+    fn request_tile(&mut self, tile_id: TileId) -> Option<Texture> {
+        self.cache.get(&tile_id).cloned().unwrap_or_else(|| {
+            if let Ok(()) = self.request_tx.try_send(tile_id) {
+                log::trace!("Requested tile: {:?}", tile_id);
 
-            // None acts as a placeholder for the tile, preventing multiple
-            // requests for the same tile.
-            self.cache.put(tile_id, None);
-        } else {
-            log::debug!("Request queue is full.");
-        }
+                // None acts as a placeholder for the tile, preventing multiple
+                // requests for the same tile.
+                self.cache.put(tile_id, None);
+            } else {
+                log::debug!("Request queue is full.");
+            }
+            None
+        })
     }
 
     /// Find tile with a different zoom, which could be used as a placeholder.
@@ -203,17 +206,12 @@ impl Tiles for HttpTiles {
         self.put_next_downloaded_tile_in_cache();
 
         if tile_id.zoom <= self.max_zoom {
-            if let Some(texture) = self.cache.get(&tile_id).cloned() {
-                texture
-            } else {
-                self.request_download(tile_id);
-                None
-            }
-            .map(|texture| TextureWithUv {
-                texture,
-                uv: Rect::from_min_max(pos2(0.0, 0.0), pos2(1.0, 1.0)),
-            })
-            .or_else(|| self.placeholder_with_different_zoom(tile_id))
+            self.request_tile(tile_id)
+                .map(|texture| TextureWithUv {
+                    texture,
+                    uv: Rect::from_min_max(pos2(0.0, 0.0), pos2(1.0, 1.0)),
+                })
+                .or_else(|| self.placeholder_with_different_zoom(tile_id))
         } else {
             let dzoom = 2u32.pow((tile_id.zoom - self.max_zoom) as u32);
             let x = (tile_id.x / dzoom, tile_id.x % dzoom);
@@ -225,21 +223,18 @@ impl Tiles for HttpTiles {
                 zoom: self.max_zoom,
             };
 
-            if let Some(Some(texture)) = self.cache.get(&zoomed_tile_id) {
+            self.request_tile(zoomed_tile_id).map(|texture| {
                 let z = (dzoom as f32).recip();
                 let uv = Rect::from_min_max(
                     pos2(x.1 as f32 * z, y.1 as f32 * z),
                     pos2(x.1 as f32 * z + z, y.1 as f32 * z + z),
                 );
 
-                Some(TextureWithUv {
+                TextureWithUv {
                     texture: texture.clone(),
                     uv,
-                })
-            } else {
-                self.request_download(zoomed_tile_id);
-                None
-            }
+                }
+            })
         }
     }
 
