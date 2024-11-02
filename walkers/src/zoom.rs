@@ -9,9 +9,8 @@ impl TryFrom<f64> for Zoom {
     type Error = InvalidZoom;
 
     fn try_from(value: f64) -> Result<Self, Self::Error> {
-        // Mapnik supports zooms up to 19.
-        // https://wiki.openstreetmap.org/wiki/Slippy_map_tilenames#Zoom_levels
-        if !(0. ..=19.).contains(&value) {
+        // The upper limit is artificial. Should it be removed altogether?
+        if !(0. ..=26.).contains(&value) {
             Err(InvalidZoom)
         } else {
             Ok(Self(value))
@@ -63,15 +62,15 @@ mod tests {
     #[test]
     fn test_constructing_zoom() {
         assert_eq!(16, Zoom::default().round());
-        assert_eq!(19, Zoom::try_from(19.).unwrap().round());
-        assert_eq!(InvalidZoom, Zoom::try_from(20.).unwrap_err());
+        assert_eq!(26, Zoom::try_from(26.).unwrap().round());
+        assert_eq!(InvalidZoom, Zoom::try_from(27.).unwrap_err());
     }
 
     #[test]
     fn test_zooming_in() {
-        let mut zoom = Zoom::try_from(18.).unwrap();
+        let mut zoom = Zoom::try_from(25.).unwrap();
         assert!(zoom.zoom_in().is_ok());
-        assert_eq!(19, zoom.round());
+        assert_eq!(26, zoom.round());
         assert_eq!(Err(InvalidZoom), zoom.zoom_in());
     }
 
