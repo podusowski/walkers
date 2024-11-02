@@ -1,10 +1,10 @@
 use egui::{pos2, Color32, Context, Mesh, Rect, Vec2};
 use egui::{ColorImage, TextureHandle};
 use image::ImageError;
+use lru::LruCache;
 
 use crate::download::{download_continuously, HttpOptions};
 use crate::io::Runtime;
-use crate::limited_map::LimitedMap;
 use crate::mercator::TileId;
 use crate::sources::{Attribution, TileSource};
 
@@ -73,7 +73,7 @@ pub trait Tiles {
 pub struct HttpTiles {
     attribution: Attribution,
 
-    cache: LimitedMap<TileId, Option<Texture>>,
+    cache: LruCache<TileId, Option<Texture>>,
 
     /// Tiles to be downloaded by the IO thread.
     request_tx: futures::channel::mpsc::Sender<TileId>,
@@ -117,9 +117,12 @@ impl HttpTiles {
             egui_ctx,
         ));
 
+        #[allow(clippy::unwrap_used)]
+        let cap = std::num::NonZeroUsize::new(256).unwrap();
+
         Self {
             attribution,
-            cache: LimitedMap::new(256), // Just arbitrary value which seemed right.
+            cache: LruCache::new(cap), // Just arbitrary value which seemed right.
             request_tx,
             tile_rx,
             runtime,
@@ -131,7 +134,7 @@ impl HttpTiles {
         // This is called every frame, so take just one at the time.
         match self.tile_rx.try_next() {
             Ok(Some((tile_id, tile))) => {
-                self.cache.insert(tile_id, Some(tile));
+                self.cache.put(tile_id, Some(tile));
             }
             Err(_) => {
                 // Just ignore. It means that no new tile was downloaded.
@@ -148,14 +151,14 @@ impl HttpTiles {
 
             // None acts as a placeholder for the tile, preventing multiple
             // requests for the same tile.
-            self.cache.insert(tile_id, None);
+            self.cache.put(tile_id, None);
         } else {
             log::debug!("Request queue is full.");
         }
     }
 
     /// Find tile with a different zoom, which could be used as a placeholder.
-    fn placeholder_with_different_zoom(&self, tile_id: TileId) -> Option<TextureWithUv> {
+    fn placeholder_with_different_zoom(&mut self, tile_id: TileId) -> Option<TextureWithUv> {
         // Currently, only a single zoom level down is supported.
 
         let zoom = tile_id.zoom.checked_sub(1)?;

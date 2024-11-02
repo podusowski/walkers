@@ -5,7 +5,6 @@ mod center;
 mod download;
 pub mod extras;
 mod io;
-mod limited_map;
 mod map;
 mod mercator;
 pub mod sources;
