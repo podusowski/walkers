@@ -2,7 +2,7 @@
 
 All notable changes to this project will be documented in this file.
 
-## Unreleased
+## 0.27.0
 
 * Fixed crash when zoom is maxed far out.
 * Add `Project::scale_pixel_per_meter()` to provide the local meter-to-pixel scale.
