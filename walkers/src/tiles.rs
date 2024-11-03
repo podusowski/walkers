@@ -184,9 +184,9 @@ impl HttpTiles {
 
 /// Take a piece of a tile with higher zoom level and use it as a tile with lower zoom level.
 fn interpolate_higher_zoom(tile_id: TileId, desired_zoom: u8, actual_zoom: u8) -> (TileId, Rect) {
-    assert!(desired_zoom > actual_zoom);
+    assert!(tile_id.zoom > actual_zoom);
 
-    let dzoom = 2u32.pow((desired_zoom - actual_zoom) as u32);
+    let dzoom = 2u32.pow((tile_id.zoom - actual_zoom) as u32);
 
     let x = (tile_id.x / dzoom, tile_id.x % dzoom);
     let y = (tile_id.y / dzoom, tile_id.y % dzoom);
