@@ -226,28 +226,14 @@ impl Tiles for HttpTiles {
                 })
                 .or_else(|| self.placeholder_with_different_zoom(tile_id))
         } else {
-            let dzoom = 2u32.pow((tile_id.zoom - self.max_zoom) as u32);
-            let x = (tile_id.x / dzoom, tile_id.x % dzoom);
-            let y = (tile_id.y / dzoom, tile_id.y % dzoom);
+            let (zoomed_tile_id, uv) =
+                interpolate_higher_zoom(tile_id, tile_id.zoom, self.max_zoom);
 
-            let zoomed_tile_id = TileId {
-                x: x.0,
-                y: y.0,
-                zoom: self.max_zoom,
-            };
-
-            self.request_tile(zoomed_tile_id).map(|texture| {
-                let z = (dzoom as f32).recip();
-                let uv = Rect::from_min_max(
-                    pos2(x.1 as f32 * z, y.1 as f32 * z),
-                    pos2(x.1 as f32 * z + z, y.1 as f32 * z + z),
-                );
-
-                TextureWithUv {
+            self.request_tile(zoomed_tile_id)
+                .map(|texture| TextureWithUv {
                     texture: texture.clone(),
                     uv,
-                }
-            })
+                })
         }
     }
 
