@@ -168,20 +168,7 @@ impl HttpTiles {
     fn placeholder_with_different_zoom(&mut self, tile_id: TileId) -> Option<TextureWithUv> {
         // Currently, only a single zoom level down is supported.
 
-        let zoom = tile_id.zoom.checked_sub(1)?;
-        let x = (tile_id.x / 2, tile_id.x % 2);
-        let y = (tile_id.y / 2, tile_id.y % 2);
-
-        let zoomed_tile_id = TileId {
-            x: x.0,
-            y: y.0,
-            zoom,
-        };
-
-        let uv = Rect::from_min_max(
-            pos2(x.1 as f32 * 0.5, y.1 as f32 * 0.5),
-            pos2(x.1 as f32 * 0.5 + 0.5, y.1 as f32 * 0.5 + 0.5),
-        );
+        let (zoomed_tile_id, uv) = interpolate_higher_zoom(tile_id, tile_id.zoom.checked_sub(1)?);
 
         if let Some(Some(texture)) = self.cache.get(&zoomed_tile_id) {
             Some(TextureWithUv {
@@ -192,6 +179,31 @@ impl HttpTiles {
             None
         }
     }
+}
+
+/// Take a piece of a tile with higher zoom level and use it as a tile with lower zoom level.
+fn interpolate_higher_zoom(tile_id: TileId, available_zoom: u8) -> (TileId, Rect) {
+    assert!(tile_id.zoom > available_zoom);
+
+    let dzoom = 2u32.pow((tile_id.zoom - available_zoom) as u32);
+
+    let x = (tile_id.x / dzoom, tile_id.x % dzoom);
+    let y = (tile_id.y / dzoom, tile_id.y % dzoom);
+
+    let zoomed_tile_id = TileId {
+        x: x.0,
+        y: y.0,
+        zoom: available_zoom,
+    };
+
+    let z = (dzoom as f32).recip();
+
+    let uv = Rect::from_min_max(
+        pos2(x.1 as f32 * z, y.1 as f32 * z),
+        pos2(x.1 as f32 * z + z, y.1 as f32 * z + z),
+    );
+
+    (zoomed_tile_id, uv)
 }
 
 impl Tiles for HttpTiles {
@@ -213,28 +225,13 @@ impl Tiles for HttpTiles {
                 })
                 .or_else(|| self.placeholder_with_different_zoom(tile_id))
         } else {
-            let dzoom = 2u32.pow((tile_id.zoom - self.max_zoom) as u32);
-            let x = (tile_id.x / dzoom, tile_id.x % dzoom);
-            let y = (tile_id.y / dzoom, tile_id.y % dzoom);
+            let (zoomed_tile_id, uv) = interpolate_higher_zoom(tile_id, self.max_zoom);
 
-            let zoomed_tile_id = TileId {
-                x: x.0,
-                y: y.0,
-                zoom: self.max_zoom,
-            };
-
-            self.request_tile(zoomed_tile_id).map(|texture| {
-                let z = (dzoom as f32).recip();
-                let uv = Rect::from_min_max(
-                    pos2(x.1 as f32 * z, y.1 as f32 * z),
-                    pos2(x.1 as f32 * z + z, y.1 as f32 * z + z),
-                );
-
-                TextureWithUv {
+            self.request_tile(zoomed_tile_id)
+                .map(|texture| TextureWithUv {
                     texture: texture.clone(),
                     uv,
-                }
-            })
+                })
         }
     }
 
