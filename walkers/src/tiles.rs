@@ -168,8 +168,7 @@ impl HttpTiles {
     fn placeholder_with_different_zoom(&mut self, tile_id: TileId) -> Option<TextureWithUv> {
         // Currently, only a single zoom level down is supported.
 
-        let (zoomed_tile_id, uv) =
-            interpolate_higher_zoom(tile_id, tile_id.zoom, tile_id.zoom.checked_sub(1)?);
+        let (zoomed_tile_id, uv) = interpolate_higher_zoom(tile_id, tile_id.zoom.checked_sub(1)?);
 
         if let Some(Some(texture)) = self.cache.get(&zoomed_tile_id) {
             Some(TextureWithUv {
@@ -183,7 +182,7 @@ impl HttpTiles {
 }
 
 /// Take a piece of a tile with higher zoom level and use it as a tile with lower zoom level.
-fn interpolate_higher_zoom(tile_id: TileId, desired_zoom: u8, actual_zoom: u8) -> (TileId, Rect) {
+fn interpolate_higher_zoom(tile_id: TileId, actual_zoom: u8) -> (TileId, Rect) {
     assert!(tile_id.zoom > actual_zoom);
 
     let dzoom = 2u32.pow((tile_id.zoom - actual_zoom) as u32);
@@ -226,8 +225,7 @@ impl Tiles for HttpTiles {
                 })
                 .or_else(|| self.placeholder_with_different_zoom(tile_id))
         } else {
-            let (zoomed_tile_id, uv) =
-                interpolate_higher_zoom(tile_id, tile_id.zoom, self.max_zoom);
+            let (zoomed_tile_id, uv) = interpolate_higher_zoom(tile_id, self.max_zoom);
 
             self.request_tile(zoomed_tile_id)
                 .map(|texture| TextureWithUv {
