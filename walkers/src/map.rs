@@ -156,6 +156,8 @@ impl Map<'_, '_, '_> {
     fn handle_gestures(&mut self, ui: &mut Ui, response: &Response) -> bool {
         let zoom_delta = ui.input(|input| input.zoom_delta()) as f64;
 
+        let mut changed = false;
+
         // Zooming and dragging need to be exclusive, otherwise the map will get dragged when
         // pinch gesture is used.
         if !(0.99..=1.01).contains(&zoom_delta)
@@ -193,14 +195,26 @@ impl Map<'_, '_, '_> {
                 self.memory.center_mode = self.memory.center_mode.clone().shift(offset);
             }
 
-            true
+            changed = true;
         } else if self.drag_gesture_enabled {
-            self.memory
+            changed = self
+                .memory
                 .center_mode
-                .recalculate_drag(response, self.my_position)
-        } else {
-            false
+                .recalculate_drag(response, self.my_position);
         }
+
+        // Panning by scrolling, e.g. two-finger drag on a touchpad:
+        let scroll_delta = ui.input(|i| i.smooth_scroll_delta);
+        if scroll_delta != Vec2::ZERO {
+            let pos = self
+                .memory
+                .center_mode
+                .position(self.my_position, self.memory.zoom());
+            self.memory.center_mode =
+                Center::Exact(AdjustedPosition::from(pos).shift(scroll_delta));
+        }
+
+        changed
     }
 }
 
@@ -283,6 +297,15 @@ impl AdjustedPosition {
         Self {
             position: self.position,
             offset: self.offset + Pixels::new(offset.x as f64, offset.y as f64),
+        }
+    }
+}
+
+impl From<Position> for AdjustedPosition {
+    fn from(position: Position) -> Self {
+        Self {
+            position,
+            offset: Default::default(),
         }
     }
 }
