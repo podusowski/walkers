@@ -3,6 +3,7 @@ name = "demo_native"
 version.workspace = true
 edition = "2021"
 publish = false
+default-run = "demo_native"
 
 [dependencies]
 demo = { path = "../demo" }

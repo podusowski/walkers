@@ -2,6 +2,10 @@
 
 All notable changes to this project will be documented in this file.
 
+## Unreleased
+
+* Implement panning with touchpad and/or scroll-wheel.
+
 ## 0.27.0
 
 * Fixed crash when zoom is maxed far out.
