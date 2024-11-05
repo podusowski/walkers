@@ -2,7 +2,7 @@
 
 All notable changes to this project will be documented in this file.
 
-## Unreleased
+## 0.28.0
 
 * Implement panning with touchpad and/or scroll-wheel.
 
