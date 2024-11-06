@@ -338,7 +338,7 @@ mod tests {
             source,
             HttpOptions {
                 cache: None,
-                user_agent: crate::HeaderValue::from_static("MyApp"),
+                user_agent: Some(crate::HeaderValue::from_static("MyApp")),
             },
             Context::default(),
         );

@@ -26,18 +26,27 @@ pub struct HttpOptions {
     pub cache: Option<PathBuf>,
 
     /// User agent to be sent to the tile servers.
-    pub user_agent: HeaderValue,
+    ///
+    /// This should be set only on native targets. The browser sets its own user agent on wasm
+    /// targets, and trying to set a different one may upset some servers (e.g. MapBox)
+    pub user_agent: Option<HeaderValue>,
 }
 
 impl Default for HttpOptions {
     fn default() -> Self {
+        #[cfg(not(target_arch = "wasm32"))]
+        let user_agent = Some(HeaderValue::from_static(concat!(
+            env!("CARGO_PKG_NAME"),
+            "/",
+            env!("CARGO_PKG_VERSION"),
+        )));
+
+        #[cfg(target_arch = "wasm32")]
+        let user_agent = None;
+
         Self {
             cache: None,
-            user_agent: HeaderValue::from_static(concat!(
-                env!("CARGO_PKG_NAME"),
-                "/",
-                env!("CARGO_PKG_VERSION"),
-            )),
+            user_agent,
         }
     }
 }
@@ -64,7 +73,7 @@ async fn download_and_decode(
     client: &ClientWithMiddleware,
     tile_id: TileId,
     url: String,
-    user_agent: &HeaderValue,
+    user_agent: Option<&HeaderValue>,
     egui_ctx: &Context,
 ) -> Download {
     log::trace!("Downloading '{}'.", url);
@@ -77,15 +86,16 @@ async fn download_and_decode(
 async fn download_and_decode_impl(
     client: &ClientWithMiddleware,
     url: String,
-    user_agent: &HeaderValue,
+    user_agent: Option<&HeaderValue>,
     egui_ctx: &Context,
 ) -> Result<Texture, Error> {
-    let image = client
-        .get(&url)
-        .header(USER_AGENT, user_agent)
-        .send()
-        .await
-        .map_err(Error::HttpMiddleware)?;
+    let mut image_request = client.get(&url);
+
+    if let Some(user_agent) = user_agent {
+        image_request = image_request.header(USER_AGENT, user_agent);
+    }
+
+    let image = image_request.send().await.map_err(Error::HttpMiddleware)?;
 
     log::trace!("Downloaded '{}': {:?}.", url, image.status());
 
@@ -150,7 +160,7 @@ async fn download_continuously_impl<S>(
 where
     S: TileSource + Send + 'static,
 {
-    let user_agent = http_options.user_agent.to_owned();
+    let user_agent = http_options.user_agent.clone();
 
     // Keep outside the loop to reuse it as much as possible.
     let client = http_client(http_options);
@@ -161,7 +171,8 @@ where
             Downloads::None => {
                 let request = request_rx.next().await.ok_or(())?;
                 let url = source.tile_url(request);
-                let download = download_and_decode(&client, request, url, &user_agent, &egui_ctx);
+                let download =
+                    download_and_decode(&client, request, url, user_agent.as_ref(), &egui_ctx);
                 Downloads::Ongoing(vec![Box::pin(download)])
             }
             Downloads::Ongoing(ref mut downloads) => {
@@ -171,8 +182,13 @@ where
                     Either::Left((request, downloads)) => {
                         let request = request.ok_or(())?;
                         let url = source.tile_url(request);
-                        let download =
-                            download_and_decode(&client, request, url, &user_agent, &egui_ctx);
+                        let download = download_and_decode(
+                            &client,
+                            request,
+                            url,
+                            user_agent.as_ref(),
+                            &egui_ctx,
+                        );
                         let mut downloads = downloads.into_inner();
                         downloads.push(Box::pin(download));
                         Downloads::new(downloads)
