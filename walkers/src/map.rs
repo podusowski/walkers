@@ -203,15 +203,17 @@ impl Map<'_, '_, '_> {
                 .recalculate_drag(response, self.my_position);
         }
 
-        // Panning by scrolling, e.g. two-finger drag on a touchpad:
-        let scroll_delta = ui.input(|i| i.smooth_scroll_delta);
-        if scroll_delta != Vec2::ZERO {
-            let pos = self
-                .memory
-                .center_mode
-                .position(self.my_position, self.memory.zoom());
-            self.memory.center_mode =
-                Center::Exact(AdjustedPosition::from(pos).shift(scroll_delta));
+        if ui.ui_contains_pointer() {
+            // Panning by scrolling, e.g. two-finger drag on a touchpad:
+            let scroll_delta = ui.input(|i| i.smooth_scroll_delta);
+            if scroll_delta != Vec2::ZERO {
+                let pos = self
+                    .memory
+                    .center_mode
+                    .position(self.my_position, self.memory.zoom());
+                self.memory.center_mode =
+                    Center::Exact(AdjustedPosition::from(pos).shift(scroll_delta));
+            }
         }
 
         changed
