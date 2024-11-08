@@ -10,7 +10,7 @@ members = [
 resolver = "2"
 
 [workspace.package]
-version = "0.28.0"
+version = "0.29.0"
 
 [workspace.dependencies]
 image = { version = "0.25", default-features = false }

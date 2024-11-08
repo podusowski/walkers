@@ -2,9 +2,10 @@
 
 All notable changes to this project will be documented in this file.
 
-## Unreleased
+## 0.29.0
 
 * Do not set a user agent in wasm build by default.
+* Fixed not taking into account the mouse pointer position when scrolling.
 
 ## 0.28.0
 
