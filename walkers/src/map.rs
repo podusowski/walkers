@@ -49,6 +49,7 @@ pub struct Map<'a, 'b, 'c> {
 
     zoom_gesture_enabled: bool,
     drag_gesture_enabled: bool,
+    zoom_with_ctrl: bool,
 }
 
 impl<'a, 'b, 'c> Map<'a, 'b, 'c> {
@@ -64,6 +65,7 @@ impl<'a, 'b, 'c> Map<'a, 'b, 'c> {
             plugins: Vec::default(),
             zoom_gesture_enabled: true,
             drag_gesture_enabled: true,
+            zoom_with_ctrl: true,
         }
     }
 
@@ -85,6 +87,20 @@ impl<'a, 'b, 'c> Map<'a, 'b, 'c> {
     /// Set whether map should perform drag gesture.
     pub fn drag_gesture(mut self, enabled: bool) -> Self {
         self.drag_gesture_enabled = enabled;
+        self
+    }
+
+    /// Sets the zoom behaviour
+    ///
+    /// When enabled zoom is done with mouse wheel while holding <kbd>ctrl</kbd> key on native
+    /// and web. Panning is done with mouse wheel without <kbd>ctrl</kbd> key
+    ///
+    /// When disabled, zooming can be done without holding <kbd>ctrl</kbd> key
+    /// but panning with mouse wheel is disabled
+    ///
+    /// Has no effect on Android
+    pub fn zoom_with_ctrl(mut self, enabled: bool) -> Self {
+        self.zoom_with_ctrl = enabled;
         self
     }
 }
@@ -154,7 +170,14 @@ impl Map<'_, '_, '_> {
     /// Handle zoom and drag inputs, and recalculate everything accordingly.
     /// Returns `false` if no gesture handled.
     fn handle_gestures(&mut self, ui: &mut Ui, response: &Response) -> bool {
-        let zoom_delta = ui.input(|input| input.zoom_delta()) as f64;
+        let mut zoom_delta = ui.input(|input| input.zoom_delta()) as f64;
+
+        if !self.zoom_with_ctrl && zoom_delta == 1.0 {
+            // We only use the raw scroll values, if we are zooming without ctrl, 
+            // and zoom_delta is not already over/under 1.0 (eg. a ctrl + scroll event or a pinch zoom)
+            // These values seem to corrospond to the same values as one would get in `zoom_delta()`
+            zoom_delta = ui.input(|input| (1.0 + input.smooth_scroll_delta.y / 200.0)) as f64
+        };
 
         let mut changed = false;
 
@@ -203,7 +226,10 @@ impl Map<'_, '_, '_> {
                 .recalculate_drag(response, self.my_position);
         }
 
-        if ui.ui_contains_pointer() {
+        // Only enable panning with mouse_wheel if we are zooming with ctrl. But always allow touch devices to pan
+        let panning_enabled = ui.input(|i| i.any_touches()) || self.zoom_with_ctrl;
+
+        if ui.ui_contains_pointer() && panning_enabled {
             // Panning by scrolling, e.g. two-finger drag on a touchpad:
             let scroll_delta = ui.input(|i| i.smooth_scroll_delta);
             if scroll_delta != Vec2::ZERO {
