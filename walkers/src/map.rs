@@ -49,6 +49,7 @@ pub struct Map<'a, 'b, 'c> {
 
     zoom_gesture_enabled: bool,
     drag_gesture_enabled: bool,
+    zoom_speed: f64,
 }
 
 impl<'a, 'b, 'c> Map<'a, 'b, 'c> {
@@ -64,6 +65,7 @@ impl<'a, 'b, 'c> Map<'a, 'b, 'c> {
             plugins: Vec::default(),
             zoom_gesture_enabled: true,
             drag_gesture_enabled: true,
+            zoom_speed: 1.0,
         }
     }
 
@@ -85,6 +87,12 @@ impl<'a, 'b, 'c> Map<'a, 'b, 'c> {
     /// Set whether map should perform drag gesture.
     pub fn drag_gesture(mut self, enabled: bool) -> Self {
         self.drag_gesture_enabled = enabled;
+        self
+    }
+
+    /// Change how far to zoom in/out
+    pub fn zoom_speed(mut self, speed: f64) -> Self {
+        self.zoom_speed = speed;
         self
     }
 }
@@ -182,7 +190,9 @@ impl Map<'_, '_, '_> {
 
             // Shift by 1 because of the values given by zoom_delta(). Multiple by 2, because
             // then it felt right with both mouse wheel, and an Android phone.
-            self.memory.zoom.zoom_by((zoom_delta - 1.) * 2.);
+            self.memory
+                .zoom
+                .zoom_by((zoom_delta - 1.) * 2. * self.zoom_speed);
 
             // Recalculate the AdjustedPosition's offset, since it gets invalidated by zooming.
             self.memory.center_mode = self
