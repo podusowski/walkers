@@ -2,6 +2,10 @@
 
 All notable changes to this project will be documented in this file.
 
+## Unreleased
+
+* Fix zoom not following cursor if the map wasn't moved
+
 ## 0.29.0
 
 * Do not set a user agent in wasm build by default.
