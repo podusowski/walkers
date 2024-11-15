@@ -136,10 +136,7 @@ async fn download_complete(
 ) -> Result<(), Error> {
     match result {
         Ok(tile) => {
-            tile_tx
-                .send((tile_id, tile))
-                .await
-                .map_err(|error| Error::from(error))?;
+            tile_tx.send((tile_id, tile)).await.map_err(Error::from)?;
             egui_ctx.request_repaint();
         }
         Err(e) => {
