@@ -2,6 +2,10 @@
 
 All notable changes to this project will be documented in this file.
 
+## Unreleased
+
+* Add options for double click to zoom in and out
+
 ## 0.29.0
 
 * Do not set a user agent in wasm build by default.

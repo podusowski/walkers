@@ -1,6 +1,6 @@
 use std::collections::{hash_map::Entry, HashMap};
 
-use egui::{Mesh, Rect, Response, Sense, Ui, UiBuilder, Vec2, Widget};
+use egui::{Mesh, PointerButton, Rect, Response, Sense, Ui, UiBuilder, Vec2, Widget};
 
 use crate::{
     center::Center,
@@ -49,6 +49,8 @@ pub struct Map<'a, 'b, 'c> {
 
     zoom_gesture_enabled: bool,
     drag_gesture_enabled: bool,
+    double_click_to_zoom: bool,
+    double_click_to_zoom_out: bool,
 }
 
 impl<'a, 'b, 'c> Map<'a, 'b, 'c> {
@@ -64,6 +66,8 @@ impl<'a, 'b, 'c> Map<'a, 'b, 'c> {
             plugins: Vec::default(),
             zoom_gesture_enabled: true,
             drag_gesture_enabled: true,
+            double_click_to_zoom: false,
+            double_click_to_zoom_out: false,
         }
     }
 
@@ -85,6 +89,18 @@ impl<'a, 'b, 'c> Map<'a, 'b, 'c> {
     /// Set whether map should perform drag gesture.
     pub fn drag_gesture(mut self, enabled: bool) -> Self {
         self.drag_gesture_enabled = enabled;
+        self
+    }
+
+    /// Set whether to enable double click primary mouse button to zoom
+    pub fn double_click_to_zoom(mut self, enabled: bool) -> Self {
+        self.double_click_to_zoom = enabled;
+        self
+    }
+
+    /// Set whether to enable double click secondary mouse button to zoom out
+    pub fn double_click_to_zoom_out(mut self, enabled: bool) -> Self {
+        self.double_click_to_zoom_out = enabled;
         self
     }
 }
@@ -154,7 +170,21 @@ impl Map<'_, '_, '_> {
     /// Handle zoom and drag inputs, and recalculate everything accordingly.
     /// Returns `false` if no gesture handled.
     fn handle_gestures(&mut self, ui: &mut Ui, response: &Response) -> bool {
-        let zoom_delta = ui.input(|input| input.zoom_delta()) as f64;
+        let mut zoom_delta = ui.input(|input| input.zoom_delta()) as f64;
+
+        if self.double_click_to_zoom
+            && ui.ui_contains_pointer()
+            && response.double_clicked_by(PointerButton::Primary)
+        {
+            zoom_delta = 2.0;
+        }
+
+        if self.double_click_to_zoom_out
+            && ui.ui_contains_pointer()
+            && response.double_clicked_by(PointerButton::Secondary)
+        {
+            zoom_delta = 0.0;
+        }
 
         let mut changed = false;
 
