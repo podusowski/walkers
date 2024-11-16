@@ -197,17 +197,21 @@ impl Map<'_, '_, '_> {
             // Displacement of mouse pointer relative to widget center
             let offset = response.hover_pos().map(|p| p - response.rect.center());
 
+            let pos = self
+                .memory
+                .center_mode
+                .position(self.my_position, self.memory.zoom());
+
             // While zooming, we want to keep the location under the mouse pointer fixed on the
             // screen. To achieve this, we first move the location to the widget's center,
             // then adjust zoom level, finally move the location back to the original screen
             // position.
             if let Some(offset) = offset {
-                self.memory.center_mode = self
-                    .memory
-                    .center_mode
-                    .clone()
-                    .shift(-offset)
-                    .zero_offset(self.memory.zoom.into());
+                self.memory.center_mode = Center::Exact(
+                    AdjustedPosition::from(pos)
+                        .shift(-offset)
+                        .zero_offset(self.memory.zoom.into()),
+                );
             }
 
             // Shift by 1 because of the values given by zoom_delta(). Multiple by 2, because
