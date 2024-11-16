@@ -61,6 +61,25 @@ enum Error {
 
     #[error(transparent)]
     Image(ImageError),
+
+    #[error("Tile request channel from the main thread was broken.")]
+    RequestChannelBroken,
+
+    #[error("Tile channel to the main thread was broken.")]
+    TileChannelClosed,
+
+    #[error("Tile channel to the main thread was full.")]
+    TileChannelFull,
+}
+
+impl From<futures::channel::mpsc::SendError> for Error {
+    fn from(error: futures::channel::mpsc::SendError) -> Self {
+        if error.is_disconnected() {
+            Error::TileChannelClosed
+        } else {
+            Error::TileChannelFull
+        }
+    }
 }
 
 struct Download {
@@ -114,13 +133,15 @@ async fn download_complete(
     egui_ctx: Context,
     tile_id: TileId,
     result: Result<Texture, Error>,
-) -> Result<(), ()> {
+) -> Result<(), Error> {
     match result {
         Ok(tile) => {
-            tile_tx.send((tile_id, tile)).await.map_err(|_| ())?;
+            tile_tx.send((tile_id, tile)).await.map_err(Error::from)?;
             egui_ctx.request_repaint();
         }
         Err(e) => {
+            // It would probably be more consistent to push it to the caller, but it's not that
+            // important right now.
             log::warn!("{}", e);
         }
     };
@@ -156,7 +177,7 @@ async fn download_continuously_impl<S>(
     mut request_rx: futures::channel::mpsc::Receiver<TileId>,
     tile_tx: futures::channel::mpsc::Sender<(TileId, Texture)>,
     egui_ctx: Context,
-) -> Result<(), ()>
+) -> Result<(), Error>
 where
     S: TileSource + Send + 'static,
 {
@@ -169,7 +190,7 @@ where
     loop {
         downloads = match downloads {
             Downloads::None => {
-                let request = request_rx.next().await.ok_or(())?;
+                let request = request_rx.next().await.ok_or(Error::RequestChannelBroken)?;
                 let url = source.tile_url(request);
                 let download =
                     download_and_decode(&client, request, url, user_agent.as_ref(), &egui_ctx);
@@ -180,7 +201,7 @@ where
                 match select(request_rx.next(), download).await {
                     // New download was requested.
                     Either::Left((request, downloads)) => {
-                        let request = request.ok_or(())?;
+                        let request = request.ok_or(Error::RequestChannelBroken)?;
                         let url = source.tile_url(request);
                         let download = download_and_decode(
                             &client,
@@ -231,10 +252,12 @@ pub(crate) async fn download_continuously<S>(
 ) where
     S: TileSource + Send + 'static,
 {
-    if download_continuously_impl(source, http_options, request_rx, tile_tx, egui_ctx)
-        .await
-        .is_err()
-    {
-        log::error!("Error from IO runtime.");
+    match download_continuously_impl(source, http_options, request_rx, tile_tx, egui_ctx).await {
+        Ok(()) | Err(Error::TileChannelClosed) | Err(Error::RequestChannelBroken) => {
+            log::debug!("Tile download loop finished.");
+        }
+        Err(error) => {
+            log::error!("Tile download loop failed: {}.", error);
+        }
     }
 }

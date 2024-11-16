@@ -4,7 +4,8 @@ All notable changes to this project will be documented in this file.
 
 ## Unreleased
 
-* Fix zoom not following cursor if the map wasn't moved
+* Fixed zoom not following cursor if the map wasn't moved.
+* Fixed spurious "Error from IO runtime" at shutdown.
 
 ## 0.29.0
 
