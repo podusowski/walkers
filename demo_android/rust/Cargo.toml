@@ -12,8 +12,8 @@ eframe = { workspace = true, features = ["wgpu", "android-game-activity"] }
 egui-winit.workspace = true
 ndk-context = "*"
 demo = { path = "../../demo" }
-thiserror = "1.0.40"
+thiserror = "2.0.3"
 
 [lib]
 name = "main"
-crate_type = ["cdylib"]
+crate-type = ["cdylib"]

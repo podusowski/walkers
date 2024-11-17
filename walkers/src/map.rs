@@ -1,6 +1,6 @@
 use std::collections::{hash_map::Entry, HashMap};
 
-use egui::{Mesh, Rect, Response, Sense, Ui, UiBuilder, Vec2, Widget};
+use egui::{Mesh, PointerButton, Rect, Response, Sense, Ui, UiBuilder, Vec2, Widget};
 
 use crate::{
     center::Center,
@@ -50,6 +50,9 @@ pub struct Map<'a, 'b, 'c> {
     zoom_gesture_enabled: bool,
     drag_gesture_enabled: bool,
     zoom_speed: f64,
+    double_click_to_zoom: bool,
+    double_click_to_zoom_out: bool,
+    zoom_with_ctrl: bool,
 }
 
 impl<'a, 'b, 'c> Map<'a, 'b, 'c> {
@@ -65,7 +68,10 @@ impl<'a, 'b, 'c> Map<'a, 'b, 'c> {
             plugins: Vec::default(),
             zoom_gesture_enabled: true,
             drag_gesture_enabled: true,
-            zoom_speed: 1.0,
+            zoom_speed: 2.0,
+            double_click_to_zoom: false,
+            double_click_to_zoom_out: false,
+            zoom_with_ctrl: true,
         }
     }
 
@@ -90,9 +96,35 @@ impl<'a, 'b, 'c> Map<'a, 'b, 'c> {
         self
     }
 
-    /// Change how far to zoom in/out
+    /// Change how far to zoom in/out.
+    /// Default value is 2.0
     pub fn zoom_speed(mut self, speed: f64) -> Self {
         self.zoom_speed = speed;
+    }
+  
+    /// Set whether to enable double click primary mouse button to zoom
+    pub fn double_click_to_zoom(mut self, enabled: bool) -> Self {
+        self.double_click_to_zoom = enabled;
+        self
+    }
+
+    /// Set whether to enable double click secondary mouse button to zoom out
+    pub fn double_click_to_zoom_out(mut self, enabled: bool) -> Self {
+        self.double_click_to_zoom_out = enabled;
+        self
+    }
+
+    /// Sets the zoom behaviour
+    ///
+    /// When enabled zoom is done with mouse wheel while holding <kbd>ctrl</kbd> key on native
+    /// and web. Panning is done with mouse wheel without <kbd>ctrl</kbd> key
+    ///
+    /// When disabled, zooming can be done without holding <kbd>ctrl</kbd> key
+    /// but panning with mouse wheel is disabled
+    ///
+    /// Has no effect on Android
+    pub fn zoom_with_ctrl(mut self, enabled: bool) -> Self {
+        self.zoom_with_ctrl = enabled;
         self
     }
 }
@@ -162,7 +194,28 @@ impl Map<'_, '_, '_> {
     /// Handle zoom and drag inputs, and recalculate everything accordingly.
     /// Returns `false` if no gesture handled.
     fn handle_gestures(&mut self, ui: &mut Ui, response: &Response) -> bool {
-        let zoom_delta = ui.input(|input| input.zoom_delta()) as f64;
+        let mut zoom_delta = ui.input(|input| input.zoom_delta()) as f64;
+
+        if self.double_click_to_zoom
+            && ui.ui_contains_pointer()
+            && response.double_clicked_by(PointerButton::Primary)
+        {
+            zoom_delta = 2.0;
+        }
+
+        if self.double_click_to_zoom_out
+            && ui.ui_contains_pointer()
+            && response.double_clicked_by(PointerButton::Secondary)
+        {
+            zoom_delta = 0.0;
+        }
+
+        if !self.zoom_with_ctrl && zoom_delta == 1.0 {
+            // We only use the raw scroll values, if we are zooming without ctrl,
+            // and zoom_delta is not already over/under 1.0 (eg. a ctrl + scroll event or a pinch zoom)
+            // These values seem to corrospond to the same values as one would get in `zoom_delta()`
+            zoom_delta = ui.input(|input| (1.0 + input.smooth_scroll_delta.y / 200.0)) as f64
+        };
 
         let mut changed = false;
 
@@ -192,11 +245,11 @@ impl Map<'_, '_, '_> {
                 );
             }
 
-            // Shift by 1 because of the values given by zoom_delta(). Multiple by 2, because
-            // then it felt right with both mouse wheel, and an Android phone.
+            // Shift by 1 because of the values given by zoom_delta(). Multiple by zoom_speed(defaults to 2.0),
+            // because then it felt right with both mouse wheel, and an Android phone.
             self.memory
                 .zoom
-                .zoom_by((zoom_delta - 1.) * 2. * self.zoom_speed);
+                .zoom_by((zoom_delta - 1.) * self.zoom_speed);
 
             // Recalculate the AdjustedPosition's offset, since it gets invalidated by zooming.
             self.memory.center_mode = self
@@ -217,7 +270,10 @@ impl Map<'_, '_, '_> {
                 .recalculate_drag(response, self.my_position);
         }
 
-        if ui.ui_contains_pointer() {
+        // Only enable panning with mouse_wheel if we are zooming with ctrl. But always allow touch devices to pan
+        let panning_enabled = ui.input(|i| i.any_touches()) || self.zoom_with_ctrl;
+
+        if ui.ui_contains_pointer() && panning_enabled {
             // Panning by scrolling, e.g. two-finger drag on a touchpad:
             let scroll_delta = ui.input(|i| i.smooth_scroll_delta);
             if scroll_delta != Vec2::ZERO {
