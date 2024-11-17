@@ -16,4 +16,4 @@ thiserror = "2.0.3"
 
 [lib]
 name = "main"
-crate_type = ["cdylib"]
+crate-type = ["cdylib"]
