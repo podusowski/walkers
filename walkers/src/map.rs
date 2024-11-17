@@ -100,8 +100,9 @@ impl<'a, 'b, 'c> Map<'a, 'b, 'c> {
     /// Default value is 2.0
     pub fn zoom_speed(mut self, speed: f64) -> Self {
         self.zoom_speed = speed;
+        self
     }
-  
+
     /// Set whether to enable double click primary mouse button to zoom
     pub fn double_click_to_zoom(mut self, enabled: bool) -> Self {
         self.double_click_to_zoom = enabled;
