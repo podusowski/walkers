@@ -2,7 +2,7 @@
 
 All notable changes to this project will be documented in this file.
 
-## Unreleased
+## 0.30.0
 
 * Add option for changing the zoom speed
 * Add options for double click to zoom in and out
