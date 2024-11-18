@@ -4,6 +4,7 @@ All notable changes to this project will be documented in this file.
 
 ## Unreleased
 
+* Add option for changing the zoom speed
 * Add options for double click to zoom in and out
 * Add option to zoom without holding ctrl on native and web
 * Fixed zoom not following cursor if the map wasn't moved.
