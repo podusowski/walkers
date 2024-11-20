@@ -121,12 +121,13 @@ impl HttpTiles {
             egui_ctx,
         ));
 
+        // Just arbitrary value which seemed right.
         #[allow(clippy::unwrap_used)]
-        let cap = std::num::NonZeroUsize::new(256).unwrap();
+        let cache_size = std::num::NonZeroUsize::new(256).unwrap();
 
         Self {
             attribution,
-            cache: LruCache::new(cap), // Just arbitrary value which seemed right.
+            cache: LruCache::new(cache_size),
             request_tx,
             tile_rx,
             runtime,
