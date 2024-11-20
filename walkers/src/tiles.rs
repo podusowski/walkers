@@ -1,5 +1,6 @@
 use egui::{pos2, Color32, Context, Mesh, Rect, Vec2};
 use egui::{ColorImage, TextureHandle};
+use futures::channel::mpsc::{channel, Receiver, Sender};
 use image::ImageError;
 use lru::LruCache;
 
@@ -76,10 +77,10 @@ pub struct HttpTiles {
     cache: LruCache<TileId, Option<Texture>>,
 
     /// Tiles to be downloaded by the IO thread.
-    request_tx: futures::channel::mpsc::Sender<TileId>,
+    request_tx: Sender<TileId>,
 
     /// Tiles that got downloaded and should be put in the cache.
-    tile_rx: futures::channel::mpsc::Receiver<(TileId, Texture)>,
+    tile_rx: Receiver<(TileId, Texture)>,
 
     #[allow(dead_code)] // Significant Drop
     runtime: Runtime,
@@ -106,8 +107,8 @@ impl HttpTiles {
         // Minimum value which didn't cause any stalls while testing.
         let channel_size = 20;
 
-        let (request_tx, request_rx) = futures::channel::mpsc::channel(channel_size);
-        let (tile_tx, tile_rx) = futures::channel::mpsc::channel(channel_size);
+        let (request_tx, request_rx) = channel(channel_size);
+        let (tile_tx, tile_rx) = channel(channel_size);
         let attribution = source.attribution();
         let tile_size = source.tile_size();
         let max_zoom = source.max_zoom();
