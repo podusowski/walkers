@@ -157,7 +157,7 @@ enum Downloads<F> {
 
 /// Maximum number of parallel downloads. Following modern browsers' behavior.
 /// https://stackoverflow.com/questions/985431/max-parallel-http-connections-in-a-browser
-const MAX_PARALLEL_DOWNLOADS: usize = 6;
+pub(crate) const MAX_PARALLEL_DOWNLOADS: usize = 6;
 
 impl<F> Downloads<F> {
     fn new(downloads: Vec<Pin<Box<F>>>) -> Self {
