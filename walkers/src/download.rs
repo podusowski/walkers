@@ -187,50 +187,40 @@ where
 
     // Keep outside the loop to reuse it as much as possible.
     let client = http_client(http_options);
-    let mut downloads = Downloads::None;
+    let mut downloads = Vec::new();
 
     loop {
-        downloads = match downloads {
+        if downloads.is_empty() {
             // Only new downloads might be requested.
-            Downloads::None => {
-                let tile_id = request_rx.next().await.ok_or(Error::RequestChannelBroken)?;
-                let url = source.tile_url(tile_id);
-                let download =
-                    download_and_decode(&client, tile_id, url, user_agent.as_ref(), &egui_ctx);
-                Downloads::new(vec![Box::pin(download)])
-            }
+            let tile_id = request_rx.next().await.ok_or(Error::RequestChannelBroken)?;
+            let url = source.tile_url(tile_id);
+            let download =
+                download_and_decode(&client, tile_id, url, user_agent.as_ref(), &egui_ctx);
+            downloads.push(Box::pin(download));
+        } else if downloads.len() < MAX_PARALLEL_DOWNLOADS {
             // New downloads might be requested or ongoing downloads might be completed.
-            Downloads::Ongoing(ref mut downloads) => {
-                let download = select_all(downloads.drain(..));
-                match select(request_rx.next(), download).await {
-                    // New download was requested.
-                    Either::Left((request, downloads)) => {
-                        let tile_id = request.ok_or(Error::RequestChannelBroken)?;
-                        let url = source.tile_url(tile_id);
-                        let download = download_and_decode(
-                            &client,
-                            tile_id,
-                            url,
-                            user_agent.as_ref(),
-                            &egui_ctx,
-                        );
-                        let mut downloads = downloads.into_inner();
-                        downloads.push(Box::pin(download));
-                        Downloads::new(downloads)
-                    }
-                    // Ongoing download was completed.
-                    Either::Right(((result, _, downloads), _)) => {
-                        download_complete(tile_tx.to_owned(), egui_ctx.to_owned(), result).await?;
-                        Downloads::new(downloads)
-                    }
+            let download = select_all(downloads.drain(..));
+            match select(request_rx.next(), download).await {
+                // New download was requested.
+                Either::Left((request, remaining_downloads)) => {
+                    let tile_id = request.ok_or(Error::RequestChannelBroken)?;
+                    let url = source.tile_url(tile_id);
+                    let download =
+                        download_and_decode(&client, tile_id, url, user_agent.as_ref(), &egui_ctx);
+                    downloads = remaining_downloads.into_inner();
+                    downloads.push(Box::pin(download));
+                }
+                // Ongoing download was completed.
+                Either::Right(((result, _, remaining_downloads), _)) => {
+                    download_complete(tile_tx.to_owned(), egui_ctx.to_owned(), result).await?;
+                    downloads = remaining_downloads;
                 }
             }
+        } else {
             // Only ongoing downloads might be completed.
-            Downloads::OngoingSaturated(ref mut downloads) => {
-                let (result, _, downloads) = select_all(downloads.drain(..)).await;
-                download_complete(tile_tx.to_owned(), egui_ctx.to_owned(), result).await?;
-                Downloads::Ongoing(downloads)
-            }
+            let (result, _, remaining_downloads) = select_all(downloads.drain(..)).await;
+            download_complete(tile_tx.to_owned(), egui_ctx.to_owned(), result).await?;
+            downloads = remaining_downloads;
         }
     }
 }
