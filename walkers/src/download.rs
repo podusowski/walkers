@@ -191,23 +191,25 @@ where
 
     loop {
         downloads = match downloads {
+            // Only new downloads might be requested.
             Downloads::None => {
-                let request = request_rx.next().await.ok_or(Error::RequestChannelBroken)?;
-                let url = source.tile_url(request);
+                let tile_id = request_rx.next().await.ok_or(Error::RequestChannelBroken)?;
+                let url = source.tile_url(tile_id);
                 let download =
-                    download_and_decode(&client, request, url, user_agent.as_ref(), &egui_ctx);
+                    download_and_decode(&client, tile_id, url, user_agent.as_ref(), &egui_ctx);
                 Downloads::new(vec![Box::pin(download)])
             }
+            // New downloads might be requested or ongoing downloads might be completed.
             Downloads::Ongoing(ref mut downloads) => {
                 let download = select_all(downloads.drain(..));
                 match select(request_rx.next(), download).await {
                     // New download was requested.
                     Either::Left((request, downloads)) => {
-                        let request = request.ok_or(Error::RequestChannelBroken)?;
-                        let url = source.tile_url(request);
+                        let tile_id = request.ok_or(Error::RequestChannelBroken)?;
+                        let url = source.tile_url(tile_id);
                         let download = download_and_decode(
                             &client,
-                            request,
+                            tile_id,
                             url,
                             user_agent.as_ref(),
                             &egui_ctx,
@@ -223,6 +225,7 @@ where
                     }
                 }
             }
+            // Only ongoing downloads might be completed.
             Downloads::OngoingSaturated(ref mut downloads) => {
                 let (result, _, downloads) = select_all(downloads.drain(..)).await;
                 download_complete(tile_tx.to_owned(), egui_ctx.to_owned(), result).await?;
