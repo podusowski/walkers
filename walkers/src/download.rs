@@ -194,7 +194,7 @@ where
                 let url = source.tile_url(request);
                 let download =
                     download_and_decode(&client, request, url, user_agent.as_ref(), &egui_ctx);
-                Downloads::Ongoing(vec![Box::pin(download)])
+                Downloads::new(vec![Box::pin(download)])
             }
             Downloads::Ongoing(ref mut downloads) => {
                 let download = select_all(downloads.drain(..));
