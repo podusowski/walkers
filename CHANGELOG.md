@@ -2,6 +2,10 @@
 
 All notable changes to this project will be documented in this file.
 
+## Unreleased
+
+* Tile download optimized by no longer queueing older requests.
+
 ## 0.30.0
 
 * Add option for changing the zoom speed
