@@ -131,12 +131,14 @@ async fn download_and_decode_impl(
 async fn download_complete(
     mut tile_tx: futures::channel::mpsc::Sender<(TileId, Texture)>,
     egui_ctx: Context,
-    tile_id: TileId,
-    result: Result<Texture, Error>,
+    download: Download,
 ) -> Result<(), Error> {
-    match result {
+    match download.result {
         Ok(tile) => {
-            tile_tx.send((tile_id, tile)).await.map_err(Error::from)?;
+            tile_tx
+                .send((download.tile_id, tile))
+                .await
+                .map_err(Error::from)?;
             egui_ctx.request_repaint();
         }
         Err(e) => {
@@ -216,26 +218,14 @@ where
                     }
                     // Ongoing download was completed.
                     Either::Right(((result, _, downloads), _)) => {
-                        download_complete(
-                            tile_tx.to_owned(),
-                            egui_ctx.to_owned(),
-                            result.tile_id,
-                            result.result,
-                        )
-                        .await?;
+                        download_complete(tile_tx.to_owned(), egui_ctx.to_owned(), result).await?;
                         Downloads::new(downloads)
                     }
                 }
             }
             Downloads::OngoingSaturated(ref mut downloads) => {
                 let (result, _, downloads) = select_all(downloads.drain(..)).await;
-                download_complete(
-                    tile_tx.to_owned(),
-                    egui_ctx.to_owned(),
-                    result.tile_id,
-                    result.result,
-                )
-                .await?;
+                download_complete(tile_tx.to_owned(), egui_ctx.to_owned(), result).await?;
                 Downloads::Ongoing(downloads)
             }
         }
