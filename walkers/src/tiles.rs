@@ -8,6 +8,7 @@ use crate::download::{download_continuously, HttpOptions, MAX_PARALLEL_DOWNLOADS
 use crate::io::Runtime;
 use crate::mercator::TileId;
 use crate::sources::{Attribution, TileSource};
+use crate::zoom::Zoom;
 
 pub(crate) fn rect(screen_position: Vec2, tile_size: f64) -> Rect {
     Rect::from_min_size(screen_position.to_pos2(), Vec2::splat(tile_size as f32))
@@ -168,17 +169,18 @@ impl HttpTiles {
 
     /// Find tile with a different zoom, which could be used as a placeholder.
     fn placeholder_with_different_zoom(&mut self, tile_id: TileId) -> Option<TextureWithUv> {
-        // Currently, only a single zoom level down is supported.
+        let mut zoom_candidate = tile_id.zoom;
 
-        let (zoomed_tile_id, uv) = interpolate_higher_zoom(tile_id, tile_id.zoom.checked_sub(1)?);
+        loop {
+            zoom_candidate = zoom_candidate.checked_sub(1)?;
+            let (zoomed_tile_id, uv) = interpolate_higher_zoom(tile_id, zoom_candidate);
 
-        if let Some(Some(texture)) = self.cache.get(&zoomed_tile_id) {
-            Some(TextureWithUv {
-                texture: texture.clone(),
-                uv,
-            })
-        } else {
-            None
+            if let Some(Some(texture)) = self.cache.get(&zoomed_tile_id) {
+                break Some(TextureWithUv {
+                    texture: texture.clone(),
+                    uv,
+                });
+            }
         }
     }
 }
