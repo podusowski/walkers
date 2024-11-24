@@ -14,10 +14,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v4
-
     - name: Build
       run: cargo build --verbose
-
     - name: Install Trunk
       run: cargo install trunk
 
@@ -25,7 +23,6 @@ jobs:
 
     - name: Build Demo Web
       run: env -C demo_web trunk build
-
     - name: Build Demo Native
       run: env -C demo_native cargo build --verbose
 
@@ -33,30 +30,24 @@ jobs:
 
     - name: Run tests
       run: cargo test --verbose
-
     - name: Check rust formatting
       run:  cargo fmt --all --check
-
     - name: Clippy
       run:  cargo clippy --all-features -- -D warnings 
-
     - name: Documentation
       run:  cargo doc
 
     # Build the Android demo.
 
-    - name: Set up JDK 17
-      uses: actions/setup-java@v4.5
+    - name: Setup Java JDK
+      uses: actions/setup-java@v4.5.0
       with:
         java-version: '17'
         distribution: 'temurin'
-
     - name: Setup Android SDK
       uses: android-actions/setup-android@v3
-
     - name: Install Cargo NDK
       run: cargo install cargo-ndk
-
     - name: Build APK
       working-directory: ./demo_android
       run: make apk
