@@ -171,7 +171,9 @@ impl HttpTiles {
         let mut zoom_candidate = tile_id.zoom;
 
         loop {
+            // Keep zooming out until we find a tile or there is no more zoom levels.
             zoom_candidate = zoom_candidate.checked_sub(1)?;
+
             let (zoomed_tile_id, uv) = interpolate_higher_zoom(tile_id, zoom_candidate);
 
             if let Some(Some(texture)) = self.cache.get(&zoomed_tile_id) {
