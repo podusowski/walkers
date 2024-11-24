@@ -4,7 +4,7 @@ use futures::channel::mpsc::{channel, Receiver, Sender};
 use image::ImageError;
 use lru::LruCache;
 
-use crate::download::{download_continuously, HttpOptions};
+use crate::download::{download_continuously, HttpOptions, MAX_PARALLEL_DOWNLOADS};
 use crate::io::Runtime;
 use crate::mercator::TileId;
 use crate::sources::{Attribution, TileSource};
@@ -104,8 +104,8 @@ impl HttpTiles {
     where
         S: TileSource + Send + 'static,
     {
-        // Minimum value which didn't cause any stalls while testing.
-        let channel_size = 20;
+        // This ensures that newer requests are prioritized.
+        let channel_size = MAX_PARALLEL_DOWNLOADS;
 
         let (request_tx, request_rx) = channel(channel_size);
         let (tile_tx, tile_rx) = channel(channel_size);

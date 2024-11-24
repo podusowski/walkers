@@ -153,7 +153,7 @@ async fn download_complete(
 
 /// Maximum number of parallel downloads. Following modern browsers' behavior.
 /// https://stackoverflow.com/questions/985431/max-parallel-http-connections-in-a-browser
-const MAX_PARALLEL_DOWNLOADS: usize = 6;
+pub(crate) const MAX_PARALLEL_DOWNLOADS: usize = 6;
 
 async fn download_continuously_impl<S>(
     source: S,
