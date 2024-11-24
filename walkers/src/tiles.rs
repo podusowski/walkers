@@ -136,7 +136,7 @@ impl HttpTiles {
         }
     }
 
-    fn put_next_downloaded_tile_in_cache(&mut self) {
+    fn put_single_downloaded_tile_in_cache(&mut self) {
         // This is called every frame, so take just one at the time.
         match self.tile_rx.try_next() {
             Ok(Some((tile_id, tile))) => {
@@ -151,17 +151,21 @@ impl HttpTiles {
         }
     }
 
+    fn download(&mut self, tile_id: TileId) {
+        if let Ok(()) = self.request_tx.try_send(tile_id) {
+            log::trace!("Requested tile: {:?}", tile_id);
+
+            // None acts as a placeholder for the tile, preventing multiple
+            // requests for the same tile.
+            self.cache.put(tile_id, None);
+        } else {
+            log::debug!("Request queue is full.");
+        }
+    }
+
     fn request_tile(&mut self, tile_id: TileId) -> Option<Texture> {
         self.cache.get(&tile_id).cloned().unwrap_or_else(|| {
-            if let Ok(()) = self.request_tx.try_send(tile_id) {
-                log::trace!("Requested tile: {:?}", tile_id);
-
-                // None acts as a placeholder for the tile, preventing multiple
-                // requests for the same tile.
-                self.cache.put(tile_id, None);
-            } else {
-                log::debug!("Request queue is full.");
-            }
+            self.download(tile_id);
             None
         })
     }
@@ -220,7 +224,7 @@ impl Tiles for HttpTiles {
 
     /// Return a tile if already in cache, schedule a download otherwise.
     fn at(&mut self, tile_id: TileId) -> Option<TextureWithUv> {
-        self.put_next_downloaded_tile_in_cache();
+        self.put_single_downloaded_tile_in_cache();
 
         if tile_id.zoom <= self.max_zoom {
             self.request_tile(tile_id)
