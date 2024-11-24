@@ -8,7 +8,6 @@ use crate::download::{download_continuously, HttpOptions, MAX_PARALLEL_DOWNLOADS
 use crate::io::Runtime;
 use crate::mercator::TileId;
 use crate::sources::{Attribution, TileSource};
-use crate::zoom::Zoom;
 
 pub(crate) fn rect(screen_position: Vec2, tile_size: f64) -> Rect {
     Rect::from_min_size(screen_position.to_pos2(), Vec2::splat(tile_size as f32))
