@@ -57,12 +57,6 @@ jobs:
     - name: Install Cargo NDK
       run: cargo install cargo-ndk
 
-    - name: Install Rust Android Target
-      uses: actions-rs/toolchain@v1
-      with:
-        toolchain: stable
-        target: aarch64-linux-android
-
     - name: Build APK
       working-directory: ./demo_android
       run: make apk

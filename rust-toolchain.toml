@@ -1,2 +1,2 @@
 [toolchain]
-targets = ["wasm32-unknown-unknown"]
+targets = ["wasm32-unknown-unknown", "aarch64-linux-android"]
