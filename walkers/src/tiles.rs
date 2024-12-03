@@ -230,32 +230,19 @@ impl Tiles for HttpTiles {
     fn at(&mut self, tile_id: TileId) -> Option<TextureWithUv> {
         self.put_single_downloaded_tile_in_cache();
 
-        let tile = self.cache.get(&tile_id).cloned();
+        let tile = self.get_or_interpolate(tile_id);
 
-        match tile {
-            Some(Some(texture)) => {
-                return Some(TextureWithUv {
-                    texture,
-                    uv: Rect::from_min_max(pos2(0.0, 0.0), pos2(1.0, 1.0)),
-                });
-            }
-            Some(None) => {
-                // Tile is being downloaded.
-                return self.get_or_interpolate(tile_id);
-            }
-            None => {
-                // Tile is not in cache.
-                let tile_id_to_download = if tile_id.zoom > self.max_zoom {
-                    let (donor_tile_id, uv) = interpolate_higher_zoom(tile_id, self.max_zoom);
-                    donor_tile_id
-                } else {
-                    tile_id
-                };
+        // Make sure the tile is downloaded.
+        let tile_id_to_download = if tile_id.zoom > self.max_zoom {
+            let (donor_tile_id, uv) = interpolate_higher_zoom(tile_id, self.max_zoom);
+            donor_tile_id
+        } else {
+            tile_id
+        };
 
-                self.download(tile_id_to_download);
-                return self.get_or_interpolate(tile_id);
-            }
-        }
+        self.download(tile_id_to_download);
+
+        tile
     }
 
     fn tile_size(&self) -> u32 {
