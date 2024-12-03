@@ -232,10 +232,8 @@ impl Tiles for HttpTiles {
 
         let tile = self.get_or_interpolate(tile_id);
 
-        // Make sure the tile is downloaded.
         let tile_id_to_download = if tile_id.zoom > self.max_zoom {
-            let (donor_tile_id, uv) = interpolate_higher_zoom(tile_id, self.max_zoom);
-            donor_tile_id
+            interpolate_higher_zoom(tile_id, self.max_zoom).0
         } else {
             tile_id
         };
