@@ -230,17 +230,13 @@ impl Tiles for HttpTiles {
     fn at(&mut self, tile_id: TileId) -> Option<TextureWithUv> {
         self.put_single_downloaded_tile_in_cache();
 
-        let tile = self.get_or_interpolate(tile_id);
-
-        let tile_id_to_download = if tile_id.zoom > self.max_zoom {
+        self.download(if tile_id.zoom > self.max_zoom {
             interpolate_higher_zoom(tile_id, self.max_zoom).0
         } else {
             tile_id
-        };
+        });
 
-        self.download(tile_id_to_download);
-
-        tile
+        self.get_or_interpolate(tile_id)
     }
 
     fn tile_size(&self) -> u32 {
