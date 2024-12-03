@@ -123,7 +123,7 @@ impl HttpTiles {
 
         // Just arbitrary value which seemed right.
         #[allow(clippy::unwrap_used)]
-        let cache_size = std::num::NonZeroUsize::new(256).unwrap();
+        let cache_size = std::num::NonZeroUsize::new(1024).unwrap();
 
         Self {
             attribution,
@@ -152,6 +152,10 @@ impl HttpTiles {
     }
 
     fn download(&mut self, tile_id: TileId) {
+        if self.cache.contains(&tile_id) {
+            return;
+        }
+
         if let Ok(()) = self.request_tx.try_send(tile_id) {
             log::trace!("Requested tile: {:?}", tile_id);
 
@@ -226,21 +230,31 @@ impl Tiles for HttpTiles {
     fn at(&mut self, tile_id: TileId) -> Option<TextureWithUv> {
         self.put_single_downloaded_tile_in_cache();
 
-        if tile_id.zoom <= self.max_zoom {
-            self.request_tile(tile_id)
-                .map(|texture| TextureWithUv {
+        let tile = self.cache.get(&tile_id).cloned();
+
+        match tile {
+            Some(Some(texture)) => {
+                return Some(TextureWithUv {
                     texture,
                     uv: Rect::from_min_max(pos2(0.0, 0.0), pos2(1.0, 1.0)),
-                })
-                .or_else(|| self.placeholder_with_different_zoom(tile_id))
-        } else {
-            let (zoomed_tile_id, uv) = interpolate_higher_zoom(tile_id, self.max_zoom);
+                });
+            }
+            Some(None) => {
+                // Tile is being downloaded.
+                return self.placeholder_with_different_zoom(tile_id);
+            }
+            None => {
+                // Tile is not in cache.
+                let tile_id_to_download = if tile_id.zoom > self.max_zoom {
+                    let (donor_tile_id, uv) = interpolate_higher_zoom(tile_id, self.max_zoom);
+                    donor_tile_id
+                } else {
+                    tile_id
+                };
 
-            self.request_tile(zoomed_tile_id)
-                .map(|texture| TextureWithUv {
-                    texture: texture.clone(),
-                    uv,
-                })
+                self.download(tile_id_to_download);
+                return self.placeholder_with_different_zoom(tile_id);
+            }
         }
     }
 
