@@ -179,9 +179,6 @@ impl HttpTiles {
         let mut zoom_candidate = tile_id.zoom;
 
         loop {
-            // Keep zooming out until we find a tile or there is no more zoom levels.
-            zoom_candidate = zoom_candidate.checked_sub(1)?;
-
             let (zoomed_tile_id, uv) = interpolate_higher_zoom(tile_id, zoom_candidate);
 
             if let Some(Some(texture)) = self.cache.get(&zoomed_tile_id) {
@@ -190,13 +187,16 @@ impl HttpTiles {
                     uv,
                 });
             }
+
+            // Keep zooming out until we find a tile or there is no more zoom levels.
+            zoom_candidate = zoom_candidate.checked_sub(1)?;
         }
     }
 }
 
 /// Take a piece of a tile with higher zoom level and use it as a tile with lower zoom level.
 fn interpolate_higher_zoom(tile_id: TileId, available_zoom: u8) -> (TileId, Rect) {
-    assert!(tile_id.zoom > available_zoom);
+    assert!(tile_id.zoom >= available_zoom);
 
     let dzoom = 2u32.pow((tile_id.zoom - available_zoom) as u32);
 
