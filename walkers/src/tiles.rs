@@ -123,7 +123,7 @@ impl HttpTiles {
 
         // Just arbitrary value which seemed right.
         #[allow(clippy::unwrap_used)]
-        let cache_size = std::num::NonZeroUsize::new(1024).unwrap();
+        let cache_size = std::num::NonZeroUsize::new(256).unwrap();
 
         Self {
             attribution,
