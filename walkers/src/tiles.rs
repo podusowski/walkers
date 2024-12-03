@@ -168,13 +168,6 @@ impl HttpTiles {
         }
     }
 
-    fn request_tile(&mut self, tile_id: TileId) -> Option<Texture> {
-        self.cache.get(&tile_id).cloned().unwrap_or_else(|| {
-            self.make_sure_is_downloaded(tile_id);
-            None
-        })
-    }
-
     /// Get at tile, or interpolate it from lower zoom levels.
     fn get_or_interpolate(&mut self, tile_id: TileId) -> Option<TextureWithUv> {
         let mut zoom_candidate = tile_id.zoom;
