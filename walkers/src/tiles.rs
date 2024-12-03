@@ -151,7 +151,7 @@ impl HttpTiles {
         }
     }
 
-    fn download(&mut self, tile_id: TileId) {
+    fn make_sure_is_downloaded(&mut self, tile_id: TileId) {
         if self.cache.contains(&tile_id) {
             return;
         }
@@ -169,7 +169,7 @@ impl HttpTiles {
 
     fn request_tile(&mut self, tile_id: TileId) -> Option<Texture> {
         self.cache.get(&tile_id).cloned().unwrap_or_else(|| {
-            self.download(tile_id);
+            self.make_sure_is_downloaded(tile_id);
             None
         })
     }
@@ -230,7 +230,7 @@ impl Tiles for HttpTiles {
     fn at(&mut self, tile_id: TileId) -> Option<TextureWithUv> {
         self.put_single_downloaded_tile_in_cache();
 
-        self.download(if tile_id.zoom > self.max_zoom {
+        self.make_sure_is_downloaded(if tile_id.zoom > self.max_zoom {
             interpolate_higher_zoom(tile_id, self.max_zoom).0
         } else {
             tile_id
