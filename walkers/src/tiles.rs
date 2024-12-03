@@ -174,8 +174,8 @@ impl HttpTiles {
         })
     }
 
-    /// Find tile with a different zoom, which could be used as a placeholder.
-    fn placeholder_with_different_zoom(&mut self, tile_id: TileId) -> Option<TextureWithUv> {
+    /// Get at tile, or interpolate it from lower zoom levels.
+    fn get_or_interpolate(&mut self, tile_id: TileId) -> Option<TextureWithUv> {
         let mut zoom_candidate = tile_id.zoom;
 
         loop {
@@ -188,7 +188,7 @@ impl HttpTiles {
                 });
             }
 
-            // Keep zooming out until we find a tile or there is no more zoom levels.
+            // Keep zooming out until we find a donor or there is no more zoom levels.
             zoom_candidate = zoom_candidate.checked_sub(1)?;
         }
     }
@@ -241,7 +241,7 @@ impl Tiles for HttpTiles {
             }
             Some(None) => {
                 // Tile is being downloaded.
-                return self.placeholder_with_different_zoom(tile_id);
+                return self.get_or_interpolate(tile_id);
             }
             None => {
                 // Tile is not in cache.
@@ -253,7 +253,7 @@ impl Tiles for HttpTiles {
                 };
 
                 self.download(tile_id_to_download);
-                return self.placeholder_with_different_zoom(tile_id);
+                return self.get_or_interpolate(tile_id);
             }
         }
     }
