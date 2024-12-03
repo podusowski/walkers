@@ -1,6 +1,6 @@
 use egui::{pos2, Color32, Context, Mesh, Rect, Vec2};
 use egui::{ColorImage, TextureHandle};
-use futures::channel::mpsc::{channel, Receiver, Sender};
+use futures::channel::mpsc::{channel, Receiver, Sender, TrySendError};
 use image::ImageError;
 use lru::LruCache;
 
@@ -152,17 +152,18 @@ impl HttpTiles {
     }
 
     fn make_sure_is_downloaded(&mut self, tile_id: TileId) {
-        if self.cache.contains(&tile_id) {
-            return;
-        }
-
-        if let Ok(()) = self.request_tx.try_send(tile_id) {
-            log::trace!("Requested tile: {:?}", tile_id);
-
-            // None acts as a placeholder for the tile, preventing multiple
-            // requests for the same tile.
-            self.cache.put(tile_id, None);
-        } else {
+        if self
+            .cache
+            .try_get_or_insert(
+                tile_id,
+                || -> Result<Option<Texture>, TrySendError<TileId>> {
+                    self.request_tx.try_send(tile_id)?;
+                    log::trace!("Requested tile: {:?}", tile_id);
+                    Ok(None)
+                },
+            )
+            .is_err()
+        {
             log::debug!("Request queue is full.");
         }
     }
