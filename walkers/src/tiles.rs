@@ -1,6 +1,6 @@
 use egui::{pos2, Color32, Context, Mesh, Rect, Vec2};
 use egui::{ColorImage, TextureHandle};
-use futures::channel::mpsc::{channel, Receiver, Sender};
+use futures::channel::mpsc::{channel, Receiver, Sender, TrySendError};
 use image::ImageError;
 use lru::LruCache;
 
@@ -136,7 +136,7 @@ impl HttpTiles {
         }
     }
 
-    fn put_next_downloaded_tile_in_cache(&mut self) {
+    fn put_single_downloaded_tile_in_cache(&mut self) {
         // This is called every frame, so take just one at the time.
         match self.tile_rx.try_next() {
             Ok(Some((tile_id, tile))) => {
@@ -151,41 +151,46 @@ impl HttpTiles {
         }
     }
 
-    fn request_tile(&mut self, tile_id: TileId) -> Option<Texture> {
-        self.cache.get(&tile_id).cloned().unwrap_or_else(|| {
-            if let Ok(()) = self.request_tx.try_send(tile_id) {
-                log::trace!("Requested tile: {:?}", tile_id);
-
-                // None acts as a placeholder for the tile, preventing multiple
-                // requests for the same tile.
-                self.cache.put(tile_id, None);
-            } else {
-                log::debug!("Request queue is full.");
-            }
-            None
-        })
+    fn make_sure_is_downloaded(&mut self, tile_id: TileId) {
+        if self
+            .cache
+            .try_get_or_insert(
+                tile_id,
+                || -> Result<Option<Texture>, TrySendError<TileId>> {
+                    self.request_tx.try_send(tile_id)?;
+                    log::trace!("Requested tile: {:?}", tile_id);
+                    Ok(None)
+                },
+            )
+            .is_err()
+        {
+            log::debug!("Request queue is full.");
+        }
     }
 
-    /// Find tile with a different zoom, which could be used as a placeholder.
-    fn placeholder_with_different_zoom(&mut self, tile_id: TileId) -> Option<TextureWithUv> {
-        // Currently, only a single zoom level down is supported.
+    /// Get at tile, or interpolate it from lower zoom levels.
+    fn get_or_interpolate(&mut self, tile_id: TileId) -> Option<TextureWithUv> {
+        let mut zoom_candidate = tile_id.zoom;
 
-        let (zoomed_tile_id, uv) = interpolate_higher_zoom(tile_id, tile_id.zoom.checked_sub(1)?);
+        loop {
+            let (zoomed_tile_id, uv) = interpolate_higher_zoom(tile_id, zoom_candidate);
 
-        if let Some(Some(texture)) = self.cache.get(&zoomed_tile_id) {
-            Some(TextureWithUv {
-                texture: texture.clone(),
-                uv,
-            })
-        } else {
-            None
+            if let Some(Some(texture)) = self.cache.get(&zoomed_tile_id) {
+                break Some(TextureWithUv {
+                    texture: texture.clone(),
+                    uv,
+                });
+            }
+
+            // Keep zooming out until we find a donor or there is no more zoom levels.
+            zoom_candidate = zoom_candidate.checked_sub(1)?;
         }
     }
 }
 
 /// Take a piece of a tile with higher zoom level and use it as a tile with lower zoom level.
 fn interpolate_higher_zoom(tile_id: TileId, available_zoom: u8) -> (TileId, Rect) {
-    assert!(tile_id.zoom > available_zoom);
+    assert!(tile_id.zoom >= available_zoom);
 
     let dzoom = 2u32.pow((tile_id.zoom - available_zoom) as u32);
 
@@ -217,24 +222,15 @@ impl Tiles for HttpTiles {
 
     /// Return a tile if already in cache, schedule a download otherwise.
     fn at(&mut self, tile_id: TileId) -> Option<TextureWithUv> {
-        self.put_next_downloaded_tile_in_cache();
+        self.put_single_downloaded_tile_in_cache();
 
-        if tile_id.zoom <= self.max_zoom {
-            self.request_tile(tile_id)
-                .map(|texture| TextureWithUv {
-                    texture,
-                    uv: Rect::from_min_max(pos2(0.0, 0.0), pos2(1.0, 1.0)),
-                })
-                .or_else(|| self.placeholder_with_different_zoom(tile_id))
+        self.make_sure_is_downloaded(if tile_id.zoom > self.max_zoom {
+            interpolate_higher_zoom(tile_id, self.max_zoom).0
         } else {
-            let (zoomed_tile_id, uv) = interpolate_higher_zoom(tile_id, self.max_zoom);
+            tile_id
+        });
 
-            self.request_tile(zoomed_tile_id)
-                .map(|texture| TextureWithUv {
-                    texture: texture.clone(),
-                    uv,
-                })
-        }
+        self.get_or_interpolate(tile_id)
     }
 
     fn tile_size(&self) -> u32 {
