@@ -2,7 +2,7 @@
 
 All notable changes to this project will be documented in this file.
 
-## Unreleased
+## 0.31.0
 
 * Tile download optimized by no longer queueing older requests.
 * Interpolation of higher zoom levels is now improved, trying many different levels instead of just
