@@ -2,6 +2,10 @@
 
 All notable changes to this project will be documented in this file.
 
+## 0.32.0
+
+* `egui` updated to 0.30.0.
+
 ## 0.31.0
 
 * Tile download optimized by no longer queueing older requests.
