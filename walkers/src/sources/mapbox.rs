@@ -6,14 +6,22 @@ use super::{Attribution, TileSource};
 /// <https://docs.mapbox.com/api/maps/styles/#classic-mapbox-styles>
 #[derive(Clone, Copy, Default)]
 pub enum MapboxStyle {
+    /// Streets Style (default)
     #[default]
     Streets,
+    /// Outdoors Style
     Outdoors,
+    /// Light Style
     Light,
+    /// Dark Style
     Dark,
+    /// Satellite Style
     Satellite,
+    /// Satellite Streets Style
     SatelliteStreets,
+    /// Navigation Day Style
     NavigationDay,
+    /// Navigation Night Style
     NavigationNight,
 }
 

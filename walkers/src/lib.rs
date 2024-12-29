@@ -1,5 +1,5 @@
 #![doc = include_str!("../README.md")]
-#![deny(clippy::unwrap_used, rustdoc::broken_intra_doc_links)]
+#![deny(missing_docs, clippy::unwrap_used, rustdoc::broken_intra_doc_links)]
 
 mod center;
 mod download;

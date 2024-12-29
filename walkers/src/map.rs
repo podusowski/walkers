@@ -56,6 +56,7 @@ pub struct Map<'a, 'b, 'c> {
 }
 
 impl<'a, 'b, 'c> Map<'a, 'b, 'c> {
+    /// Create a new map widget.
     pub fn new(
         tiles: Option<&'b mut dyn Tiles>,
         memory: &'a mut MapMemory,
@@ -78,6 +79,12 @@ impl<'a, 'b, 'c> Map<'a, 'b, 'c> {
     /// Add plugin to the drawing pipeline. Plugins allow drawing custom shapes on the map.
     pub fn with_plugin(mut self, plugin: impl Plugin + 'c) -> Self {
         self.plugins.push(Box::new(plugin));
+        self
+    }
+
+    /// Set tiles manager to be used by the map.
+    pub fn with_tiles_manager(mut self, tiles: &'b mut dyn Tiles) -> Self {
+        self.tiles = Some(tiles);
         self
     }
 
@@ -139,6 +146,7 @@ pub struct Projector {
 }
 
 impl Projector {
+    /// Create a new projector.
     pub fn new(clip_rect: Rect, map_memory: &MapMemory, my_position: Position) -> Self {
         Self {
             clip_rect,

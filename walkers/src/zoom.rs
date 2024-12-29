@@ -1,3 +1,4 @@
+/// Invalid Zoom.
 #[derive(thiserror::Error, Debug, PartialEq, Eq)]
 #[error("invalid zoom level")]
 pub struct InvalidZoom;
