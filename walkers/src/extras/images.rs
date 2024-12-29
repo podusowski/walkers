@@ -13,6 +13,7 @@ pub struct Image {
 }
 
 impl Image {
+    /// Create a new image.
     pub fn new(texture: Texture, position: Position) -> Self {
         Self {
             position,
@@ -33,6 +34,7 @@ impl Image {
         self.angle = Rot2::from_angle(angle);
     }
 
+    /// Draw the image.
     pub fn draw(&self, ui: &Ui, projector: &crate::Projector) {
         let painter = ui.painter();
         let rect = Rect::from_center_size(
@@ -54,6 +56,7 @@ pub struct Images {
 }
 
 impl Images {
+    /// Create a new [`Images`] plugin.
     pub fn new(images: Vec<Image>) -> Self {
         Self { images }
     }

@@ -5,12 +5,19 @@ use crate::{Plugin, Position};
 /// Visual style of the place.
 #[derive(Clone)]
 pub struct Style {
+    /// Font used for the label.
     pub label_font: FontId,
+    /// Color of the label.
     pub label_color: Color32,
+    /// Background color of the label.
     pub label_background: Color32,
+    /// Font used for the symbol.
     pub symbol_font: FontId,
+    /// Color of the symbol.
     pub symbol_color: Color32,
+    /// Background color of the symbol.
     pub symbol_background: Color32,
+    /// Stroke of the symbol.
     pub symbol_stroke: Stroke,
 }
 
@@ -93,6 +100,7 @@ pub struct Places {
 }
 
 impl Places {
+    /// Create a new [`Places`] plugin.
     pub fn new(places: Vec<Place>) -> Self {
         Self { places }
     }

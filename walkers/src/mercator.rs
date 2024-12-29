@@ -25,10 +25,12 @@ impl Position {
         Self(geo_types::Point::new(lon, lat))
     }
 
+    /// Latitude
     pub fn lat(&self) -> f64 {
         self.0.y()
     }
 
+    /// Longitude
     pub fn lon(&self) -> f64 {
         self.0.x()
     }
@@ -126,6 +128,7 @@ impl TileId {
         Pixels::new(self.x as f64 * tile_size, self.y as f64 * tile_size)
     }
 
+    /// Move to east
     pub fn east(&self) -> Option<TileId> {
         Some(TileId {
             x: self.x + 1,
@@ -134,6 +137,7 @@ impl TileId {
         })
     }
 
+    /// Move to west
     pub fn west(&self) -> Option<TileId> {
         Some(TileId {
             x: self.x.checked_sub(1)?,
@@ -142,6 +146,7 @@ impl TileId {
         })
     }
 
+    /// Move to north
     pub fn north(&self) -> Option<TileId> {
         Some(TileId {
             x: self.x,
@@ -150,6 +155,7 @@ impl TileId {
         })
     }
 
+    /// Move to south
     pub fn south(&self) -> Option<TileId> {
         Some(TileId {
             x: self.x,
