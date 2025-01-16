@@ -1,21 +1,29 @@
-[workspace]
-members = [
-    "walkers",
-    "demo",
-    "demo_native",
-    "demo_web",
-    "demo_android/rust",
-    "hypermocker",
-]
-resolver = "2"
+[package]
+name = "walkers"
+version = "0.33.0"
+repository = "https://github.com/oyhj1801/walkers"
+description = "slippy map widget for egui with support for a blank map in local coordinates"
+keywords = ["gis", "geography", "gui"]
+categories = ["gui", "science::geo"]
+authors = ["Piotr Podusowski <podusowski@gmail.com>, Øyvind Hjermstad <@oyhj1801>"]
+license = "MIT"
+edition = "2021"
 
-[workspace.package]
-version = "0.32.0"
-
-[workspace.dependencies]
-image = { version = "0.25", default-features = false }
+[dependencies]
 log = "0.4"
-egui = "0.30.0"
+egui = "0.30"
 egui_extras = { version = "0.30.0", features = ["svg"] }
-eframe = "0.30.0"
-egui-winit = "0.30.0"
+lru = "0.12"
+thiserror = "2"
+image = { version = "0.25", default-features = false, features = ["jpeg", "png"] }
+geo-types = { version = "0.7" }
+reqwest = { version = "0.11", default-features = false, features = ["rustls-tls"] }
+futures = "0.3.28"
+reqwest-middleware = "0.2.4"
+
+[target.'cfg(target_family = "wasm")'.dependencies]
+wasm-bindgen-futures = "0.4.37"
+
+[target.'cfg(not(target_family = "wasm"))'.dependencies]
+tokio = { version = "1.28", features = ["macros"] }
+http-cache-reqwest = "0.13.0"
