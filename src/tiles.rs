@@ -1,6 +1,6 @@
 use std::collections::{hash_map::Entry, HashMap};
 
-use egui::{pos2, Color32, Context, Mesh, Rect, Vec2};
+use egui::{pos2, Color32, Context, Mesh, Pos2, Rect, Vec2};
 use egui::{ColorImage, TextureHandle};
 use futures::channel::mpsc::{channel, Receiver, Sender, TrySendError};
 use image::ImageError;
@@ -13,8 +13,8 @@ use crate::{
     units::Pixel,
 };
 
-pub(crate) fn rect(screen_position: Vec2, tile_size: f64) -> Rect {
-    Rect::from_min_size(screen_position.to_pos2(), Vec2::splat(tile_size as f32))
+pub(crate) fn rect(screen_position: Pos2, tile_size: f64) -> Rect {
+    Rect::from_min_size(screen_position, Vec2::splat(tile_size as f32))
 }
 
 #[derive(Clone)]
@@ -37,13 +37,27 @@ impl Texture {
         Self(ctx.load_texture("image", color_image, Default::default()))
     }
 
-    pub(crate) fn mesh_with_uv(&self, screen_position: Vec2, tile_size: f64, uv: Rect) -> Mesh {
+    pub(crate) fn mesh_with_uv(&self, screen_position: Pos2, tile_size: f64, uv: Rect) -> Mesh {
         self.mesh_with_rect_and_uv(rect(screen_position, tile_size), uv)
     }
 
     pub(crate) fn mesh_with_rect_and_uv(&self, rect: Rect, uv: Rect) -> Mesh {
         let mut mesh = Mesh::with_texture(self.0.id());
         mesh.add_rect_with_uv(rect, uv, Color32::WHITE);
+        mesh
+    }
+
+    pub(crate) fn size(&self) -> Vec2 {
+        self.0.size_vec2()
+    }
+
+    pub(crate) fn mesh_with_rect(&self, rect: Rect) -> Mesh {
+        let mut mesh = Mesh::with_texture(self.0.id());
+        mesh.add_rect_with_uv(
+            rect,
+            Rect::from_min_max(pos2(0., 0.0), pos2(1.0, 1.0)),
+            Color32::WHITE,
+        );
         mesh
     }
 }
@@ -294,7 +308,7 @@ pub(crate) fn flood_fill_tiles(
     let corrected_tile_size = tiles.tile_size() as f64 * 2f64.powf(zoom - zoom.round());
     let tile_projected = tile_id.project(corrected_tile_size);
     let tile_screen_position =
-        viewport.center().to_vec2() + (tile_projected - map_center_projected_position).into();
+        viewport.center() + (tile_projected - map_center_projected_position).into();
 
     if viewport.intersects(rect(tile_screen_position, corrected_tile_size)) {
         if let Entry::Vacant(entry) = meshes.entry(tile_id) {

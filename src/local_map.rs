@@ -2,8 +2,9 @@ use egui::{PointerButton, Response, Sense, Ui, UiBuilder, Vec2, Widget};
 
 use crate::{
     center::Center,
+    projector::{LocalProjector, Projector},
     units::{AdjustedPosition, Position},
-    LocalProjector, MapMemory, Plugin, Projector,
+    MapMemory, Plugin,
 };
 
 /// Actual map widget, but with a blank map and in arbitrary coordinates. Instances
@@ -11,9 +12,9 @@ use crate::{
 pub struct LocalMap<'a, 'b> {
     memory: &'a mut MapMemory,
     my_position: Position,
-    plugins: Vec<Box<dyn Plugin<LocalProjector> + 'b>>,
+    plugins: Vec<Box<dyn Plugin + 'b>>,
 
-    projector: LocalProjector,
+    projector: Projector,
     zoom_gesture_enabled: bool,
     drag_gesture_enabled: bool,
     zoom_speed: f64,
@@ -24,7 +25,7 @@ pub struct LocalMap<'a, 'b> {
 
 impl<'a, 'b> LocalMap<'a, 'b> {
     pub fn new(memory: &'a mut MapMemory, my_position: Position) -> Self {
-        let projector = LocalProjector::new(egui::Rect::NOTHING, memory, my_position);
+        let projector = Projector::Local(LocalProjector::new(memory, my_position));
         Self {
             memory,
             my_position,
@@ -39,7 +40,7 @@ impl<'a, 'b> LocalMap<'a, 'b> {
         }
     }
 
-    pub fn with_plugin(mut self, plugin: impl Plugin<LocalProjector> + 'b) -> Self {
+    pub fn with_plugin(mut self, plugin: impl Plugin + 'b) -> Self {
         self.plugins.push(Box::new(plugin));
         self
     }
@@ -176,7 +177,7 @@ impl Widget for LocalMap<'_, '_> {
     fn ui(mut self, ui: &mut Ui) -> Response {
         let (rect, mut response) =
             ui.allocate_exact_size(ui.available_size(), Sense::click_and_drag());
-        self.projector.clip_rect = rect;
+        self.projector.set_clip_rect(rect);
 
         let mut moved = self.handle_gestures(ui, &response);
         moved |= self.memory.center_mode.update_movement();

@@ -14,10 +14,10 @@ impl TileSource for OpenStreetMap {
 
     fn attribution(&self) -> Attribution {
         Attribution {
-            text: "OpenStreetMap contributors",
+            text: "© OpenStreetMap contributors",
             url: "https://www.openstreetmap.org/copyright",
-            logo_light: None,
-            logo_dark: None,
+            logo_light: Some(egui::include_image!("../../assets/mapbox-logo-white.svg")),
+            logo_dark: Some(egui::include_image!("../../assets/mapbox-logo-black.svg")),
         }
     }
 }

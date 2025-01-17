@@ -3,10 +3,10 @@ use egui::{PointerButton, Response, Sense, Ui, UiBuilder, Vec2, Widget};
 use crate::{
     center::Center,
     map_memory::MapMemory,
-    projector::Projector,
+    projector::{GlobalProjector, Projector},
     tiles::flood_fill_tiles,
     units::{AdjustedPosition, Position},
-    GlobalProjector, Plugin, Tiles,
+    Plugin, Tiles,
 };
 
 /// The actual map widget. Instances are to be created on each frame, as all necessary state is
@@ -16,8 +16,8 @@ pub struct Map<'a, 'b, 'c> {
     memory: &'a mut MapMemory,
     my_position: Position,
 
-    projector: GlobalProjector,
-    plugins: Vec<Box<dyn Plugin<GlobalProjector> + 'c>>,
+    projector: Projector,
+    plugins: Vec<Box<dyn Plugin + 'c>>,
     zoom_gesture_enabled: bool,
     drag_gesture_enabled: bool,
     zoom_speed: f64,
@@ -32,7 +32,7 @@ impl<'a, 'b, 'c> Map<'a, 'b, 'c> {
         memory: &'a mut MapMemory,
         my_position: Position,
     ) -> Self {
-        let projector = GlobalProjector::new(egui::Rect::NOTHING, memory, my_position);
+        let projector = Projector::Global(GlobalProjector::new(memory, my_position));
 
         Self {
             tiles,
@@ -50,7 +50,7 @@ impl<'a, 'b, 'c> Map<'a, 'b, 'c> {
     }
 
     /// Add plugin to the drawing pipeline. Plugins allow drawing custom shapes on the map.
-    pub fn with_plugin(mut self, plugin: impl Plugin<GlobalProjector> + 'c) -> Self {
+    pub fn with_plugin(mut self, plugin: impl Plugin + 'c) -> Self {
         self.plugins.push(Box::new(plugin));
         self
     }
@@ -205,7 +205,7 @@ impl Widget for Map<'_, '_, '_> {
     fn ui(mut self, ui: &mut Ui) -> Response {
         let (rect, mut response) =
             ui.allocate_exact_size(ui.available_size(), Sense::click_and_drag());
-        self.projector.clip_rect = rect;
+        self.projector.set_clip_rect(rect);
 
         let mut moved = self.handle_gestures(ui, &response);
         moved |= self.memory.center_mode.update_movement();
@@ -226,8 +226,10 @@ impl Widget for Map<'_, '_, '_> {
             let mut meshes = Default::default();
             flood_fill_tiles(
                 painter.clip_rect(),
-                map_center.tile_id(zoom.round(), tiles.tile_size()),
-                self.projector.project(map_center),
+                self.projector
+                    .tile_id(map_center, zoom.round(), tiles.tile_size())
+                    .unwrap(),
+                self.projector.pixel_project(map_center),
                 zoom.into(),
                 tiles,
                 &mut meshes,

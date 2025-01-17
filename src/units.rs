@@ -1,9 +1,7 @@
 use std::ops::{Add, Sub};
 
-use crate::{tiles::TileId, GlobalProjector};
-
-/// Geographical position with latitude and longitude.
-#[derive(Debug, Clone, Copy, PartialEq)]
+/// Position in some coordinates, either latitude and longitude or local projected coordinate system.
+#[derive(Debug, Clone, Copy, Default)]
 pub struct Position(geo_types::Point);
 
 impl Position {
@@ -38,26 +36,7 @@ impl Position {
     pub fn lon(&self) -> f64 {
         self.0.x()
     }
-
-    /// Tile this position is on, only relevant for Global map
-    pub(crate) fn tile_id(&self, mut zoom: u8, source_tile_size: u32) -> TileId {
-        let (x, y) = GlobalProjector::mercator_normalized(*self);
-
-        // Some sources provide larger tiles, effectively bundling e.g. 4 256px tiles in one
-        // 512px one. Walkers uses 256px internally, so we need to adjust the zoom level.
-        zoom -= (source_tile_size as f64 / TILE_SIZE as f64).log2() as u8;
-
-        // Map that into a big bitmap made out of web tiles.
-        let number_of_tiles = 2u32.pow(zoom as u32) as f64;
-        let x = (x * number_of_tiles).floor() as u32;
-        let y = (y * number_of_tiles).floor() as u32;
-
-        TileId { x, y, zoom }
-    }
 }
-
-/// Size of a single tile in pixels. Walkers uses 256px tiles as most of the tile sources do.
-const TILE_SIZE: u32 = 256;
 
 impl From<geo_types::Point> for Position {
     fn from(value: geo_types::Point) -> Self {
@@ -72,20 +51,26 @@ impl From<Position> for geo_types::Point {
 }
 
 /// Location projected on the screen or an abstract bitmap.
-#[derive(Clone, Copy, Debug, Default, PartialEq)]
-pub struct Pixel(geo_types::Point);
+#[derive(Clone, Copy, Debug, Default)]
+pub(crate) struct Pixel(geo_types::Point);
 
 impl Pixel {
-    pub fn new(x: f64, y: f64) -> Pixel {
+    pub(crate) fn new(x: f64, y: f64) -> Pixel {
         Pixel(geo_types::Point::new(x, y))
     }
 
-    pub fn x(&self) -> f64 {
+    pub(crate) fn x(&self) -> f64 {
         self.0.x()
     }
 
-    pub fn y(&self) -> f64 {
+    pub(crate) fn y(&self) -> f64 {
         self.0.y()
+    }
+}
+
+impl From<egui::Pos2> for Pixel {
+    fn from(value: egui::Pos2) -> Self {
+        Pixel::new(value.x as f64, value.y as f64)
     }
 }
 
@@ -98,6 +83,22 @@ impl From<egui::Vec2> for Pixel {
 impl From<Pixel> for egui::Vec2 {
     fn from(val: Pixel) -> Self {
         egui::Vec2::new(val.x() as f32, val.y() as f32)
+    }
+}
+
+impl Add<egui::Vec2> for Pixel {
+    type Output = Self;
+
+    fn add(self, rhs: egui::Vec2) -> Self::Output {
+        Self::new(self.x() + rhs.x as f64, self.y() + rhs.y as f64)
+    }
+}
+
+impl Sub<egui::Vec2> for Pixel {
+    type Output = Self;
+
+    fn sub(self, rhs: egui::Vec2) -> Self::Output {
+        Self::new(self.x() - rhs.x as f64, self.y() - rhs.y as f64)
     }
 }
 
@@ -119,13 +120,13 @@ impl Sub for Pixel {
 
 /// [`Position`] alone is not able to represent detached (e.g. after map gets dragged) position
 /// due to insufficient accuracy.
-#[derive(Debug, Clone, PartialEq)]
-pub struct AdjustedPosition {
+#[derive(Debug, Clone)]
+pub(crate) struct AdjustedPosition {
     /// Base geographical position.
-    pub position: Position,
+    pub(crate) position: Position,
 
     /// Offset in pixels.
-    pub offset: Pixel,
+    pub(crate) offset: Pixel,
 }
 
 impl AdjustedPosition {
@@ -136,7 +137,7 @@ impl AdjustedPosition {
     pub(crate) fn shift(self, shift: egui::Vec2) -> Self {
         Self {
             position: self.position,
-            offset: self.offset + shift.into(),
+            offset: self.offset + shift,
         }
     }
 }
