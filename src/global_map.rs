@@ -3,10 +3,10 @@ use egui::{PointerButton, Response, Sense, Ui, UiBuilder, Vec2, Widget};
 use crate::{
     center::Center,
     map_memory::MapMemory,
-    projector::{GlobalProjector, Projector},
+    projector::{GlobalProjector, Projector, ProjectorTrait},
     tiles::flood_fill_tiles,
     units::{AdjustedPosition, Position},
-    Plugin, Tiles,
+    InvalidZoom, Plugin, Tiles,
 };
 
 /// The actual map widget. Instances are to be created on each frame, as all necessary state is
@@ -101,6 +101,40 @@ impl<'a, 'b, 'c> Map<'a, 'b, 'c> {
     pub fn zoom_with_ctrl(mut self, enabled: bool) -> Self {
         self.zoom_with_ctrl = enabled;
         self
+    }
+
+    pub fn zoom(&self) -> f64 {
+        self.memory.zoom()
+    }
+
+    pub fn zoom_in(&mut self) -> Result<(), InvalidZoom> {
+        self.memory.zoom_in(&self.projector)
+    }
+
+    /// Try to zoom out, returning `Err(InvalidZoom)` if already at minimum.
+    pub fn zoom_out(&mut self) -> Result<(), InvalidZoom> {
+        self.memory.zoom_out(&self.projector)
+    }
+
+    /// Set exact zoom level
+    pub fn set_zoom(&mut self, zoom: f64) -> Result<(), InvalidZoom> {
+        self.memory.set_zoom(zoom, &self.projector)
+    }
+
+    /// Returns exact position if map is detached (i.e. not following `my_position`),
+    /// `None` otherwise.
+    pub fn detached(&self) -> Option<Position> {
+        self.memory.detached(&self.projector)
+    }
+
+    /// Center exactly at the given position.
+    pub fn center_at(&mut self, pos: Position) {
+        self.memory.center_at(pos);
+    }
+
+    /// Follow `my_position`.
+    pub fn follow_my_position(&mut self) {
+        self.memory.follow_my_position();
     }
 }
 
@@ -229,7 +263,7 @@ impl Widget for Map<'_, '_, '_> {
                 self.projector
                     .tile_id(map_center, zoom.round(), tiles.tile_size())
                     .unwrap(),
-                self.projector.pixel_project(map_center),
+                self.projector.bitmap_project(map_center),
                 zoom.into(),
                 tiles,
                 &mut meshes,

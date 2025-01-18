@@ -52,7 +52,7 @@ impl From<Position> for geo_types::Point {
 
 /// Location projected on the screen or an abstract bitmap.
 #[derive(Clone, Copy, Debug, Default)]
-pub(crate) struct Pixel(geo_types::Point);
+pub struct Pixel(geo_types::Point);
 
 impl Pixel {
     pub(crate) fn new(x: f64, y: f64) -> Pixel {
@@ -71,6 +71,12 @@ impl Pixel {
 impl From<egui::Pos2> for Pixel {
     fn from(value: egui::Pos2) -> Self {
         Pixel::new(value.x as f64, value.y as f64)
+    }
+}
+
+impl From<Pixel> for egui::Pos2 {
+    fn from(val: Pixel) -> Self {
+        egui::Pos2::new(val.x() as f32, val.y() as f32)
     }
 }
 

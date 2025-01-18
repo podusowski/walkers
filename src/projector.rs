@@ -15,102 +15,105 @@ pub enum Projector {
     Local(LocalProjector),
 }
 
-// distribute the function call to the correct projector version
 impl Projector {
     /// get the local scale of the map at this position
     pub fn scale_pixel_per_meter(&self, position: Position) -> f32 {
         match self {
-            Projector::Global(global_projector) => global_projector.scale_pixel_per_meter(position),
-            Projector::Local(local_projector) => local_projector.scale_pixel_per_meter(position),
+            Projector::Global(global_projector) => {
+                const EARTH_CIRCUMFERENCE: f64 = 40_075_016.686;
+
+                // Number of pixels for width of world at this zoom level
+                let total_pixels = total_pixels(global_projector.memory.zoom());
+
+                let pixel_per_meter_equator = total_pixels / EARTH_CIRCUMFERENCE;
+                let latitude_rad = position.lat().abs().to_radians();
+                (pixel_per_meter_equator / latitude_rad.cos()) as f32
+            }
+            Projector::Local(local_projector) => {
+                LocalProjector::units_per_point(local_projector.memory.zoom()) as f32
+            }
         }
     }
 
     /// project the position to screen coordinates
     pub fn project(&self, position: Position) -> egui::Pos2 {
-        match self {
-            Projector::Global(global_projector) => global_projector.project(position),
-            Projector::Local(local_projector) => local_projector.project(position),
-        }
+        let pos = self.bitmap_project(position);
+        self.bitmap_to_screen(pos)
     }
 
     /// unproject the screen coordinates to a position
     pub fn unproject(&self, pixel: egui::Pos2) -> Position {
-        match self {
-            Projector::Global(global_projector) => global_projector.unproject(pixel),
-            Projector::Local(local_projector) => local_projector.unproject(pixel),
-        }
+        let pos = self.bitmap_from_screen(pixel);
+        self.bitmap_unproject(pos)
     }
+}
 
-    pub(crate) fn set_clip_rect(&mut self, rect: egui::Rect) {
+// distribute the function call to the correct projector version
+impl ProjectorTrait for Projector {
+    fn set_clip_rect(&mut self, rect: egui::Rect) {
         match self {
             Projector::Global(global_projector) => global_projector.set_clip_rect(rect),
             Projector::Local(local_projector) => local_projector.set_clip_rect(rect),
         }
     }
 
-    pub(crate) fn tile_id(&self, pos: Position, zoom: u8, tile_size: u32) -> Option<TileId> {
+    fn tile_id(&self, pos: Position, zoom: u8, tile_size: u32) -> Option<TileId> {
         match self {
             Projector::Global(global_projector) => global_projector.tile_id(pos, zoom, tile_size),
             Projector::Local(local_projector) => local_projector.tile_id(pos, zoom, tile_size),
         }
     }
 
-    pub(crate) fn position(&self, adjusted_pos: AdjustedPosition) -> Position {
+    fn position(&self, adjusted_pos: AdjustedPosition) -> Position {
         match self {
             Projector::Global(global_projector) => global_projector.position(adjusted_pos),
             Projector::Local(local_projector) => local_projector.position(adjusted_pos),
         }
     }
 
-    pub(crate) fn zero_offset(&self, adjusted_pos: AdjustedPosition) -> AdjustedPosition {
+    fn zero_offset(&self, adjusted_pos: AdjustedPosition) -> AdjustedPosition {
         match &self {
             Projector::Global(global_projector) => global_projector.zero_offset(adjusted_pos),
             Projector::Local(local_projector) => local_projector.zero_offset(adjusted_pos),
         }
     }
 
-    fn to_screen_coords(&self, pixel: Pixel) -> egui::Pos2 {
+    fn bitmap_project(&self, position: Position) -> Pixel {
         match self {
-            Projector::Global(global_projector) => global_projector.to_screen_coords(pixel),
-            Projector::Local(local_projector) => local_projector.to_screen_coords(pixel),
+            Projector::Global(global_projector) => global_projector.bitmap_project(position),
+            Projector::Local(local_projector) => local_projector.bitmap_project(position),
         }
     }
 
-    fn from_screen_coords(&self, screen_pos: egui::Pos2) -> Pixel {
+    fn bitmap_unproject(&self, pos: Pixel) -> Position {
         match self {
-            Projector::Global(global_projector) => global_projector.from_screen_coords(screen_pos),
-            Projector::Local(local_projector) => local_projector.from_screen_coords(screen_pos),
+            Projector::Global(global_projector) => global_projector.bitmap_unproject(pos),
+            Projector::Local(local_projector) => local_projector.bitmap_unproject(pos),
         }
     }
 
-    fn pixel_project(&self, pos: Position) -> Pixel {
+    fn bitmap_to_screen(&self, pos: Pixel) -> egui::Pos2 {
         match self {
-            Projector::Global(global_projector) => global_projector.pixel_project(pos),
-            Projector::Local(local_projector) => local_projector.pixel_project(pos),
+            Projector::Global(global_projector) => global_projector.bitmap_to_screen(pos),
+            Projector::Local(local_projector) => local_projector.bitmap_to_screen(pos),
         }
     }
 
-    fn pixel_unproject(&self, pixel: Pixel) -> Position {
+    fn bitmap_from_screen(&self, pos: egui::Pos2) -> Pixel {
         match self {
-            Projector::Global(global_projector) => global_projector.pixel_unproject(pixel),
-            Projector::Local(local_projector) => local_projector.pixel_unproject(pixel),
+            Projector::Global(global_projector) => global_projector.bitmap_from_screen(pos),
+            Projector::Local(local_projector) => local_projector.bitmap_from_screen(pos),
         }
     }
 }
 
 pub(crate) trait ProjectorTrait {
-    // exposed through Projector enum
-    // get the scale of the map a given position
-    fn scale_pixel_per_meter(&self, position: Position) -> f32;
-    fn project(&self, position: Position) -> egui::Pos2;
-    fn unproject(&self, pixel: egui::Pos2) -> Position;
-
     // used within crate
     fn tile_id(&self, pos: Position, zoom: u8, tile_size: u32) -> Option<TileId>;
     fn set_clip_rect(&mut self, rect: egui::Rect);
 
     fn position(&self, adjusted_pos: AdjustedPosition) -> Position {
-        self.pixel_unproject(self.pixel_project(adjusted_pos.position) - adjusted_pos.offset)
+        self.bitmap_unproject(self.bitmap_project(adjusted_pos.position) - adjusted_pos.offset)
     }
     //
     fn zero_offset(&self, adjusted_pos: AdjustedPosition) -> AdjustedPosition {
@@ -119,15 +122,15 @@ pub(crate) trait ProjectorTrait {
             offset: Default::default(),
         }
     }
-    // helpers
-    fn to_screen_coords(&self, pos: Pixel) -> egui::Pos2;
-    fn from_screen_coords(&self, screen_pos: egui::Pos2) -> Pixel;
-    fn pixel_project(&self, pos: Position) -> Pixel;
-    fn pixel_unproject(&self, pixel: Pixel) -> Position;
+
+    fn bitmap_project(&self, position: Position) -> Pixel;
+    fn bitmap_unproject(&self, pos: Pixel) -> Position;
+    fn bitmap_to_screen(&self, pos: Pixel) -> egui::Pos2;
+    fn bitmap_from_screen(&self, pos: egui::Pos2) -> Pixel;
 }
 
 #[derive(Clone)]
-pub(crate) struct LocalProjector {
+pub struct LocalProjector {
     pub(crate) clip_rect: egui::Rect,
     pub(crate) memory: MapMemory,
     pub(crate) my_position: Position,
@@ -148,31 +151,6 @@ impl LocalProjector {
 }
 
 impl ProjectorTrait for LocalProjector {
-    fn scale_pixel_per_meter(&self, _position: Position) -> f32 {
-        Self::units_per_point(self.memory.zoom()) as f32
-    }
-
-    fn project(&self, position: Position) -> egui::Pos2 {
-        let zoom = self.memory.zoom();
-        let units_per_point = Self::units_per_point(zoom);
-
-        Pixel::new(
-            position.x() / units_per_point,
-            position.y() / units_per_point,
-        )
-    }
-
-    fn unproject(&self, position: egui::Pos2) -> Position {
-        // local pixel units
-        let zoom = self.memory.zoom();
-        let units_per_point = Self::units_per_point(zoom);
-
-        Position::new(
-            position.x() * units_per_point,
-            position.y() * units_per_point,
-        )
-    }
-
     fn set_clip_rect(&mut self, rect: egui::Rect) {
         self.clip_rect = rect;
     }
@@ -181,29 +159,33 @@ impl ProjectorTrait for LocalProjector {
         None
     }
 
-    /// projects local coords into screen coords
-    fn to_screen_coords(&self, pos: Pixel) -> egui::Pos2 {
+    fn bitmap_project(&self, position: Position) -> Pixel {
+        let units_per_point = Self::units_per_point(self.memory.zoom());
+
+        Pixel::new(
+            position.x() / units_per_point,
+            -position.y() / units_per_point,
+        )
+    }
+
+    fn bitmap_unproject(&self, pos: Pixel) -> Position {
+        let units_per_point = Self::units_per_point(self.memory.zoom());
+
+        Position::new(pos.x() * units_per_point, -pos.y() * units_per_point)
+    }
+
+    fn bitmap_to_screen(&self, pos: Pixel) -> egui::Pos2 {
         let map_center_projected_position =
-            self.project(self.memory.center_mode.position(self.my_position, self));
+            self.bitmap_project(self.memory.center_mode.position(self.my_position, self));
 
-        // From the two points above we can calculate the actual point on the screen.
-        self.clip_rect.center() + (pos - map_center_projected_position).into()
+        egui::Pos2::from(pos - map_center_projected_position) + self.clip_rect.center().to_vec2()
     }
 
-    /// projects local coords into flat mercator projection
-    fn from_screen_coords(&self, pos: egui::Pos2) -> Pixel {
+    fn bitmap_from_screen(&self, pos: egui::Pos2) -> Pixel {
         let map_center_projected_position =
-            self.project(self.memory.center_mode.position(self.my_position, self));
+            self.bitmap_project(self.memory.center_mode.position(self.my_position, self));
 
-        map_center_projected_position + (pos - self.clip_rect.center()).into()
-    }
-
-    fn pixel_project(&self, pos: Position) -> Pixel {
-        todo!()
-    }
-
-    fn pixel_unproject(&self, pixel: Pixel) -> Position {
-        todo!()
+        map_center_projected_position + (pos - self.clip_rect.center())
     }
 }
 
@@ -223,7 +205,7 @@ pub(crate) fn total_pixels(zoom: f64) -> f64 {
 /// <https://wiki.openstreetmap.org/wiki/Slippy_map_tilenames>
 /// <https://www.netzwolf.info/osm/tilebrowser.html?lat=51.157800&lon=6.865500&zoom=14>
 #[derive(Clone)]
-pub(crate) struct GlobalProjector {
+pub struct GlobalProjector {
     pub(crate) clip_rect: egui::Rect,
     pub(crate) memory: MapMemory,
     pub(crate) my_position: Position,
@@ -251,62 +233,6 @@ impl GlobalProjector {
 }
 
 impl ProjectorTrait for GlobalProjector {
-    /// What is the scale of the map at the provided position and
-    /// given the current zoom level?
-    fn scale_pixel_per_meter(&self, position: Position) -> f32 {
-        const EARTH_CIRCUMFERENCE: f64 = 40_075_016.686;
-
-        // Number of pixels for width of world at this zoom level
-        let total_pixels = total_pixels(self.memory.zoom());
-
-        let pixel_per_meter_equator = total_pixels / EARTH_CIRCUMFERENCE;
-        let latitude_rad = position.lat().abs().to_radians();
-        (pixel_per_meter_equator / latitude_rad.cos()) as f32
-    }
-
-    /// projects lat lon into a flat mercator projection
-    fn project(&self, position: Position) -> egui::Pos2 {
-        let zoom = self.memory.zoom();
-
-        let total_pixels = total_pixels(zoom);
-
-        // Turn that into a flat, mercator projection.
-        let (x, y) = Self::mercator_normalized(position);
-
-        Pixel::new(x * total_pixels, y * total_pixels)
-    }
-
-    /// unprojects flat mercator into lat lon
-    fn unproject(&self, screen_pos: egui::Pos2) -> Position {
-        let zoom = self.memory.zoom();
-        let map_center = self.memory.center_mode.position(self.my_position, self);
-
-        self.position(
-            AdjustedPosition {
-                position: map_center,
-                offset: Default::default(),
-            }
-            .shift(-screen_pos.to_vec2()),
-        )
-
-        /*
-        // for pixel
-        let number_of_pixels: f64 = 2f64.powf(self.memory.zoom()) * (crate::TILE_SIZE as f64);
-
-        let lon = screen_pos.x as f64;
-        let lon = lon / number_of_pixels;
-        let lon = (lon * 2. - 1.) * PI;
-        let lon = lon.to_degrees();
-
-        let lat = screen_pos.y as f64;
-        let lat = lat / number_of_pixels;
-        let lat = (-lat * 2. + 1.) * PI;
-        let lat = lat.sinh().atan().to_degrees();
-
-        Position::from_lon_lat(lon, lat)
-        */
-    }
-
     fn set_clip_rect(&mut self, rect: egui::Rect) {
         self.clip_rect = rect;
     }
@@ -316,7 +242,7 @@ impl ProjectorTrait for GlobalProjector {
 
         // Some sources provide larger tiles, effectively bundling e.g. 4 256px tiles in one
         // 512px one. Walkers uses 256px internally, so we need to adjust the zoom level.
-        zoom -= (source_tile_size as f64 / TILE_SIZE as f64).log2() as u8;
+        zoom -= (source_tile_size as f64 / crate::TILE_SIZE as f64).log2() as u8;
 
         // Map that into a big bitmap made out of web tiles.
         let number_of_tiles = 2u32.pow(zoom as u32) as f64;
@@ -326,28 +252,40 @@ impl ProjectorTrait for GlobalProjector {
         Some(TileId { x, y, zoom })
     }
 
-    /// projects flat mercator projection into screen coords
-    fn to_screen_coords(&self, pos: Pixel) -> egui::Pos2 {
+    fn bitmap_to_screen(&self, pos: Pixel) -> egui::Pos2 {
         let map_center_projected_position =
-            self.project(self.memory.center_mode.position(self.my_position, self));
+            self.bitmap_project(self.memory.center_mode.position(self.my_position, self));
 
-        // From the two points above we can calculate the actual point on the screen.
-        self.clip_rect.center().to_vec2() + (pos - map_center_projected_position).into()
+        egui::Pos2::from(pos - map_center_projected_position) + self.clip_rect.center().to_vec2()
     }
 
-    /// projects screen coords into flat mercator projection
-    fn from_screen_coords(&self, pos: egui::Pos2) -> Pixel {
+    fn bitmap_from_screen(&self, pos: egui::Pos2) -> Pixel {
         let map_center_projected_position =
-            self.project(self.memory.center_mode.position(self.my_position, self));
+            self.bitmap_project(self.memory.center_mode.position(self.my_position, self));
 
-        map_center_projected_position + (pos - self.clip_rect.center().to_vec2()).into()
+        map_center_projected_position + (pos - self.clip_rect.center())
     }
 
-    fn pixel_project(&self, pos: Position) -> Pixel {
-        todo!()
+    fn bitmap_project(&self, position: Position) -> Pixel {
+        let (x, y) = Self::mercator_normalized(position);
+        let total_pixels = total_pixels(self.memory.zoom());
+
+        Pixel::new(x * total_pixels, y * total_pixels)
     }
 
-    fn pixel_unproject(&self, pixel: Pixel) -> Position {
-        todo!()
+    fn bitmap_unproject(&self, pos: Pixel) -> Position {
+        let number_of_pixels: f64 = 2f64.powf(self.memory.zoom()) * (crate::TILE_SIZE as f64);
+
+        let lon = pos.x();
+        let lon = lon / number_of_pixels;
+        let lon = (lon * 2. - 1.) * PI;
+        let lon = lon.to_degrees();
+
+        let lat = pos.y();
+        let lat = lat / number_of_pixels;
+        let lat = (-lat * 2. + 1.) * PI;
+        let lat = lat.sinh().atan().to_degrees();
+
+        Position::from_lon_lat(lon, lat)
     }
 }
