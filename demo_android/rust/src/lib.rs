@@ -13,9 +13,7 @@ fn android_main(
     );
     let mut options = NativeOptions::default();
     options.renderer = Renderer::Wgpu;
-    options.event_loop_builder = Some(Box::new(move |builder| {
-        builder.with_android_app(app);
-    }));
+    options.android_app = Some(app);
     eframe::run_native(
         "Walkers",
         options,
