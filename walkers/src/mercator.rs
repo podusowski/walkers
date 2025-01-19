@@ -131,11 +131,7 @@ impl TileId {
     }
 
     pub fn east(&self) -> Option<TileId> {
-        if self.x == total_tiles(self.zoom) - 1 {
-            return None;
-        }
-
-        Some(TileId {
+        (self.x < total_tiles(self.zoom) - 1).then_some(TileId {
             x: self.x + 1,
             y: self.y,
             zoom: self.zoom,
@@ -159,11 +155,7 @@ impl TileId {
     }
 
     pub fn south(&self) -> Option<TileId> {
-        if self.y == total_tiles(self.zoom) - 1 {
-            return None;
-        }
-
-        Some(TileId {
+        (self.y < total_tiles(self.zoom) - 1).then_some(TileId {
             x: self.x,
             y: self.y + 1,
             zoom: self.zoom,
