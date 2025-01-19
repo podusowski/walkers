@@ -245,15 +245,43 @@ mod tests {
     #[test]
     fn tile_id_cannot_go_beyond_limits() {
         // There is only one tile at zoom 0.
-        assert!(TileId { x: 0, y: 0, zoom: 0 }.west().is_none());
-        assert!(TileId { x: 0, y: 0, zoom: 0 }.north().is_none());
-        assert!(TileId { x: 0, y: 0, zoom: 0 }.south().is_some());
-        assert!(TileId { x: 0, y: 0, zoom: 0 }.east().is_some());
+        let tile_id = TileId {
+            x: 0,
+            y: 0,
+            zoom: 0,
+        };
+
+        assert!(tile_id.west().is_none());
+        assert!(tile_id.north().is_none());
+        assert!(tile_id.south().is_some());
+        assert!(tile_id.east().is_some());
 
         // There are 2 tiles at zoom 1.
-        assert_eq!(TileId { x: 0, y: 0, zoom: 1 }.west(), Some(TileId { x: 1, y: 0, zoom: 1 }));
-        assert!(TileId { x: 0, y: 0, zoom: 1 }.north().is_none());
-        assert_eq!(TileId { x: 0, y: 0, zoom: 1 }.south(), Some(TileId { x: 0, y: 1, zoom: 1 }));
-        assert!(TileId { x: 0, y: 0, zoom: 1 }.east().is_none());
+        let tile_id = TileId {
+            x: 0,
+            y: 0,
+            zoom: 1,
+        };
+
+        assert_eq!(
+            tile_id.west(),
+            Some(TileId {
+                x: 1,
+                y: 0,
+                zoom: 1
+            })
+        );
+
+        assert_eq!(
+            tile_id.south(),
+            Some(TileId {
+                x: 0,
+                y: 1,
+                zoom: 1
+            })
+        );
+
+        assert!(tile_id.east().is_none());
+        assert!(tile_id.north().is_none());
     }
 }
