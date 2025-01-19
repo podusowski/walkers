@@ -4,7 +4,6 @@ fn android_main(
     app: egui_winit::winit::platform::android::activity::AndroidApp,
 ) -> Result<(), Box<dyn std::error::Error>> {
     use eframe::{NativeOptions, Renderer};
-    use egui_winit::winit::platform::android::EventLoopBuilderExtAndroid;
 
     android_logger::init_once(
         android_logger::Config::default()
