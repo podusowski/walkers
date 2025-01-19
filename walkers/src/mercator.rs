@@ -241,4 +241,19 @@ mod tests {
         approx::assert_relative_eq!(original.lon(), brought_back.lon());
         approx::assert_relative_eq!(original.lat(), brought_back.lat());
     }
+
+    #[test]
+    fn tile_id_cannot_go_beyond_limits() {
+        // There is only one tile at zoom 0.
+        assert!(TileId { x: 0, y: 0, zoom: 0 }.west().is_none());
+        assert!(TileId { x: 0, y: 0, zoom: 0 }.north().is_none());
+        assert!(TileId { x: 0, y: 0, zoom: 0 }.south().is_some());
+        assert!(TileId { x: 0, y: 0, zoom: 0 }.east().is_some());
+
+        // There are 2 tiles at zoom 1.
+        assert_eq!(TileId { x: 0, y: 0, zoom: 1 }.west(), Some(TileId { x: 1, y: 0, zoom: 1 }));
+        assert!(TileId { x: 0, y: 0, zoom: 1 }.north().is_none());
+        assert_eq!(TileId { x: 0, y: 0, zoom: 1 }.south(), Some(TileId { x: 0, y: 1, zoom: 1 }));
+        assert!(TileId { x: 0, y: 0, zoom: 1 }.east().is_none());
+    }
 }
