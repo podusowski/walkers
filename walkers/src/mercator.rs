@@ -63,6 +63,10 @@ pub(crate) fn total_pixels(zoom: f64) -> f64 {
     2f64.powf(zoom) * (TILE_SIZE as f64)
 }
 
+pub fn total_tiles(zoom: u8) -> u32 {
+    2u32.pow(zoom as u32)
+}
+
 /// Size of a single tile in pixels. Walkers uses 256px tiles as most of the tile sources do.
 const TILE_SIZE: u32 = 256;
 
@@ -127,7 +131,7 @@ impl TileId {
     }
 
     pub fn east(&self) -> Option<TileId> {
-        Some(TileId {
+        (self.x < total_tiles(self.zoom) - 1).then_some(TileId {
             x: self.x + 1,
             y: self.y,
             zoom: self.zoom,
@@ -151,7 +155,7 @@ impl TileId {
     }
 
     pub fn south(&self) -> Option<TileId> {
-        Some(TileId {
+        (self.y < total_tiles(self.zoom) - 1).then_some(TileId {
             x: self.x,
             y: self.y + 1,
             zoom: self.zoom,
@@ -240,5 +244,48 @@ mod tests {
 
         approx::assert_relative_eq!(original.lon(), brought_back.lon());
         approx::assert_relative_eq!(original.lat(), brought_back.lat());
+    }
+
+    #[test]
+    fn tile_id_cannot_go_beyond_limits() {
+        // There is only one tile at zoom 0.
+        let tile_id = TileId {
+            x: 0,
+            y: 0,
+            zoom: 0,
+        };
+
+        assert_eq!(tile_id.west(), None);
+        assert_eq!(tile_id.north(), None);
+        assert_eq!(tile_id.south(), None);
+        assert_eq!(tile_id.east(), None);
+
+        // There are 2 tiles at zoom 1.
+        let tile_id = TileId {
+            x: 0,
+            y: 0,
+            zoom: 1,
+        };
+
+        assert_eq!(tile_id.west(), None);
+        assert_eq!(tile_id.north(), None);
+
+        assert_eq!(
+            tile_id.south(),
+            Some(TileId {
+                x: 0,
+                y: 1,
+                zoom: 1
+            })
+        );
+
+        assert_eq!(
+            tile_id.east(),
+            Some(TileId {
+                x: 1,
+                y: 0,
+                zoom: 1
+            })
+        );
     }
 }

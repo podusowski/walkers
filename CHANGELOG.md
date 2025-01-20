@@ -2,6 +2,10 @@
 
 All notable changes to this project will be documented in this file.
 
+## Unreleased
+
+* Do not try to download tiles with invalid coordinates.
+
 ## 0.32.0
 
 * `egui` updated to 0.30.0.
