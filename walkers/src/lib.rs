@@ -13,6 +13,6 @@ mod zoom;
 
 pub use download::{HeaderValue, HttpOptions};
 pub use map::{Map, MapMemory, Plugin, Projector};
-pub use mercator::{screen_to_position, Position, TileId};
+pub use mercator::{lat_lon, lon_lat, screen_to_position, Position, TileId};
 pub use tiles::{HttpTiles, Texture, TextureWithUv, Tiles};
 pub use zoom::InvalidZoom;

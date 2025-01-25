@@ -13,18 +13,6 @@
 pub struct Position(geo_types::Point);
 
 impl Position {
-    /// Construct from latitude and longitude.
-    pub fn from_lat_lon(lat: f64, lon: f64) -> Self {
-        Self(geo_types::Point::new(lon, lat))
-    }
-
-    /// Construct from longitude and latitude. Note that it is common standard to write coordinates
-    /// starting with the latitude instead (e.g. `51.104465719934176, 17.075169894118684` is
-    /// the [Wrocław's zoo](https://zoo.wroclaw.pl/en/)).
-    pub fn from_lon_lat(lon: f64, lat: f64) -> Self {
-        Self(geo_types::Point::new(lon, lat))
-    }
-
     pub fn lat(&self) -> f64 {
         self.0.y()
     }
@@ -32,6 +20,18 @@ impl Position {
     pub fn lon(&self) -> f64 {
         self.0.x()
     }
+}
+
+/// Construct `Position` from latitude and longitude.
+pub fn lat_lon(lat: f64, lon: f64) -> Position {
+    geo_types::Point::new(lon, lat).into()
+}
+
+/// Construct `Position` from longitude and latitude. Note that it is common standard to write
+/// coordinates starting with the latitude instead (e.g. `51.104465719934176, 17.075169894118684` is
+/// the [Wrocław's zoo](https://zoo.wroclaw.pl/en/)).
+pub fn lon_lat(lon: f64, lat: f64) -> Position {
+    geo_types::Point::new(lon, lat).into()
 }
 
 /// Zoom specifies how many pixels are in the whole map. For example, zoom 0 means that the whole
@@ -177,7 +177,7 @@ pub fn screen_to_position(pixels: Pixels, zoom: f64) -> Position {
     let lat = (-lat * 2. + 1.) * PI;
     let lat = lat.sinh().atan().to_degrees();
 
-    Position::from_lon_lat(lon, lat)
+    lon_lat(lon, lat)
 }
 
 #[cfg(test)]
