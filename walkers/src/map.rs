@@ -31,13 +31,13 @@ pub trait Plugin {
 /// # Examples
 ///
 /// ```
-/// # use walkers::{Map, Tiles, MapMemory, Position};
+/// # use walkers::{Map, Tiles, MapMemory, Position, lon_lat};
 ///
 /// fn update(ui: &mut egui::Ui, tiles: &mut dyn Tiles, map_memory: &mut MapMemory) {
 ///     ui.add(Map::new(
 ///         Some(tiles), // `None`, if you don't want to show any tiles.
 ///         map_memory,
-///         Position::from_lon_lat(17.03664, 51.09916)
+///         lon_lat(17.03664, 51.09916)
 ///     ));
 /// }
 /// ```
