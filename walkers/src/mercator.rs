@@ -32,13 +32,6 @@ impl Position {
     pub fn lon(&self) -> f64 {
         self.0.x()
     }
-
-    /// Project geographical position into a 2D plane using Mercator.
-    pub(crate) fn project(&self, zoom: f64) -> Pixels {
-        let total_pixels = total_pixels(zoom);
-        let (x, y) = mercator_normalized(*self);
-        Pixels::new(x * total_pixels, y * total_pixels)
-    }
 }
 
 /// Zoom specifies how many pixels are in the whole map. For example, zoom 0 means that the whole
@@ -161,6 +154,13 @@ pub(crate) fn tile_id(position: Position, mut zoom: u8, source_tile_size: u32) -
     let y = (y * number_of_tiles).floor() as u32;
 
     TileId { x, y, zoom }
+}
+
+/// Project geographical position into a 2D plane using Mercator.
+pub(crate) fn project(position: Position, zoom: f64) -> Pixels {
+    let total_pixels = total_pixels(zoom);
+    let (x, y) = mercator_normalized(position);
+    Pixels::new(x * total_pixels, y * total_pixels)
 }
 
 /// Transforms screen pixels into a geographical position.
