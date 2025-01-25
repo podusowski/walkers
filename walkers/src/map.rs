@@ -4,7 +4,7 @@ use egui::{Mesh, PointerButton, Rect, Response, Sense, Ui, UiBuilder, Vec2, Widg
 
 use crate::{
     center::Center,
-    mercator::{screen_to_position, Pixels, PixelsExt, TileId},
+    mercator::{screen_to_position, tile_id, Pixels, PixelsExt, TileId},
     tiles,
     zoom::{InvalidZoom, Zoom},
     Position, Tiles,
@@ -315,7 +315,7 @@ impl Widget for Map<'_, '_, '_> {
             let mut meshes = Default::default();
             flood_fill_tiles(
                 painter.clip_rect(),
-                map_center.tile_id(zoom.round(), tiles.tile_size()),
+                tile_id(map_center, zoom.round(), tiles.tile_size()),
                 map_center.project(zoom.into()),
                 zoom.into(),
                 tiles,

@@ -39,22 +39,6 @@ impl Position {
         let (x, y) = mercator_normalized(*self);
         Pixels::new(x * total_pixels, y * total_pixels)
     }
-
-    /// Tile this position is on.
-    pub(crate) fn tile_id(&self, mut zoom: u8, source_tile_size: u32) -> TileId {
-        let (x, y) = mercator_normalized(*self);
-
-        // Some sources provide larger tiles, effectively bundling e.g. 4 256px tiles in one
-        // 512px one. Walkers uses 256px internally, so we need to adjust the zoom level.
-        zoom -= (source_tile_size as f64 / TILE_SIZE as f64).log2() as u8;
-
-        // Map that into a big bitmap made out of web tiles.
-        let number_of_tiles = 2u32.pow(zoom as u32) as f64;
-        let x = (x * number_of_tiles).floor() as u32;
-        let y = (y * number_of_tiles).floor() as u32;
-
-        TileId { x, y, zoom }
-    }
 }
 
 /// Zoom specifies how many pixels are in the whole map. For example, zoom 0 means that the whole
@@ -161,6 +145,22 @@ impl TileId {
             zoom: self.zoom,
         })
     }
+}
+
+/// Calculate the tile coordinated for the given position.
+pub(crate) fn tile_id(position: Position, mut zoom: u8, source_tile_size: u32) -> TileId {
+    let (x, y) = mercator_normalized(position);
+
+    // Some sources provide larger tiles, effectively bundling e.g. 4 256px tiles in one
+    // 512px one. Walkers uses 256px internally, so we need to adjust the zoom level.
+    zoom -= (source_tile_size as f64 / TILE_SIZE as f64).log2() as u8;
+
+    // Map that into a big bitmap made out of web tiles.
+    let number_of_tiles = 2u32.pow(zoom as u32) as f64;
+    let x = (x * number_of_tiles).floor() as u32;
+    let y = (y * number_of_tiles).floor() as u32;
+
+    TileId { x, y, zoom }
 }
 
 /// Transforms screen pixels into a geographical position.
