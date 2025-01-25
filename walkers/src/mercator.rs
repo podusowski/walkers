@@ -9,18 +9,7 @@
 // 2            4 × 4 tiles    16 tiles         90° x [variable]
 
 /// Geographical position with latitude and longitude.
-#[derive(Debug, Clone, Copy, PartialEq)]
-pub struct Position(geo_types::Point);
-
-impl Position {
-    pub fn lat(&self) -> f64 {
-        self.0.y()
-    }
-
-    pub fn lon(&self) -> f64 {
-        self.0.x()
-    }
-}
+pub type Position = geo_types::Point;
 
 /// Construct `Position` from latitude and longitude.
 pub fn lat_lon(lat: f64, lon: f64) -> Position {
@@ -47,18 +36,6 @@ pub fn total_tiles(zoom: u8) -> u32 {
 /// Size of a single tile in pixels. Walkers uses 256px tiles as most of the tile sources do.
 const TILE_SIZE: u32 = 256;
 
-impl From<geo_types::Point> for Position {
-    fn from(value: geo_types::Point) -> Self {
-        Self(value)
-    }
-}
-
-impl From<Position> for geo_types::Point {
-    fn from(value: Position) -> Self {
-        value.0
-    }
-}
-
 /// Location projected on the screen or an abstract bitmap.
 pub type Pixels = geo_types::Point;
 
@@ -77,8 +54,8 @@ impl PixelsExt for Pixels {
 /// Project the position into the Mercator projection and normalize it to 0-1 range.
 fn mercator_normalized(position: Position) -> (f64, f64) {
     // Project into Mercator (cylindrical map projection).
-    let x = position.lon().to_radians();
-    let y = position.lat().to_radians().tan().asinh();
+    let x = position.x().to_radians();
+    let y = position.y().to_radians().tan().asinh();
 
     // Scale both x and y to 0-1 range.
     let x = (1. + (x / PI)) / 2.;

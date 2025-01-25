@@ -94,7 +94,7 @@ impl ClickWatcher {
                 .title_bar(false)
                 .anchor(egui::Align2::CENTER_BOTTOM, [0., -10.])
                 .show(ui.ctx(), |ui| {
-                    ui.label(format!("{:.04} {:.04}", clicked_at.lon(), clicked_at.lat()))
+                    ui.label(format!("{:.04} {:.04}", clicked_at.x(), clicked_at.y()))
                         .on_hover_text("last clicked position");
                 });
         }

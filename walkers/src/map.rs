@@ -186,7 +186,7 @@ impl Projector {
         let zoom = self.memory.zoom.into();
 
         // return f32 for ergonomics, as the result is typically used for egui code
-        calculate_meters_per_pixel(position.lat(), zoom) as f32
+        calculate_meters_per_pixel(position.y(), zoom) as f32
     }
 }
 
