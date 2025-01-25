@@ -4,7 +4,7 @@ use egui::{Mesh, PointerButton, Rect, Response, Sense, Ui, UiBuilder, Vec2, Widg
 
 use crate::{
     center::Center,
-    mercator::{screen_to_position, Pixels, PixelsExt, TileId},
+    mercator::{project, screen_to_position, tile_id, Pixels, PixelsExt, TileId},
     tiles,
     zoom::{InvalidZoom, Zoom},
     Position, Tiles,
@@ -31,13 +31,13 @@ pub trait Plugin {
 /// # Examples
 ///
 /// ```
-/// # use walkers::{Map, Tiles, MapMemory, Position};
+/// # use walkers::{Map, Tiles, MapMemory, Position, lon_lat};
 ///
 /// fn update(ui: &mut egui::Ui, tiles: &mut dyn Tiles, map_memory: &mut MapMemory) {
 ///     ui.add(Map::new(
 ///         Some(tiles), // `None`, if you don't want to show any tiles.
 ///         map_memory,
-///         Position::from_lon_lat(17.03664, 51.09916)
+///         lon_lat(17.03664, 51.09916)
 ///     ));
 /// }
 /// ```
@@ -150,18 +150,17 @@ impl Projector {
     /// Project `position` into pixels on the viewport.
     pub fn project(&self, position: Position) -> Vec2 {
         // Turn that into a flat, mercator projection.
-        let projected_position = position.project(self.memory.zoom.into());
+        let projected_position = project(position, self.memory.zoom.into());
 
         // We need the precision of f64 here,
         // since some "gaps" between tiles are noticeable on large zoom levels (e.g. 16+)
         let zoom: f64 = self.memory.zoom.into();
 
         // We also need to know where the map center is.
-        let map_center_projected_position = self
-            .memory
-            .center_mode
-            .position(self.my_position, zoom)
-            .project(self.memory.zoom.into());
+        let map_center_projected_position = project(
+            self.memory.center_mode.position(self.my_position, zoom),
+            self.memory.zoom.into(),
+        );
 
         // From the two points above we can calculate the actual point on the screen.
         self.clip_rect.center().to_vec2()
@@ -187,7 +186,7 @@ impl Projector {
         let zoom = self.memory.zoom.into();
 
         // return f32 for ergonomics, as the result is typically used for egui code
-        calculate_meters_per_pixel(position.lat(), zoom) as f32
+        calculate_meters_per_pixel(position.y(), zoom) as f32
     }
 }
 
@@ -315,8 +314,8 @@ impl Widget for Map<'_, '_, '_> {
             let mut meshes = Default::default();
             flood_fill_tiles(
                 painter.clip_rect(),
-                map_center.tile_id(zoom.round(), tiles.tile_size()),
-                map_center.project(zoom.into()),
+                tile_id(map_center, zoom.round(), tiles.tile_size()),
+                project(map_center, zoom.into()),
                 zoom.into(),
                 tiles,
                 &mut meshes,
@@ -355,13 +354,13 @@ impl AdjustedPosition {
 
     /// Calculate the real position, i.e. including the offset.
     pub(crate) fn position(&self, zoom: f64) -> Position {
-        screen_to_position(self.position.project(zoom) - self.offset, zoom)
+        screen_to_position(project(self.position, zoom) - self.offset, zoom)
     }
 
     /// Recalculate `position` so that `offset` is zero.
     pub(crate) fn zero_offset(self, zoom: f64) -> Self {
         Self {
-            position: screen_to_position(self.position.project(zoom) - self.offset, zoom),
+            position: screen_to_position(project(self.position, zoom) - self.offset, zoom),
             offset: Default::default(),
         }
     }

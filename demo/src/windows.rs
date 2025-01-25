@@ -81,7 +81,7 @@ pub fn go_to_my_position(ui: &Ui, map_memory: &mut MapMemory) {
             .anchor(Align2::RIGHT_BOTTOM, [-10., -10.])
             .show(ui.ctx(), |ui| {
                 ui.label("map center: ");
-                ui.label(format!("{:.04} {:.04}", position.lon(), position.lat()));
+                ui.label(format!("{:.04} {:.04}", position.x(), position.y()));
                 if ui
                     .button(RichText::new("go to the starting point").heading())
                     .clicked()
