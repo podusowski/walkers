@@ -5,6 +5,8 @@ All notable changes to this project will be documented in this file.
 ## Unreleased
 
 * Do not try to download tiles with invalid coordinates.
+* `Position` is now a type alias for `geo_types::Point`. Previous `from_lat_lon` and `from_lon_lat`
+  methods are now standalone functions called `lat_lon` and `lon_lat`.
 
 ## 0.32.0
 
