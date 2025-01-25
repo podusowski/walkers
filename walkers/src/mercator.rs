@@ -163,7 +163,7 @@ mod tests {
 
     #[test]
     fn projecting_position_and_tile() {
-        let citadel = Position::from_lon_lat(21.00027, 52.26470);
+        let citadel = lon_lat(21.00027, 52.26470);
 
         // Just a bit higher than what most providers support,
         // to make sure we cover the worst case in terms of precision.
@@ -175,7 +175,7 @@ mod tests {
                 y: 345104,
                 zoom
             },
-            citadel.tile_id(zoom, 256)
+            tile_id(citadel, zoom, 256)
         );
 
         // Automatically zooms out for larger tiles
@@ -185,18 +185,18 @@ mod tests {
                 y: 172552,
                 zoom: zoom - 1
             },
-            citadel.tile_id(zoom, 512)
+            tile_id(citadel, zoom, 512)
         );
 
         // Projected tile is just its x, y multiplied by the size of tiles.
         assert_eq!(
             Pixels::new(585455. * 256., 345104. * 256.),
-            citadel.tile_id(zoom, 256).project(256.)
+            tile_id(citadel, zoom, 256).project(256.)
         );
 
         // Projected Citadel position should be somewhere near projected tile, shifted only by the
         // position on the tile.
-        let calculated = citadel.project(zoom as f64);
+        let calculated = project(citadel, zoom as f64);
         let citadel_proj = Pixels::new(585455. * 256. + 184., 345104. * 256. + 116.5);
         approx::assert_relative_eq!(calculated.x(), citadel_proj.x(), max_relative = 0.5);
         approx::assert_relative_eq!(calculated.y(), citadel_proj.y(), max_relative = 0.5);
@@ -204,23 +204,12 @@ mod tests {
 
     #[test]
     fn project_there_and_back() {
-        let citadel = Position::from_lat_lon(21.00027, 52.26470);
+        let citadel = lat_lon(21.00027, 52.26470);
         let zoom = 16;
-        let calculated = screen_to_position(citadel.project(zoom as f64), zoom as f64);
+        let calculated = screen_to_position(project(citadel, zoom as f64), zoom as f64);
 
-        approx::assert_relative_eq!(calculated.lon(), citadel.lon(), max_relative = 1.0);
-        approx::assert_relative_eq!(calculated.lat(), citadel.lat(), max_relative = 1.0);
-    }
-
-    #[test]
-    /// Just to be compatible with the `geo` ecosystem.
-    fn position_is_compatible_with_geo_types() {
-        let original = Position::from_lat_lon(21.00027, 52.26470);
-        let converted: geo_types::Point = original.into();
-        let brought_back: Position = converted.into();
-
-        approx::assert_relative_eq!(original.lon(), brought_back.lon());
-        approx::assert_relative_eq!(original.lat(), brought_back.lat());
+        approx::assert_relative_eq!(calculated.x(), citadel.x(), max_relative = 1.0);
+        approx::assert_relative_eq!(calculated.y(), citadel.y(), max_relative = 1.0);
     }
 
     #[test]
