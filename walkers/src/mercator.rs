@@ -13,14 +13,14 @@ pub type Position = geo_types::Point;
 
 /// Construct `Position` from latitude and longitude.
 pub fn lat_lon(lat: f64, lon: f64) -> Position {
-    geo_types::Point::new(lon, lat).into()
+    Position::new(lon, lat)
 }
 
 /// Construct `Position` from longitude and latitude. Note that it is common standard to write
 /// coordinates starting with the latitude instead (e.g. `51.104465719934176, 17.075169894118684` is
 /// the [Wrocław's zoo](https://zoo.wroclaw.pl/en/)).
 pub fn lon_lat(lon: f64, lat: f64) -> Position {
-    geo_types::Point::new(lon, lat).into()
+    Position::new(lon, lat)
 }
 
 /// Zoom specifies how many pixels are in the whole map. For example, zoom 0 means that the whole
