@@ -1,5 +1,6 @@
 # Walkers, a map widget for Rust
 
+![made in Europe](https://img.shields.io/badge/made_in-Europe-blue)
 [![crates.io](https://img.shields.io/crates/v/walkers.svg)](https://crates.io/crates/walkers)
 [![docs.rs](https://img.shields.io/docsrs/walkers/latest)](https://docs.rs/walkers/latest/)
 
