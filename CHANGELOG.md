@@ -2,7 +2,7 @@
 
 All notable changes to this project will be documented in this file.
 
-## Unreleased
+## 0.34.0
 
 * `egui` updated to 0.31.0
 
