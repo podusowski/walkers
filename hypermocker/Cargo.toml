@@ -5,7 +5,7 @@ version = "0.1.0"
 publish = false
 
 [dependencies]
-hyper = { version = "1.1.0", features = ["full"] }
+hyper = { version = "1.6.0", features = ["full"] }
 tokio = { version = "1.28", features = ["macros"] }
 hyper-util = { version = "0.1", features = ["full"] }
 http-body-util = "0.1"
