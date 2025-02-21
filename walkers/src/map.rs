@@ -226,7 +226,19 @@ impl Map<'_, '_, '_> {
             && self.zoom_gesture_enabled
         {
             // Displacement of mouse pointer relative to widget center
-            let offset = response.hover_pos().map(|p| p - response.rect.center());
+            //let offset = response.hover_pos().map(|p| p - response.rect.center());
+            let mouse_offset = response.hover_pos();
+            let touch_offset = ui
+                .input(|input| input.multi_touch())
+                .map(|multi_touch| multi_touch.center_pos);
+
+            let offset = touch_offset
+                .or(mouse_offset)
+                .map(|pos| pos - response.rect.center());
+
+            //let offset = ui
+            //    .input(|input| input.multi_touch())
+            //    .map(|multi_touch| multi_touch.center_pos - response.rect.center());
 
             let pos = self
                 .memory
