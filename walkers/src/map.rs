@@ -226,7 +226,7 @@ impl Map<'_, '_, '_> {
             && self.zoom_gesture_enabled
         {
             // Displacement of mouse pointer relative to widget center
-            let offset = response.hover_pos().map(|p| p - response.rect.center());
+            let offset = input_offset(ui, response);
 
             let pos = self
                 .memory
@@ -491,6 +491,19 @@ fn calculate_meters_per_pixel(latitude: f64, zoom: f64) -> f64 {
     let pixel_per_meter_equator = total_pixels / EARTH_CIRCUMFERENCE;
     let latitude_rad = latitude.abs().to_radians();
     pixel_per_meter_equator / latitude_rad.cos()
+}
+
+/// Get the offset of the input (either mouse or touch) relative to the center.
+fn input_offset(ui: &mut Ui, response: &Response) -> Option<Vec2> {
+    let mouse_offset = response.hover_pos();
+    let touch_offset = ui
+        .input(|input| input.multi_touch())
+        .map(|multi_touch| multi_touch.center_pos);
+
+    // On touch we get both, so make touch the priority.
+    touch_offset
+        .or(mouse_offset)
+        .map(|pos| pos - response.rect.center())
 }
 
 #[cfg(test)]
