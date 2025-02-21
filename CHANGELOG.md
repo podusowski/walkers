@@ -2,6 +2,10 @@
 
 All notable changes to this project will be documented in this file.
 
+## Unreleased
+
+* Fixed zooming on touchscreens so that it follows the center of the touch points.
+
 ## 0.34.0
 
 * `egui` updated to 0.31.0
