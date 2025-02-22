@@ -136,6 +136,7 @@ pub fn screen_to_position(pixels: Pixels, zoom: f64) -> Position {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::lat_lon;
 
     #[test]
     fn projecting_position_and_tile() {
