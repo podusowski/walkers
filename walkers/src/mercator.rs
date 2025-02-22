@@ -3,25 +3,16 @@
 //! <https://wiki.openstreetmap.org/wiki/Slippy_map_tilenames>
 //! <https://www.netzwolf.info/osm/tilebrowser.html?lat=51.157800&lon=6.865500&zoom=14>
 
+use crate::{
+    lon_lat,
+    position::{Pixels, Position},
+};
+use std::f64::consts::PI;
+
 // zoom level   tile coverage  number of tiles  tile size(*) in degrees
 // 0            1 tile         1 tile           360° x 170.1022°
 // 1            2 × 2 tiles    4 tiles          180° x 85.0511°
 // 2            4 × 4 tiles    16 tiles         90° x [variable]
-
-/// Geographical position with latitude and longitude.
-pub type Position = geo_types::Point;
-
-/// Construct `Position` from latitude and longitude.
-pub fn lat_lon(lat: f64, lon: f64) -> Position {
-    Position::new(lon, lat)
-}
-
-/// Construct `Position` from longitude and latitude. Note that it is common standard to write
-/// coordinates starting with the latitude instead (e.g. `51.104465719934176, 17.075169894118684` is
-/// the [Wrocław's zoo](https://zoo.wroclaw.pl/en/)).
-pub fn lon_lat(lon: f64, lat: f64) -> Position {
-    Position::new(lon, lat)
-}
 
 /// Zoom specifies how many pixels are in the whole map. For example, zoom 0 means that the whole
 /// map is just one 256x256 tile, zoom 1 means that it is 2x2 tiles, and so on.
@@ -35,21 +26,6 @@ pub fn total_tiles(zoom: u8) -> u32 {
 
 /// Size of a single tile in pixels. Walkers uses 256px tiles as most of the tile sources do.
 const TILE_SIZE: u32 = 256;
-
-/// Location projected on the screen or an abstract bitmap.
-pub type Pixels = geo_types::Point;
-
-use std::f64::consts::PI;
-
-pub trait PixelsExt {
-    fn to_vec2(&self) -> egui::Vec2;
-}
-
-impl PixelsExt for Pixels {
-    fn to_vec2(&self) -> egui::Vec2 {
-        egui::Vec2::new(self.x() as f32, self.y() as f32)
-    }
-}
 
 /// Project the position into the Mercator projection and normalize it to 0-1 range.
 fn mercator_normalized(position: Position) -> (f64, f64) {

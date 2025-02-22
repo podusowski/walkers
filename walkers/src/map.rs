@@ -4,7 +4,8 @@ use egui::{Mesh, PointerButton, Rect, Response, Sense, Ui, UiBuilder, Vec2, Widg
 
 use crate::{
     center::Center,
-    mercator::{project, screen_to_position, tile_id, Pixels, PixelsExt, TileId},
+    mercator::{project, tile_id, TileId},
+    position::{AdjustedPosition, Pixels, PixelsExt},
     tiles,
     zoom::{InvalidZoom, Zoom},
     Position, Tiles,
@@ -333,52 +334,6 @@ impl Widget for Map<'_, '_, '_> {
         }
 
         response
-    }
-}
-
-/// [`Position`] alone is not able to represent detached (e.g. after map gets dragged) position
-/// due to insufficient accuracy.
-#[derive(Debug, Clone, PartialEq)]
-pub struct AdjustedPosition {
-    /// Base geographical position.
-    pub position: Position,
-
-    /// Offset in pixels.
-    pub offset: Pixels,
-}
-
-impl AdjustedPosition {
-    pub(crate) fn new(position: Position, offset: Pixels) -> Self {
-        Self { position, offset }
-    }
-
-    /// Calculate the real position, i.e. including the offset.
-    pub(crate) fn position(&self, zoom: f64) -> Position {
-        screen_to_position(project(self.position, zoom) - self.offset, zoom)
-    }
-
-    /// Recalculate `position` so that `offset` is zero.
-    pub(crate) fn zero_offset(self, zoom: f64) -> Self {
-        Self {
-            position: screen_to_position(project(self.position, zoom) - self.offset, zoom),
-            offset: Default::default(),
-        }
-    }
-
-    pub(crate) fn shift(self, offset: Vec2) -> Self {
-        Self {
-            position: self.position,
-            offset: self.offset + Pixels::new(offset.x as f64, offset.y as f64),
-        }
-    }
-}
-
-impl From<Position> for AdjustedPosition {
-    fn from(position: Position) -> Self {
-        Self {
-            position,
-            offset: Default::default(),
-        }
     }
 }
 
