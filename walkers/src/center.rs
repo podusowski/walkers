@@ -1,6 +1,9 @@
 use egui::{Response, Vec2};
 
-use crate::{map::AdjustedPosition, mercator::Pixels, Position};
+use crate::{
+    position::{AdjustedPosition, Pixels},
+    Position,
+};
 
 /// Position at the map's center. Initially, the map follows `my_position` argument which typically
 /// is meant to be fed by a GPS sensor or other geo-localization method. If user drags the map,
