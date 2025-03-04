@@ -177,7 +177,7 @@ impl Projector {
             position: center,
             offset: Default::default(),
         }
-        .shift(-position)
+        .shift(-position + self.clip_rect.center().to_vec2())
         .position(zoom)
     }
 
@@ -464,6 +464,8 @@ fn input_offset(ui: &mut Ui, response: &Response) -> Option<Vec2> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::lon_lat;
+    use egui::Pos2;
 
     fn assert_approx_eq(a: f64, b: f64) {
         let diff = (a - b).abs();
@@ -486,5 +488,25 @@ mod tests {
         // At max zoom (19), equator should be about 0.3m per pixel
         let scale = calculate_meters_per_pixel(0.0, 19.);
         assert_approx_eq(scale, 1. / 0.298);
+    }
+
+    #[test]
+    fn unproject_is_inverse_of_project() {
+        let original = lon_lat(21., 52.);
+
+        let mut map_memory = MapMemory::default();
+        map_memory.set_zoom(10.).unwrap();
+
+        let projector = Projector::new(
+            Rect::from_min_size(Pos2::ZERO, Vec2::splat(100.)),
+            &map_memory,
+            original,
+        );
+
+        let projected = projector.project(original);
+        let unprojected = projector.unproject(projected);
+
+        assert_approx_eq(original.x(), unprojected.x());
+        assert_approx_eq(original.y(), unprojected.y());
     }
 }

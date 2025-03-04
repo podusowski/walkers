@@ -106,7 +106,7 @@ impl Plugin for &mut ClickWatcher {
         if !response.changed() && response.clicked_by(egui::PointerButton::Primary) {
             self.clicked_at = response
                 .interact_pointer_pos()
-                .map(|p| projector.unproject(p - response.rect.center()));
+                .map(|p| projector.unproject(p.to_vec2()));
         }
 
         if let Some(position) = self.clicked_at {
