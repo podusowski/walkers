@@ -940,9 +940,7 @@ dependencies = [
  "demo",
  "eframe",
  "egui-winit",
- "jni",
  "log",
- "ndk-context",
 ]
 
 [[package]]
