@@ -940,10 +940,7 @@ dependencies = [
  "demo",
  "eframe",
  "egui-winit",
- "jni",
  "log",
- "ndk-context",
- "thiserror 2.0.11",
 ]
 
 [[package]]
