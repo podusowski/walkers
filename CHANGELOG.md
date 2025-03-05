@@ -2,7 +2,7 @@
 
 All notable changes to this project will be documented in this file.
 
-## Unreleased
+## 0.35.0
 
 * Fixed zooming on touchscreens so that it follows the center of the touch points.
 * `Projector::unproject` is now symmetric to `Projector::project`. Previously its origin was the
