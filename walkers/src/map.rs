@@ -6,7 +6,7 @@ use crate::{
     center::Center,
     mercator::{project, tile_id, TileId},
     position::{AdjustedPosition, Pixels, PixelsExt},
-    tiles,
+    screen_to_position, tiles,
     zoom::{InvalidZoom, Zoom},
     Position, Tiles,
 };
@@ -172,13 +172,10 @@ impl Projector {
     pub fn unproject(&self, position: Vec2) -> Position {
         let zoom: f64 = self.memory.zoom.into();
         let center = self.memory.center_mode.position(self.my_position, zoom);
+        let projected =
+            project(center, zoom).to_vec2() - position + self.clip_rect.center().to_vec2();
 
-        AdjustedPosition {
-            position: center,
-            offset: Default::default(),
-        }
-        .shift(-position + self.clip_rect.center().to_vec2())
-        .position(zoom)
+        screen_to_position(Pixels::new(projected.x as f64, projected.y as f64), zoom)
     }
 
     /// What is the local scale of the map at the provided position and given the current zoom
