@@ -173,7 +173,7 @@ impl Projector {
         let zoom: f64 = self.memory.zoom.into();
         let center = self.memory.center_mode.position(self.my_position, zoom);
         let projected =
-            project(center, zoom).to_vec2() - position + self.clip_rect.center().to_vec2();
+            project(center, zoom).to_vec2() + position - self.clip_rect.center().to_vec2();
 
         unproject(Pixels::new(projected.x as f64, projected.y as f64), zoom)
     }
