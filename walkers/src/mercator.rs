@@ -117,7 +117,7 @@ pub(crate) fn project(position: Position, zoom: f64) -> Pixels {
 }
 
 /// Transforms screen pixels into a geographical position.
-pub fn screen_to_position(pixels: Pixels, zoom: f64) -> Position {
+pub(crate) fn screen_to_position(pixels: Pixels, zoom: f64) -> Position {
     let number_of_pixels: f64 = 2f64.powf(zoom) * (TILE_SIZE as f64);
 
     let lon = pixels.x();

@@ -4,9 +4,9 @@ use egui::{Mesh, PointerButton, Rect, Response, Sense, Ui, UiBuilder, Vec2, Widg
 
 use crate::{
     center::Center,
-    mercator::{project, tile_id, TileId},
+    mercator::{project, screen_to_position, tile_id, TileId},
     position::{AdjustedPosition, Pixels, PixelsExt},
-    screen_to_position, tiles,
+    tiles,
     zoom::{InvalidZoom, Zoom},
     Position, Tiles,
 };

@@ -1,6 +1,6 @@
 //! Types and functions for working with positions.
 
-use crate::{mercator::project, screen_to_position};
+use crate::mercator::{project, screen_to_position};
 use egui::Vec2;
 
 /// Geographical position with latitude and longitude.
