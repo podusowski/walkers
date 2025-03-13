@@ -4,7 +4,7 @@ use egui::{Mesh, PointerButton, Rect, Response, Sense, Ui, UiBuilder, Vec2, Widg
 
 use crate::{
     center::Center,
-    mercator::{project, screen_to_position, tile_id, TileId},
+    mercator::{project, tile_id, unproject, TileId},
     position::{AdjustedPosition, Pixels, PixelsExt},
     tiles,
     zoom::{InvalidZoom, Zoom},
@@ -175,7 +175,7 @@ impl Projector {
         let projected =
             project(center, zoom).to_vec2() - position + self.clip_rect.center().to_vec2();
 
-        screen_to_position(Pixels::new(projected.x as f64, projected.y as f64), zoom)
+        unproject(Pixels::new(projected.x as f64, projected.y as f64), zoom)
     }
 
     /// What is the local scale of the map at the provided position and given the current zoom
