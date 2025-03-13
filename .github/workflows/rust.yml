@@ -36,6 +36,8 @@ jobs:
       run:  cargo clippy --all-features -- -D warnings 
     - name: Documentation
       run:  cargo doc
+    - name: typos-action
+      uses: crate-ci/typos@v1.30.2
 
     # Build the Android demo.
 
