@@ -42,7 +42,7 @@ impl AdjustedPosition {
     /// Recalculate `position` so that `offset` is zero.
     pub(crate) fn zero_offset(self, zoom: f64) -> Self {
         Self {
-            position: screen_to_position(project(self.position, zoom) - self.offset, zoom),
+            position: self.position(zoom),
             offset: Default::default(),
         }
     }
