@@ -20,7 +20,7 @@ pub(crate) fn total_pixels(zoom: f64) -> f64 {
     2f64.powf(zoom) * (TILE_SIZE as f64)
 }
 
-pub fn total_tiles(zoom: u8) -> u32 {
+pub(crate) fn total_tiles(zoom: u8) -> u32 {
     2u32.pow(zoom as u32)
 }
 
