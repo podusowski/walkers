@@ -1,3 +1,5 @@
+use std::sync::{Arc, Mutex};
+
 use egui::{pos2, Color32, Context, Mesh, Rect, Vec2};
 use egui::{ColorImage, TextureHandle};
 use futures::channel::mpsc::{channel, Receiver, Sender, TrySendError};
@@ -104,6 +106,8 @@ impl HttpTiles {
     where
         S: TileSource + Send + 'static,
     {
+        let http_stats = Arc::new(Mutex::new(HttpStats { in_progress: 0 }));
+
         // This ensures that newer requests are prioritized.
         let channel_size = MAX_PARALLEL_DOWNLOADS;
 
@@ -113,9 +117,11 @@ impl HttpTiles {
         let tile_size = source.tile_size();
         let max_zoom = source.max_zoom();
 
+        // This will run concurrently in a loop, handing downloads and talk with us via channels.
         let runtime = Runtime::new(download_continuously(
             source,
             http_options,
+            http_stats,
             request_rx,
             tile_tx,
             egui_ctx,
@@ -186,6 +192,11 @@ impl HttpTiles {
             zoom_candidate = zoom_candidate.checked_sub(1)?;
         }
     }
+}
+
+pub struct HttpStats {
+    /// Number of tiles that are currently being downloaded.
+    pub in_progress: usize,
 }
 
 /// Take a piece of a tile with higher zoom level and use it as a tile with lower zoom level.

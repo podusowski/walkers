@@ -1,4 +1,7 @@
-use std::path::PathBuf;
+use std::{
+    path::PathBuf,
+    sync::{Arc, Mutex},
+};
 
 use egui::Context;
 use futures::{
@@ -9,7 +12,12 @@ use image::ImageError;
 use reqwest::header::USER_AGENT;
 use reqwest_middleware::ClientWithMiddleware;
 
-use crate::{io::http_client, mercator::TileId, sources::TileSource, tiles::Texture};
+use crate::{
+    io::http_client,
+    mercator::TileId,
+    sources::TileSource,
+    tiles::{HttpStats, Texture},
+};
 
 pub use reqwest::header::HeaderValue;
 
@@ -158,6 +166,7 @@ pub(crate) const MAX_PARALLEL_DOWNLOADS: usize = 6;
 async fn download_continuously_impl<S>(
     source: S,
     http_options: HttpOptions,
+    http_stats: Arc<Mutex<HttpStats>>,
     mut request_rx: futures::channel::mpsc::Receiver<TileId>,
     tile_tx: futures::channel::mpsc::Sender<(TileId, Texture)>,
     egui_ctx: Context,
@@ -204,6 +213,10 @@ where
             download_complete(tile_tx.to_owned(), egui_ctx.to_owned(), result).await?;
             downloads = remaining_downloads;
         }
+
+        // Update HTTP stats.
+        let mut stats = http_stats.lock()?;
+        stats.in_progress = downloads.len();
     }
 }
 
@@ -211,13 +224,23 @@ where
 pub(crate) async fn download_continuously<S>(
     source: S,
     http_options: HttpOptions,
+    http_stats: Arc<Mutex<HttpStats>>,
     request_rx: futures::channel::mpsc::Receiver<TileId>,
     tile_tx: futures::channel::mpsc::Sender<(TileId, Texture)>,
     egui_ctx: Context,
 ) where
     S: TileSource + Send + 'static,
 {
-    match download_continuously_impl(source, http_options, request_rx, tile_tx, egui_ctx).await {
+    match download_continuously_impl(
+        source,
+        http_options,
+        http_stats,
+        request_rx,
+        tile_tx,
+        egui_ctx,
+    )
+    .await
+    {
         Ok(()) | Err(Error::TileChannelClosed) | Err(Error::RequestChannelBroken) => {
             log::debug!("Tile download loop finished.");
         }
