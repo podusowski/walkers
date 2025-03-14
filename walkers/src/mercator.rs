@@ -20,7 +20,7 @@ pub(crate) fn total_pixels(zoom: f64) -> f64 {
     2f64.powf(zoom) * (TILE_SIZE as f64)
 }
 
-pub fn total_tiles(zoom: u8) -> u32 {
+pub(crate) fn total_tiles(zoom: u8) -> u32 {
     2u32.pow(zoom as u32)
 }
 
@@ -117,7 +117,7 @@ pub(crate) fn project(position: Position, zoom: f64) -> Pixels {
 }
 
 /// Transforms screen pixels into a geographical position.
-pub fn screen_to_position(pixels: Pixels, zoom: f64) -> Position {
+pub(crate) fn unproject(pixels: Pixels, zoom: f64) -> Position {
     let number_of_pixels: f64 = 2f64.powf(zoom) * (TILE_SIZE as f64);
 
     let lon = pixels.x();
@@ -183,7 +183,7 @@ mod tests {
     fn project_there_and_back() {
         let citadel = lat_lon(21.00027, 52.26470);
         let zoom = 16;
-        let calculated = screen_to_position(project(citadel, zoom as f64), zoom as f64);
+        let calculated = unproject(project(citadel, zoom as f64), zoom as f64);
 
         approx::assert_relative_eq!(calculated.x(), citadel.x(), max_relative = 1.0);
         approx::assert_relative_eq!(calculated.y(), citadel.y(), max_relative = 1.0);

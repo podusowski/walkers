@@ -1,6 +1,6 @@
 //! Types and functions for working with positions.
 
-use crate::{mercator::project, screen_to_position};
+use crate::mercator::{project, unproject};
 use egui::Vec2;
 
 /// Geographical position with latitude and longitude.
@@ -36,13 +36,13 @@ impl AdjustedPosition {
 
     /// Calculate the real position, i.e. including the offset.
     pub(crate) fn position(&self, zoom: f64) -> Position {
-        screen_to_position(project(self.position, zoom) - self.offset, zoom)
+        unproject(project(self.position, zoom) - self.offset, zoom)
     }
 
     /// Recalculate `position` so that `offset` is zero.
     pub(crate) fn zero_offset(self, zoom: f64) -> Self {
         Self {
-            position: screen_to_position(project(self.position, zoom) - self.offset, zoom),
+            position: self.position(zoom),
             offset: Default::default(),
         }
     }
