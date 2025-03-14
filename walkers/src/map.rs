@@ -211,7 +211,7 @@ impl Map<'_, '_, '_> {
         if !self.zoom_with_ctrl && zoom_delta == 1.0 {
             // We only use the raw scroll values, if we are zooming without ctrl,
             // and zoom_delta is not already over/under 1.0 (eg. a ctrl + scroll event or a pinch zoom)
-            // These values seem to corrospond to the same values as one would get in `zoom_delta()`
+            // These values seem to correspond to the same values as one would get in `zoom_delta()`
             zoom_delta = ui.input(|input| (1.0 + input.smooth_scroll_delta.y / 200.0)) as f64
         };
 
