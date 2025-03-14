@@ -78,6 +78,9 @@ enum Error {
 
     #[error("Tile channel to the main thread was full.")]
     TileChannelFull,
+
+    #[error("Poison error.")]
+    PoisonError,
 }
 
 impl From<futures::channel::mpsc::SendError> for Error {
@@ -87,6 +90,12 @@ impl From<futures::channel::mpsc::SendError> for Error {
         } else {
             Error::TileChannelFull
         }
+    }
+}
+
+impl<T> From<std::sync::PoisonError<T>> for Error {
+    fn from(_: std::sync::PoisonError<T>) -> Self {
+        Error::PoisonError
     }
 }
 

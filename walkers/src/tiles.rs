@@ -75,8 +75,8 @@ pub trait Tiles {
 /// Downloads the tiles via HTTP. It must persist between frames.
 pub struct HttpTiles {
     attribution: Attribution,
-
     cache: LruCache<TileId, Option<Texture>>,
+    http_stats: Arc<Mutex<HttpStats>>,
 
     /// Tiles to be downloaded by the IO thread.
     request_tx: Sender<TileId>,
@@ -88,7 +88,6 @@ pub struct HttpTiles {
     runtime: Runtime,
 
     tile_size: u32,
-
     max_zoom: u8,
 }
 
@@ -121,7 +120,7 @@ impl HttpTiles {
         let runtime = Runtime::new(download_continuously(
             source,
             http_options,
-            http_stats,
+            http_stats.clone(),
             request_rx,
             tile_tx,
             egui_ctx,
@@ -134,6 +133,7 @@ impl HttpTiles {
         Self {
             attribution,
             cache: LruCache::new(cache_size),
+            http_stats,
             request_tx,
             tile_rx,
             runtime,
