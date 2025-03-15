@@ -168,6 +168,7 @@ impl eframe::App for MyApp {
                     ui,
                     &mut self.selected_provider,
                     &mut self.providers.keys(),
+                    None,
                     &mut self.images_plugin_data,
                 );
                 acknowledge(ui, attribution);

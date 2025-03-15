@@ -24,6 +24,7 @@ pub fn controls(
     ui: &Ui,
     selected_provider: &mut Provider,
     possible_providers: &mut dyn Iterator<Item = &Provider>,
+    http_stats: Option<&walkers::HttpStats>,
     image: &mut ImagesPluginData,
 ) {
     Window::new("Satellite")

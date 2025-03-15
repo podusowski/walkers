@@ -16,5 +16,5 @@ pub use download::{HeaderValue, HttpOptions};
 pub use map::{Map, MapMemory, Plugin, Projector};
 pub use mercator::TileId;
 pub use position::{lat_lon, lon_lat, Position};
-pub use tiles::{HttpTiles, Texture, TextureWithUv, Tiles};
+pub use tiles::{HttpStats, HttpTiles, Texture, TextureWithUv, Tiles};
 pub use zoom::InvalidZoom;
