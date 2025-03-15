@@ -1,7 +1,7 @@
 use crate::plugins::ImagesPluginData;
 
 use crate::Provider;
-use egui::{Align2, RichText, Ui, Window};
+use egui::{Align2, ComboBox, Image, RichText, Slider, Ui, Window};
 use walkers::{sources::Attribution, MapMemory};
 
 pub fn acknowledge(ui: &Ui, attribution: Attribution) {
@@ -13,7 +13,7 @@ pub fn acknowledge(ui: &Ui, attribution: Attribution) {
         .show(ui.ctx(), |ui| {
             ui.horizontal(|ui| {
                 if let Some(logo) = attribution.logo_light {
-                    ui.add(egui::Image::new(logo).max_height(30.0).max_width(80.0));
+                    ui.add(Image::new(logo).max_height(30.0).max_width(80.0));
                 }
                 ui.hyperlink_to(attribution.text, attribution.url);
             });
@@ -34,7 +34,7 @@ pub fn controls(
         .fixed_size([150., 150.])
         .show(ui.ctx(), |ui| {
             ui.collapsing("Map", |ui| {
-                egui::ComboBox::from_label("Tile Provider")
+                ComboBox::from_label("Tile Provider")
                     .selected_text(format!("{:?}", selected_provider))
                     .show_ui(ui, |ui| {
                         for p in possible_providers {
@@ -44,9 +44,9 @@ pub fn controls(
             });
 
             ui.collapsing("Images plugin", |ui| {
-                ui.add(egui::Slider::new(&mut image.angle, 0.0..=360.0).text("Rotate"));
-                ui.add(egui::Slider::new(&mut image.x_scale, 0.1..=3.0).text("Scale X"));
-                ui.add(egui::Slider::new(&mut image.y_scale, 0.1..=3.0).text("Scale Y"));
+                ui.add(Slider::new(&mut image.angle, 0.0..=360.0).text("Rotate"));
+                ui.add(Slider::new(&mut image.x_scale, 0.1..=3.0).text("Scale X"));
+                ui.add(Slider::new(&mut image.y_scale, 0.1..=3.0).text("Scale Y"));
             });
         });
 }
