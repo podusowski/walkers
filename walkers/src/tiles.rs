@@ -142,6 +142,15 @@ impl HttpTiles {
         }
     }
 
+    fn stats(&self) -> HttpStats {
+        if let Ok(http_stats) = self.http_stats.lock() {
+            http_stats.clone()
+        } else {
+            // I really do not want this to return a Result.
+            HttpStats::default()
+        }
+    }
+
     fn put_single_downloaded_tile_in_cache(&mut self) {
         // This is called every frame, so take just one at the time.
         match self.tile_rx.try_next() {
@@ -194,6 +203,7 @@ impl HttpTiles {
     }
 }
 
+#[derive(Clone, Default)]
 pub struct HttpStats {
     /// Number of tiles that are currently being downloaded.
     pub in_progress: usize,
