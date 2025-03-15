@@ -44,6 +44,12 @@ pub fn controls(
                     });
             });
 
+            if let Some(http_stats) = http_stats {
+                ui.collapsing(format!("{:?} HTTP statistics", selected_provider), |ui| {
+                    ui.label(format!("Requests in progress: {}", http_stats.in_progress));
+                });
+            }
+
             ui.collapsing("Images plugin", |ui| {
                 ui.add(Slider::new(&mut image.angle, 0.0..=360.0).text("Rotate"));
                 ui.add(Slider::new(&mut image.x_scale, 0.1..=3.0).text("Scale X"));
