@@ -6,7 +6,7 @@ mod windows;
 use std::collections::HashMap;
 
 use crate::plugins::ImagesPluginData;
-use egui::{CentralPanel, Context};
+use egui::{CentralPanel, Context, Frame};
 use local_tiles::LocalTiles;
 use walkers::{HttpOptions, HttpTiles, Map, MapMemory, Tiles};
 
@@ -133,12 +133,7 @@ impl MyApp {
 
 impl eframe::App for MyApp {
     fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
-        let rimless = egui::Frame {
-            fill: ctx.style().visuals.panel_fill,
-            ..Default::default()
-        };
-
-        CentralPanel::default().frame(rimless).show(ctx, |ui| {
+        CentralPanel::default().frame(Frame::NONE).show(ctx, |ui| {
             // Typically this would be a GPS acquired position which is tracked by the map.
             let my_position = places::wroclaw_glowny();
 
