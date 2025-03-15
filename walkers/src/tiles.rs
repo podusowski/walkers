@@ -1,3 +1,5 @@
+use std::sync::{Arc, Mutex};
+
 use egui::{pos2, Color32, Context, Mesh, Rect, Vec2};
 use egui::{ColorImage, TextureHandle};
 use futures::channel::mpsc::{channel, Receiver, Sender, TrySendError};
@@ -73,8 +75,8 @@ pub trait Tiles {
 /// Downloads the tiles via HTTP. It must persist between frames.
 pub struct HttpTiles {
     attribution: Attribution,
-
     cache: LruCache<TileId, Option<Texture>>,
+    http_stats: Arc<Mutex<HttpStats>>,
 
     /// Tiles to be downloaded by the IO thread.
     request_tx: Sender<TileId>,
@@ -86,7 +88,6 @@ pub struct HttpTiles {
     runtime: Runtime,
 
     tile_size: u32,
-
     max_zoom: u8,
 }
 
@@ -104,6 +105,8 @@ impl HttpTiles {
     where
         S: TileSource + Send + 'static,
     {
+        let http_stats = Arc::new(Mutex::new(HttpStats { in_progress: 0 }));
+
         // This ensures that newer requests are prioritized.
         let channel_size = MAX_PARALLEL_DOWNLOADS;
 
@@ -113,9 +116,11 @@ impl HttpTiles {
         let tile_size = source.tile_size();
         let max_zoom = source.max_zoom();
 
+        // This will run concurrently in a loop, handing downloads and talk with us via channels.
         let runtime = Runtime::new(download_continuously(
             source,
             http_options,
+            http_stats.clone(),
             request_rx,
             tile_tx,
             egui_ctx,
@@ -128,11 +133,21 @@ impl HttpTiles {
         Self {
             attribution,
             cache: LruCache::new(cache_size),
+            http_stats,
             request_tx,
             tile_rx,
             runtime,
             tile_size,
             max_zoom,
+        }
+    }
+
+    pub fn stats(&self) -> HttpStats {
+        if let Ok(http_stats) = self.http_stats.lock() {
+            http_stats.clone()
+        } else {
+            // I really do not want this to return a Result.
+            HttpStats::default()
         }
     }
 
@@ -186,6 +201,12 @@ impl HttpTiles {
             zoom_candidate = zoom_candidate.checked_sub(1)?;
         }
     }
+}
+
+#[derive(Clone, Default)]
+pub struct HttpStats {
+    /// Number of tiles that are currently being downloaded.
+    pub in_progress: usize,
 }
 
 /// Take a piece of a tile with higher zoom level and use it as a tile with lower zoom level.
