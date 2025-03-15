@@ -7,6 +7,7 @@ use std::collections::HashMap;
 
 use crate::plugins::ImagesPluginData;
 use egui::Context;
+use local_tiles::LocalTiles;
 use walkers::{HttpOptions, HttpTiles, Map, MapMemory, Tiles};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
@@ -16,6 +17,20 @@ pub enum Provider {
     MapboxStreets,
     MapboxSatellite,
     LocalTiles,
+}
+
+enum TilesKind {
+    Http(HttpTiles),
+    Local(LocalTiles),
+}
+
+impl AsMut<dyn Tiles> for TilesKind {
+    fn as_mut(&mut self) -> &mut (dyn Tiles + 'static) {
+        match self {
+            TilesKind::Http(tiles) => tiles,
+            TilesKind::Local(tiles) => tiles,
+        }
+    }
 }
 
 fn http_options() -> HttpOptions {
@@ -30,12 +45,12 @@ fn http_options() -> HttpOptions {
     }
 }
 
-fn providers(egui_ctx: Context) -> HashMap<Provider, Box<dyn Tiles + Send>> {
-    let mut providers: HashMap<Provider, Box<dyn Tiles + Send>> = HashMap::default();
+fn providers(egui_ctx: Context) -> HashMap<Provider, TilesKind> {
+    let mut providers: HashMap<Provider, TilesKind> = HashMap::default();
 
     providers.insert(
         Provider::OpenStreetMap,
-        Box::new(HttpTiles::with_options(
+        TilesKind::Http(HttpTiles::with_options(
             walkers::sources::OpenStreetMap,
             http_options(),
             egui_ctx.to_owned(),
@@ -44,7 +59,7 @@ fn providers(egui_ctx: Context) -> HashMap<Provider, Box<dyn Tiles + Send>> {
 
     providers.insert(
         Provider::Geoportal,
-        Box::new(HttpTiles::with_options(
+        TilesKind::Http(HttpTiles::with_options(
             walkers::sources::Geoportal,
             http_options(),
             egui_ctx.to_owned(),
@@ -53,7 +68,7 @@ fn providers(egui_ctx: Context) -> HashMap<Provider, Box<dyn Tiles + Send>> {
 
     providers.insert(
         Provider::LocalTiles,
-        Box::new(local_tiles::LocalTiles::new(egui_ctx.to_owned())),
+        TilesKind::Local(local_tiles::LocalTiles::new(egui_ctx.to_owned())),
     );
 
     // Pass in a mapbox access token at compile time. May or may not be what you want to do,
@@ -64,7 +79,7 @@ fn providers(egui_ctx: Context) -> HashMap<Provider, Box<dyn Tiles + Send>> {
     if let Some(token) = mapbox_access_token {
         providers.insert(
             Provider::MapboxStreets,
-            Box::new(HttpTiles::with_options(
+            TilesKind::Http(HttpTiles::with_options(
                 walkers::sources::Mapbox {
                     style: walkers::sources::MapboxStyle::Streets,
                     access_token: token.to_string(),
@@ -76,7 +91,7 @@ fn providers(egui_ctx: Context) -> HashMap<Provider, Box<dyn Tiles + Send>> {
         );
         providers.insert(
             Provider::MapboxSatellite,
-            Box::new(HttpTiles::with_options(
+            TilesKind::Http(HttpTiles::with_options(
                 walkers::sources::Mapbox {
                     style: walkers::sources::MapboxStyle::Satellite,
                     access_token: token.to_string(),
@@ -92,7 +107,7 @@ fn providers(egui_ctx: Context) -> HashMap<Provider, Box<dyn Tiles + Send>> {
 }
 
 pub struct MyApp {
-    providers: HashMap<Provider, Box<dyn Tiles + Send>>,
+    providers: HashMap<Provider, TilesKind>,
     selected_provider: Provider,
     map_memory: MapMemory,
     images_plugin_data: ImagesPluginData,
