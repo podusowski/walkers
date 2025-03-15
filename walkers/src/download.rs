@@ -80,7 +80,7 @@ enum Error {
     TileChannelFull,
 
     #[error("Poison error.")]
-    PoisonError,
+    Poisoned,
 }
 
 impl From<futures::channel::mpsc::SendError> for Error {
@@ -95,7 +95,7 @@ impl From<futures::channel::mpsc::SendError> for Error {
 
 impl<T> From<std::sync::PoisonError<T>> for Error {
     fn from(_: std::sync::PoisonError<T>) -> Self {
-        Error::PoisonError
+        Error::Poisoned
     }
 }
 
