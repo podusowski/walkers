@@ -6,7 +6,7 @@ mod windows;
 use std::collections::HashMap;
 
 use crate::plugins::ImagesPluginData;
-use egui::Context;
+use egui::{CentralPanel, Context};
 use local_tiles::LocalTiles;
 use walkers::{HttpOptions, HttpTiles, Map, MapMemory, Tiles};
 
@@ -138,47 +138,45 @@ impl eframe::App for MyApp {
             ..Default::default()
         };
 
-        egui::CentralPanel::default()
-            .frame(rimless)
-            .show(ctx, |ui| {
-                // Typically this would be a GPS acquired position which is tracked by the map.
-                let my_position = places::wroclaw_glowny();
+        CentralPanel::default().frame(rimless).show(ctx, |ui| {
+            // Typically this would be a GPS acquired position which is tracked by the map.
+            let my_position = places::wroclaw_glowny();
 
-                let tiles = self
-                    .providers
-                    .get_mut(&self.selected_provider)
-                    .unwrap()
-                    .as_mut();
-                let attribution = tiles.attribution();
+            let tiles = self
+                .providers
+                .get_mut(&self.selected_provider)
+                .unwrap()
+                .as_mut();
+            let attribution = tiles.attribution();
 
-                // In egui, widgets are constructed and consumed in each frame.
-                let map = Map::new(Some(tiles), &mut self.map_memory, my_position);
+            // In egui, widgets are constructed and consumed in each frame.
+            let map = Map::new(Some(tiles), &mut self.map_memory, my_position);
 
-                // Optionally, plugins can be attached.
-                let map = map
-                    .with_plugin(plugins::places())
-                    .with_plugin(plugins::images(&mut self.images_plugin_data))
-                    .with_plugin(plugins::CustomShapes {})
-                    .with_plugin(&mut self.click_watcher);
+            // Optionally, plugins can be attached.
+            let map = map
+                .with_plugin(plugins::places())
+                .with_plugin(plugins::images(&mut self.images_plugin_data))
+                .with_plugin(plugins::CustomShapes {})
+                .with_plugin(&mut self.click_watcher);
 
-                // Draw the map widget.
-                ui.add(map);
+            // Draw the map widget.
+            ui.add(map);
 
-                // Draw utility windows.
-                {
-                    use windows::*;
+            // Draw utility windows.
+            {
+                use windows::*;
 
-                    zoom(ui, &mut self.map_memory);
-                    go_to_my_position(ui, &mut self.map_memory);
-                    self.click_watcher.show_position(ui);
-                    controls(
-                        ui,
-                        &mut self.selected_provider,
-                        &mut self.providers.keys(),
-                        &mut self.images_plugin_data,
-                    );
-                    acknowledge(ui, attribution);
-                }
-            });
+                zoom(ui, &mut self.map_memory);
+                go_to_my_position(ui, &mut self.map_memory);
+                self.click_watcher.show_position(ui);
+                controls(
+                    ui,
+                    &mut self.selected_provider,
+                    &mut self.providers.keys(),
+                    &mut self.images_plugin_data,
+                );
+                acknowledge(ui, attribution);
+            }
+        });
     }
 }
