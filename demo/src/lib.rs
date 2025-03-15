@@ -169,11 +169,18 @@ impl eframe::App for MyApp {
                 zoom(ui, &mut self.map_memory);
                 go_to_my_position(ui, &mut self.map_memory);
                 self.click_watcher.show_position(ui);
+
+                let http_stats = if let TilesKind::Http(tiles) = tiles {
+                    Some(tiles.stats())
+                } else {
+                    None
+                };
+
                 controls(
                     ui,
                     &mut self.selected_provider,
                     &mut self.providers.keys(),
-                    None,
+                    http_stats.as_ref(),
                     &mut self.images_plugin_data,
                 );
                 acknowledge(ui, attribution);
