@@ -33,6 +33,15 @@ impl AsMut<dyn Tiles> for TilesKind {
     }
 }
 
+impl AsRef<dyn Tiles> for TilesKind {
+    fn as_ref(&self) -> &(dyn Tiles + 'static) {
+        match self {
+            TilesKind::Http(tiles) => tiles,
+            TilesKind::Local(tiles) => tiles,
+        }
+    }
+}
+
 fn http_options() -> HttpOptions {
     HttpOptions {
         // Not sure where to put cache on Android, so it will be disabled for now.
@@ -137,15 +146,11 @@ impl eframe::App for MyApp {
             // Typically this would be a GPS acquired position which is tracked by the map.
             let my_position = places::wroclaw_glowny();
 
-            let tiles = self
-                .providers
-                .get_mut(&self.selected_provider)
-                .unwrap()
-                .as_mut();
-            let attribution = tiles.attribution();
+            let tiles = self.providers.get_mut(&self.selected_provider).unwrap();
+            let attribution = tiles.as_ref().attribution();
 
             // In egui, widgets are constructed and consumed in each frame.
-            let map = Map::new(Some(tiles), &mut self.map_memory, my_position);
+            let map = Map::new(Some(tiles.as_mut()), &mut self.map_memory, my_position);
 
             // Optionally, plugins can be attached.
             let map = map

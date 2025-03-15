@@ -142,7 +142,7 @@ impl HttpTiles {
         }
     }
 
-    fn stats(&self) -> HttpStats {
+    pub fn stats(&self) -> HttpStats {
         if let Ok(http_stats) = self.http_stats.lock() {
             http_stats.clone()
         } else {
