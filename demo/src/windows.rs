@@ -11,12 +11,15 @@ pub fn acknowledge(ui: &Ui, attribution: Attribution) {
         .title_bar(false)
         .anchor(Align2::LEFT_TOP, [10., 10.])
         .show(ui.ctx(), |ui| {
+            ui.label("map provided by");
             ui.horizontal(|ui| {
                 if let Some(logo) = attribution.logo_light {
                     ui.add(Image::new(logo).max_height(30.0).max_width(80.0));
                 }
                 ui.hyperlink_to(attribution.text, attribution.url);
             });
+            ui.label("viewed in ");
+            ui.hyperlink_to("Walkers", "https://github.com/podusowski/walkers");
         });
 }
 
@@ -87,8 +90,11 @@ pub fn go_to_my_position(ui: &Ui, map_memory: &mut MapMemory) {
             .title_bar(false)
             .anchor(Align2::RIGHT_BOTTOM, [-10., -10.])
             .show(ui.ctx(), |ui| {
-                ui.label("map center: ");
-                ui.label(format!("{:.04} {:.04}", position.x(), position.y()));
+                ui.label(format!(
+                    "center at {:.04} {:.04}",
+                    position.x(),
+                    position.y()
+                ));
                 if ui
                     .button(RichText::new("go to the starting point").heading())
                     .clicked()
