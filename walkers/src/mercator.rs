@@ -91,6 +91,10 @@ impl TileId {
             zoom: self.zoom,
         })
     }
+
+    pub(crate) fn valid(&self) -> bool {
+        self.x < total_tiles(self.zoom) && self.y < total_tiles(self.zoom)
+    }
 }
 
 /// Calculate the tile coordinated for the given position.

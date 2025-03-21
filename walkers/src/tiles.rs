@@ -245,6 +245,10 @@ impl Tiles for HttpTiles {
     fn at(&mut self, tile_id: TileId) -> Option<TextureWithUv> {
         self.put_single_downloaded_tile_in_cache();
 
+        if !tile_id.valid() {
+            return None;
+        }
+
         self.make_sure_is_downloaded(if tile_id.zoom > self.max_zoom {
             interpolate_higher_zoom(tile_id, self.max_zoom).0
         } else {
@@ -347,6 +351,25 @@ mod tests {
     }
 
     #[tokio::test]
+    async fn download_is_not_started_when_tile_is_invalid() {
+        let _ = env_logger::try_init();
+
+        let (_server, source) = hypermocker_mock().await;
+        let mut tiles = HttpTiles::new(source, Context::default());
+
+        let invalid_tile_id = TileId {
+            x: 2,
+            y: 2,
+            zoom: 0, // There only one tile at zoom 0.
+        };
+
+        assert!(tiles.at(invalid_tile_id).is_none());
+
+        // Make sure it does not come.
+        tokio::time::sleep(Duration::from_secs(1)).await;
+    }
+
+    #[tokio::test]
     async fn custom_user_agent_header() {
         let _ = env_logger::try_init();
 
@@ -384,12 +407,12 @@ mod tests {
         assert!(tiles.at(TILE_ID).is_none());
         first_outstanding_request.expect().await;
 
-        let tile_ids: Vec<_> = (2..7).map(|x| TileId { x, y: 1, zoom: 1 }).collect();
+        let tile_ids: Vec<_> = (2..7).map(|x| TileId { x, y: 1, zoom: 10 }).collect();
 
         // Rest of the downloads are started right away too, but they remain active.
         let mut requests = Vec::new();
         for tile_id in tile_ids {
-            let mut request = server.anticipate(format!("/1/{}/1.png", tile_id.x)).await;
+            let mut request = server.anticipate(format!("/10/{}/1.png", tile_id.x)).await;
             assert!(tiles.at(tile_id).is_none());
             request.expect().await;
             requests.push(request);
@@ -400,7 +423,7 @@ mod tests {
             .at(TileId {
                 x: 99,
                 y: 99,
-                zoom: 1
+                zoom: 10
             })
             .is_none());
 
@@ -408,7 +431,7 @@ mod tests {
         tokio::time::sleep(Duration::from_secs(1)).await;
 
         // Last download will start as soon as one of the previous ones are responded to.
-        let mut awaiting_request = server.anticipate("/1/99/99.png".to_string()).await;
+        let mut awaiting_request = server.anticipate("/10/99/99.png".to_string()).await;
 
         first_outstanding_request
             .respond(Bytes::from_static(include_bytes!(

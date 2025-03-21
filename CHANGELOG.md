@@ -7,6 +7,7 @@ All notable changes to this project will be documented in this file.
 * `screen_to_position` is no longer a public function. Use `Projector::unproject` to obtain
   geographical coordinates from screen coordinates relative to the map viewport.
 * New `HttpTiles::stats()` function.
+* Fixed download attempts of invalid tiles in certain cases.
 
 ## 0.35.0
 
