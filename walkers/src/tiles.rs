@@ -354,7 +354,7 @@ mod tests {
     async fn download_is_not_started_when_tile_is_invalid() {
         let _ = env_logger::try_init();
 
-        let (server, source) = hypermocker_mock().await;
+        let (_server, source) = hypermocker_mock().await;
         let mut tiles = HttpTiles::new(source, Context::default());
 
         let invalid_tile_id = TileId {
