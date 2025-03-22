@@ -309,19 +309,7 @@ impl Widget for Map<'_, '_, '_> {
         let painter = ui.painter().with_clip_rect(rect);
 
         if let Some(tiles) = self.tiles {
-            let mut meshes = Default::default();
-            flood_fill_tiles(
-                painter.clip_rect(),
-                tile_id(map_center, zoom.round(), tiles.tile_size()),
-                project(map_center, zoom.into()),
-                zoom.into(),
-                tiles,
-                &mut meshes,
-            );
-
-            for shape in meshes.drain().filter_map(|(_, mesh)| mesh) {
-                painter.add(shape);
-            }
+            draw_tiles(&painter, map_center, zoom, tiles);
         }
 
         let projector = Projector::new(response.rect, self.memory, self.my_position);
@@ -383,6 +371,22 @@ impl MapMemory {
     /// Follow `my_position`.
     pub fn follow_my_position(&mut self) {
         self.center_mode = Center::MyPosition;
+    }
+}
+
+fn draw_tiles(painter: &egui::Painter, map_center: Position, zoom: Zoom, tiles: &mut dyn Tiles) {
+    let mut meshes = Default::default();
+    flood_fill_tiles(
+        painter.clip_rect(),
+        tile_id(map_center, zoom.round(), tiles.tile_size()),
+        project(map_center, zoom.into()),
+        zoom.into(),
+        tiles,
+        &mut meshes,
+    );
+
+    for shape in meshes.drain().filter_map(|(_, mesh)| mesh) {
+        painter.add(shape);
     }
 }
 
