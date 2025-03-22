@@ -189,7 +189,7 @@ impl HttpTiles {
         let mut zoom_candidate = tile_id.zoom;
 
         loop {
-            let (zoomed_tile_id, uv) = interpolate_higher_zoom(tile_id, zoom_candidate);
+            let (zoomed_tile_id, uv) = interpolate_from_lower_zoom(tile_id, zoom_candidate);
 
             if let Some(Some(texture)) = self.cache.get(&zoomed_tile_id) {
                 break Some(TextureWithUv {
@@ -210,8 +210,8 @@ pub struct HttpStats {
     pub in_progress: usize,
 }
 
-/// Take a piece of a tile with higher zoom level and use it as a tile with lower zoom level.
-fn interpolate_higher_zoom(tile_id: TileId, available_zoom: u8) -> (TileId, Rect) {
+/// Take a piece of a tile with lower zoom level and use it as a required tile.
+fn interpolate_from_lower_zoom(tile_id: TileId, available_zoom: u8) -> (TileId, Rect) {
     assert!(tile_id.zoom >= available_zoom);
 
     let dzoom = 2u32.pow((tile_id.zoom - available_zoom) as u32);
@@ -251,7 +251,7 @@ impl Tiles for HttpTiles {
         }
 
         let tile_id_to_download = if tile_id.zoom > self.max_zoom {
-            interpolate_higher_zoom(tile_id, self.max_zoom).0
+            interpolate_from_lower_zoom(tile_id, self.max_zoom).0
         } else {
             tile_id
         };
