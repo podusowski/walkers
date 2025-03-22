@@ -249,12 +249,13 @@ impl Tiles for HttpTiles {
             return None;
         }
 
-        self.make_sure_is_downloaded(if tile_id.zoom > self.max_zoom {
+        let tile_id_to_download = if tile_id.zoom > self.max_zoom {
             interpolate_higher_zoom(tile_id, self.max_zoom).0
         } else {
             tile_id
-        });
+        };
 
+        self.make_sure_is_downloaded(tile_id_to_download);
         self.get_or_interpolate(tile_id)
     }
 
