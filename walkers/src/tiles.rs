@@ -183,12 +183,13 @@ impl HttpTiles {
         }
     }
 
-    /// Get at tile, or interpolate it from lower zoom levels.
-    fn get_or_interpolate(&mut self, tile_id: TileId) -> Option<TextureWithUv> {
+    /// Get at tile, or interpolate it from lower zoom levels. This function does not start any
+    /// downloads.
+    fn get_from_cache_or_interpolate(&mut self, tile_id: TileId) -> Option<TextureWithUv> {
         let mut zoom_candidate = tile_id.zoom;
 
         loop {
-            let (zoomed_tile_id, uv) = interpolate_higher_zoom(tile_id, zoom_candidate);
+            let (zoomed_tile_id, uv) = interpolate_from_lower_zoom(tile_id, zoom_candidate);
 
             if let Some(Some(texture)) = self.cache.get(&zoomed_tile_id) {
                 break Some(TextureWithUv {
@@ -209,8 +210,8 @@ pub struct HttpStats {
     pub in_progress: usize,
 }
 
-/// Take a piece of a tile with higher zoom level and use it as a tile with lower zoom level.
-fn interpolate_higher_zoom(tile_id: TileId, available_zoom: u8) -> (TileId, Rect) {
+/// Take a piece of a tile with lower zoom level and use it as a required tile.
+fn interpolate_from_lower_zoom(tile_id: TileId, available_zoom: u8) -> (TileId, Rect) {
     assert!(tile_id.zoom >= available_zoom);
 
     let dzoom = 2u32.pow((tile_id.zoom - available_zoom) as u32);
@@ -249,13 +250,14 @@ impl Tiles for HttpTiles {
             return None;
         }
 
-        self.make_sure_is_downloaded(if tile_id.zoom > self.max_zoom {
-            interpolate_higher_zoom(tile_id, self.max_zoom).0
+        let tile_id_to_download = if tile_id.zoom > self.max_zoom {
+            interpolate_from_lower_zoom(tile_id, self.max_zoom).0
         } else {
             tile_id
-        });
+        };
 
-        self.get_or_interpolate(tile_id)
+        self.make_sure_is_downloaded(tile_id_to_download);
+        self.get_from_cache_or_interpolate(tile_id)
     }
 
     fn tile_size(&self) -> u32 {
