@@ -183,8 +183,9 @@ impl HttpTiles {
         }
     }
 
-    /// Get at tile, or interpolate it from lower zoom levels.
-    fn get_or_interpolate(&mut self, tile_id: TileId) -> Option<TextureWithUv> {
+    /// Get at tile, or interpolate it from lower zoom levels. This function does not start any
+    /// downloads.
+    fn get_from_cache_or_interpolate(&mut self, tile_id: TileId) -> Option<TextureWithUv> {
         let mut zoom_candidate = tile_id.zoom;
 
         loop {
@@ -256,7 +257,7 @@ impl Tiles for HttpTiles {
         };
 
         self.make_sure_is_downloaded(tile_id_to_download);
-        self.get_or_interpolate(tile_id)
+        self.get_from_cache_or_interpolate(tile_id)
     }
 
     fn tile_size(&self) -> u32 {
