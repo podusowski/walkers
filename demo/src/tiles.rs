@@ -49,30 +49,30 @@ fn http_options() -> HttpOptions {
     }
 }
 
-pub(crate) fn providers(egui_ctx: Context) -> BTreeMap<Provider, TilesKind> {
+pub(crate) fn providers(egui_ctx: Context) -> BTreeMap<Provider, Vec<TilesKind>> {
     let mut providers = BTreeMap::default();
 
     providers.insert(
         Provider::OpenStreetMap,
-        TilesKind::Http(HttpTiles::with_options(
+        vec![TilesKind::Http(HttpTiles::with_options(
             walkers::sources::OpenStreetMap,
             http_options(),
             egui_ctx.to_owned(),
-        )),
+        ))],
     );
 
     providers.insert(
         Provider::Geoportal,
-        TilesKind::Http(HttpTiles::with_options(
+        vec![TilesKind::Http(HttpTiles::with_options(
             walkers::sources::Geoportal,
             http_options(),
             egui_ctx.to_owned(),
-        )),
+        ))],
     );
 
     providers.insert(
         Provider::LocalTiles,
-        TilesKind::Local(LocalTiles::new(egui_ctx.to_owned())),
+        vec![TilesKind::Local(LocalTiles::new(egui_ctx.to_owned()))],
     );
 
     // Pass in a mapbox access token at compile time. May or may not be what you want to do,
@@ -83,7 +83,7 @@ pub(crate) fn providers(egui_ctx: Context) -> BTreeMap<Provider, TilesKind> {
     if let Some(token) = mapbox_access_token {
         providers.insert(
             Provider::MapboxStreets,
-            TilesKind::Http(HttpTiles::with_options(
+            vec![TilesKind::Http(HttpTiles::with_options(
                 walkers::sources::Mapbox {
                     style: walkers::sources::MapboxStyle::Streets,
                     access_token: token.to_string(),
@@ -91,11 +91,11 @@ pub(crate) fn providers(egui_ctx: Context) -> BTreeMap<Provider, TilesKind> {
                 },
                 http_options(),
                 egui_ctx.to_owned(),
-            )),
+            ))],
         );
         providers.insert(
             Provider::MapboxSatellite,
-            TilesKind::Http(HttpTiles::with_options(
+            vec![TilesKind::Http(HttpTiles::with_options(
                 walkers::sources::Mapbox {
                     style: walkers::sources::MapboxStyle::Satellite,
                     access_token: token.to_string(),
@@ -103,7 +103,7 @@ pub(crate) fn providers(egui_ctx: Context) -> BTreeMap<Provider, TilesKind> {
                 },
                 http_options(),
                 egui_ctx.to_owned(),
-            )),
+            ))],
         );
     }
 
