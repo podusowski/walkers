@@ -4,7 +4,7 @@ mod plugins;
 mod tiles;
 mod windows;
 
-use std::collections::HashMap;
+use std::collections::BTreeMap;
 
 use crate::plugins::ImagesPluginData;
 use egui::{CentralPanel, Context, Frame};
@@ -12,7 +12,7 @@ use tiles::{providers, Provider, TilesKind};
 use walkers::{Map, MapMemory};
 
 pub struct MyApp {
-    providers: HashMap<Provider, TilesKind>,
+    providers: BTreeMap<Provider, TilesKind>,
     selected_provider: Provider,
     map_memory: MapMemory,
     images_plugin_data: ImagesPluginData,

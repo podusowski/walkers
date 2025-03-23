@@ -1,11 +1,11 @@
-use std::collections::HashMap;
+use std::collections::BTreeMap;
 
 use egui::Context;
 use walkers::{HttpOptions, HttpTiles, Tiles};
 
 use crate::local_tiles::LocalTiles;
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 pub enum Provider {
     OpenStreetMap,
     Geoportal,
@@ -49,8 +49,8 @@ fn http_options() -> HttpOptions {
     }
 }
 
-pub(crate) fn providers(egui_ctx: Context) -> HashMap<Provider, TilesKind> {
-    let mut providers: HashMap<Provider, TilesKind> = HashMap::default();
+pub(crate) fn providers(egui_ctx: Context) -> BTreeMap<Provider, TilesKind> {
+    let mut providers: BTreeMap<Provider, TilesKind> = BTreeMap::default();
 
     providers.insert(
         Provider::OpenStreetMap,
