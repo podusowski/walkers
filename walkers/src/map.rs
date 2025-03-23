@@ -44,6 +44,7 @@ pub trait Plugin {
 /// ```
 pub struct Map<'a, 'b, 'c> {
     tiles: Option<&'b mut dyn Tiles>,
+    layers: Vec<&'b mut dyn Tiles>,
     memory: &'a mut MapMemory,
     my_position: Position,
     plugins: Vec<Box<dyn Plugin + 'c>>,
@@ -64,6 +65,7 @@ impl<'a, 'b, 'c> Map<'a, 'b, 'c> {
     ) -> Self {
         Self {
             tiles,
+            layers: Vec::default(),
             memory,
             my_position,
             plugins: Vec::default(),
@@ -79,6 +81,11 @@ impl<'a, 'b, 'c> Map<'a, 'b, 'c> {
     /// Add plugin to the drawing pipeline. Plugins allow drawing custom shapes on the map.
     pub fn with_plugin(mut self, plugin: impl Plugin + 'c) -> Self {
         self.plugins.push(Box::new(plugin));
+        self
+    }
+
+    pub fn with_layer(mut self, layer: &'b mut dyn Tiles) -> Self {
+        self.layers.push(layer);
         self
     }
 
