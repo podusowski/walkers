@@ -46,14 +46,15 @@ impl eframe::App for MyApp {
             let attribution = tiles.as_ref().attribution();
 
             // In egui, widgets are constructed and consumed in each frame.
-            let map = Map::new(Some(tiles.as_mut()), &mut self.map_memory, my_position);
+            let map = Map::new(None, &mut self.map_memory, my_position);
 
             // Optionally, plugins can be attached.
             let map = map
                 .with_plugin(plugins::places())
                 .with_plugin(plugins::images(&mut self.images_plugin_data))
                 .with_plugin(plugins::CustomShapes {})
-                .with_plugin(&mut self.click_watcher);
+                .with_plugin(&mut self.click_watcher)
+                .with_layer(tiles.as_mut());
 
             // Draw the map widget.
             ui.add(map);
