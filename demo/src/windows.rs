@@ -49,11 +49,14 @@ pub fn controls(
                     });
             });
 
-            for http_stats in http_stats {
-                ui.collapsing(format!("{:?} HTTP statistics", selected_provider), |ui| {
-                    ui.label(format!("Requests in progress: {}", http_stats.in_progress));
-                });
-            }
+            ui.collapsing("HTTP statistics", |ui| {
+                for http_stats in http_stats {
+                    ui.label(format!(
+                        "{:?} requests in progress: {}",
+                        selected_provider, http_stats.in_progress
+                    ));
+                }
+            });
 
             ui.collapsing("Images plugin", |ui| {
                 ui.add(Slider::new(&mut image.angle, 0.0..=360.0).text("Rotate"));
