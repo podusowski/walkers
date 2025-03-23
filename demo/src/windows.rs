@@ -1,6 +1,6 @@
 use crate::plugins::ImagesPluginData;
 
-use crate::Provider;
+use crate::tiles::Provider;
 use egui::{Align2, ComboBox, Image, RichText, Slider, Ui, Window};
 use walkers::{sources::Attribution, MapMemory};
 
