@@ -50,7 +50,7 @@ fn http_options() -> HttpOptions {
 }
 
 pub(crate) fn providers(egui_ctx: Context) -> BTreeMap<Provider, TilesKind> {
-    let mut providers: BTreeMap<Provider, TilesKind> = BTreeMap::default();
+    let mut providers = BTreeMap::default();
 
     providers.insert(
         Provider::OpenStreetMap,
