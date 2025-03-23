@@ -393,6 +393,7 @@ fn draw_tiles(painter: &egui::Painter, map_center: Position, zoom: Zoom, tiles: 
         project(map_center, zoom.into()),
         zoom.into(),
         tiles,
+        1.0,
         &mut meshes,
     );
 
@@ -408,6 +409,7 @@ fn flood_fill_tiles(
     map_center_projected_position: Pixels,
     zoom: f64,
     tiles: &mut dyn Tiles,
+    transparency: f32,
     meshes: &mut HashMap<TileId, Option<Mesh>>,
 ) {
     // We need to make up the difference between integer and floating point zoom levels.
@@ -420,8 +422,12 @@ fn flood_fill_tiles(
         if let Entry::Vacant(entry) = meshes.entry(tile_id) {
             // It's still OK to insert an empty one, as we need to mark the spot for the filling algorithm.
             let tile = tiles.at(tile_id).map(|tile| {
-                tile.texture
-                    .mesh_with_uv(tile_screen_position, corrected_tile_size, tile.uv)
+                tile.texture.mesh_with_uv(
+                    tile_screen_position,
+                    corrected_tile_size,
+                    tile.uv,
+                    transparency,
+                )
             });
 
             entry.insert(tile);
@@ -441,6 +447,7 @@ fn flood_fill_tiles(
                     map_center_projected_position,
                     zoom,
                     tiles,
+                    transparency,
                     meshes,
                 );
             }
