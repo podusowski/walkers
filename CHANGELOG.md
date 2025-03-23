@@ -2,7 +2,7 @@
 
 All notable changes to this project will be documented in this file.
 
-## Unreleased
+## 0.36.0
 
 * `screen_to_position` is no longer a public function. Use `Projector::unproject` to obtain
   geographical coordinates from screen coordinates relative to the map viewport.
