@@ -43,7 +43,7 @@ impl eframe::App for MyApp {
             let my_position = places::wroclaw_glowny();
 
             let tiles = self.providers.get_mut(&self.selected_provider).unwrap();
-            let attribution: Vec<_> = tiles
+            let attributions: Vec<_> = tiles
                 .iter()
                 .map(|tile| tile.as_ref().attribution())
                 .collect();
@@ -84,12 +84,6 @@ impl eframe::App for MyApp {
                     })
                     .collect();
 
-                //let http_stats = if let TilesKind::Http(tiles) = tiles {
-                //    Some(tiles.stats())
-                //} else {
-                //    None
-                //};
-
                 controls(
                     ui,
                     &mut self.selected_provider,
@@ -97,7 +91,7 @@ impl eframe::App for MyApp {
                     http_stats,
                     &mut self.images_plugin_data,
                 );
-                acknowledge(ui, attribution);
+                acknowledge(ui, attributions);
             }
         });
     }

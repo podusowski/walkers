@@ -4,7 +4,7 @@ use crate::tiles::Provider;
 use egui::{Align2, ComboBox, Image, RichText, Slider, Ui, Window};
 use walkers::{sources::Attribution, MapMemory};
 
-pub fn acknowledge(ui: &Ui, attribution: Vec<Attribution>) {
+pub fn acknowledge(ui: &Ui, attributions: Vec<Attribution>) {
     Window::new("Acknowledge")
         .collapsible(false)
         .resizable(false)
@@ -12,7 +12,7 @@ pub fn acknowledge(ui: &Ui, attribution: Vec<Attribution>) {
         .anchor(Align2::LEFT_TOP, [10., 10.])
         .show(ui.ctx(), |ui| {
             ui.label("map provided by");
-            for attribution in attribution {
+            for attribution in attributions {
                 ui.horizontal(|ui| {
                     if let Some(logo) = attribution.logo_light {
                         ui.add(Image::new(logo).max_height(30.0).max_width(80.0));
