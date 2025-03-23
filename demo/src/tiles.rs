@@ -9,6 +9,7 @@ use crate::local_tiles::LocalTiles;
 pub enum Provider {
     OpenStreetMap,
     Geoportal,
+    OpenStreetMapWithGeoportal,
     MapboxStreets,
     MapboxSatellite,
     LocalTiles,
@@ -59,6 +60,31 @@ pub(crate) fn providers(egui_ctx: Context) -> BTreeMap<Provider, Vec<TilesKind>>
             http_options(),
             egui_ctx.to_owned(),
         ))],
+    );
+
+    providers.insert(
+        Provider::Geoportal,
+        vec![TilesKind::Http(HttpTiles::with_options(
+            walkers::sources::Geoportal,
+            http_options(),
+            egui_ctx.to_owned(),
+        ))],
+    );
+
+    providers.insert(
+        Provider::OpenStreetMapWithGeoportal,
+        vec![
+            TilesKind::Http(HttpTiles::with_options(
+                walkers::sources::OpenStreetMap,
+                http_options(),
+                egui_ctx.to_owned(),
+            )),
+            TilesKind::Http(HttpTiles::with_options(
+                walkers::sources::Geoportal,
+                http_options(),
+                egui_ctx.to_owned(),
+            )),
+        ],
     );
 
     providers.insert(
