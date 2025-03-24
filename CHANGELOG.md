@@ -2,6 +2,9 @@
 
 All notable changes to this project will be documented in this file.
 
+## 0.37.0
+* `Tiles::at()` now returns a `Vec` of tiles, which will be rendered front-to-back (first element on top), to allow for multiple tile layers to be rendered at the same time.
+
 ## 0.36.0
 
 * `screen_to_position` is no longer a public function. Use `Projector::unproject` to obtain

@@ -3,11 +3,11 @@ mod places;
 mod plugins;
 mod windows;
 
-use std::collections::HashMap;
-
 use crate::plugins::ImagesPluginData;
 use egui::{CentralPanel, Context, Frame};
 use local_tiles::LocalTiles;
+use std::collections::HashMap;
+use std::ops::DerefMut;
 use walkers::{HttpOptions, HttpTiles, Map, MapMemory, Tiles};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
@@ -111,7 +111,6 @@ fn providers(egui_ctx: Context) -> HashMap<Provider, TilesKind> {
             )),
         );
     }
-
     providers
 }
 
@@ -146,7 +145,8 @@ impl eframe::App for MyApp {
             // Typically this would be a GPS acquired position which is tracked by the map.
             let my_position = places::wroclaw_glowny();
 
-            let tiles = self.providers.get_mut(&self.selected_provider).unwrap();
+            let mut tiles = self.providers.get_mut(&self.selected_provider).unwrap();
+
             let attribution = tiles.as_ref().attribution();
 
             // In egui, widgets are constructed and consumed in each frame.
@@ -170,7 +170,7 @@ impl eframe::App for MyApp {
                 go_to_my_position(ui, &mut self.map_memory);
                 self.click_watcher.show_position(ui);
 
-                let http_stats = if let TilesKind::Http(tiles) = tiles {
+                let http_stats = if let TilesKind::Http(tiles) = tiles.deref_mut() {
                     Some(tiles.stats())
                 } else {
                     None

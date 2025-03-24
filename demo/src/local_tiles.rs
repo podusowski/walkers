@@ -19,13 +19,13 @@ impl LocalTiles {
 }
 
 impl Tiles for LocalTiles {
-    fn at(&mut self, _tile_id: TileId) -> Option<TextureWithUv> {
+    fn at(&mut self, _tile_id: TileId) -> Vec<TextureWithUv> {
         let image = ColorImage::example();
 
-        Some(TextureWithUv {
+        vec![TextureWithUv {
             texture: Texture::from_color_image(image, &self.egui_ctx),
             uv: Rect::from_min_max(pos2(0.0, 0.0), pos2(1.0, 1.0)),
-        })
+        }]
     }
 
     fn attribution(&self) -> Attribution {
