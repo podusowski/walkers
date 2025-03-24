@@ -343,6 +343,7 @@ impl Widget for Map<'_, '_, '_> {
 
 /// State of the map widget which must persist between frames.
 #[derive(Debug, Default, Clone)]
+#[cfg_attr(feature = "serde", derive(::serde::Serialize, ::serde::Deserialize))]
 pub struct MapMemory {
     center_mode: Center,
     zoom: Zoom,
