@@ -89,10 +89,10 @@ impl<'a, 'b, 'c> Map<'a, 'b, 'c> {
         self
     }
 
-    pub fn with_layer(mut self, tiles: &'b mut dyn Tiles) -> Self {
+    pub fn with_layer(mut self, tiles: &'b mut dyn Tiles, transparency: f32) -> Self {
         self.layers.push(Layer {
             tiles,
-            transparency: 1.0,
+            transparency,
         });
         self
     }

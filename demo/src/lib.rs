@@ -58,8 +58,9 @@ impl eframe::App for MyApp {
                 .with_plugin(plugins::CustomShapes {})
                 .with_plugin(&mut self.click_watcher);
 
-            for tiles in tiles.iter_mut() {
-                map = map.with_layer(tiles.as_mut());
+            for (n, tiles) in tiles.iter_mut().enumerate() {
+                let transparency = if n == 0 { 1.0 } else { 0.25 };
+                map = map.with_layer(tiles.as_mut(), transparency);
             }
 
             // Draw the map widget.
