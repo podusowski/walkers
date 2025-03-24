@@ -36,14 +36,14 @@ pub trait Plugin {
 ///
 /// fn update(ui: &mut egui::Ui, tiles: &mut dyn Tiles, map_memory: &mut MapMemory) {
 ///     ui.add(Map::new(
-///         vec![tiles], // `None`, if you don't want to show any tiles.
+///         Some(tiles), // `None`, if you don't want to show any tiles.
 ///         map_memory,
 ///         lon_lat(17.03664, 51.09916)
 ///     ));
 /// }
 /// ```
 pub struct Map<'a, 'b, 'c> {
-    tiles: Vec<&'b mut dyn Tiles>,
+    tiles: Option<&'b mut dyn Tiles>,
     memory: &'a mut MapMemory,
     my_position: Position,
     plugins: Vec<Box<dyn Plugin + 'c>>,
@@ -58,7 +58,7 @@ pub struct Map<'a, 'b, 'c> {
 
 impl<'a, 'b, 'c> Map<'a, 'b, 'c> {
     pub fn new(
-        tiles: Vec<&'b mut dyn Tiles>,
+        tiles: Option<&'b mut dyn Tiles>,
         memory: &'a mut MapMemory,
         my_position: Position,
     ) -> Self {
@@ -310,16 +310,18 @@ impl Widget for Map<'_, '_, '_> {
 
         let mut meshes = Default::default();
 
-        for layer in self.tiles {
+        if let Some(tiles) = self.tiles {
             flood_fill_tiles(
                 painter.clip_rect(),
-                tile_id(map_center, zoom.round(), layer.tile_size()),
+                tile_id(map_center, zoom.round(), tiles.tile_size()),
                 project(map_center, zoom.into()),
                 zoom.into(),
-                layer,
+                tiles,
                 &mut meshes,
             );
+            log::debug!("rendering {} tiles", meshes.len());
             for (_, meshes) in meshes.drain() {
+                log::debug!("tiles has {} tiles", meshes.len());
                 for shape in meshes {
                     painter.add(shape);
                 }
@@ -408,13 +410,17 @@ fn flood_fill_tiles(
             // It's still OK to insert an empty one, as we need to mark the spot for the filling algorithm.
 
             entry.insert(
-                tiles.at(tile_id)
+                tiles
+                    .at(tile_id)
                     .iter()
                     .map(|tile| {
-                        tile.texture
-                            .mesh_with_uv(tile_screen_position, corrected_tile_size, tile.uv)
+                        tile.texture.mesh_with_uv(
+                            tile_screen_position,
+                            corrected_tile_size,
+                            tile.uv,
+                        )
                     })
-                    .collect()
+                    .collect(),
             );
 
             for next_tile_id in [

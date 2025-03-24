@@ -257,7 +257,9 @@ impl Tiles for HttpTiles {
         };
 
         self.make_sure_is_downloaded(tile_id_to_download);
-        self.get_from_cache_or_interpolate(tile_id).map(|u| vec![u]).unwrap_or_default()
+        self.get_from_cache_or_interpolate(tile_id)
+            .map(|u| vec![u])
+            .unwrap_or_default()
     }
 
     fn tile_size(&self) -> u32 {
