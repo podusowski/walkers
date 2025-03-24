@@ -67,7 +67,7 @@ pub struct TextureWithUv {
 }
 
 pub trait Tiles {
-    fn at(&mut self, tile_id: TileId) -> Option<TextureWithUv>;
+    fn at(&mut self, tile_id: TileId) -> Vec<TextureWithUv>;
     fn attribution(&self) -> Attribution;
     fn tile_size(&self) -> u32;
 }
@@ -243,11 +243,11 @@ impl Tiles for HttpTiles {
     }
 
     /// Return a tile if already in cache, schedule a download otherwise.
-    fn at(&mut self, tile_id: TileId) -> Option<TextureWithUv> {
+    fn at(&mut self, tile_id: TileId) -> Vec<TextureWithUv> {
         self.put_single_downloaded_tile_in_cache();
 
         if !tile_id.valid() {
-            return None;
+            return vec![];
         }
 
         let tile_id_to_download = if tile_id.zoom > self.max_zoom {
@@ -257,7 +257,7 @@ impl Tiles for HttpTiles {
         };
 
         self.make_sure_is_downloaded(tile_id_to_download);
-        self.get_from_cache_or_interpolate(tile_id)
+        self.get_from_cache_or_interpolate(tile_id).map(|u| vec![u]).unwrap_or_default()
     }
 
     fn tile_size(&self) -> u32 {
@@ -317,7 +317,7 @@ mod tests {
 
     async fn assert_tile_to_become_available_eventually(tiles: &mut HttpTiles, tile_id: TileId) {
         log::info!("Waiting for {:?} to become available.", tile_id);
-        while tiles.at(tile_id).is_none() {
+        while tiles.at(tile_id).is_empty() {
             // Need to yield to the runtime for things to move.
             tokio::time::sleep(Duration::from_millis(10)).await;
         }
@@ -333,7 +333,7 @@ mod tests {
         let mut tiles = HttpTiles::new(source, Context::default());
 
         // First query start the download, but it will always return None.
-        assert!(tiles.at(TILE_ID).is_none());
+        assert!(tiles.at(TILE_ID).is_empty());
 
         let request = anticipated.expect().await;
         assert_eq!(
@@ -365,7 +365,7 @@ mod tests {
             zoom: 0, // There only one tile at zoom 0.
         };
 
-        assert!(tiles.at(invalid_tile_id).is_none());
+        assert!(tiles.at(invalid_tile_id).is_empty());
 
         // Make sure it does not come.
         tokio::time::sleep(Duration::from_secs(1)).await;
@@ -406,7 +406,7 @@ mod tests {
 
         // First download is started immediately.
         let mut first_outstanding_request = server.anticipate(format!("/3/1/2.png")).await;
-        assert!(tiles.at(TILE_ID).is_none());
+        assert!(tiles.at(TILE_ID).is_empty());
         first_outstanding_request.expect().await;
 
         let tile_ids: Vec<_> = (2..7).map(|x| TileId { x, y: 1, zoom: 10 }).collect();
@@ -415,7 +415,7 @@ mod tests {
         let mut requests = Vec::new();
         for tile_id in tile_ids {
             let mut request = server.anticipate(format!("/10/{}/1.png", tile_id.x)).await;
-            assert!(tiles.at(tile_id).is_none());
+            assert!(tiles.at(tile_id).is_empty());
             request.expect().await;
             requests.push(request);
         }
@@ -427,7 +427,7 @@ mod tests {
                 y: 99,
                 zoom: 10
             })
-            .is_none());
+            .is_empty());
 
         // Make sure it does not come.
         tokio::time::sleep(Duration::from_secs(1)).await;
@@ -446,9 +446,9 @@ mod tests {
 
     async fn assert_tile_is_empty_forever(tiles: &mut HttpTiles) {
         // Should be None now, and forever.
-        assert!(tiles.at(TILE_ID).is_none());
+        assert!(tiles.at(TILE_ID).is_empty());
         tokio::time::sleep(Duration::from_secs(1)).await;
-        assert!(tiles.at(TILE_ID).is_none());
+        assert!(tiles.at(TILE_ID).is_empty());
     }
 
     #[tokio::test]

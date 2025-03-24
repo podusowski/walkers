@@ -319,8 +319,10 @@ impl Widget for Map<'_, '_, '_> {
                 layer,
                 &mut meshes,
             );
-            for shape in meshes.drain().filter_map(|(_, mesh)| mesh) {
-                painter.add(shape);
+            for (_, meshes) in meshes.drain() {
+                for shape in meshes {
+                    painter.add(shape);
+                }
             }
         }
 
@@ -393,7 +395,7 @@ fn flood_fill_tiles(
     map_center_projected_position: Pixels,
     zoom: f64,
     tiles: &mut dyn Tiles,
-    meshes: &mut HashMap<TileId, Option<Mesh>>,
+    meshes: &mut HashMap<TileId, Vec<Mesh>>,
 ) {
     // We need to make up the difference between integer and floating point zoom levels.
     let corrected_tile_size = tiles.tile_size() as f64 * 2f64.powf(zoom - zoom.round());
@@ -404,12 +406,16 @@ fn flood_fill_tiles(
     if viewport.intersects(tiles::rect(tile_screen_position, corrected_tile_size)) {
         if let Entry::Vacant(entry) = meshes.entry(tile_id) {
             // It's still OK to insert an empty one, as we need to mark the spot for the filling algorithm.
-            let tile = tiles.at(tile_id).map(|tile| {
-                tile.texture
-                    .mesh_with_uv(tile_screen_position, corrected_tile_size, tile.uv)
-            });
 
-            entry.insert(tile);
+            entry.insert(
+                tiles.at(tile_id)
+                    .iter()
+                    .map(|tile| {
+                        tile.texture
+                            .mesh_with_uv(tile_screen_position, corrected_tile_size, tile.uv)
+                    })
+                    .collect()
+            );
 
             for next_tile_id in [
                 tile_id.north(),
