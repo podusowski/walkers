@@ -46,7 +46,7 @@ impl App for MyApp {
     fn update(&mut self, ctx: &Context, _frame: &mut Frame) {
         CentralPanel::default().show(ctx, |ui| {
             ui.add(Map::new(
-                Some(&mut self.tiles),
+                vec![&mut self.tiles],
                 &mut self.map_memory,
                 lon_lat(17.03664, 51.09916)
             ));

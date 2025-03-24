@@ -3,14 +3,14 @@ mod places;
 mod plugins;
 mod windows;
 
-use std::cell::RefCell;
-use std::collections::HashMap;
-use std::ops::DerefMut;
 use crate::plugins::ImagesPluginData;
 use egui::{CentralPanel, Context, Frame};
 use local_tiles::LocalTiles;
-use walkers::{HttpOptions, HttpTiles, Map, MapMemory, TileId, Tiles};
+use std::cell::RefCell;
+use std::collections::HashMap;
+use std::ops::DerefMut;
 use walkers::sources::{Attribution, TileSource};
+use walkers::{HttpOptions, HttpTiles, Map, MapMemory, TileId, Tiles};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum Provider {
@@ -19,7 +19,7 @@ pub enum Provider {
     MapboxStreets,
     MapboxSatellite,
     LocalTiles,
-    NOAATest
+    NOAATest,
 }
 
 enum TilesKind {
@@ -80,7 +80,9 @@ fn providers(egui_ctx: Context) -> HashMap<Provider, RefCell<TilesKind>> {
 
     providers.insert(
         Provider::LocalTiles,
-        RefCell::new(TilesKind::Local(local_tiles::LocalTiles::new(egui_ctx.to_owned()))),
+        RefCell::new(TilesKind::Local(local_tiles::LocalTiles::new(
+            egui_ctx.to_owned(),
+        ))),
     );
 
     // Pass in a mapbox access token at compile time. May or may not be what you want to do,
@@ -121,7 +123,7 @@ fn providers(egui_ctx: Context) -> HashMap<Provider, RefCell<TilesKind>> {
             TestSource {},
             http_options(),
             egui_ctx.to_owned(),
-        )))
+        ))),
     );
 
     providers
@@ -174,13 +176,25 @@ impl eframe::App for MyApp {
             // Typically this would be a GPS acquired position which is tracked by the map.
             let my_position = places::wroclaw_glowny();
 
-            let mut tiles = self.providers.get(&self.selected_provider).unwrap().borrow_mut();
-            let mut overlaytiles = self.providers.get(&Provider::NOAATest).unwrap().borrow_mut();
+            let mut tiles = self
+                .providers
+                .get(&self.selected_provider)
+                .unwrap()
+                .borrow_mut();
+            let mut overlaytiles = self
+                .providers
+                .get(&Provider::NOAATest)
+                .unwrap()
+                .borrow_mut();
 
             let attribution = tiles.as_ref().attribution();
 
             // In egui, widgets are constructed and consumed in each frame.
-            let map = Map::new(vec![tiles.as_mut(), overlaytiles.as_mut()], &mut self.map_memory, my_position);
+            let map = Map::new(
+                vec![tiles.as_mut(), overlaytiles.as_mut()],
+                &mut self.map_memory,
+                my_position,
+            );
 
             // Optionally, plugins can be attached.
             let map = map

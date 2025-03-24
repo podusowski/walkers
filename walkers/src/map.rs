@@ -324,8 +324,6 @@ impl Widget for Map<'_, '_, '_> {
             }
         }
 
-
-
         let projector = Projector::new(response.rect, self.memory, self.my_position);
         for (idx, plugin) in self.plugins.into_iter().enumerate() {
             let mut child_ui = ui.new_child(UiBuilder::new().max_rect(rect).id_salt(idx));
