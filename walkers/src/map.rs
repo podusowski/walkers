@@ -26,6 +26,11 @@ pub trait Plugin {
     fn run(self: Box<Self>, ui: &mut Ui, response: &Response, projector: &Projector);
 }
 
+struct Layer<'a> {
+    tiles: &'a mut dyn Tiles,
+    transparency: f32,
+}
+
 /// The actual map widget. Instances are to be created on each frame, as all necessary state is
 /// stored in [`Tiles`] and [`MapMemory`].
 ///
@@ -44,7 +49,7 @@ pub trait Plugin {
 /// ```
 pub struct Map<'a, 'b, 'c> {
     tiles: Option<&'b mut dyn Tiles>,
-    layers: Vec<&'b mut dyn Tiles>,
+    layers: Vec<Layer<'b>>,
     memory: &'a mut MapMemory,
     my_position: Position,
     plugins: Vec<Box<dyn Plugin + 'c>>,
@@ -84,8 +89,11 @@ impl<'a, 'b, 'c> Map<'a, 'b, 'c> {
         self
     }
 
-    pub fn with_layer(mut self, layer: &'b mut dyn Tiles) -> Self {
-        self.layers.push(layer);
+    pub fn with_layer(mut self, tiles: &'b mut dyn Tiles) -> Self {
+        self.layers.push(Layer {
+            tiles,
+            transparency: 1.0,
+        });
         self
     }
 
@@ -316,11 +324,11 @@ impl Widget for Map<'_, '_, '_> {
         let painter = ui.painter().with_clip_rect(rect);
 
         if let Some(tiles) = self.tiles {
-            draw_tiles(&painter, map_center, zoom, tiles);
+            draw_tiles(&painter, map_center, zoom, tiles, 1.0);
         }
 
-        for tiles in self.layers {
-            draw_tiles(&painter, map_center, zoom, tiles);
+        for layer in self.layers {
+            draw_tiles(&painter, map_center, zoom, layer.tiles, layer.transparency);
         }
 
         let projector = Projector::new(response.rect, self.memory, self.my_position);
@@ -385,7 +393,13 @@ impl MapMemory {
     }
 }
 
-fn draw_tiles(painter: &egui::Painter, map_center: Position, zoom: Zoom, tiles: &mut dyn Tiles) {
+fn draw_tiles(
+    painter: &egui::Painter,
+    map_center: Position,
+    zoom: Zoom,
+    tiles: &mut dyn Tiles,
+    transparency: f32,
+) {
     let mut meshes = Default::default();
     flood_fill_tiles(
         painter.clip_rect(),
@@ -393,7 +407,7 @@ fn draw_tiles(painter: &egui::Painter, map_center: Position, zoom: Zoom, tiles: 
         project(map_center, zoom.into()),
         zoom.into(),
         tiles,
-        1.0,
+        transparency,
         &mut meshes,
     );
 
