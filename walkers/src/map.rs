@@ -36,14 +36,14 @@ pub trait Plugin {
 ///
 /// fn update(ui: &mut egui::Ui, tiles: &mut dyn Tiles, map_memory: &mut MapMemory) {
 ///     ui.add(Map::new(
-///         Some(tiles), // `None`, if you don't want to show any tiles.
+///         vec![tiles], // `None`, if you don't want to show any tiles.
 ///         map_memory,
 ///         lon_lat(17.03664, 51.09916)
 ///     ));
 /// }
 /// ```
 pub struct Map<'a, 'b, 'c> {
-    tiles: Option<&'b mut dyn Tiles>,
+    tiles: Vec<&'b mut dyn Tiles>,
     memory: &'a mut MapMemory,
     my_position: Position,
     plugins: Vec<Box<dyn Plugin + 'c>>,
@@ -58,7 +58,7 @@ pub struct Map<'a, 'b, 'c> {
 
 impl<'a, 'b, 'c> Map<'a, 'b, 'c> {
     pub fn new(
-        tiles: Option<&'b mut dyn Tiles>,
+        tiles: Vec<&'b mut dyn Tiles>,
         memory: &'a mut MapMemory,
         my_position: Position,
     ) -> Self {
@@ -308,21 +308,23 @@ impl Widget for Map<'_, '_, '_> {
             .position(self.my_position, zoom.into());
         let painter = ui.painter().with_clip_rect(rect);
 
-        if let Some(tiles) = self.tiles {
-            let mut meshes = Default::default();
+        let mut meshes = Default::default();
+
+        for layer in self.tiles {
             flood_fill_tiles(
                 painter.clip_rect(),
-                tile_id(map_center, zoom.round(), tiles.tile_size()),
+                tile_id(map_center, zoom.round(), layer.tile_size()),
                 project(map_center, zoom.into()),
                 zoom.into(),
-                tiles,
+                layer,
                 &mut meshes,
             );
-
             for shape in meshes.drain().filter_map(|(_, mesh)| mesh) {
                 painter.add(shape);
             }
         }
+
+
 
         let projector = Projector::new(response.rect, self.memory, self.my_position);
         for (idx, plugin) in self.plugins.into_iter().enumerate() {
