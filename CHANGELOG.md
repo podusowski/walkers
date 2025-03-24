@@ -2,6 +2,11 @@
 
 All notable changes to this project will be documented in this file.
 
+## Unreleased
+
+* `MapMemory` now implements `serde::Serialize` and `serde::Deserialize` when the `serde` feature is
+  enabled.
+
 ## 0.36.0
 
 * `screen_to_position` is no longer a public function. Use `Projector::unproject` to obtain

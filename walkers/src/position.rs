@@ -21,6 +21,7 @@ pub fn lon_lat(lon: f64, lat: f64) -> Position {
 /// [`Position`] alone is not able to represent detached (e.g. after map gets dragged) position
 /// due to insufficient accuracy.
 #[derive(Debug, Clone, PartialEq)]
+#[cfg_attr(feature = "serde", derive(::serde::Serialize, ::serde::Deserialize))]
 pub struct AdjustedPosition {
     /// Base geographical position.
     pub position: Position,

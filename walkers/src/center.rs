@@ -10,6 +10,7 @@ use crate::{
 /// it becomes "detached" and stays this way until [`MapMemory::center_mode`] is changed back to
 /// [`Center::MyPosition`].
 #[derive(Debug, Clone, PartialEq, Default)]
+#[cfg_attr(feature = "serde", derive(::serde::Serialize, ::serde::Deserialize))]
 pub(crate) enum Center {
     /// Centered at `my_position` argument of the [`Map::new()`] function.
     #[default]
