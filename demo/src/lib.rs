@@ -6,11 +6,9 @@ mod windows;
 use crate::plugins::ImagesPluginData;
 use egui::{CentralPanel, Context, Frame};
 use local_tiles::LocalTiles;
-use std::cell::RefCell;
 use std::collections::HashMap;
 use std::ops::DerefMut;
-use walkers::sources::{Attribution, TileSource};
-use walkers::{HttpOptions, HttpTiles, Map, MapMemory, TileId, Tiles};
+use walkers::{HttpOptions, HttpTiles, Map, MapMemory, Tiles};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum Provider {
@@ -19,7 +17,6 @@ pub enum Provider {
     MapboxStreets,
     MapboxSatellite,
     LocalTiles,
-    NOAATest,
 }
 
 enum TilesKind {
@@ -57,32 +54,30 @@ fn http_options() -> HttpOptions {
     }
 }
 
-fn providers(egui_ctx: Context) -> HashMap<Provider, RefCell<TilesKind>> {
-    let mut providers: HashMap<Provider, RefCell<TilesKind>> = HashMap::default();
+fn providers(egui_ctx: Context) -> HashMap<Provider, TilesKind> {
+    let mut providers: HashMap<Provider, TilesKind> = HashMap::default();
 
     providers.insert(
         Provider::OpenStreetMap,
-        RefCell::new(TilesKind::Http(HttpTiles::with_options(
+        TilesKind::Http(HttpTiles::with_options(
             walkers::sources::OpenStreetMap,
             http_options(),
             egui_ctx.to_owned(),
-        ))),
+        )),
     );
 
     providers.insert(
         Provider::Geoportal,
-        RefCell::new(TilesKind::Http(HttpTiles::with_options(
+        TilesKind::Http(HttpTiles::with_options(
             walkers::sources::Geoportal,
             http_options(),
             egui_ctx.to_owned(),
-        ))),
+        )),
     );
 
     providers.insert(
         Provider::LocalTiles,
-        RefCell::new(TilesKind::Local(local_tiles::LocalTiles::new(
-            egui_ctx.to_owned(),
-        ))),
+        TilesKind::Local(local_tiles::LocalTiles::new(egui_ctx.to_owned())),
     );
 
     // Pass in a mapbox access token at compile time. May or may not be what you want to do,
@@ -93,7 +88,7 @@ fn providers(egui_ctx: Context) -> HashMap<Provider, RefCell<TilesKind>> {
     if let Some(token) = mapbox_access_token {
         providers.insert(
             Provider::MapboxStreets,
-            RefCell::new(TilesKind::Http(HttpTiles::with_options(
+            TilesKind::Http(HttpTiles::with_options(
                 walkers::sources::Mapbox {
                     style: walkers::sources::MapboxStyle::Streets,
                     access_token: token.to_string(),
@@ -101,11 +96,11 @@ fn providers(egui_ctx: Context) -> HashMap<Provider, RefCell<TilesKind>> {
                 },
                 http_options(),
                 egui_ctx.to_owned(),
-            ))),
+            )),
         );
         providers.insert(
             Provider::MapboxSatellite,
-            RefCell::new(TilesKind::Http(HttpTiles::with_options(
+            TilesKind::Http(HttpTiles::with_options(
                 walkers::sources::Mapbox {
                     style: walkers::sources::MapboxStyle::Satellite,
                     access_token: token.to_string(),
@@ -113,24 +108,14 @@ fn providers(egui_ctx: Context) -> HashMap<Provider, RefCell<TilesKind>> {
                 },
                 http_options(),
                 egui_ctx.to_owned(),
-            ))),
+            )),
         );
     }
-
-    providers.insert(
-        Provider::NOAATest,
-        RefCell::new(TilesKind::Http(HttpTiles::with_options(
-            TestSource {},
-            http_options(),
-            egui_ctx.to_owned(),
-        ))),
-    );
-
     providers
 }
 
 pub struct MyApp {
-    providers: HashMap<Provider, RefCell<TilesKind>>,
+    providers: HashMap<Provider, TilesKind>,
     selected_provider: Provider,
     map_memory: MapMemory,
     images_plugin_data: ImagesPluginData,
@@ -154,47 +139,18 @@ impl MyApp {
     }
 }
 
-struct TestSource {}
-impl TileSource for TestSource {
-    fn tile_url(&self, tile_id: TileId) -> String {
-        format!("http://localhost:8080/grib2.noaa_mrms_merged_composite_reflectivity_qc_CONUS/{}/{}/{}.png", tile_id.zoom, tile_id.x, tile_id.y)
-    }
-
-    fn attribution(&self) -> Attribution {
-        Attribution {
-            text: "NOAA",
-            url: "",
-            logo_light: None,
-            logo_dark: None,
-        }
-    }
-}
-
 impl eframe::App for MyApp {
     fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
         CentralPanel::default().frame(Frame::NONE).show(ctx, |ui| {
             // Typically this would be a GPS acquired position which is tracked by the map.
             let my_position = places::wroclaw_glowny();
 
-            let mut tiles = self
-                .providers
-                .get(&self.selected_provider)
-                .unwrap()
-                .borrow_mut();
-            let mut overlaytiles = self
-                .providers
-                .get(&Provider::NOAATest)
-                .unwrap()
-                .borrow_mut();
+            let mut tiles = self.providers.get_mut(&self.selected_provider).unwrap();
 
             let attribution = tiles.as_ref().attribution();
 
             // In egui, widgets are constructed and consumed in each frame.
-            let map = Map::new(
-                vec![tiles.as_mut(), overlaytiles.as_mut()],
-                &mut self.map_memory,
-                my_position,
-            );
+            let map = Map::new(vec![tiles.as_mut()], &mut self.map_memory, my_position);
 
             // Optionally, plugins can be attached.
             let map = map

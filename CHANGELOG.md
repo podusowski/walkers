@@ -2,6 +2,9 @@
 
 All notable changes to this project will be documented in this file.
 
+## 0.37.0
+* `Map::new()` now takes a `Vec<&'b mut Tiles>` allowing you to render multiple 'layers' on the map. Layers are rendered bottom-to-top (that is, later layerrs in the list will be rendered on top of earlier layers)
+
 ## 0.36.0
 
 * `screen_to_position` is no longer a public function. Use `Projector::unproject` to obtain
