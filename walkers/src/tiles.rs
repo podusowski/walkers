@@ -79,7 +79,6 @@ pub trait Tiles {
 }
 
 /// Downloads the tiles via HTTP. It must persist between frames.
-#[cfg_attr(feature = "serde", derive(::serde::Serialize, ::serde::Deserialize))]
 pub struct HttpTiles {
     attribution: Attribution,
     cache: LruCache<TileId, Option<Texture>>,

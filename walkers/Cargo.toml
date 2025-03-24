@@ -42,4 +42,4 @@ hypermocker = { path = "../hypermocker" }
 
 [features]
 default = []
-serde = ["dep:serde"]
+serde = ["dep:serde", "geo-types/serde"]
