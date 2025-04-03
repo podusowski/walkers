@@ -39,8 +39,14 @@ impl Texture {
         self.0.size_vec2()
     }
 
-    pub(crate) fn mesh_with_uv(&self, screen_position: Vec2, tile_size: f64, uv: Rect) -> Mesh {
-        self.mesh_with_rect_and_uv(rect(screen_position, tile_size), uv)
+    pub(crate) fn mesh_with_uv(
+        &self,
+        screen_position: Vec2,
+        tile_size: f64,
+        uv: Rect,
+        transparency: f32,
+    ) -> Mesh {
+        self.mesh_with_rect_and_uv(rect(screen_position, tile_size), uv, transparency)
     }
 
     pub(crate) fn mesh_with_rect(&self, rect: Rect) -> Mesh {
@@ -53,9 +59,9 @@ impl Texture {
         mesh
     }
 
-    pub(crate) fn mesh_with_rect_and_uv(&self, rect: Rect, uv: Rect) -> Mesh {
+    pub(crate) fn mesh_with_rect_and_uv(&self, rect: Rect, uv: Rect, transparency: f32) -> Mesh {
         let mut mesh = Mesh::with_texture(self.0.id());
-        mesh.add_rect_with_uv(rect, uv, Color32::WHITE);
+        mesh.add_rect_with_uv(rect, uv, Color32::WHITE.gamma_multiply(transparency));
         mesh
     }
 }
