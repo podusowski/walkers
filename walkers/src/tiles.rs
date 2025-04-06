@@ -412,20 +412,20 @@ mod tests {
         there_can_be_x_parallel_downloads_at_most(6, HttpOptions::default()).await;
     }
 
-    //    #[tokio::test]
-    //    async fn there_can_be_10_simultaneous_downloads_at_most() {
-    //        let _ = env_logger::try_init();
-    //
-    //        there_can_be_x_simultaneous_downloads_at_most(
-    //            10,
-    //            HttpOptions {
-    //                max_parallel_downloads:
-    //                    MaxParallelDownloads::custom_value_confirmed_with_provider_limits(10),
-    //                ..Default::default()
-    //            },
-    //        )
-    //        .await;
-    //    }
+    #[tokio::test]
+    async fn there_can_be_10_parallel_downloads_at_most() {
+        let _ = env_logger::try_init();
+
+        there_can_be_x_parallel_downloads_at_most(
+            10,
+            HttpOptions {
+                max_parallel_downloads:
+                    MaxParallelDownloads::custom_value_confirmed_with_provider_limits(10),
+                ..Default::default()
+            },
+        )
+        .await;
+    }
 
     async fn there_can_be_x_parallel_downloads_at_most(x: u32, http_options: HttpOptions) {
         let _ = env_logger::try_init();
