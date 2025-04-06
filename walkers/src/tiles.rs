@@ -434,7 +434,7 @@ mod tests {
 
         // Rest of the downloads are started right away too, but they remain active.
         let mut active = Vec::new();
-        for x in (0..x - 1) {
+        for x in 0..x - 1 {
             let tile_id = TileId { x, y: 1, zoom: 10 };
             let mut request = server.anticipate(format!("/10/{}/1.png", tile_id.x)).await;
             assert!(tiles.at(tile_id).is_none());
