@@ -267,6 +267,8 @@ impl Tiles for HttpTiles {
 
 #[cfg(test)]
 mod tests {
+    use crate::download::MaxParallelDownloads;
+
     use super::*;
     use hypermocker::{
         hyper::header::{self, HeaderValue},
@@ -381,8 +383,8 @@ mod tests {
         let mut tiles = HttpTiles::with_options(
             source,
             HttpOptions {
-                cache: None,
                 user_agent: Some(crate::HeaderValue::from_static("MyApp")),
+                ..Default::default()
             },
             Context::default(),
         );
@@ -398,26 +400,46 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn there_can_be_6_simultaneous_downloads_at_most() {
+    async fn by_default_there_can_be_6_parallel_downloads_at_most() {
+        let _ = env_logger::try_init();
+
+        there_can_be_x_parallel_downloads_at_most(6, HttpOptions::default()).await;
+    }
+
+    #[tokio::test]
+    async fn there_can_be_10_parallel_downloads_at_most() {
+        let _ = env_logger::try_init();
+
+        there_can_be_x_parallel_downloads_at_most(
+            10,
+            HttpOptions {
+                max_parallel_downloads:
+                    MaxParallelDownloads::value_manually_confirmed_with_provider_limits(10),
+                ..Default::default()
+            },
+        )
+        .await;
+    }
+
+    async fn there_can_be_x_parallel_downloads_at_most(x: u32, http_options: HttpOptions) {
         let _ = env_logger::try_init();
 
         let (server, source) = hypermocker_mock().await;
-        let mut tiles = HttpTiles::new(source, Context::default());
+        let mut tiles = HttpTiles::with_options(source, http_options, Context::default());
 
         // First download is started immediately.
-        let mut first_outstanding_request = server.anticipate(format!("/3/1/2.png")).await;
+        let mut first = server.anticipate(format!("/3/1/2.png")).await;
         assert!(tiles.at(TILE_ID).is_none());
-        first_outstanding_request.expect().await;
-
-        let tile_ids: Vec<_> = (2..7).map(|x| TileId { x, y: 1, zoom: 10 }).collect();
+        first.expect().await;
 
         // Rest of the downloads are started right away too, but they remain active.
-        let mut requests = Vec::new();
-        for tile_id in tile_ids {
+        let mut active = Vec::new();
+        for x in 0..x - 1 {
+            let tile_id = TileId { x, y: 1, zoom: 10 };
             let mut request = server.anticipate(format!("/10/{}/1.png", tile_id.x)).await;
             assert!(tiles.at(tile_id).is_none());
             request.expect().await;
-            requests.push(request);
+            active.push(request);
         }
 
         // Last download is NOT started, because we are at the limit of concurrent downloads.
@@ -435,7 +457,7 @@ mod tests {
         // Last download will start as soon as one of the previous ones are responded to.
         let mut awaiting_request = server.anticipate("/10/99/99.png".to_string()).await;
 
-        first_outstanding_request
+        first
             .respond(Bytes::from_static(include_bytes!(
                 "../assets/blank-255-tile.png"
             )))

@@ -6,6 +6,7 @@ All notable changes to this project will be documented in this file.
 
 * `MapMemory` now implements `serde::Serialize` and `serde::Deserialize` when the `serde` feature is
   enabled.
+* New setting `HttpOptions::max_parallel_downloads`.
 
 ## 0.36.0
 

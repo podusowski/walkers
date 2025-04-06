@@ -38,6 +38,12 @@ pub struct HttpOptions {
     /// This should be set only on native targets. The browser sets its own user agent on wasm
     /// targets, and trying to set a different one may upset some servers (e.g. MapBox)
     pub user_agent: Option<HeaderValue>,
+
+    /// Maximum number of parallel downloads.
+    ///
+    /// Many services have rate limits, and exceeding them may result in throttling, bans, or
+    /// degraded service. Use the default value when in doubt.
+    pub max_parallel_downloads: MaxParallelDownloads,
 }
 
 impl Default for HttpOptions {
@@ -55,9 +61,34 @@ impl Default for HttpOptions {
         Self {
             cache: None,
             user_agent,
+            max_parallel_downloads: MaxParallelDownloads::default(),
         }
     }
 }
+
+/// Maximum number of parallel downloads.
+pub struct MaxParallelDownloads(usize);
+
+impl Default for MaxParallelDownloads {
+    /// Default number of parallel downloads. Following modern browsers' behavior.
+    /// https://stackoverflow.com/questions/985431/max-parallel-http-connections-in-a-browser
+    fn default() -> Self {
+        Self(6)
+    }
+}
+
+impl MaxParallelDownloads {
+    /// Use custom value.
+    ///
+    /// Many services have rate limits, and exceeding them may result in throttling, bans, or
+    /// degraded service. You are **strongly encouraged** to check the Terms of Use of the
+    /// particular provider you are using.
+    pub fn value_manually_confirmed_with_provider_limits(value: usize) -> Self {
+        Self(value)
+    }
+}
+
+pub(crate) const MAX_PARALLEL_DOWNLOADS: usize = 6;
 
 #[derive(Debug, thiserror::Error)]
 enum Error {
@@ -168,10 +199,6 @@ async fn download_complete(
     Ok(())
 }
 
-/// Maximum number of parallel downloads. Following modern browsers' behavior.
-/// https://stackoverflow.com/questions/985431/max-parallel-http-connections-in-a-browser
-pub(crate) const MAX_PARALLEL_DOWNLOADS: usize = 6;
-
 async fn download_continuously_impl<S>(
     source: S,
     http_options: HttpOptions,
@@ -184,6 +211,7 @@ where
     S: TileSource + Send + 'static,
 {
     let user_agent = http_options.user_agent.clone();
+    let max_parallel_downloads = http_options.max_parallel_downloads.0;
 
     // Keep outside the loop to reuse it as much as possible.
     let client = http_client(http_options);
@@ -197,7 +225,7 @@ where
             let download =
                 download_and_decode(&client, tile_id, url, user_agent.as_ref(), &egui_ctx);
             downloads.push(Box::pin(download));
-        } else if downloads.len() < MAX_PARALLEL_DOWNLOADS {
+        } else if downloads.len() < max_parallel_downloads {
             // New downloads might be requested or ongoing downloads might be completed.
             let download = select_all(downloads.drain(..));
             match select(request_rx.next(), download).await {
