@@ -406,10 +406,10 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn by_default_there_can_be_6_simultaneous_downloads_at_most() {
+    async fn by_default_there_can_be_6_parallel_downloads_at_most() {
         let _ = env_logger::try_init();
 
-        there_can_be_x_simultaneous_downloads_at_most(6, HttpOptions::default()).await;
+        there_can_be_x_parallel_downloads_at_most(6, HttpOptions::default()).await;
     }
 
     //    #[tokio::test]
@@ -427,7 +427,7 @@ mod tests {
     //        .await;
     //    }
 
-    async fn there_can_be_x_simultaneous_downloads_at_most(x: u32, http_options: HttpOptions) {
+    async fn there_can_be_x_parallel_downloads_at_most(x: u32, http_options: HttpOptions) {
         let _ = env_logger::try_init();
 
         let (server, source) = hypermocker_mock().await;
