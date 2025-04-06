@@ -387,8 +387,8 @@ mod tests {
         let mut tiles = HttpTiles::with_options(
             source,
             HttpOptions {
-                cache: None,
                 user_agent: Some(crate::HeaderValue::from_static("MyApp")),
+                ..Default::default()
             },
             Context::default(),
         );

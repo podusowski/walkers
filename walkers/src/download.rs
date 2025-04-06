@@ -38,6 +38,8 @@ pub struct HttpOptions {
     /// This should be set only on native targets. The browser sets its own user agent on wasm
     /// targets, and trying to set a different one may upset some servers (e.g. MapBox)
     pub user_agent: Option<HeaderValue>,
+
+    pub max_parallel_downloads: MaxParallelDownloads,
 }
 
 impl Default for HttpOptions {
@@ -55,9 +57,34 @@ impl Default for HttpOptions {
         Self {
             cache: None,
             user_agent,
+            max_parallel_downloads: MaxParallelDownloads::default(),
         }
     }
 }
+
+/// Maximum number of parallel downloads.
+pub struct MaxParallelDownloads(usize);
+
+impl MaxParallelDownloads {
+    /// Use custom value.
+    ///
+    /// Many services have rate limits, and exceeding them may result in throttling, bans, or
+    /// degraded service. You are **strongly encouraged** to check the Terms of Use of the
+    /// particular provider you are using.
+    pub fn custom_value_confirmed_with_provider_limits(value: usize) -> Self {
+        Self(value)
+    }
+}
+
+impl Default for MaxParallelDownloads {
+    /// Default number of parallel downloads. Following modern browsers' behavior.
+    /// https://stackoverflow.com/questions/985431/max-parallel-http-connections-in-a-browser
+    fn default() -> Self {
+        Self(6)
+    }
+}
+
+pub(crate) const MAX_PARALLEL_DOWNLOADS: usize = 6;
 
 #[derive(Debug, thiserror::Error)]
 enum Error {
@@ -167,10 +194,6 @@ async fn download_complete(
 
     Ok(())
 }
-
-/// Maximum number of parallel downloads. Following modern browsers' behavior.
-/// https://stackoverflow.com/questions/985431/max-parallel-http-connections-in-a-browser
-pub(crate) const MAX_PARALLEL_DOWNLOADS: usize = 6;
 
 async fn download_continuously_impl<S>(
     source: S,
