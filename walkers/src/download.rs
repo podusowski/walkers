@@ -207,6 +207,7 @@ where
     S: TileSource + Send + 'static,
 {
     let user_agent = http_options.user_agent.clone();
+    let max_parallel_downloads = http_options.max_parallel_downloads.0;
 
     // Keep outside the loop to reuse it as much as possible.
     let client = http_client(http_options);
@@ -220,7 +221,7 @@ where
             let download =
                 download_and_decode(&client, tile_id, url, user_agent.as_ref(), &egui_ctx);
             downloads.push(Box::pin(download));
-        } else if downloads.len() < MAX_PARALLEL_DOWNLOADS {
+        } else if downloads.len() < max_parallel_downloads {
             // New downloads might be requested or ongoing downloads might be completed.
             let download = select_all(downloads.drain(..));
             match select(request_rx.next(), download).await {
