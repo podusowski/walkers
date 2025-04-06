@@ -65,22 +65,22 @@ impl Default for HttpOptions {
 /// Maximum number of parallel downloads.
 pub struct MaxParallelDownloads(usize);
 
+impl Default for MaxParallelDownloads {
+    /// Default number of parallel downloads. Following modern browsers' behavior.
+    /// https://stackoverflow.com/questions/985431/max-parallel-http-connections-in-a-browser
+    fn default() -> Self {
+        Self(6)
+    }
+}
+
 impl MaxParallelDownloads {
     /// Use custom value.
     ///
     /// Many services have rate limits, and exceeding them may result in throttling, bans, or
     /// degraded service. You are **strongly encouraged** to check the Terms of Use of the
     /// particular provider you are using.
-    pub fn custom_value_confirmed_with_provider_limits(value: usize) -> Self {
+    pub fn value_manually_confirmed_with_provider_limits(value: usize) -> Self {
         Self(value)
-    }
-}
-
-impl Default for MaxParallelDownloads {
-    /// Default number of parallel downloads. Following modern browsers' behavior.
-    /// https://stackoverflow.com/questions/985431/max-parallel-http-connections-in-a-browser
-    fn default() -> Self {
-        Self(6)
     }
 }
 
