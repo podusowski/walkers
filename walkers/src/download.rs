@@ -39,6 +39,10 @@ pub struct HttpOptions {
     /// targets, and trying to set a different one may upset some servers (e.g. MapBox)
     pub user_agent: Option<HeaderValue>,
 
+    /// Maximum number of parallel downloads.
+    ///
+    /// Many services have rate limits, and exceeding them may result in throttling, bans, or
+    /// degraded service. Use the default value when in doubt.
     pub max_parallel_downloads: MaxParallelDownloads,
 }
 
