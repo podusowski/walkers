@@ -420,7 +420,7 @@ mod tests {
             10,
             HttpOptions {
                 max_parallel_downloads:
-                    MaxParallelDownloads::custom_value_confirmed_with_provider_limits(10),
+                    MaxParallelDownloads::value_manually_confirmed_with_provider_limits(10),
                 ..Default::default()
             },
         )
