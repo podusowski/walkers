@@ -67,7 +67,7 @@ impl Default for HttpOptions {
 }
 
 /// Maximum number of parallel downloads.
-pub struct MaxParallelDownloads(usize);
+pub struct MaxParallelDownloads(pub usize);
 
 impl Default for MaxParallelDownloads {
     /// Default number of parallel downloads. Following modern browsers' behavior.
@@ -87,8 +87,6 @@ impl MaxParallelDownloads {
         Self(value)
     }
 }
-
-pub(crate) const MAX_PARALLEL_DOWNLOADS: usize = 6;
 
 #[derive(Debug, thiserror::Error)]
 enum Error {
