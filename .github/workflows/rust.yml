@@ -61,6 +61,6 @@ jobs:
     - name: Clippy
       run:  cargo clippy --all-features -- -D warnings 
     - name: Documentation
-      run:  cargo doc
+      run:  cargo doc --no-deps
     - name: Typos
       uses: crate-ci/typos@v1.30.2
