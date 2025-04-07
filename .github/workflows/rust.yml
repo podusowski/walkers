@@ -41,8 +41,10 @@ jobs:
     - name: typos-action
       uses: crate-ci/typos@v1.30.2
 
-    # Build the Android demo.
-
+  android:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
     - name: Setup Java JDK
       uses: actions/setup-java@v4.5.0
       with:
