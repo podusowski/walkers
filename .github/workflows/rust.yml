@@ -14,35 +14,28 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v4
+    - uses: Swatinem/rust-cache@v2
     - name: Build
-      run: cargo build --verbose
+      run: cargo build
     - name: Cargo Check All Features
       run: cargo check --all-features
-    - name: Install Trunk
-      run: cargo install trunk
+    - name: Build Demo Native
+      run: env -C demo_native cargo build
 
-    # Build demos.
-
+  wasm:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+    - uses: Swatinem/rust-cache@v2
+    - run: cargo install trunk
     - name: Build Demo Web
       run: env -C demo_web trunk build
-    - name: Build Demo Native
-      run: env -C demo_native cargo build --verbose
 
-    # Tests and lints.
-
-    - name: Run tests
-      run: cargo test --verbose
-    - name: Check rust formatting
-      run:  cargo fmt --all --check
-    - name: Clippy
-      run:  cargo clippy --all-features -- -D warnings 
-    - name: Documentation
-      run:  cargo doc
-    - name: typos-action
-      uses: crate-ci/typos@v1.30.2
-
-    # Build the Android demo.
-
+  android:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+    - uses: Swatinem/rust-cache@v2
     - name: Setup Java JDK
       uses: actions/setup-java@v4.5.0
       with:
@@ -55,3 +48,19 @@ jobs:
     - name: Build APK
       working-directory: ./demo_android
       run: make apk
+
+  tests-lints:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+    - uses: Swatinem/rust-cache@v2
+    - name: Tests
+      run: cargo test --verbose
+    - name: Formatting
+      run:  cargo fmt --all --check
+    - name: Clippy
+      run:  cargo clippy --all-features -- -D warnings 
+    - name: Documentation
+      run:  cargo doc --no-deps
+    - name: Typos
+      uses: crate-ci/typos@v1.30.2
