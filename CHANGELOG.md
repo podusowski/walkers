@@ -4,6 +4,7 @@ All notable changes to this project will be documented in this file.
 
 ## Unreleased
 
+* Support for multiple layers.
 * `MapMemory` now implements `serde::Serialize` and `serde::Deserialize` when the `serde` feature is
   enabled.
 * New setting `HttpOptions::max_parallel_downloads`.
