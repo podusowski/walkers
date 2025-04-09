@@ -26,6 +26,11 @@ pub trait Plugin {
     fn run(self: Box<Self>, ui: &mut Ui, response: &Response, projector: &Projector);
 }
 
+struct Layer<'a> {
+    tiles: &'a mut dyn Tiles,
+    transparency: f32,
+}
+
 /// The actual map widget. Instances are to be created on each frame, as all necessary state is
 /// stored in [`Tiles`] and [`MapMemory`].
 ///
@@ -44,6 +49,7 @@ pub trait Plugin {
 /// ```
 pub struct Map<'a, 'b, 'c> {
     tiles: Option<&'b mut dyn Tiles>,
+    layers: Vec<Layer<'b>>,
     memory: &'a mut MapMemory,
     my_position: Position,
     plugins: Vec<Box<dyn Plugin + 'c>>,
@@ -64,6 +70,7 @@ impl<'a, 'b, 'c> Map<'a, 'b, 'c> {
     ) -> Self {
         Self {
             tiles,
+            layers: Vec::default(),
             memory,
             my_position,
             plugins: Vec::default(),
@@ -79,6 +86,15 @@ impl<'a, 'b, 'c> Map<'a, 'b, 'c> {
     /// Add plugin to the drawing pipeline. Plugins allow drawing custom shapes on the map.
     pub fn with_plugin(mut self, plugin: impl Plugin + 'c) -> Self {
         self.plugins.push(Box::new(plugin));
+        self
+    }
+
+    /// Add a tile layer. All layers are drawn on top of each other with given transparency.
+    pub fn with_layer(mut self, tiles: &'b mut dyn Tiles, transparency: f32) -> Self {
+        self.layers.push(Layer {
+            tiles,
+            transparency,
+        });
         self
     }
 
@@ -309,19 +325,11 @@ impl Widget for Map<'_, '_, '_> {
         let painter = ui.painter().with_clip_rect(rect);
 
         if let Some(tiles) = self.tiles {
-            let mut meshes = Default::default();
-            flood_fill_tiles(
-                painter.clip_rect(),
-                tile_id(map_center, zoom.round(), tiles.tile_size()),
-                project(map_center, zoom.into()),
-                zoom.into(),
-                tiles,
-                &mut meshes,
-            );
+            draw_tiles(&painter, map_center, zoom, tiles, 1.0);
+        }
 
-            for shape in meshes.drain().filter_map(|(_, mesh)| mesh) {
-                painter.add(shape);
-            }
+        for layer in self.layers {
+            draw_tiles(&painter, map_center, zoom, layer.tiles, layer.transparency);
         }
 
         let projector = Projector::new(response.rect, self.memory, self.my_position);
@@ -387,6 +395,29 @@ impl MapMemory {
     }
 }
 
+fn draw_tiles(
+    painter: &egui::Painter,
+    map_center: Position,
+    zoom: Zoom,
+    tiles: &mut dyn Tiles,
+    transparency: f32,
+) {
+    let mut meshes = Default::default();
+    flood_fill_tiles(
+        painter.clip_rect(),
+        tile_id(map_center, zoom.round(), tiles.tile_size()),
+        project(map_center, zoom.into()),
+        zoom.into(),
+        tiles,
+        transparency,
+        &mut meshes,
+    );
+
+    for shape in meshes.drain().filter_map(|(_, mesh)| mesh) {
+        painter.add(shape);
+    }
+}
+
 /// Use simple [flood fill algorithm](https://en.wikipedia.org/wiki/Flood_fill) to draw tiles on the map.
 fn flood_fill_tiles(
     viewport: Rect,
@@ -394,6 +425,7 @@ fn flood_fill_tiles(
     map_center_projected_position: Pixels,
     zoom: f64,
     tiles: &mut dyn Tiles,
+    transparency: f32,
     meshes: &mut HashMap<TileId, Option<Mesh>>,
 ) {
     // We need to make up the difference between integer and floating point zoom levels.
@@ -406,8 +438,12 @@ fn flood_fill_tiles(
         if let Entry::Vacant(entry) = meshes.entry(tile_id) {
             // It's still OK to insert an empty one, as we need to mark the spot for the filling algorithm.
             let tile = tiles.at(tile_id).map(|tile| {
-                tile.texture
-                    .mesh_with_uv(tile_screen_position, corrected_tile_size, tile.uv)
+                tile.texture.mesh_with_uv(
+                    tile_screen_position,
+                    corrected_tile_size,
+                    tile.uv,
+                    transparency,
+                )
             });
 
             entry.insert(tile);
@@ -427,6 +463,7 @@ fn flood_fill_tiles(
                     map_center_projected_position,
                     zoom,
                     tiles,
+                    transparency,
                     meshes,
                 );
             }

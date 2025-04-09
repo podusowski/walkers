@@ -1,10 +1,10 @@
 use crate::plugins::ImagesPluginData;
 
-use crate::Provider;
+use crate::tiles::Provider;
 use egui::{Align2, ComboBox, Image, RichText, Slider, Ui, Window};
 use walkers::{sources::Attribution, MapMemory};
 
-pub fn acknowledge(ui: &Ui, attribution: Attribution) {
+pub fn acknowledge(ui: &Ui, attributions: Vec<Attribution>) {
     Window::new("Acknowledge")
         .collapsible(false)
         .resizable(false)
@@ -12,12 +12,14 @@ pub fn acknowledge(ui: &Ui, attribution: Attribution) {
         .anchor(Align2::LEFT_TOP, [10., 10.])
         .show(ui.ctx(), |ui| {
             ui.label("map provided by");
-            ui.horizontal(|ui| {
-                if let Some(logo) = attribution.logo_light {
-                    ui.add(Image::new(logo).max_height(30.0).max_width(80.0));
-                }
-                ui.hyperlink_to(attribution.text, attribution.url);
-            });
+            for attribution in attributions {
+                ui.horizontal(|ui| {
+                    if let Some(logo) = attribution.logo_light {
+                        ui.add(Image::new(logo).max_height(30.0).max_width(80.0));
+                    }
+                    ui.hyperlink_to(attribution.text, attribution.url);
+                });
+            }
             ui.label("viewed in ");
             ui.hyperlink_to("Walkers", "https://github.com/podusowski/walkers");
         });
@@ -27,7 +29,7 @@ pub fn controls(
     ui: &Ui,
     selected_provider: &mut Provider,
     possible_providers: &mut dyn Iterator<Item = &Provider>,
-    http_stats: Option<&walkers::HttpStats>,
+    http_stats: Vec<walkers::HttpStats>,
     image: &mut ImagesPluginData,
 ) {
     Window::new("Satellite")
@@ -47,11 +49,14 @@ pub fn controls(
                     });
             });
 
-            if let Some(http_stats) = http_stats {
-                ui.collapsing(format!("{:?} HTTP statistics", selected_provider), |ui| {
-                    ui.label(format!("Requests in progress: {}", http_stats.in_progress));
-                });
-            }
+            ui.collapsing("HTTP statistics", |ui| {
+                for http_stats in http_stats {
+                    ui.label(format!(
+                        "{:?} requests in progress: {}",
+                        selected_provider, http_stats.in_progress
+                    ));
+                }
+            });
 
             ui.collapsing("Images plugin", |ui| {
                 ui.add(Slider::new(&mut image.angle, 0.0..=360.0).text("Rotate"));
