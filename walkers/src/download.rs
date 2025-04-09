@@ -13,10 +13,7 @@ use reqwest::header::USER_AGENT;
 use reqwest_middleware::ClientWithMiddleware;
 
 use crate::{
-    io::http_client,
-    mercator::TileId,
-    sources::TileSource,
-    tiles::{HttpStats, Texture},
+    http_tiles::HttpStats, io::http_client, mercator::TileId, sources::TileSource, tiles::Texture,
 };
 
 pub use reqwest::header::HeaderValue;
