@@ -5,6 +5,13 @@ use image::ImageError;
 use crate::mercator::TileId;
 use crate::sources::Attribution;
 
+// Source of tiles to be put together to render the map.
+pub trait Tiles {
+    fn at(&mut self, tile_id: TileId) -> Option<TextureWithUv>;
+    fn attribution(&self) -> Attribution;
+    fn tile_size(&self) -> u32;
+}
+
 pub(crate) fn rect(screen_position: Vec2, tile_size: f64) -> Rect {
     Rect::from_min_size(screen_position.to_pos2(), Vec2::splat(tile_size as f32))
 }
@@ -64,10 +71,4 @@ impl Texture {
 pub struct TextureWithUv {
     pub texture: Texture,
     pub uv: Rect,
-}
-
-pub trait Tiles {
-    fn at(&mut self, tile_id: TileId) -> Option<TextureWithUv>;
-    fn attribution(&self) -> Attribution;
-    fn tile_size(&self) -> u32;
 }
