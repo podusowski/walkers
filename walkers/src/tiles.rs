@@ -1,9 +1,15 @@
+use std::collections::hash_map::Entry;
+use std::collections::HashMap;
+
 use egui::{pos2, Color32, Context, Mesh, Rect, Vec2};
 use egui::{ColorImage, TextureHandle};
 use image::ImageError;
 
-use crate::mercator::TileId;
+use crate::mercator::{project, tile_id, TileId};
+use crate::position::{Pixels, PixelsExt};
 use crate::sources::Attribution;
+use crate::zoom::Zoom;
+use crate::Position;
 
 // Source of tiles to be put together to render the map.
 pub trait Tiles {
@@ -71,4 +77,80 @@ impl Texture {
 pub struct TextureWithUv {
     pub texture: Texture,
     pub uv: Rect,
+}
+
+pub(crate) fn draw_tiles(
+    painter: &egui::Painter,
+    map_center: Position,
+    zoom: Zoom,
+    tiles: &mut dyn Tiles,
+    transparency: f32,
+) {
+    let mut meshes = Default::default();
+    flood_fill_tiles(
+        painter.clip_rect(),
+        tile_id(map_center, zoom.round(), tiles.tile_size()),
+        project(map_center, zoom.into()),
+        zoom.into(),
+        tiles,
+        transparency,
+        &mut meshes,
+    );
+
+    for shape in meshes.drain().filter_map(|(_, mesh)| mesh) {
+        painter.add(shape);
+    }
+}
+
+/// Use simple [flood fill algorithm](https://en.wikipedia.org/wiki/Flood_fill) to draw tiles on the map.
+fn flood_fill_tiles(
+    viewport: Rect,
+    tile_id: TileId,
+    map_center_projected_position: Pixels,
+    zoom: f64,
+    tiles: &mut dyn Tiles,
+    transparency: f32,
+    meshes: &mut HashMap<TileId, Option<Mesh>>,
+) {
+    // We need to make up the difference between integer and floating point zoom levels.
+    let corrected_tile_size = tiles.tile_size() as f64 * 2f64.powf(zoom - zoom.round());
+    let tile_projected = tile_id.project(corrected_tile_size);
+    let tile_screen_position =
+        viewport.center().to_vec2() + (tile_projected - map_center_projected_position).to_vec2();
+
+    if viewport.intersects(rect(tile_screen_position, corrected_tile_size)) {
+        if let Entry::Vacant(entry) = meshes.entry(tile_id) {
+            // It's still OK to insert an empty one, as we need to mark the spot for the filling algorithm.
+            let tile = tiles.at(tile_id).map(|tile| {
+                tile.texture.mesh_with_uv(
+                    tile_screen_position,
+                    corrected_tile_size,
+                    tile.uv,
+                    transparency,
+                )
+            });
+
+            entry.insert(tile);
+
+            for next_tile_id in [
+                tile_id.north(),
+                tile_id.east(),
+                tile_id.south(),
+                tile_id.west(),
+            ]
+            .iter()
+            .flatten()
+            {
+                flood_fill_tiles(
+                    viewport,
+                    *next_tile_id,
+                    map_center_projected_position,
+                    zoom,
+                    tiles,
+                    transparency,
+                    meshes,
+                );
+            }
+        }
+    }
 }
