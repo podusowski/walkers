@@ -89,6 +89,7 @@ impl<'a, 'b, 'c> Map<'a, 'b, 'c> {
         self
     }
 
+    /// Add a tile layer. All layers are drawn on top of each other with given transparency.
     pub fn with_layer(mut self, tiles: &'b mut dyn Tiles, transparency: f32) -> Self {
         self.layers.push(Layer {
             tiles,
