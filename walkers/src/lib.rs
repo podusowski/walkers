@@ -4,6 +4,7 @@
 mod center;
 mod download;
 pub mod extras;
+mod http_tiles;
 mod io;
 mod map;
 mod mercator;
@@ -13,8 +14,8 @@ mod tiles;
 mod zoom;
 
 pub use download::{HeaderValue, HttpOptions};
+pub use http_tiles::{HttpStats, HttpTiles};
 pub use map::{Map, MapMemory, Plugin, Projector};
-pub use mercator::TileId;
 pub use position::{lat_lon, lon_lat, Position};
-pub use tiles::{HttpStats, HttpTiles, Texture, TextureWithUv, Tiles};
+pub use tiles::{Texture, TextureWithUv, TileId, Tiles};
 pub use zoom::InvalidZoom;
