@@ -6,8 +6,8 @@ use lru::LruCache;
 
 use crate::download::{download_continuously, HttpOptions};
 use crate::io::Runtime;
-use crate::mercator::TileId;
 use crate::sources::{Attribution, TileSource};
+use crate::TileId;
 use crate::{Texture, TextureWithUv, Tiles};
 
 /// Downloads the tiles via HTTP. It must persist between frames.

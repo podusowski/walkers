@@ -6,6 +6,7 @@
 use crate::{
     lon_lat,
     position::{Pixels, Position},
+    tiles::TileId,
 };
 use std::f64::consts::PI;
 
@@ -38,63 +39,6 @@ fn mercator_normalized(position: Position) -> (f64, f64) {
     let y = (1. - (y / PI)) / 2.;
 
     (x, y)
-}
-
-/// Coordinates of the OSM-like tile.
-#[derive(Debug, PartialEq, Eq, Hash, Clone, Copy)]
-pub struct TileId {
-    /// X number of the tile.
-    pub x: u32,
-
-    /// Y number of the tile.
-    pub y: u32,
-
-    /// Zoom level, where 0 means no zoom.
-    /// See: <https://wiki.openstreetmap.org/wiki/Zoom_levels>
-    pub zoom: u8,
-}
-
-impl TileId {
-    /// Tile position (in pixels) on the "World bitmap".
-    pub fn project(&self, tile_size: f64) -> Pixels {
-        Pixels::new(self.x as f64 * tile_size, self.y as f64 * tile_size)
-    }
-
-    pub fn east(&self) -> Option<TileId> {
-        (self.x < total_tiles(self.zoom) - 1).then_some(TileId {
-            x: self.x + 1,
-            y: self.y,
-            zoom: self.zoom,
-        })
-    }
-
-    pub fn west(&self) -> Option<TileId> {
-        Some(TileId {
-            x: self.x.checked_sub(1)?,
-            y: self.y,
-            zoom: self.zoom,
-        })
-    }
-
-    pub fn north(&self) -> Option<TileId> {
-        Some(TileId {
-            x: self.x,
-            y: self.y.checked_sub(1)?,
-            zoom: self.zoom,
-        })
-    }
-
-    pub fn south(&self) -> Option<TileId> {
-        (self.y < total_tiles(self.zoom) - 1).then_some(TileId {
-            x: self.x,
-            y: self.y + 1,
-            zoom: self.zoom,
-        })
-    }
-
-    pub(crate) fn valid(&self) -> bool {
-        self.x < total_tiles(self.zoom) && self.y < total_tiles(self.zoom)
-    }
 }
 
 /// Calculate the tile coordinated for the given position.
@@ -191,48 +135,5 @@ mod tests {
 
         approx::assert_relative_eq!(calculated.x(), citadel.x(), max_relative = 1.0);
         approx::assert_relative_eq!(calculated.y(), citadel.y(), max_relative = 1.0);
-    }
-
-    #[test]
-    fn tile_id_cannot_go_beyond_limits() {
-        // There is only one tile at zoom 0.
-        let tile_id = TileId {
-            x: 0,
-            y: 0,
-            zoom: 0,
-        };
-
-        assert_eq!(tile_id.west(), None);
-        assert_eq!(tile_id.north(), None);
-        assert_eq!(tile_id.south(), None);
-        assert_eq!(tile_id.east(), None);
-
-        // There are 2 tiles at zoom 1.
-        let tile_id = TileId {
-            x: 0,
-            y: 0,
-            zoom: 1,
-        };
-
-        assert_eq!(tile_id.west(), None);
-        assert_eq!(tile_id.north(), None);
-
-        assert_eq!(
-            tile_id.south(),
-            Some(TileId {
-                x: 0,
-                y: 1,
-                zoom: 1
-            })
-        );
-
-        assert_eq!(
-            tile_id.east(),
-            Some(TileId {
-                x: 1,
-                y: 0,
-                zoom: 1
-            })
-        );
     }
 }
