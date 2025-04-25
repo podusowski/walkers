@@ -15,7 +15,7 @@ and compatible tile servers.
 
 Before deploying your application, please get yourself familiar with the
 [OpenStreetMap usage policy](https://operations.osmfoundation.org/policies/tiles/), 
-and consider donating the [OpenStreetMap Foundation](https://supporting.openstreetmap.org/).
+and consider donating to the [OpenStreetMap Foundation](https://supporting.openstreetmap.org/).
 
 ## Quick start
 
