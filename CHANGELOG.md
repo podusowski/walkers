@@ -2,7 +2,7 @@
 
 All notable changes to this project will be documented in this file.
 
-## Unreleased
+## 0.37.0
 
 * Support for multiple layers.
 * `MapMemory` now implements `serde::Serialize` and `serde::Deserialize` when the `serde` feature is
