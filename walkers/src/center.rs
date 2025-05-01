@@ -6,7 +6,7 @@ use crate::{
 };
 
 /// Time constant of inertia stopping filter
-const INTERTIA_TAU: f32 = 0.2f32;
+const INERTIA_TAU: f32 = 0.2f32;
 
 /// Position at the map's center. Initially, the map follows `my_position` argument which typically
 /// is meant to be fed by a GPS sensor or other geo-localization method. If user drags the map,
@@ -91,7 +91,7 @@ impl Center {
                     let offset = position.offset + Pixels::new(delta.x as f64, delta.y as f64);
 
                     // Exponentially drive the `amount` value towards zero
-                    let lp_factor = INTERTIA_TAU / (delta_time + INTERTIA_TAU);
+                    let lp_factor = INERTIA_TAU / (delta_time + INERTIA_TAU);
 
                     Center::Inertia {
                         position: AdjustedPosition::new(position.position, offset),
