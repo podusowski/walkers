@@ -1,9 +1,14 @@
+use std::time::Instant;
+
 use egui::{Response, Vec2};
 
 use crate::{
     position::{AdjustedPosition, Pixels},
     Position,
 };
+
+/// Time constant of inertia stopping filter
+const INTERTIA_TAU: f32 = 0.2f32;
 
 /// Position at the map's center. Initially, the map follows `my_position` argument which typically
 /// is meant to be fed by a GPS sensor or other geo-localization method. If user drags the map,
@@ -27,6 +32,7 @@ pub(crate) enum Center {
 
     /// Map is currently moving due to inertia, and will slow down and stop after a short while.
     Inertia {
+        prev_time: Option<Instant>,
         position: AdjustedPosition,
         direction: Vec2,
         amount: f32,
@@ -50,9 +56,10 @@ impl Center {
             } = &self
             {
                 *self = Center::Inertia {
+                    prev_time: None,
                     position: position.clone(),
-                    direction: *direction,
-                    amount: 1.0,
+                    direction: direction.normalized(),
+                    amount: direction.length(),
                 };
             }
             true
@@ -77,20 +84,29 @@ impl Center {
                 true
             }
             Center::Inertia {
+                prev_time,
                 position,
                 direction,
                 amount,
             } => {
-                *self = if amount <= &mut 0.0 {
+                *self = if amount < &mut 0.1 {
                     Center::Exact(position.to_owned())
                 } else {
                     let delta = *direction * *amount;
                     let offset = position.offset + Pixels::new(delta.x as f64, delta.y as f64);
 
+                    // Exponentially drive the `amount` value towards
+                    // zero, taking the frame time into account.
+                    let time_now = Instant::now();
+                    let lp_factor = prev_time.map(|prev_time|
+                        INTERTIA_TAU / ((time_now - prev_time).as_secs_f32() + INTERTIA_TAU)
+                    ).unwrap_or(1.0);
+
                     Center::Inertia {
+                        prev_time: Some(time_now),
                         position: AdjustedPosition::new(position.position, offset),
                         direction: *direction,
-                        amount: *amount - 0.03,
+                        amount: *amount * lp_factor
                     }
                 };
                 true
@@ -131,10 +147,12 @@ impl Center {
                 direction,
             },
             Center::Inertia {
+                prev_time,
                 position,
                 direction,
                 amount,
             } => Center::Inertia {
+                prev_time,
                 position: position.zero_offset(zoom),
                 direction,
                 amount,
@@ -155,10 +173,12 @@ impl Center {
                 direction,
             },
             Center::Inertia {
+                prev_time,
                 position,
                 direction,
                 amount,
             } => Center::Inertia {
+                prev_time,
                 position: position.shift(offset),
                 direction,
                 amount,
