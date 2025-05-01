@@ -96,7 +96,7 @@ impl Center {
                     Center::Inertia {
                         position: AdjustedPosition::new(position.position, offset),
                         direction: *direction,
-                        amount: *amount * lp_factor
+                        amount: *amount * lp_factor,
                     }
                 };
                 true
