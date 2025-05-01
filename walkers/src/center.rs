@@ -1,5 +1,3 @@
-use std::time::Instant;
-
 use egui::{Response, Vec2};
 
 use crate::{
@@ -32,7 +30,6 @@ pub(crate) enum Center {
 
     /// Map is currently moving due to inertia, and will slow down and stop after a short while.
     Inertia {
-        prev_time: Option<Instant>,
         position: AdjustedPosition,
         direction: Vec2,
         amount: f32,
@@ -56,7 +53,6 @@ impl Center {
             } = &self
             {
                 *self = Center::Inertia {
-                    prev_time: None,
                     position: position.clone(),
                     direction: direction.normalized(),
                     amount: direction.length(),
@@ -68,7 +64,7 @@ impl Center {
         }
     }
 
-    pub(crate) fn update_movement(&mut self) -> bool {
+    pub(crate) fn update_movement(&mut self, delta_time: f32) -> bool {
         match &self {
             Center::Moving {
                 position,
@@ -84,7 +80,6 @@ impl Center {
                 true
             }
             Center::Inertia {
-                prev_time,
                 position,
                 direction,
                 amount,
@@ -95,15 +90,10 @@ impl Center {
                     let delta = *direction * *amount;
                     let offset = position.offset + Pixels::new(delta.x as f64, delta.y as f64);
 
-                    // Exponentially drive the `amount` value towards
-                    // zero, taking the frame time into account.
-                    let time_now = Instant::now();
-                    let lp_factor = prev_time.map(|prev_time|
-                        INTERTIA_TAU / ((time_now - prev_time).as_secs_f32() + INTERTIA_TAU)
-                    ).unwrap_or(1.0);
+                    // Exponentially drive the `amount` value towards zero
+                    let lp_factor = INTERTIA_TAU / (delta_time + INTERTIA_TAU);
 
                     Center::Inertia {
-                        prev_time: Some(time_now),
                         position: AdjustedPosition::new(position.position, offset),
                         direction: *direction,
                         amount: *amount * lp_factor
@@ -147,12 +137,10 @@ impl Center {
                 direction,
             },
             Center::Inertia {
-                prev_time,
                 position,
                 direction,
                 amount,
             } => Center::Inertia {
-                prev_time,
                 position: position.zero_offset(zoom),
                 direction,
                 amount,
@@ -173,12 +161,10 @@ impl Center {
                 direction,
             },
             Center::Inertia {
-                prev_time,
                 position,
                 direction,
                 amount,
             } => Center::Inertia {
-                prev_time,
                 position: position.shift(offset),
                 direction,
                 amount,

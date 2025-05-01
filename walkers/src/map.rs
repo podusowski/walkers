@@ -308,7 +308,8 @@ impl Widget for Map<'_, '_, '_> {
             ui.allocate_exact_size(ui.available_size(), Sense::click_and_drag());
 
         let mut moved = self.handle_gestures(ui, &response);
-        moved |= self.memory.center_mode.update_movement();
+        let delta_time = ui.ctx().input(|reader|reader.stable_dt);
+        moved |= self.memory.center_mode.update_movement(delta_time);
 
         if moved {
             response.mark_changed();
