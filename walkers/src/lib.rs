@@ -13,7 +13,7 @@ pub mod sources;
 mod tiles;
 mod zoom;
 
-pub use download::{HeaderValue, HttpOptions};
+pub use download::{HeaderValue, HttpOptions, MaxParallelDownloads};
 pub use http_tiles::{HttpStats, HttpTiles};
 pub use map::{Map, MapMemory, Plugin, Projector};
 pub use position::{lat_lon, lon_lat, Position};
