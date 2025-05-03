@@ -3,7 +3,9 @@
 All notable changes to this project will be documented in this file.
 
 ## Unreleased
+
 * Make slow-down during inertial moves exponential rather than linear.
+* `MaxParallelDownloads`, `max_parallel_downloads`'s type is now public, allowing to actually set it.
 
 ## 0.37.0
 
