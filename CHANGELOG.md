@@ -2,6 +2,9 @@
 
 All notable changes to this project will be documented in this file.
 
+## Unreleased
+* Make slow-down during inertial moves exponential rather than linear.
+
 ## 0.37.0
 
 * Support for multiple layers.

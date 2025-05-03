@@ -5,6 +5,9 @@ use crate::{
     Position,
 };
 
+/// Time constant of inertia stopping filter
+const INERTIA_TAU: f32 = 0.2f32;
+
 /// Position at the map's center. Initially, the map follows `my_position` argument which typically
 /// is meant to be fed by a GPS sensor or other geo-localization method. If user drags the map,
 /// it becomes "detached" and stays this way until [`MapMemory::center_mode`] is changed back to
@@ -51,8 +54,8 @@ impl Center {
             {
                 *self = Center::Inertia {
                     position: position.clone(),
-                    direction: *direction,
-                    amount: 1.0,
+                    direction: direction.normalized(),
+                    amount: direction.length(),
                 };
             }
             true
@@ -61,7 +64,7 @@ impl Center {
         }
     }
 
-    pub(crate) fn update_movement(&mut self) -> bool {
+    pub(crate) fn update_movement(&mut self, delta_time: f32) -> bool {
         match &self {
             Center::Moving {
                 position,
@@ -81,16 +84,19 @@ impl Center {
                 direction,
                 amount,
             } => {
-                *self = if amount <= &mut 0.0 {
+                *self = if amount < &mut 0.1 {
                     Center::Exact(position.to_owned())
                 } else {
                     let delta = *direction * *amount;
                     let offset = position.offset + Pixels::new(delta.x as f64, delta.y as f64);
 
+                    // Exponentially drive the `amount` value towards zero
+                    let lp_factor = INERTIA_TAU / (delta_time + INERTIA_TAU);
+
                     Center::Inertia {
                         position: AdjustedPosition::new(position.position, offset),
                         direction: *direction,
-                        amount: *amount - 0.03,
+                        amount: *amount * lp_factor,
                     }
                 };
                 true
