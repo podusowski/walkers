@@ -6,7 +6,7 @@ publish = false
 
 [dependencies]
 hyper = { version = "1.6.0", features = ["full"] }
-tokio = { version = "1.44", features = ["macros"] }
+tokio = { version = "1.45", features = ["macros"] }
 hyper-util = { version = "0.1", features = ["full"] }
 http-body-util = "0.1"
 log = "0.4"
