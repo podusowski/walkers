@@ -2,7 +2,7 @@
 
 All notable changes to this project will be documented in this file.
 
-## Unrealsed
+## Unreleased
 
 * `Place` is now renamed to `LabeledSymbol`, which implements a new trait called... `Place`.
 * `Style` is now renamed to `LabeledSymbolStyle`.
