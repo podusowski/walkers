@@ -1,6 +1,6 @@
 use egui::{Color32, Response, Ui};
 use walkers::{
-    extras::{Image, Images, LabeledSymbol, Places, Style, Texture},
+    extras::{Image, LabeledSymbol, Places, Style, Texture},
     Plugin, Position, Projector,
 };
 
@@ -45,7 +45,7 @@ impl ImagesPluginData {
 
 /// Creates a built-in `Images` plugin with an example image.
 pub fn images(images_plugin_data: &mut ImagesPluginData) -> impl Plugin {
-    Images::new(vec![{
+    Places::new(vec![{
         let mut image = Image::new(images_plugin_data.texture.clone(), places::wroclavia());
         image.scale(images_plugin_data.x_scale, images_plugin_data.y_scale);
         image.angle(images_plugin_data.angle.to_radians());
