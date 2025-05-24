@@ -2,34 +2,8 @@ use egui::{vec2, Align2, Color32, FontId, Response, Stroke, Ui};
 
 use crate::{Plugin, Position};
 
-/// Visual style of the place.
-#[derive(Clone)]
-pub struct Style {
-    pub label_font: FontId,
-    pub label_color: Color32,
-    pub label_background: Color32,
-    pub symbol_font: FontId,
-    pub symbol_color: Color32,
-    pub symbol_background: Color32,
-    pub symbol_stroke: Stroke,
-}
-
-impl Default for Style {
-    fn default() -> Self {
-        Self {
-            label_font: FontId::proportional(12.),
-            label_color: Color32::from_gray(200),
-            label_background: Color32::BLACK.gamma_multiply(0.8),
-            symbol_font: FontId::proportional(14.),
-            symbol_color: Color32::BLACK.gamma_multiply(0.8),
-            symbol_background: Color32::WHITE.gamma_multiply(0.8),
-            symbol_stroke: Stroke::new(2., Color32::BLACK.gamma_multiply(0.8)),
-        }
-    }
-}
-
-/// A place to be drawn on the map.
-pub struct Place {
+/// A symbol with a label to be drawn on the map.
+pub struct LabeledSymbol {
     /// Geographical position.
     pub position: Position,
 
@@ -44,7 +18,7 @@ pub struct Place {
     pub style: Style,
 }
 
-impl Place {
+impl LabeledSymbol {
     fn draw(&self, ui: &Ui, projector: &crate::Projector) {
         let screen_position = projector.project(self.position);
         let painter = ui.painter();
@@ -87,13 +61,39 @@ impl Place {
     }
 }
 
+/// Visual style of the place.
+#[derive(Clone)]
+pub struct Style {
+    pub label_font: FontId,
+    pub label_color: Color32,
+    pub label_background: Color32,
+    pub symbol_font: FontId,
+    pub symbol_color: Color32,
+    pub symbol_background: Color32,
+    pub symbol_stroke: Stroke,
+}
+
+impl Default for Style {
+    fn default() -> Self {
+        Self {
+            label_font: FontId::proportional(12.),
+            label_color: Color32::from_gray(200),
+            label_background: Color32::BLACK.gamma_multiply(0.8),
+            symbol_font: FontId::proportional(14.),
+            symbol_color: Color32::BLACK.gamma_multiply(0.8),
+            symbol_background: Color32::WHITE.gamma_multiply(0.8),
+            symbol_stroke: Stroke::new(2., Color32::BLACK.gamma_multiply(0.8)),
+        }
+    }
+}
+
 /// [`Plugin`] which draws list of places on the map.
 pub struct Places {
-    places: Vec<Place>,
+    places: Vec<LabeledSymbol>,
 }
 
 impl Places {
-    pub fn new(places: Vec<Place>) -> Self {
+    pub fn new(places: Vec<LabeledSymbol>) -> Self {
         Self { places }
     }
 }

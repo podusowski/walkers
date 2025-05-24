@@ -1,6 +1,6 @@
 use egui::{Color32, Response, Ui};
 use walkers::{
-    extras::{Image, Images, Place, Places, Style, Texture},
+    extras::{Image, Images, LabeledSymbol, Places, Style, Texture},
     Plugin, Position, Projector,
 };
 
@@ -9,13 +9,13 @@ use crate::places;
 /// Creates a built-in `Places` plugin with some predefined places.
 pub fn places() -> impl Plugin {
     Places::new(vec![
-        Place {
+        LabeledSymbol {
             position: places::wroclaw_glowny(),
             label: "Wrocław Główny\ntrain station".to_owned(),
             symbol: '🚆',
             style: Style::default(),
         },
-        Place {
+        LabeledSymbol {
             position: places::dworcowa_bus_stop(),
             label: "Bus stop".to_owned(),
             symbol: '🚌',
