@@ -4,6 +4,34 @@ use crate::{Plugin, Position};
 
 use super::Texture;
 
+/// [`Plugin`] which draws list of places on the map.
+pub struct Places<T>
+where
+    T: Place,
+{
+    places: Vec<T>,
+}
+
+impl<T> Places<T>
+where
+    T: Place,
+{
+    pub fn new(places: Vec<T>) -> Self {
+        Self { places }
+    }
+}
+
+impl<T> Plugin for Places<T>
+where
+    T: Place + 'static,
+{
+    fn run(self: Box<Self>, ui: &mut Ui, _response: &Response, projector: &crate::Projector) {
+        for place in &self.places {
+            place.draw(ui, projector);
+        }
+    }
+}
+
 pub trait Place {
     fn draw(&self, ui: &Ui, projector: &crate::Projector);
 }
@@ -21,7 +49,7 @@ pub struct LabeledSymbol {
     pub symbol: char,
 
     /// Visual style of this place.
-    pub style: Style,
+    pub style: LabeledSymbolStyle,
 }
 
 impl Place for LabeledSymbol {
@@ -69,7 +97,7 @@ impl Place for LabeledSymbol {
 
 /// Visual style of the place.
 #[derive(Clone)]
-pub struct Style {
+pub struct LabeledSymbolStyle {
     pub label_font: FontId,
     pub label_color: Color32,
     pub label_background: Color32,
@@ -79,7 +107,7 @@ pub struct Style {
     pub symbol_stroke: Stroke,
 }
 
-impl Default for Style {
+impl Default for LabeledSymbolStyle {
     fn default() -> Self {
         Self {
             label_font: FontId::proportional(12.),
@@ -137,34 +165,6 @@ impl Place for Image {
             let mut mesh = self.texture.mesh_with_rect(rect);
             mesh.rotate(self.angle, rect.center());
             painter.add(mesh);
-        }
-    }
-}
-
-/// [`Plugin`] which draws list of places on the map.
-pub struct Places<T>
-where
-    T: Place,
-{
-    places: Vec<T>,
-}
-
-impl<T> Places<T>
-where
-    T: Place,
-{
-    pub fn new(places: Vec<T>) -> Self {
-        Self { places }
-    }
-}
-
-impl<T> Plugin for Places<T>
-where
-    T: Place + 'static,
-{
-    fn run(self: Box<Self>, ui: &mut Ui, _response: &Response, projector: &crate::Projector) {
-        for place in &self.places {
-            place.draw(ui, projector);
         }
     }
 }

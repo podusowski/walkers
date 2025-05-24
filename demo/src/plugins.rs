@@ -1,6 +1,6 @@
 use egui::{Color32, Response, Ui};
 use walkers::{
-    extras::{Image, LabeledSymbol, Places, Style, Texture},
+    extras::{Image, LabeledSymbol, Places, LabeledSymbolStyle, Texture},
     Plugin, Position, Projector,
 };
 
@@ -13,13 +13,13 @@ pub fn places() -> impl Plugin {
             position: places::wroclaw_glowny(),
             label: "Wrocław Główny\ntrain station".to_owned(),
             symbol: '🚆',
-            style: Style::default(),
+            style: LabeledSymbolStyle::default(),
         },
         LabeledSymbol {
             position: places::dworcowa_bus_stop(),
             label: "Bus stop".to_owned(),
             symbol: '🚌',
-            style: Style::default(),
+            style: LabeledSymbolStyle::default(),
         },
     ])
 }
