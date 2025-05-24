@@ -1,6 +1,6 @@
 use egui::{Color32, Response, Ui};
 use walkers::{
-    extras::{Image, LabeledSymbol, Places, LabeledSymbolStyle, Texture},
+    extras::{Image, LabeledSymbol, LabeledSymbolStyle, Places, Texture},
     Plugin, Position, Projector,
 };
 
