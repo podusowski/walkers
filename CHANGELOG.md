@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## Unreleased
+
+* `Place` is now renamed to `LabeledSymbol`, which implements a new trait called... `Place`.
+* `Style` is now renamed to `LabeledSymbolStyle`.
+* `Images` plugin is replaced by `Places`, which simply accepts both `LabeledSymbol` and `Image`.
+
 ## 0.38.0
 
 * Make slow-down during inertial moves exponential rather than linear.
