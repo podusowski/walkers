@@ -1,5 +1,5 @@
-use super::places::Place;
-use crate::Position;
+use super::places::{Group, GroupedPlace, Place};
+use crate::{Position, Projector};
 use egui::{vec2, Align2, Color32, FontId, Stroke, Ui};
 
 /// A symbol with a label to be drawn on the map.
@@ -85,4 +85,14 @@ impl Default for LabeledSymbolStyle {
             symbol_stroke: Stroke::new(2., Color32::BLACK.gamma_multiply(0.8)),
         }
     }
+}
+
+impl GroupedPlace for LabeledSymbol {
+    type Group = LabeledSymbolGroup;
+}
+
+pub struct LabeledSymbolGroup;
+
+impl Group for LabeledSymbolGroup {
+    fn draw<T: Place>(places: Vec<T>, ui: &Ui, projector: &Projector) {}
 }

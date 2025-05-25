@@ -37,6 +37,7 @@ pub trait GroupedPlace {
     type Group: Group;
 }
 
+/// Trait that can be implemented by a [`Place`] to provide grouping functionality.
 pub trait Group {
     fn draw<T: Place>(places: Vec<T>, ui: &Ui, projector: &Projector);
 }
@@ -46,6 +47,15 @@ where
     T: Place,
 {
     places: Vec<T>,
+}
+
+impl<T> GroupedPlaces<T>
+where
+    T: Place + GroupedPlace,
+{
+    pub fn new(places: Vec<T>) -> Self {
+        Self { places }
+    }
 }
 
 impl<T> Plugin for GroupedPlaces<T>
