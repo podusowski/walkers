@@ -118,3 +118,40 @@ fn center(positions: &[Position]) -> Position {
         sum / positions.len() as f64
     }
 }
+
+#[cfg(test)]
+mod tests {
+    #[test]
+    fn calculating_center() {
+        use super::*;
+
+        assert_eq!(
+            center(&[
+                Position::new(0.0, 0.0),
+                Position::new(10.0, 10.0),
+                Position::new(20.0, 20.0),
+            ]),
+            Position::new(10.0, 10.0)
+        );
+
+        assert_eq!(
+            center(&[
+                Position::new(0.0, 0.0),
+                Position::new(10.0, 0.0),
+                Position::new(0.0, 10.0),
+                Position::new(10.0, 10.0),
+            ]),
+            Position::new(5.0, 5.0)
+        );
+
+        assert_eq!(
+            center(&[
+                Position::new(10.0, 10.0),
+                Position::new(-10.0, -10.0),
+                Position::new(-10.0, 10.0),
+                Position::new(10.0, -10.0),
+            ]),
+            Position::new(0.0, 0.0)
+        );
+    }
+}
