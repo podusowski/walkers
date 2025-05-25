@@ -64,20 +64,20 @@ where
     T: Place + GroupedPlace,
 {
     fn run(self: Box<Self>, ui: &mut Ui, _response: &Response, projector: &crate::Projector) {
-        let mut groups: Vec<Vec<&T>> = Vec::new();
+        //let mut groups: Vec<Vec<&T>> = Vec::new();
 
-        for place in &self.places {
-            if let Some(group) = groups.iter_mut().find(|g| {
-                g.iter()
-                    .all(|p| distance_projected(place.position(), p.position(), projector) < 50.0)
-            }) {
-                group.push(place);
-            } else {
-                groups.push(vec![place]);
-            }
-        }
+        //for place in &self.places {
+        //    if let Some(group) = groups.iter_mut().find(|g| {
+        //        g.iter()
+        //            .all(|p| distance_projected(place.position(), p.position(), projector) < 50.0)
+        //    }) {
+        //        group.push(place);
+        //    } else {
+        //        groups.push(vec![place]);
+        //    }
+        //}
 
-        for group in groups {
+        for group in groups(&self.places, projector) {
             if group.len() >= 2 {
                 T::Group::draw(
                     &group,
@@ -92,6 +92,26 @@ where
             }
         }
     }
+}
+
+fn groups<'a, T>(places: &'a [T], projector: &Projector) -> Vec<Vec<&'a T>>
+where
+    T: Place,
+{
+    let mut groups: Vec<Vec<&T>> = Vec::new();
+
+    for place in places {
+        if let Some(group) = groups.iter_mut().find(|g| {
+            g.iter()
+                .all(|p| distance_projected(place.position(), p.position(), projector) < 50.0)
+        }) {
+            group.push(place);
+        } else {
+            groups.push(vec![place]);
+        }
+    }
+
+    groups
 }
 
 /// Calculate the distance between two positions after being projected onto the screen.
