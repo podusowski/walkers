@@ -22,7 +22,7 @@ impl<T> Plugin for Places<T>
 where
     T: Place + 'static,
 {
-    fn run(self: Box<Self>, ui: &mut Ui, _response: &Response, projector: &crate::Projector) {
+    fn run(self: Box<Self>, ui: &mut Ui, _response: &Response, projector: &Projector) {
         for place in &self.places {
             place.draw(ui, projector);
         }
@@ -31,7 +31,7 @@ where
 
 pub trait Place {
     fn position(&self) -> Position;
-    fn draw(&self, ui: &Ui, projector: &crate::Projector);
+    fn draw(&self, ui: &Ui, projector: &Projector);
 }
 
 pub trait GroupedPlace {
@@ -63,7 +63,7 @@ impl<T> Plugin for GroupedPlaces<T>
 where
     T: Place + GroupedPlace,
 {
-    fn run(self: Box<Self>, ui: &mut Ui, _response: &Response, projector: &crate::Projector) {
+    fn run(self: Box<Self>, ui: &mut Ui, _response: &Response, projector: &Projector) {
         for group in groups(&self.places, projector) {
             if group.len() >= 2 {
                 T::Group::draw(
