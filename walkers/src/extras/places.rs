@@ -69,7 +69,7 @@ where
         for place in &self.places {
             if let Some(group) = groups.iter_mut().find(|g| {
                 g.iter()
-                    .all(|p| near_on_screen(place.position(), p.position(), projector))
+                    .all(|p| distance_projected(place.position(), p.position(), projector) < 50.0)
             }) {
                 group.push(place);
             } else {
@@ -94,10 +94,11 @@ where
     }
 }
 
-fn near_on_screen(p1: Position, p2: Position, projector: &Projector) -> bool {
+/// Calculate the distance between two positions after being projected onto the screen.
+fn distance_projected(p1: Position, p2: Position, projector: &Projector) -> f32 {
     let screen_p1 = projector.project(p1).to_pos2();
     let screen_p2 = projector.project(p2).to_pos2();
-    (screen_p1 - screen_p2).length() < 50.0
+    (screen_p1 - screen_p2).length()
 }
 
 fn center(positions: &[Position]) -> Position {
