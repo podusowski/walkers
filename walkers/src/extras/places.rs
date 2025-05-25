@@ -1,7 +1,7 @@
 use crate::{Plugin, Position, Projector};
 use egui::{Response, Ui};
 
-/// [`Plugin`] which draws list of places on the map.
+/// [`Plugin`] which draws places on the map.
 pub struct Places<T>
 where
     T: Place,
@@ -34,15 +34,18 @@ pub trait Place {
     fn draw(&self, ui: &Ui, projector: &Projector);
 }
 
+/// Trait that can be implemented by a [`Place`] to provide grouping functionality.
 pub trait GroupedPlace {
     type Group: Group;
 }
 
-/// Trait that can be implemented by a [`Place`] to provide grouping functionality.
+/// A group of places that can be drawn together on the map.
 pub trait Group {
     fn draw<T: Place>(places: &[&T], position: Position, projector: &Projector, ui: &Ui);
 }
 
+/// Similar to [`Places`], but groups places that are close together and draws them as a
+/// single [`Group`].
 pub struct GroupedPlaces<T>
 where
     T: Place,
