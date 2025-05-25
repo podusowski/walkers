@@ -78,13 +78,17 @@ where
         }
 
         for group in groups {
-            if !group.is_empty() {
+            if group.len() >= 2 {
                 T::Group::draw(
                     &group,
                     center(&group.iter().map(|p| p.position()).collect::<Vec<_>>()),
                     projector,
                     ui,
                 );
+            } else {
+                for place in group {
+                    place.draw(ui, projector);
+                }
             }
         }
     }
