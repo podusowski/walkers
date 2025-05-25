@@ -64,13 +64,9 @@ where
     T: Place + GroupedPlace,
 {
     fn run(self: Box<Self>, ui: &mut Ui, _response: &Response, projector: &crate::Projector) {
-        // TODO: Implement grouping logic
-
-        // Group places which are close to each other
-        let mut groups: Vec<Vec<&T>> = Vec::new(); // Vecs of Vecs of places
+        let mut groups: Vec<Vec<&T>> = Vec::new();
 
         for place in &self.places {
-            // Find a group or create a new one
             if let Some(group) = groups.iter_mut().find(|g| {
                 g.iter()
                     .all(|p| near_on_screen(place.position(), p.position(), projector))
@@ -81,7 +77,6 @@ where
             }
         }
 
-        // Draw each group
         for group in groups {
             if !group.is_empty() {
                 T::Group::draw(
@@ -92,24 +87,13 @@ where
                 );
             }
         }
-
-        //let position = center(
-        //    &self
-        //        .places
-        //        .iter()
-        //        .map(|place| place.position())
-        //        .collect::<Vec<_>>(),
-        //);
-        //T::Group::draw(self.places, position, projector, ui);
     }
 }
 
 fn near_on_screen(p1: Position, p2: Position, projector: &Projector) -> bool {
     let screen_p1 = projector.project(p1).to_pos2();
     let screen_p2 = projector.project(p2).to_pos2();
-
     (screen_p1 - screen_p2).length() < 50.0
-    //    screen_p1.distance(screen_p2) < 50.0
 }
 
 fn center(positions: &[Position]) -> Position {
