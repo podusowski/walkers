@@ -35,6 +35,10 @@ impl Image {
 }
 
 impl Place for Image {
+    fn position(&self) -> Position {
+        self.position
+    }
+
     fn draw(&self, ui: &Ui, projector: &crate::Projector) {
         let painter = ui.painter();
         let rect = Rect::from_center_size(

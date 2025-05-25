@@ -19,6 +19,10 @@ pub struct LabeledSymbol {
 }
 
 impl Place for LabeledSymbol {
+    fn position(&self) -> Position {
+        self.position
+    }
+
     fn draw(&self, ui: &Ui, projector: &crate::Projector) {
         let screen_position = projector.project(self.position);
         let painter = ui.painter();
@@ -32,6 +36,7 @@ impl Place for LabeledSymbol {
         // Offset of the label, relative to the circle.
         let offset = vec2(8., 8.);
 
+        // Label background.
         painter.rect_filled(
             label
                 .rect
@@ -94,5 +99,24 @@ impl GroupedPlace for LabeledSymbol {
 pub struct LabeledSymbolGroup;
 
 impl Group for LabeledSymbolGroup {
-    fn draw<T: Place>(places: Vec<T>, ui: &Ui, projector: &Projector) {}
+    fn draw<T: Place>(places: Vec<T>, position: Position, projector: &Projector, ui: &Ui) {
+        let screen_position = projector.project(position);
+        let painter = ui.painter();
+        let style = LabeledSymbolStyle::default();
+
+        painter.circle(
+            screen_position.to_pos2(),
+            10.,
+            style.symbol_background,
+            style.symbol_stroke,
+        );
+
+        painter.text(
+            screen_position.to_pos2(),
+            Align2::CENTER_CENTER,
+            format!("{}", places.len()),
+            style.symbol_font.clone(),
+            style.symbol_color,
+        );
+    }
 }

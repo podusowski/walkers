@@ -1,4 +1,4 @@
-use crate::{Plugin, Projector};
+use crate::{Plugin, Position, Projector};
 use egui::{Response, Ui};
 
 /// [`Plugin`] which draws list of places on the map.
@@ -30,6 +30,7 @@ where
 }
 
 pub trait Place {
+    fn position(&self) -> Position;
     fn draw(&self, ui: &Ui, projector: &crate::Projector);
 }
 
@@ -39,7 +40,7 @@ pub trait GroupedPlace {
 
 /// Trait that can be implemented by a [`Place`] to provide grouping functionality.
 pub trait Group {
-    fn draw<T: Place>(places: Vec<T>, ui: &Ui, projector: &Projector);
+    fn draw<T: Place>(places: Vec<T>, position: Position, projector: &Projector, ui: &Ui);
 }
 
 pub struct GroupedPlaces<T>
@@ -64,6 +65,25 @@ where
 {
     fn run(self: Box<Self>, ui: &mut Ui, _response: &Response, projector: &crate::Projector) {
         // TODO: Implement grouping logic
-        T::Group::draw(self.places, ui, projector);
+
+        let position = center(
+            &self
+                .places
+                .iter()
+                .map(|place| place.position())
+                .collect::<Vec<_>>(),
+        );
+        T::Group::draw(self.places, position, projector, ui);
+    }
+}
+
+fn center(positions: &[Position]) -> Position {
+    if positions.is_empty() {
+        Position::default()
+    } else {
+        let sum = positions
+            .iter()
+            .fold(Position::default(), |acc, &p| acc + p);
+        sum / positions.len() as f64
     }
 }
