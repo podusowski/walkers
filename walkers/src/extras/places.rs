@@ -1,10 +1,7 @@
-use egui::{emath::Rot2, vec2, Align2, Color32, FontId, Rect, Response, Stroke, Ui, Vec2};
+use crate::{Plugin, Position, Projector};
+use egui::{Response, Ui};
 
-use crate::{Plugin, Position};
-
-use super::Texture;
-
-/// [`Plugin`] which draws list of places on the map.
+/// [`Plugin`] which draws places on the map.
 pub struct Places<T>
 where
     T: Place,
@@ -25,7 +22,7 @@ impl<T> Plugin for Places<T>
 where
     T: Place + 'static,
 {
-    fn run(self: Box<Self>, ui: &mut Ui, _response: &Response, projector: &crate::Projector) {
+    fn run(self: Box<Self>, ui: &mut Ui, _response: &Response, projector: &Projector) {
         for place in &self.places {
             place.draw(ui, projector);
         }
@@ -33,138 +30,131 @@ where
 }
 
 pub trait Place {
-    fn draw(&self, ui: &Ui, projector: &crate::Projector);
+    fn position(&self) -> Position;
+    fn draw(&self, ui: &Ui, projector: &Projector);
 }
 
-/// A symbol with a label to be drawn on the map.
-pub struct LabeledSymbol {
-    /// Geographical position.
-    pub position: Position,
-
-    /// Text displayed next to the marker.
-    pub label: String,
-
-    /// Symbol drawn on the place. You can check [egui's font book](https://www.egui.rs/) to pick
-    /// a proper character.
-    pub symbol: char,
-
-    /// Visual style of this place.
-    pub style: LabeledSymbolStyle,
+/// Trait that can be implemented by a [`Place`] to provide grouping functionality.
+pub trait GroupedPlace {
+    type Group: Group;
 }
 
-impl Place for LabeledSymbol {
-    fn draw(&self, ui: &Ui, projector: &crate::Projector) {
-        let screen_position = projector.project(self.position);
-        let painter = ui.painter();
+/// A group of places that can be drawn together on the map.
+pub trait Group {
+    fn draw<T: Place>(places: &[&T], position: Position, projector: &Projector, ui: &Ui);
+}
 
-        let label = painter.layout_no_wrap(
-            self.label.to_owned(),
-            self.style.label_font.clone(),
-            self.style.label_color,
-        );
+/// Similar to [`Places`], but groups places that are close together and draws them as a
+/// single [`Group`].
+pub struct GroupedPlaces<T>
+where
+    T: Place,
+{
+    places: Vec<T>,
+}
 
-        // Offset of the label, relative to the circle.
-        let offset = vec2(8., 8.);
-
-        painter.rect_filled(
-            label
-                .rect
-                .translate(screen_position)
-                .translate(offset)
-                .expand(5.),
-            10.,
-            self.style.label_background,
-        );
-
-        painter.galley((screen_position + offset).to_pos2(), label, Color32::BLACK);
-
-        painter.circle(
-            screen_position.to_pos2(),
-            10.,
-            self.style.symbol_background,
-            self.style.symbol_stroke,
-        );
-
-        painter.text(
-            screen_position.to_pos2(),
-            Align2::CENTER_CENTER,
-            self.symbol.to_string(),
-            self.style.symbol_font.clone(),
-            self.style.symbol_color,
-        );
+impl<T> GroupedPlaces<T>
+where
+    T: Place + GroupedPlace,
+{
+    pub fn new(places: Vec<T>) -> Self {
+        Self { places }
     }
 }
 
-/// Visual style of the place.
-#[derive(Clone)]
-pub struct LabeledSymbolStyle {
-    pub label_font: FontId,
-    pub label_color: Color32,
-    pub label_background: Color32,
-    pub symbol_font: FontId,
-    pub symbol_color: Color32,
-    pub symbol_background: Color32,
-    pub symbol_stroke: Stroke,
-}
-
-impl Default for LabeledSymbolStyle {
-    fn default() -> Self {
-        Self {
-            label_font: FontId::proportional(12.),
-            label_color: Color32::from_gray(200),
-            label_background: Color32::BLACK.gamma_multiply(0.8),
-            symbol_font: FontId::proportional(14.),
-            symbol_color: Color32::BLACK.gamma_multiply(0.8),
-            symbol_background: Color32::WHITE.gamma_multiply(0.8),
-            symbol_stroke: Stroke::new(2., Color32::BLACK.gamma_multiply(0.8)),
+impl<T> Plugin for GroupedPlaces<T>
+where
+    T: Place + GroupedPlace,
+{
+    fn run(self: Box<Self>, ui: &mut Ui, _response: &Response, projector: &Projector) {
+        for group in groups(&self.places, projector) {
+            if group.len() >= 2 {
+                T::Group::draw(
+                    &group,
+                    center(&group.iter().map(|p| p.position()).collect::<Vec<_>>()),
+                    projector,
+                    ui,
+                );
+            } else {
+                for place in group {
+                    place.draw(ui, projector);
+                }
+            }
         }
     }
 }
 
-/// An image to be drawn on the map.
-pub struct Image {
-    /// Geographical position.
-    position: Position,
+fn groups<'a, T>(places: &'a [T], projector: &Projector) -> Vec<Vec<&'a T>>
+where
+    T: Place,
+{
+    let mut groups: Vec<Vec<&T>> = Vec::new();
 
-    scale: Vec2,
-    angle: Rot2,
-    texture: Texture,
-}
-
-impl Image {
-    pub fn new(texture: Texture, position: Position) -> Self {
-        Self {
-            position,
-            scale: Vec2::splat(1.0),
-            angle: Rot2::from_angle(0.0),
-            texture,
+    for place in places {
+        if let Some(group) = groups.iter_mut().find(|g| {
+            g.iter()
+                .all(|p| distance_projected(place.position(), p.position(), projector) < 50.0)
+        }) {
+            group.push(place);
+        } else {
+            groups.push(vec![place]);
         }
     }
 
-    /// Scale the image.
-    pub fn scale(&mut self, x: f32, y: f32) {
-        self.scale.x = x;
-        self.scale.y = y;
-    }
+    groups
+}
 
-    /// Set the image's angle in radians.
-    pub fn angle(&mut self, angle: f32) {
-        self.angle = Rot2::from_angle(angle);
+/// Calculate the distance between two positions after being projected onto the screen.
+fn distance_projected(p1: Position, p2: Position, projector: &Projector) -> f32 {
+    let screen_p1 = projector.project(p1).to_pos2();
+    let screen_p2 = projector.project(p2).to_pos2();
+    (screen_p1 - screen_p2).length()
+}
+
+fn center(positions: &[Position]) -> Position {
+    if positions.is_empty() {
+        Position::default()
+    } else {
+        let sum = positions
+            .iter()
+            .fold(Position::default(), |acc, &p| acc + p);
+        sum / positions.len() as f64
     }
 }
 
-impl Place for Image {
-    fn draw(&self, ui: &Ui, projector: &crate::Projector) {
-        let painter = ui.painter();
-        let rect = Rect::from_center_size(
-            projector.project(self.position).to_pos2(),
-            self.texture.size() * self.scale,
+#[cfg(test)]
+mod tests {
+    #[test]
+    fn calculating_center() {
+        use super::*;
+
+        assert_eq!(
+            center(&[
+                Position::new(0.0, 0.0),
+                Position::new(10.0, 10.0),
+                Position::new(20.0, 20.0),
+            ]),
+            Position::new(10.0, 10.0)
         );
 
-        if painter.clip_rect().intersects(rect) {
-            let mut mesh = self.texture.mesh_with_rect(rect);
-            mesh.rotate(self.angle, rect.center());
-            painter.add(mesh);
-        }
+        assert_eq!(
+            center(&[
+                Position::new(0.0, 0.0),
+                Position::new(10.0, 0.0),
+                Position::new(0.0, 10.0),
+                Position::new(10.0, 10.0),
+            ]),
+            Position::new(5.0, 5.0)
+        );
+
+        assert_eq!(
+            center(&[
+                Position::new(10.0, 10.0),
+                Position::new(-10.0, -10.0),
+                Position::new(-10.0, 10.0),
+                Position::new(10.0, -10.0),
+            ]),
+            Position::new(0.0, 0.0)
+        );
     }
 }

@@ -7,6 +7,8 @@ All notable changes to this project will be documented in this file.
 * `Place` is now renamed to `LabeledSymbol`, which implements a new trait called... `Place`.
 * `Style` is now renamed to `LabeledSymbolStyle`.
 * `Images` plugin is replaced by `Places`, which simply accepts both `LabeledSymbol` and `Image`.
+* New `GroupedPlaces` plugin, which groups multiple instances of `LabeledSymbol` when they are too
+  close to each other.
 
 ## 0.38.0
 
