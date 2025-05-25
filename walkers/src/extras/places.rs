@@ -1,4 +1,4 @@
-use crate::Plugin;
+use crate::{Plugin, Projector};
 use egui::{Response, Ui};
 
 /// [`Plugin`] which draws list of places on the map.
@@ -31,4 +31,29 @@ where
 
 pub trait Place {
     fn draw(&self, ui: &Ui, projector: &crate::Projector);
+}
+
+pub trait GroupedPlace {
+    type Group: Group;
+}
+
+pub trait Group {
+    fn draw<T: Place>(places: Vec<T>, ui: &Ui, projector: &Projector);
+}
+
+pub struct GroupedPlaces<T>
+where
+    T: Place,
+{
+    places: Vec<T>,
+}
+
+impl<T> Plugin for GroupedPlaces<T>
+where
+    T: Place + GroupedPlace,
+{
+    fn run(self: Box<Self>, ui: &mut Ui, _response: &Response, projector: &crate::Projector) {
+        // TODO: Implement grouping logic
+        T::Group::draw(self.places, ui, projector);
+    }
 }
