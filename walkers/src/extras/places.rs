@@ -1,5 +1,6 @@
 use crate::{Plugin, Position, Projector};
-use egui::{Response, Ui};
+use egui::{vec2, Id, Rect, Response, Sense, Ui};
+use tokio::time::error::Elapsed;
 
 /// [`Plugin`] which draws places on the map.
 pub struct Places<T>
@@ -41,7 +42,7 @@ pub trait GroupedPlace {
 
 /// A group of places that can be drawn together on the map.
 pub trait Group {
-    fn draw<T: Place>(places: &[&T], position: Position, projector: &Projector, ui: &Ui);
+    fn draw<T: Place>(places: &[&T], position: Position, projector: &Projector, ui: &mut Ui);
 }
 
 /// Similar to [`Places`], but groups places that are close together and draws them as a
@@ -67,8 +68,28 @@ where
     T: Place + GroupedPlace,
 {
     fn run(self: Box<Self>, ui: &mut Ui, _response: &Response, projector: &Projector) {
-        for group in groups(&self.places, projector) {
-            if group.len() >= 2 {
+        for (idx, group) in groups(&self.places, projector).iter().enumerate() {
+            let id = ui.id().with(idx);
+
+            let position = center(&group.iter().map(|p| p.position()).collect::<Vec<_>>());
+            let screen_position = projector.project(position);
+            let rect = Rect::from_center_size(screen_position.to_pos2(), vec2(50., 50.));
+            let response = ui.interact(rect, id, Sense::click());
+
+            let spread = if response.clicked() {
+                // Toggle the visibility of the group when clicked.
+                let spread = ui.ctx().memory_mut(|m| {
+                    let spread = m.data.get_temp::<bool>(id).unwrap_or(false);
+                    m.data.insert_temp(id, !spread);
+                    spread
+                });
+                spread
+            } else {
+                ui.ctx()
+                    .memory(|m| m.data.get_temp::<bool>(id).unwrap_or(false))
+            };
+
+            if group.len() >= 2 && !spread {
                 T::Group::draw(
                     &group,
                     center(&group.iter().map(|p| p.position()).collect::<Vec<_>>()),

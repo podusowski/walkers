@@ -1,6 +1,6 @@
 use super::places::{Group, GroupedPlace, Place};
 use crate::{Position, Projector};
-use egui::{vec2, Align2, Color32, FontId, Stroke, Ui};
+use egui::{vec2, Align2, Color32, FontId, Id, Rect, Sense, Stroke, Ui, UiBuilder};
 
 /// A symbol with a label to be drawn on the map.
 pub struct LabeledSymbol {
@@ -99,7 +99,7 @@ impl GroupedPlace for LabeledSymbol {
 pub struct LabeledSymbolGroup;
 
 impl Group for LabeledSymbolGroup {
-    fn draw<T: Place>(places: &[&T], position: Position, projector: &Projector, ui: &Ui) {
+    fn draw<T: Place>(places: &[&T], position: Position, projector: &Projector, ui: &mut Ui) {
         let screen_position = projector.project(position);
         let painter = ui.painter();
         let style = LabeledSymbolStyle::default();
