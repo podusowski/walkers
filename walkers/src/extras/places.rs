@@ -93,7 +93,7 @@ where
             let expand = self.interact(position, projector, ui, id);
 
             if group.len() >= 2 && !expand {
-                T::Group::draw(&group, position, projector, ui);
+                T::Group::draw(group, position, projector, ui);
             } else {
                 for place in group {
                     place.draw(ui, projector);
