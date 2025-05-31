@@ -90,16 +90,10 @@ where
         for (idx, group) in groups(&self.places, projector).iter().enumerate() {
             let id = ui.id().with(idx);
             let position = center(&group.iter().map(|p| p.position()).collect::<Vec<_>>());
-
             let spread = self.interact(position, projector, ui, id);
 
             if group.len() >= 2 && !spread {
-                T::Group::draw(
-                    &group,
-                    center(&group.iter().map(|p| p.position()).collect::<Vec<_>>()),
-                    projector,
-                    ui,
-                );
+                T::Group::draw(&group, position, projector, ui);
             } else {
                 for place in group {
                     place.draw(ui, projector);
