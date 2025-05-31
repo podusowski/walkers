@@ -69,12 +69,12 @@ where
 
         if response.clicked() {
             // Toggle the visibility of the group when clicked.
-            let spread = ui.ctx().memory_mut(|m| {
-                let spread = m.data.get_temp::<bool>(id).unwrap_or(false);
-                m.data.insert_temp(id, !spread);
-                spread
+            let expand = ui.ctx().memory_mut(|m| {
+                let expand = m.data.get_temp::<bool>(id).unwrap_or(false);
+                m.data.insert_temp(id, !expand);
+                expand
             });
-            spread
+            expand
         } else {
             ui.ctx()
                 .memory(|m| m.data.get_temp::<bool>(id).unwrap_or(false))
@@ -90,9 +90,9 @@ where
         for (idx, group) in groups(&self.places, projector).iter().enumerate() {
             let id = ui.id().with(idx);
             let position = center(&group.iter().map(|p| p.position()).collect::<Vec<_>>());
-            let spread = self.interact(position, projector, ui, id);
+            let expand = self.interact(position, projector, ui, id);
 
-            if group.len() >= 2 && !spread {
+            if group.len() >= 2 && !expand {
                 T::Group::draw(&group, position, projector, ui);
             } else {
                 for place in group {
