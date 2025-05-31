@@ -61,6 +61,26 @@ where
     pub fn new(places: Vec<T>) -> Self {
         Self { places }
     }
+
+    /// Handle user interactions. Returns whether group should be expanded.
+    fn interact(&self, position: Position, projector: &Projector, ui: &Ui, id: Id) -> bool {
+        let screen_position = projector.project(position);
+        let rect = Rect::from_center_size(screen_position.to_pos2(), vec2(50., 50.));
+        let response = ui.interact(rect, id, Sense::click());
+
+        if response.clicked() {
+            // Toggle the visibility of the group when clicked.
+            let spread = ui.ctx().memory_mut(|m| {
+                let spread = m.data.get_temp::<bool>(id).unwrap_or(false);
+                m.data.insert_temp(id, !spread);
+                spread
+            });
+            spread
+        } else {
+            ui.ctx()
+                .memory(|m| m.data.get_temp::<bool>(id).unwrap_or(false))
+        }
+    }
 }
 
 impl<T> Plugin for GroupedPlaces<T>
@@ -70,24 +90,9 @@ where
     fn run(self: Box<Self>, ui: &mut Ui, _response: &Response, projector: &Projector) {
         for (idx, group) in groups(&self.places, projector).iter().enumerate() {
             let id = ui.id().with(idx);
-
             let position = center(&group.iter().map(|p| p.position()).collect::<Vec<_>>());
-            let screen_position = projector.project(position);
-            let rect = Rect::from_center_size(screen_position.to_pos2(), vec2(50., 50.));
-            let response = ui.interact(rect, id, Sense::click());
 
-            let spread = if response.clicked() {
-                // Toggle the visibility of the group when clicked.
-                let spread = ui.ctx().memory_mut(|m| {
-                    let spread = m.data.get_temp::<bool>(id).unwrap_or(false);
-                    m.data.insert_temp(id, !spread);
-                    spread
-                });
-                spread
-            } else {
-                ui.ctx()
-                    .memory(|m| m.data.get_temp::<bool>(id).unwrap_or(false))
-            };
+            let spread = self.interact(position, projector, ui, id);
 
             if group.len() >= 2 && !spread {
                 T::Group::draw(
