@@ -1,5 +1,5 @@
 use crate::{Plugin, Position, Projector};
-use egui::{Response, Ui};
+use egui::{vec2, Id, Rect, Response, Sense, Ui};
 
 /// [`Plugin`] which draws places on the map.
 pub struct Places<T>
@@ -41,7 +41,7 @@ pub trait GroupedPlace {
 
 /// A group of places that can be drawn together on the map.
 pub trait Group {
-    fn draw<T: Place>(places: &[&T], position: Position, projector: &Projector, ui: &Ui);
+    fn draw<T: Place>(places: &[&T], position: Position, projector: &Projector, ui: &mut Ui);
 }
 
 /// Similar to [`Places`], but groups places that are close together and draws them as a
@@ -60,6 +60,26 @@ where
     pub fn new(places: Vec<T>) -> Self {
         Self { places }
     }
+
+    /// Handle user interactions. Returns whether group should be expanded.
+    fn interact(&self, position: Position, projector: &Projector, ui: &Ui, id: Id) -> bool {
+        let screen_position = projector.project(position);
+        let rect = Rect::from_center_size(screen_position.to_pos2(), vec2(50., 50.));
+        let response = ui.interact(rect, id, Sense::click());
+
+        if response.clicked() {
+            // Toggle the visibility of the group when clicked.
+            let expand = ui.ctx().memory_mut(|m| {
+                let expand = m.data.get_temp::<bool>(id).unwrap_or(false);
+                m.data.insert_temp(id, !expand);
+                expand
+            });
+            expand
+        } else {
+            ui.ctx()
+                .memory(|m| m.data.get_temp::<bool>(id).unwrap_or(false))
+        }
+    }
 }
 
 impl<T> Plugin for GroupedPlaces<T>
@@ -67,14 +87,13 @@ where
     T: Place + GroupedPlace,
 {
     fn run(self: Box<Self>, ui: &mut Ui, _response: &Response, projector: &Projector) {
-        for group in groups(&self.places, projector) {
-            if group.len() >= 2 {
-                T::Group::draw(
-                    &group,
-                    center(&group.iter().map(|p| p.position()).collect::<Vec<_>>()),
-                    projector,
-                    ui,
-                );
+        for (idx, group) in groups(&self.places, projector).iter().enumerate() {
+            let id = ui.id().with(idx);
+            let position = center(&group.iter().map(|p| p.position()).collect::<Vec<_>>());
+            let expand = self.interact(position, projector, ui, id);
+
+            if group.len() >= 2 && !expand {
+                T::Group::draw(group, position, projector, ui);
             } else {
                 for place in group {
                     place.draw(ui, projector);
