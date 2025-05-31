@@ -1,6 +1,5 @@
 use crate::{Plugin, Position, Projector};
 use egui::{vec2, Id, Rect, Response, Sense, Ui};
-use tokio::time::error::Elapsed;
 
 /// [`Plugin`] which draws places on the map.
 pub struct Places<T>

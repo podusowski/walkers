@@ -1,6 +1,6 @@
 use super::places::{Group, GroupedPlace, Place};
 use crate::{Position, Projector};
-use egui::{vec2, Align2, Color32, FontId, Id, Rect, Sense, Stroke, Ui, UiBuilder};
+use egui::{vec2, Align2, Color32, FontId, Stroke, Ui};
 
 /// A symbol with a label to be drawn on the map.
 pub struct LabeledSymbol {
