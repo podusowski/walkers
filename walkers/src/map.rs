@@ -293,7 +293,8 @@ impl Map<'_, '_, '_> {
         }
 
         // Only enable panning with mouse_wheel if we are zooming with ctrl. But always allow touch devices to pan
-        let panning_enabled = !self.disable_panning && (ui.input(|i| i.any_touches()) || self.zoom_with_ctrl);
+        let panning_enabled =
+            !self.disable_panning && (ui.input(|i| i.any_touches()) || self.zoom_with_ctrl);
 
         if ui.ui_contains_pointer() && panning_enabled {
             // Panning by scrolling, e.g. two-finger drag on a touchpad:
