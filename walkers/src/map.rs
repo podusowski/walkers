@@ -58,7 +58,7 @@ pub struct Map<'a, 'b, 'c> {
     double_click_to_zoom: bool,
     double_click_to_zoom_out: bool,
     zoom_with_ctrl: bool,
-    disable_panning: bool,
+    panning: bool,
 }
 
 impl<'a, 'b, 'c> Map<'a, 'b, 'c> {
@@ -79,7 +79,7 @@ impl<'a, 'b, 'c> Map<'a, 'b, 'c> {
             double_click_to_zoom: false,
             double_click_to_zoom_out: false,
             zoom_with_ctrl: true,
-            disable_panning: false,
+            panning: true,
         }
     }
 
@@ -149,8 +149,8 @@ impl<'a, 'b, 'c> Map<'a, 'b, 'c> {
     /// Set if we can pan with mouse wheel.
     /// By default, panning is disabled when zooming with ctrl is disabled.
     /// Allow to disable panning even when zooming with ctrl is enabled.
-    pub fn disable_panning(mut self, disabled: bool) -> Self {
-        self.disable_panning = disabled;
+    pub fn panning(mut self, enabled: bool) -> Self {
+        self.panning = enabled;
         self
     }
 }
@@ -294,7 +294,7 @@ impl Map<'_, '_, '_> {
 
         // Only enable panning with mouse_wheel if we are zooming with ctrl. But always allow touch devices to pan
         let panning_enabled =
-            !self.disable_panning && (ui.input(|i| i.any_touches()) || self.zoom_with_ctrl);
+            self.panning && (ui.input(|i| i.any_touches()) || self.zoom_with_ctrl);
 
         if ui.ui_contains_pointer() && panning_enabled {
             // Panning by scrolling, e.g. two-finger drag on a touchpad:
