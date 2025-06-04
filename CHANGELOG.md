@@ -9,6 +9,7 @@ All notable changes to this project will be documented in this file.
 * `Images` plugin is replaced by `Places`, which simply accepts both `LabeledSymbol` and `Image`.
 * New `GroupedPlaces` plugin, which groups multiple instances of `LabeledSymbol` when they are too
   close to each other.
+* New `Map::panning` function which can be used to disable panning.
 
 ## 0.38.0
 
