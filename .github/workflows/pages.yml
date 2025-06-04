@@ -19,7 +19,7 @@ jobs:
           profile: minimal
           target: wasm32-unknown-unknown
       - name: Install Trunk
-        run: cargo install trunk@0.20.3
+        run: cargo install trunk@0.20.3 --locked
       - name: Build
         run: env -C demo_web trunk build --release --public-url .
       - name: Deploy
