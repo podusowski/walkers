@@ -13,11 +13,6 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: actions-rs/toolchain@v1
-        with:
-          toolchain: stable
-          profile: minimal
-          target: wasm32-unknown-unknown
       - name: Install Trunk
         run: cargo install trunk@0.20.3 --locked
       - name: Build
