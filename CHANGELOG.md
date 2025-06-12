@@ -4,6 +4,9 @@ All notable changes to this project will be documented in this file.
 
 ## Unreleased
 
+Please note that places plugin family are now being intensively refactored and might change pretty
+radically in the next releases.
+
 * `Place` is now renamed to `LabeledSymbol`, which implements a new trait called... `Place`.
 * `Style` is now renamed to `LabeledSymbolStyle`.
 * `Images` plugin is replaced by `Places`, which simply accepts both `LabeledSymbol` and `Image`.
