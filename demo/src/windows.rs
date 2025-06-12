@@ -32,7 +32,7 @@ pub fn controls(
     http_stats: Vec<walkers::HttpStats>,
     image: &mut ImagesPluginData,
 ) {
-    Window::new("Satellite")
+    Window::new("Controls")
         .collapsible(false)
         .resizable(false)
         .title_bar(false)
