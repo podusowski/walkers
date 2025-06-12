@@ -17,6 +17,7 @@ pub struct MyApp {
     map_memory: MapMemory,
     images_plugin_data: ImagesPluginData,
     click_watcher: plugins::ClickWatcher,
+    zoom_with_ctrl: bool,
 }
 
 impl MyApp {
@@ -32,6 +33,7 @@ impl MyApp {
             map_memory: MapMemory::default(),
             images_plugin_data,
             click_watcher: Default::default(),
+            zoom_with_ctrl: true,
         }
     }
 }
@@ -49,16 +51,21 @@ impl eframe::App for MyApp {
                 .collect();
 
             // In egui, widgets are constructed and consumed in each frame.
-            let map = Map::new(None, &mut self.map_memory, my_position);
+            let mut map = Map::new(None, &mut self.map_memory, my_position);
+
+            // Various aspects of the map can be configured.
+            map = map.zoom_with_ctrl(self.zoom_with_ctrl);
 
             // Optionally, plugins can be attached.
-            let mut map = map
+            map = map
                 .with_plugin(plugins::places())
                 .with_plugin(plugins::images(&mut self.images_plugin_data))
                 .with_plugin(plugins::CustomShapes {})
                 .with_plugin(&mut self.click_watcher);
 
+            // Multiple layers can be added.
             for (n, tiles) in tiles.iter_mut().enumerate() {
+                // With a different transparency.
                 let transparency = if n == 0 { 1.0 } else { 0.25 };
                 map = map.with_layer(tiles.as_mut(), transparency);
             }
