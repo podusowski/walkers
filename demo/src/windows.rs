@@ -1,6 +1,4 @@
-use crate::plugins::ImagesPluginData;
-
-use crate::tiles::Provider;
+use crate::MyApp;
 use egui::{Align2, ComboBox, Image, RichText, Slider, Ui, Window};
 use walkers::{sources::Attribution, MapMemory};
 
@@ -25,13 +23,7 @@ pub fn acknowledge(ui: &Ui, attributions: Vec<Attribution>) {
         });
 }
 
-pub fn controls(
-    ui: &Ui,
-    selected_provider: &mut Provider,
-    possible_providers: &mut dyn Iterator<Item = &Provider>,
-    http_stats: Vec<walkers::HttpStats>,
-    image: &mut ImagesPluginData,
-) {
+pub fn controls(app: &mut MyApp, ui: &Ui, http_stats: Vec<walkers::HttpStats>) {
     Window::new("Controls")
         .collapsible(false)
         .resizable(false)
@@ -41,10 +33,10 @@ pub fn controls(
         .show(ui.ctx(), |ui| {
             ui.collapsing("Map", |ui| {
                 ComboBox::from_label("Tile Provider")
-                    .selected_text(format!("{:?}", selected_provider))
+                    .selected_text(format!("{:?}", app.selected_provider))
                     .show_ui(ui, |ui| {
-                        for p in possible_providers {
-                            ui.selectable_value(selected_provider, *p, format!("{:?}", p));
+                        for p in app.providers.keys() {
+                            ui.selectable_value(&mut app.selected_provider, *p, format!("{:?}", p));
                         }
                     });
             });
@@ -53,15 +45,15 @@ pub fn controls(
                 for http_stats in http_stats {
                     ui.label(format!(
                         "{:?} requests in progress: {}",
-                        selected_provider, http_stats.in_progress
+                        app.selected_provider, http_stats.in_progress
                     ));
                 }
             });
 
             ui.collapsing("Images plugin", |ui| {
-                ui.add(Slider::new(&mut image.angle, 0.0..=360.0).text("Rotate"));
-                ui.add(Slider::new(&mut image.x_scale, 0.1..=3.0).text("Scale X"));
-                ui.add(Slider::new(&mut image.y_scale, 0.1..=3.0).text("Scale Y"));
+                ui.add(Slider::new(&mut app.images_plugin_data.angle, 0.0..=360.0).text("Rotate"));
+                ui.add(Slider::new(&mut app.images_plugin_data.x_scale, 0.1..=3.0).text("Scale X"));
+                ui.add(Slider::new(&mut app.images_plugin_data.y_scale, 0.1..=3.0).text("Scale Y"));
             });
         });
 }

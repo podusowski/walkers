@@ -85,13 +85,7 @@ impl eframe::App for MyApp {
                     })
                     .collect();
 
-                controls(
-                    ui,
-                    &mut self.selected_provider,
-                    &mut self.providers.keys(),
-                    http_stats,
-                    &mut self.images_plugin_data,
-                );
+                controls(self, ui, http_stats);
                 acknowledge(ui, attributions);
             }
         });
