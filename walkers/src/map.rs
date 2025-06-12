@@ -157,28 +157,7 @@ impl<'a, 'b, 'c> Map<'a, 'b, 'c> {
 impl Map<'_, '_, '_> {
     /// Handle user inputs and recalculate everything accordingly. Returns whether something changed.
     fn handle_gestures(&mut self, ui: &mut Ui, response: &Response) -> bool {
-        let mut zoom_delta = ui.input(|input| input.zoom_delta()) as f64;
-
-        if self.double_click_to_zoom
-            && ui.ui_contains_pointer()
-            && response.double_clicked_by(PointerButton::Primary)
-        {
-            zoom_delta = 2.0;
-        }
-
-        if self.double_click_to_zoom_out
-            && ui.ui_contains_pointer()
-            && response.double_clicked_by(PointerButton::Secondary)
-        {
-            zoom_delta = 0.0;
-        }
-
-        if !self.zoom_with_ctrl && zoom_delta == 1.0 {
-            // We only use the raw scroll values, if we are zooming without ctrl,
-            // and zoom_delta is not already over/under 1.0 (eg. a ctrl + scroll event or a pinch zoom)
-            // These values seem to correspond to the same values as one would get in `zoom_delta()`
-            zoom_delta = ui.input(|input| (1.0 + input.smooth_scroll_delta.y / 200.0)) as f64
-        };
+        let zoom_delta = self.zoom_delta(ui, response);
 
         let mut changed = false;
 
@@ -249,6 +228,34 @@ impl Map<'_, '_, '_> {
         }
 
         changed
+    }
+
+    /// Calculate the zoom delta based on the input.
+    fn zoom_delta(&self, ui: &mut Ui, response: &Response) -> f64 {
+        let mut zoom_delta = ui.input(|input| input.zoom_delta()) as f64;
+
+        if self.double_click_to_zoom
+            && ui.ui_contains_pointer()
+            && response.double_clicked_by(PointerButton::Primary)
+        {
+            zoom_delta = 2.0;
+        }
+
+        if self.double_click_to_zoom_out
+            && ui.ui_contains_pointer()
+            && response.double_clicked_by(PointerButton::Secondary)
+        {
+            zoom_delta = 0.0;
+        }
+
+        if !self.zoom_with_ctrl && zoom_delta == 1.0 {
+            // We only use the raw scroll values, if we are zooming without ctrl,
+            // and zoom_delta is not already over/under 1.0 (eg. a ctrl + scroll event or a pinch zoom)
+            // These values seem to correspond to the same values as one would get in `zoom_delta()`
+            zoom_delta = ui.input(|input| (1.0 + input.smooth_scroll_delta.y / 200.0)) as f64
+        };
+
+        zoom_delta
     }
 }
 
