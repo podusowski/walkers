@@ -39,6 +39,8 @@ pub fn controls(app: &mut MyApp, ui: &Ui, http_stats: Vec<walkers::HttpStats>) {
                             ui.selectable_value(&mut app.selected_provider, *p, format!("{:?}", p));
                         }
                     });
+
+                ui.checkbox(&mut app.zoom_with_ctrl, "Zoom with Ctrl");
             });
 
             ui.collapsing("HTTP statistics", |ui| {
