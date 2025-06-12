@@ -155,8 +155,7 @@ impl<'a, 'b, 'c> Map<'a, 'b, 'c> {
 }
 
 impl Map<'_, '_, '_> {
-    /// Handle zoom and drag inputs, and recalculate everything accordingly.
-    /// Returns `false` if no gesture handled.
+    /// Handle user inputs and recalculate everything accordingly. Returns whether something changed.
     fn handle_gestures(&mut self, ui: &mut Ui, response: &Response) -> bool {
         let mut zoom_delta = ui.input(|input| input.zoom_delta()) as f64;
 
