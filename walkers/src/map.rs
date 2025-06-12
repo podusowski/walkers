@@ -168,18 +168,13 @@ impl Map<'_, '_, '_> {
             // Displacement of mouse pointer relative to widget center
             let offset = input_offset(ui, response);
 
-            let pos = self
-                .memory
-                .center_mode
-                .position(self.my_position, self.memory.zoom());
-
             // While zooming, we want to keep the location under the mouse pointer fixed on the
             // screen. To achieve this, we first move the location to the widget's center,
             // then adjust zoom level, finally move the location back to the original screen
             // position.
             if let Some(offset) = offset {
                 self.memory.center_mode = Center::Exact(
-                    AdjustedPosition::from(pos)
+                    AdjustedPosition::from(self.position())
                         .shift(-offset)
                         .zero_offset(self.memory.zoom()),
                 );
@@ -257,6 +252,13 @@ impl Map<'_, '_, '_> {
 
         zoom_delta
     }
+
+    /// Get the real position at the map's center.
+    fn position(&self) -> Position {
+        self.memory
+            .center_mode
+            .position(self.my_position, self.memory.zoom())
+    }
 }
 
 impl Widget for Map<'_, '_, '_> {
@@ -274,10 +276,7 @@ impl Widget for Map<'_, '_, '_> {
         }
 
         let zoom = self.memory.zoom;
-        let map_center = self
-            .memory
-            .center_mode
-            .position(self.my_position, zoom.into());
+        let map_center = self.position();
         let painter = ui.painter().with_clip_rect(rect);
 
         if let Some(tiles) = self.tiles {
@@ -288,6 +287,7 @@ impl Widget for Map<'_, '_, '_> {
             draw_tiles(&painter, map_center, zoom, layer.tiles, layer.transparency);
         }
 
+        // Run plugins.
         let projector = Projector::new(response.rect, self.memory, self.my_position);
         for (idx, plugin) in self.plugins.into_iter().enumerate() {
             let mut child_ui = ui.new_child(UiBuilder::new().max_rect(rect).id_salt(idx));
