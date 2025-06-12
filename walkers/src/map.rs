@@ -185,9 +185,7 @@ impl Map<'_, '_, '_> {
 
         // Zooming and dragging need to be exclusive, otherwise the map will get dragged when
         // pinch gesture is used.
-        if !(0.99..=1.01).contains(&zoom_delta)
-            && ui.ui_contains_pointer()
-            && self.zoom_gesture_enabled
+        if (zoom_delta - 1.0).abs() > 0.01 && ui.ui_contains_pointer() && self.zoom_gesture_enabled
         {
             // Displacement of mouse pointer relative to widget center
             let offset = input_offset(ui, response);
