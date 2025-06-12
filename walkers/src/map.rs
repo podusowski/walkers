@@ -155,9 +155,74 @@ impl<'a, 'b, 'c> Map<'a, 'b, 'c> {
 }
 
 impl Map<'_, '_, '_> {
-    /// Handle zoom and drag inputs, and recalculate everything accordingly.
-    /// Returns `false` if no gesture handled.
+    /// Handle user inputs and recalculate everything accordingly. Returns whether something changed.
     fn handle_gestures(&mut self, ui: &mut Ui, response: &Response) -> bool {
+        let zoom_delta = self.zoom_delta(ui, response);
+
+        let mut changed = false;
+
+        // Zooming and dragging need to be exclusive, otherwise the map will get dragged when
+        // pinch gesture is used.
+        if (zoom_delta - 1.0).abs() > 0.01 && ui.ui_contains_pointer() && self.zoom_gesture_enabled
+        {
+            // Displacement of mouse pointer relative to widget center
+            let offset = input_offset(ui, response);
+
+            // While zooming, we want to keep the location under the mouse pointer fixed on the
+            // screen. To achieve this, we first move the location to the widget's center,
+            // then adjust zoom level, finally move the location back to the original screen
+            // position.
+            if let Some(offset) = offset {
+                self.memory.center_mode = Center::Exact(
+                    AdjustedPosition::from(self.position())
+                        .shift(-offset)
+                        .zero_offset(self.memory.zoom()),
+                );
+            }
+
+            // Shift by 1 because of the values given by zoom_delta(). Multiple by zoom_speed(defaults to 2.0),
+            // because then it felt right with both mouse wheel, and an Android phone.
+            self.memory
+                .zoom
+                .zoom_by((zoom_delta - 1.) * self.zoom_speed);
+
+            // Recalculate the AdjustedPosition's offset, since it gets invalidated by zooming.
+            self.memory.center_mode = self
+                .memory
+                .center_mode
+                .clone()
+                .zero_offset(self.memory.zoom());
+
+            if let Some(offset) = offset {
+                self.memory.center_mode = self.memory.center_mode.clone().shift(offset);
+            }
+
+            changed = true;
+        } else if self.drag_gesture_enabled {
+            changed = self
+                .memory
+                .center_mode
+                .recalculate_drag(response, self.my_position);
+        }
+
+        // Only enable panning with mouse_wheel if we are zooming with ctrl. But always allow touch devices to pan
+        let panning_enabled =
+            self.panning && (ui.input(|i| i.any_touches()) || self.zoom_with_ctrl);
+
+        if ui.ui_contains_pointer() && panning_enabled {
+            // Panning by scrolling, e.g. two-finger drag on a touchpad:
+            let scroll_delta = ui.input(|i| i.smooth_scroll_delta);
+            if scroll_delta != Vec2::ZERO {
+                self.memory.center_mode =
+                    Center::Exact(AdjustedPosition::from(self.position()).shift(scroll_delta));
+            }
+        }
+
+        changed
+    }
+
+    /// Calculate the zoom delta based on the input.
+    fn zoom_delta(&self, ui: &mut Ui, response: &Response) -> f64 {
         let mut zoom_delta = ui.input(|input| input.zoom_delta()) as f64;
 
         if self.double_click_to_zoom
@@ -181,77 +246,14 @@ impl Map<'_, '_, '_> {
             zoom_delta = ui.input(|input| (1.0 + input.smooth_scroll_delta.y / 200.0)) as f64
         };
 
-        let mut changed = false;
+        zoom_delta
+    }
 
-        // Zooming and dragging need to be exclusive, otherwise the map will get dragged when
-        // pinch gesture is used.
-        if !(0.99..=1.01).contains(&zoom_delta)
-            && ui.ui_contains_pointer()
-            && self.zoom_gesture_enabled
-        {
-            // Displacement of mouse pointer relative to widget center
-            let offset = input_offset(ui, response);
-
-            let pos = self
-                .memory
-                .center_mode
-                .position(self.my_position, self.memory.zoom());
-
-            // While zooming, we want to keep the location under the mouse pointer fixed on the
-            // screen. To achieve this, we first move the location to the widget's center,
-            // then adjust zoom level, finally move the location back to the original screen
-            // position.
-            if let Some(offset) = offset {
-                self.memory.center_mode = Center::Exact(
-                    AdjustedPosition::from(pos)
-                        .shift(-offset)
-                        .zero_offset(self.memory.zoom.into()),
-                );
-            }
-
-            // Shift by 1 because of the values given by zoom_delta(). Multiple by zoom_speed(defaults to 2.0),
-            // because then it felt right with both mouse wheel, and an Android phone.
-            self.memory
-                .zoom
-                .zoom_by((zoom_delta - 1.) * self.zoom_speed);
-
-            // Recalculate the AdjustedPosition's offset, since it gets invalidated by zooming.
-            self.memory.center_mode = self
-                .memory
-                .center_mode
-                .clone()
-                .zero_offset(self.memory.zoom.into());
-
-            if let Some(offset) = offset {
-                self.memory.center_mode = self.memory.center_mode.clone().shift(offset);
-            }
-
-            changed = true;
-        } else if self.drag_gesture_enabled {
-            changed = self
-                .memory
-                .center_mode
-                .recalculate_drag(response, self.my_position);
-        }
-
-        // Only enable panning with mouse_wheel if we are zooming with ctrl. But always allow touch devices to pan
-        let panning_enabled =
-            self.panning && (ui.input(|i| i.any_touches()) || self.zoom_with_ctrl);
-
-        if ui.ui_contains_pointer() && panning_enabled {
-            // Panning by scrolling, e.g. two-finger drag on a touchpad:
-            let scroll_delta = ui.input(|i| i.smooth_scroll_delta);
-            if scroll_delta != Vec2::ZERO {
-                let pos = self
-                    .memory
-                    .center_mode
-                    .position(self.my_position, self.memory.zoom());
-                self.memory.center_mode =
-                    Center::Exact(AdjustedPosition::from(pos).shift(scroll_delta));
-            }
-        }
-
-        changed
+    /// Get the real position at the map's center.
+    fn position(&self) -> Position {
+        self.memory
+            .center_mode
+            .position(self.my_position, self.memory.zoom())
     }
 }
 
@@ -260,20 +262,17 @@ impl Widget for Map<'_, '_, '_> {
         let (rect, mut response) =
             ui.allocate_exact_size(ui.available_size(), Sense::click_and_drag());
 
-        let mut moved = self.handle_gestures(ui, &response);
+        let mut changed = self.handle_gestures(ui, &response);
         let delta_time = ui.ctx().input(|reader| reader.stable_dt);
-        moved |= self.memory.center_mode.update_movement(delta_time);
+        changed |= self.memory.center_mode.update_movement(delta_time);
 
-        if moved {
+        if changed {
             response.mark_changed();
             ui.ctx().request_repaint();
         }
 
         let zoom = self.memory.zoom;
-        let map_center = self
-            .memory
-            .center_mode
-            .position(self.my_position, zoom.into());
+        let map_center = self.position();
         let painter = ui.painter().with_clip_rect(rect);
 
         if let Some(tiles) = self.tiles {
@@ -284,6 +283,7 @@ impl Widget for Map<'_, '_, '_> {
             draw_tiles(&painter, map_center, zoom, layer.tiles, layer.transparency);
         }
 
+        // Run plugins.
         let projector = Projector::new(response.rect, self.memory, self.my_position);
         for (idx, plugin) in self.plugins.into_iter().enumerate() {
             let mut child_ui = ui.new_child(UiBuilder::new().max_rect(rect).id_salt(idx));
