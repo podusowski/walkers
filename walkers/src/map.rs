@@ -1,9 +1,8 @@
-use egui::{PointerButton, Rect, Response, Sense, Ui, UiBuilder, Vec2, Widget};
+use egui::{PointerButton, Response, Sense, Ui, UiBuilder, Vec2, Widget};
 
 use crate::{
     center::Center,
-    mercator::{project, unproject},
-    position::{AdjustedPosition, Pixels, PixelsExt},
+    position::AdjustedPosition,
     tiles::draw_tiles,
     zoom::{InvalidZoom, Zoom},
     Position, Projector, Tiles,
