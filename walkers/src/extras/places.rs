@@ -1,7 +1,8 @@
 use crate::{Plugin, Position, Projector};
 use egui::{vec2, Id, Rect, Response, Sense, Ui};
 
-/// [`Plugin`] which draws places on the map.
+/// [`Plugin`] which shows places on the map. Place can be any type that implements the [`Place`]
+/// trait.
 pub struct Places<T>
 where
     T: Place,
@@ -103,6 +104,7 @@ where
     }
 }
 
+/// Group places that are close together.
 fn groups<'a, T>(places: &'a [T], projector: &Projector) -> Vec<Vec<&'a T>>
 where
     T: Place,

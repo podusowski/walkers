@@ -66,7 +66,7 @@ impl Place for LabeledSymbol {
     }
 }
 
-/// Visual style of the place.
+/// Visual style of a [`LabeledSymbol`].
 #[derive(Clone)]
 pub struct LabeledSymbolStyle {
     pub label_font: FontId,

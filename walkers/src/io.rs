@@ -1,4 +1,4 @@
-//! Managed thread for Tokio runtime.
+//! Managed thread for an IO runtime. Concrete implementation depends on the target.
 
 #[cfg(not(target_arch = "wasm32"))]
 pub(crate) use native::*;
