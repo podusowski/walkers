@@ -181,7 +181,7 @@ impl Map<'_, '_, '_> {
                 self.memory.center_mode = Center::Exact(
                     AdjustedPosition::from(pos)
                         .shift(-offset)
-                        .zero_offset(self.memory.zoom.into()),
+                        .zero_offset(self.memory.zoom()),
                 );
             }
 
@@ -196,7 +196,7 @@ impl Map<'_, '_, '_> {
                 .memory
                 .center_mode
                 .clone()
-                .zero_offset(self.memory.zoom.into());
+                .zero_offset(self.memory.zoom());
 
             if let Some(offset) = offset {
                 self.memory.center_mode = self.memory.center_mode.clone().shift(offset);
