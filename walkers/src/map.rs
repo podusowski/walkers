@@ -1,12 +1,11 @@
-use egui::{PointerButton, Rect, Response, Sense, Ui, UiBuilder, Vec2, Widget};
+use egui::{PointerButton, Response, Sense, Ui, UiBuilder, Vec2, Widget};
 
 use crate::{
     center::Center,
-    mercator::{project, unproject},
-    position::{AdjustedPosition, Pixels, PixelsExt},
+    position::AdjustedPosition,
     tiles::draw_tiles,
     zoom::{InvalidZoom, Zoom},
-    Position, Tiles,
+    Position, Projector, Tiles,
 };
 
 /// Plugins allow drawing custom shapes on the map. After implementing this trait for your type,
@@ -155,63 +154,6 @@ impl<'a, 'b, 'c> Map<'a, 'b, 'c> {
     }
 }
 
-/// Projects geographical position into pixels on the viewport, suitable for [`egui::Painter`].
-#[derive(Clone)]
-pub struct Projector {
-    clip_rect: Rect,
-    memory: MapMemory,
-    my_position: Position,
-}
-
-impl Projector {
-    pub fn new(clip_rect: Rect, map_memory: &MapMemory, my_position: Position) -> Self {
-        Self {
-            clip_rect,
-            memory: map_memory.to_owned(),
-            my_position,
-        }
-    }
-
-    /// Project `position` into pixels on the viewport.
-    pub fn project(&self, position: Position) -> Vec2 {
-        // Turn that into a flat, mercator projection.
-        let projected_position = project(position, self.memory.zoom.into());
-
-        // We need the precision of f64 here,
-        // since some "gaps" between tiles are noticeable on large zoom levels (e.g. 16+)
-        let zoom: f64 = self.memory.zoom.into();
-
-        // We also need to know where the map center is.
-        let map_center_projected_position = project(
-            self.memory.center_mode.position(self.my_position, zoom),
-            self.memory.zoom.into(),
-        );
-
-        // From the two points above we can calculate the actual point on the screen.
-        self.clip_rect.center().to_vec2()
-            + (projected_position - map_center_projected_position).to_vec2()
-    }
-
-    /// Get coordinates from viewport's pixels position
-    pub fn unproject(&self, position: Vec2) -> Position {
-        let zoom: f64 = self.memory.zoom.into();
-        let center = self.memory.center_mode.position(self.my_position, zoom);
-        let projected =
-            project(center, zoom).to_vec2() + position - self.clip_rect.center().to_vec2();
-
-        unproject(Pixels::new(projected.x as f64, projected.y as f64), zoom)
-    }
-
-    /// What is the local scale of the map at the provided position and given the current zoom
-    /// level?
-    pub fn scale_pixel_per_meter(&self, position: Position) -> f32 {
-        let zoom = self.memory.zoom.into();
-
-        // return f32 for ergonomics, as the result is typically used for egui code
-        calculate_meters_per_pixel(position.y(), zoom) as f32
-    }
-}
-
 impl Map<'_, '_, '_> {
     /// Handle zoom and drag inputs, and recalculate everything accordingly.
     /// Returns `false` if no gesture handled.
@@ -356,7 +298,7 @@ impl Widget for Map<'_, '_, '_> {
 #[derive(Debug, Default, Clone)]
 #[cfg_attr(feature = "serde", derive(::serde::Serialize, ::serde::Deserialize))]
 pub struct MapMemory {
-    center_mode: Center,
+    pub(crate) center_mode: Center,
     zoom: Zoom,
 }
 
@@ -405,18 +347,6 @@ impl MapMemory {
     }
 }
 
-/// Implementation of the scale computation.
-fn calculate_meters_per_pixel(latitude: f64, zoom: f64) -> f64 {
-    const EARTH_CIRCUMFERENCE: f64 = 40_075_016.686;
-
-    // Number of pixels for width of world at this zoom level
-    let total_pixels = crate::mercator::total_pixels(zoom);
-
-    let pixel_per_meter_equator = total_pixels / EARTH_CIRCUMFERENCE;
-    let latitude_rad = latitude.abs().to_radians();
-    pixel_per_meter_equator / latitude_rad.cos()
-}
-
 /// Get the offset of the input (either mouse or touch) relative to the center.
 fn input_offset(ui: &mut Ui, response: &Response) -> Option<Vec2> {
     let mouse_offset = response.hover_pos();
@@ -428,54 +358,4 @@ fn input_offset(ui: &mut Ui, response: &Response) -> Option<Vec2> {
     touch_offset
         .or(mouse_offset)
         .map(|pos| pos - response.rect.center())
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-    use crate::lon_lat;
-    use egui::Pos2;
-
-    fn assert_approx_eq(a: f64, b: f64) {
-        let diff = (a - b).abs();
-        let tolerance = 0.01;
-        assert!(
-            diff < tolerance,
-            "Values differ by more than {tolerance}: {a} vs {b}"
-        );
-    }
-
-    #[test]
-    fn test_equator_zoom_0() {
-        // At zoom 0 (whole world), equator should be about 156.5km per pixel
-        let scale = calculate_meters_per_pixel(0.0, 0.);
-        assert_approx_eq(scale, 1. / 156_543.03);
-    }
-
-    #[test]
-    fn test_equator_zoom_19() {
-        // At max zoom (19), equator should be about 0.3m per pixel
-        let scale = calculate_meters_per_pixel(0.0, 19.);
-        assert_approx_eq(scale, 1. / 0.298);
-    }
-
-    #[test]
-    fn unproject_is_inverse_of_project() {
-        let original = lon_lat(21., 52.);
-
-        let mut map_memory = MapMemory::default();
-        map_memory.set_zoom(10.).unwrap();
-
-        let projector = Projector::new(
-            Rect::from_min_size(Pos2::ZERO, Vec2::splat(100.)),
-            &map_memory,
-            original,
-        );
-
-        let projected = projector.project(original);
-        let unprojected = projector.unproject(projected);
-
-        assert_approx_eq(original.x(), unprojected.x());
-        assert_approx_eq(original.y(), unprojected.y());
-    }
 }
