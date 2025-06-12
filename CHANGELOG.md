@@ -2,7 +2,7 @@
 
 All notable changes to this project will be documented in this file.
 
-## Unreleased
+## 0.39.0
 
 Please note that places plugin family are now being intensively refactored and might change pretty
 radically in the next releases.
