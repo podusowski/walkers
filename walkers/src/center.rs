@@ -1,14 +1,17 @@
 use egui::{Response, Vec2};
 
 use crate::{
-    position::{AdjustedPosition, Pixels},
+    position::{AdjustedPosition, Pixels, PixelsExt},
     Position,
 };
 
 /// Time constant of inertia stopping filter
 const INERTIA_TAU: f32 = 0.2f32;
 
-/// Position at the map's center. Initially, the map follows `my_position` argument which typically
+/// Threshold for pulling the map back to `my_position` after dragging.
+const PULL_TO_MY_POSITION_THRESHOLD: f32 = 20.0;
+
+/// Position of the map's center. Initially, the map follows `my_position` argument which typically
 /// is meant to be fed by a GPS sensor or other geo-localization method. If user drags the map,
 /// it becomes "detached" and stays this way until [`MapMemory::center_mode`] is changed back to
 /// [`Center::MyPosition`].
@@ -22,45 +25,73 @@ pub(crate) enum Center {
     /// Centered at the exact position.
     Exact(AdjustedPosition),
 
-    /// Map is currently being dragged.
+    /// Map is being dragged by mouse or finger.
     Moving {
         position: AdjustedPosition,
         direction: Vec2,
+        /// Whether the drag was started from a detached state.
+        from_detached: bool,
     },
 
-    /// Map is currently moving due to inertia, and will slow down and stop after a short while.
+    /// Map is moving, but due to inertia, and will slow down and stop in a short while.
     Inertia {
         position: AdjustedPosition,
         direction: Vec2,
         amount: f32,
     },
+
+    /// Map is being pulled back to the `my_position`. This happens when the user releases the
+    /// dragging gesture, but the map is too close to the `my_position`.
+    PulledToMyPosition(AdjustedPosition),
 }
 
 impl Center {
-    pub(crate) fn recalculate_drag(&mut self, response: &Response, my_position: Position) -> bool {
+    pub(crate) fn handle_gestures(&mut self, response: &Response, my_position: Position) -> bool {
         if response.dragged_by(egui::PointerButton::Primary) {
-            *self = Center::Moving {
-                position: self
-                    .adjusted_position()
-                    .unwrap_or(AdjustedPosition::new(my_position, Default::default())),
-                direction: response.drag_delta(),
-            };
+            self.dragged_by(my_position, response);
             true
         } else if response.drag_stopped() {
-            if let Center::Moving {
-                position,
-                direction,
-            } = &self
+            self.drag_stopped();
+            true
+        } else {
+            false
+        }
+    }
+
+    fn dragged_by(&mut self, my_position: Position, response: &Response) {
+        let from_detached = if let Center::Moving { from_detached, .. } = self {
+            *from_detached
+        } else {
+            // Only `MyPosition` state has no adjusted position.
+            self.adjusted_position().is_some()
+        };
+
+        *self = Center::Moving {
+            position: self
+                .adjusted_position()
+                .unwrap_or(AdjustedPosition::new(my_position, Default::default())),
+            direction: response.drag_delta(),
+            from_detached,
+        };
+    }
+
+    fn drag_stopped(&mut self) {
+        if let Center::Moving {
+            position,
+            direction,
+            from_detached,
+        } = &self
+        {
+            if *from_detached || position.offset.to_vec2().length() > PULL_TO_MY_POSITION_THRESHOLD
             {
                 *self = Center::Inertia {
                     position: position.clone(),
                     direction: direction.normalized(),
                     amount: direction.length(),
                 };
+            } else {
+                *self = Center::PulledToMyPosition(position.to_owned());
             }
-            true
-        } else {
-            false
         }
     }
 
@@ -69,6 +100,7 @@ impl Center {
             Center::Moving {
                 position,
                 direction,
+                from_detached,
             } => {
                 let delta = *direction;
                 let offset = position.offset + Pixels::new(delta.x as f64, delta.y as f64);
@@ -76,6 +108,7 @@ impl Center {
                 *self = Center::Moving {
                     position: AdjustedPosition::new(position.position, offset),
                     direction: *direction,
+                    from_detached: *from_detached,
                 };
                 true
             }
@@ -101,6 +134,16 @@ impl Center {
                 };
                 true
             }
+            Center::PulledToMyPosition(position) => {
+                // Shrink the offset towards zero.
+                let offset = position.offset / 2.0;
+                *self = if offset.to_vec2().length() < 1.0 {
+                    Center::MyPosition
+                } else {
+                    Center::PulledToMyPosition(AdjustedPosition::new(position.position, offset))
+                };
+                true
+            }
             _ => false,
         }
     }
@@ -115,6 +158,7 @@ impl Center {
         match self {
             Center::MyPosition => None,
             Center::Exact(position)
+            | Center::PulledToMyPosition(position)
             | Center::Moving { position, .. }
             | Center::Inertia { position, .. } => Some(position.to_owned()),
         }
@@ -128,13 +172,16 @@ impl Center {
     pub fn zero_offset(self, zoom: f64) -> Self {
         match self {
             Center::MyPosition => Center::MyPosition,
+            Center::PulledToMyPosition(_) => Center::MyPosition,
             Center::Exact(position) => Center::Exact(position.zero_offset(zoom)),
             Center::Moving {
                 position,
                 direction,
+                from_detached,
             } => Center::Moving {
                 position: position.zero_offset(zoom),
                 direction,
+                from_detached,
             },
             Center::Inertia {
                 position,
@@ -152,13 +199,18 @@ impl Center {
     pub(crate) fn shift(self, offset: Vec2) -> Self {
         match self {
             Center::MyPosition => Center::MyPosition,
+            Center::PulledToMyPosition(position) => {
+                Center::PulledToMyPosition(position.shift(offset))
+            }
             Center::Exact(position) => Center::Exact(position.shift(offset)),
             Center::Moving {
                 position,
                 direction,
+                from_detached,
             } => Center::Moving {
                 position: position.shift(offset),
                 direction,
+                from_detached,
             },
             Center::Inertia {
                 position,
