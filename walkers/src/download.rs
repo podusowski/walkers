@@ -66,7 +66,7 @@ pub struct MaxParallelDownloads(pub usize);
 
 impl Default for MaxParallelDownloads {
     /// Default number of parallel downloads. Following modern browsers' behavior.
-    /// https://stackoverflow.com/questions/985431/max-parallel-http-connections-in-a-browser
+    /// <https://stackoverflow.com/questions/985431/max-parallel-http-connections-in-a-browser>
     fn default() -> Self {
         Self(6)
     }
