@@ -2,6 +2,11 @@
 
 All notable changes to this project will be documented in this file.
 
+## Unreleased
+
+* When map is dragged while not being in a detached state, it will get pulled back to `my_position`,
+  unless certain threshold is reached.
+
 ## 0.39.0
 
 Please note that places plugin family are now being intensively refactored and might change pretty
