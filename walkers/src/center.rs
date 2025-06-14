@@ -43,10 +43,23 @@ pub(crate) enum Center {
 }
 
 impl Center {
+    pub(crate) fn handle_gestures(&mut self, response: &Response, my_position: Position) -> bool {
+        if response.dragged_by(egui::PointerButton::Primary) {
+            self.dragged_by(my_position, response);
+            true
+        } else if response.drag_stopped() {
+            self.drag_stopped();
+            true
+        } else {
+            false
+        }
+    }
+
     fn dragged_by(&mut self, my_position: Position, response: &Response) {
         let from_detached = if let Center::Moving { from_detached, .. } = self {
             *from_detached
         } else {
+            // Only `MyPosition` state has no adjusted position.
             self.adjusted_position().is_some()
         };
 
@@ -76,18 +89,6 @@ impl Center {
             } else {
                 *self = Center::PulledToMyPosition(position.to_owned());
             }
-        }
-    }
-
-    pub(crate) fn handle_gestures(&mut self, response: &Response, my_position: Position) -> bool {
-        if response.dragged_by(egui::PointerButton::Primary) {
-            self.dragged_by(my_position, response);
-            true
-        } else if response.drag_stopped() {
-            self.drag_stopped();
-            true
-        } else {
-            false
         }
     }
 
