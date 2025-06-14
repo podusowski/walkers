@@ -44,6 +44,10 @@ struct Layer<'a> {
 ///     ));
 /// }
 /// ```
+///
+/// Initially, the map follows `my_position` argument which is typically fed by a GPS sensor or
+/// other geo-localization method. If user drags the map, it enters a "detached state". You can use
+/// [`MapMemory`]'s methods to change the state programmatically.
 pub struct Map<'a, 'b, 'c> {
     tiles: Option<&'b mut dyn Tiles>,
     layers: Vec<Layer<'b>>,
