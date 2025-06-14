@@ -41,32 +41,40 @@ pub(crate) enum Center {
 }
 
 impl Center {
+    fn dragged_by(&mut self, my_position: Position, response: &Response) {
+        *self = Center::Moving {
+            position: self
+                .adjusted_position()
+                .unwrap_or(AdjustedPosition::new(my_position, Default::default())),
+            direction: response.drag_delta(),
+        };
+    }
+
+    fn drag_stopped(&mut self) {
+        if let Center::Moving {
+            position,
+            direction,
+        } = &self
+        {
+            // Depending on the distance, map can be either pushed away or pulled back to `my_position`.
+            if position.offset.to_vec2().length() > 20.0 {
+                *self = Center::Inertia {
+                    position: position.clone(),
+                    direction: direction.normalized(),
+                    amount: direction.length(),
+                };
+            } else {
+                *self = Center::PulledToMyPosition(position.to_owned());
+            }
+        }
+    }
+
     pub(crate) fn handle_gestures(&mut self, response: &Response, my_position: Position) -> bool {
         if response.dragged_by(egui::PointerButton::Primary) {
-            *self = Center::Moving {
-                position: self
-                    .adjusted_position()
-                    .unwrap_or(AdjustedPosition::new(my_position, Default::default())),
-                direction: response.drag_delta(),
-            };
+            self.dragged_by(my_position, response);
             true
         } else if response.drag_stopped() {
-            if let Center::Moving {
-                position,
-                direction,
-            } = &self
-            {
-                // Depending on the distance, map can be either pushed away or pulled back to `my_position`.
-                if position.offset.to_vec2().length() > 20.0 {
-                    *self = Center::Inertia {
-                        position: position.clone(),
-                        direction: direction.normalized(),
-                        amount: direction.length(),
-                    };
-                } else {
-                    *self = Center::PulledToMyPosition(position.to_owned());
-                }
-            }
+            self.drag_stopped();
             true
         } else {
             false
