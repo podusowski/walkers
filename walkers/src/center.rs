@@ -22,13 +22,13 @@ pub(crate) enum Center {
     /// Centered at the exact position.
     Exact(AdjustedPosition),
 
-    /// Map is currently being dragged.
+    /// Map is being dragged by mouse or finger.
     Moving {
         position: AdjustedPosition,
         direction: Vec2,
     },
 
-    /// Map is currently moving due to inertia, and will slow down and stop after a short while.
+    /// Map is moving, but due to inertia, and will slow down and stop in a short while.
     Inertia {
         position: AdjustedPosition,
         direction: Vec2,
