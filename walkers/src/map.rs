@@ -202,7 +202,7 @@ impl Map<'_, '_, '_> {
             changed = self
                 .memory
                 .center_mode
-                .recalculate_drag(response, self.my_position);
+                .handle_gestures(response, self.my_position);
         }
 
         // Only enable panning with mouse_wheel if we are zooming with ctrl. But always allow touch devices to pan

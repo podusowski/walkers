@@ -8,7 +8,7 @@ use crate::{
 /// Time constant of inertia stopping filter
 const INERTIA_TAU: f32 = 0.2f32;
 
-/// Position at the map's center. Initially, the map follows `my_position` argument which typically
+/// Position of the map's center. Initially, the map follows `my_position` argument which typically
 /// is meant to be fed by a GPS sensor or other geo-localization method. If user drags the map,
 /// it becomes "detached" and stays this way until [`MapMemory::center_mode`] is changed back to
 /// [`Center::MyPosition`].
@@ -37,7 +37,7 @@ pub(crate) enum Center {
 }
 
 impl Center {
-    pub(crate) fn recalculate_drag(&mut self, response: &Response, my_position: Position) -> bool {
+    pub(crate) fn handle_gestures(&mut self, response: &Response, my_position: Position) -> bool {
         if response.dragged_by(egui::PointerButton::Primary) {
             *self = Center::Moving {
                 position: self
