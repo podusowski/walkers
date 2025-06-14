@@ -26,6 +26,8 @@ pub(crate) enum Center {
     Moving {
         position: AdjustedPosition,
         direction: Vec2,
+        /// Whether the drag was started from a detached state.
+        from_detached: bool,
     },
 
     /// Map is moving, but due to inertia, and will slow down and stop in a short while.
@@ -42,11 +44,18 @@ pub(crate) enum Center {
 
 impl Center {
     fn dragged_by(&mut self, my_position: Position, response: &Response) {
+        let from_detached = if let Center::Moving { from_detached, .. } = self {
+            *from_detached
+        } else {
+            self.adjusted_position().is_some()
+        };
+
         *self = Center::Moving {
             position: self
                 .adjusted_position()
                 .unwrap_or(AdjustedPosition::new(my_position, Default::default())),
             direction: response.drag_delta(),
+            from_detached,
         };
     }
 
@@ -54,10 +63,11 @@ impl Center {
         if let Center::Moving {
             position,
             direction,
+            from_detached,
         } = &self
         {
             // Depending on the distance, map can be either pushed away or pulled back to `my_position`.
-            if position.offset.to_vec2().length() > 20.0 {
+            if *from_detached || position.offset.to_vec2().length() > 20.0 {
                 *self = Center::Inertia {
                     position: position.clone(),
                     direction: direction.normalized(),
@@ -86,6 +96,7 @@ impl Center {
             Center::Moving {
                 position,
                 direction,
+                from_detached,
             } => {
                 let delta = *direction;
                 let offset = position.offset + Pixels::new(delta.x as f64, delta.y as f64);
@@ -93,6 +104,7 @@ impl Center {
                 *self = Center::Moving {
                     position: AdjustedPosition::new(position.position, offset),
                     direction: *direction,
+                    from_detached: *from_detached,
                 };
                 true
             }
@@ -161,9 +173,11 @@ impl Center {
             Center::Moving {
                 position,
                 direction,
+                from_detached,
             } => Center::Moving {
                 position: position.zero_offset(zoom),
                 direction,
+                from_detached,
             },
             Center::Inertia {
                 position,
@@ -188,9 +202,11 @@ impl Center {
             Center::Moving {
                 position,
                 direction,
+                from_detached,
             } => Center::Moving {
                 position: position.shift(offset),
                 direction,
+                from_detached,
             },
             Center::Inertia {
                 position,
