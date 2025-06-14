@@ -1,7 +1,7 @@
 use egui::{Response, Vec2};
 
 use crate::{
-    position::{AdjustedPosition, Pixels},
+    position::{AdjustedPosition, Pixels, PixelsExt},
     Position,
 };
 
@@ -34,6 +34,10 @@ pub(crate) enum Center {
         direction: Vec2,
         amount: f32,
     },
+
+    /// Map is being pulled towards the `my_position`. This happens when the user releases the
+    /// dragging gesture, but the map is too close to the `my_position`.
+    PulledToMyPosition(AdjustedPosition),
 }
 
 impl Center {
@@ -52,11 +56,16 @@ impl Center {
                 direction,
             } = &self
             {
-                *self = Center::Inertia {
-                    position: position.clone(),
-                    direction: direction.normalized(),
-                    amount: direction.length(),
-                };
+                // Depending on the distance, map can be either pushed away or pulled back to `my_position`.
+                if position.offset.to_vec2().length() > 20.0 {
+                    *self = Center::Inertia {
+                        position: position.clone(),
+                        direction: direction.normalized(),
+                        amount: direction.length(),
+                    };
+                } else {
+                    *self = Center::PulledToMyPosition(position.to_owned());
+                }
             }
             true
         } else {
@@ -101,6 +110,16 @@ impl Center {
                 };
                 true
             }
+            Center::PulledToMyPosition(position) => {
+                // Shrink the offset towards zero.
+                let offset = position.offset / 2.0;
+                *self = if offset.to_vec2().length() < 1.0 {
+                    Center::MyPosition
+                } else {
+                    Center::PulledToMyPosition(AdjustedPosition::new(position.position, offset))
+                };
+                true
+            }
             _ => false,
         }
     }
@@ -115,6 +134,7 @@ impl Center {
         match self {
             Center::MyPosition => None,
             Center::Exact(position)
+            | Center::PulledToMyPosition(position)
             | Center::Moving { position, .. }
             | Center::Inertia { position, .. } => Some(position.to_owned()),
         }
@@ -128,6 +148,7 @@ impl Center {
     pub fn zero_offset(self, zoom: f64) -> Self {
         match self {
             Center::MyPosition => Center::MyPosition,
+            Center::PulledToMyPosition(_) => Center::MyPosition,
             Center::Exact(position) => Center::Exact(position.zero_offset(zoom)),
             Center::Moving {
                 position,
@@ -152,6 +173,9 @@ impl Center {
     pub(crate) fn shift(self, offset: Vec2) -> Self {
         match self {
             Center::MyPosition => Center::MyPosition,
+            Center::PulledToMyPosition(position) => {
+                Center::PulledToMyPosition(position.shift(offset))
+            }
             Center::Exact(position) => Center::Exact(position.shift(offset)),
             Center::Moving {
                 position,
