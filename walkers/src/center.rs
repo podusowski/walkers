@@ -8,6 +8,9 @@ use crate::{
 /// Time constant of inertia stopping filter
 const INERTIA_TAU: f32 = 0.2f32;
 
+/// Threshold for pulling the map back to `my_position` after dragging.
+const PULL_TO_MY_POSITION_THRESHOLD: f64 = 20.0;
+
 /// Position of the map's center. Initially, the map follows `my_position` argument which typically
 /// is meant to be fed by a GPS sensor or other geo-localization method. If user drags the map,
 /// it becomes "detached" and stays this way until [`MapMemory::center_mode`] is changed back to
@@ -37,7 +40,7 @@ pub(crate) enum Center {
         amount: f32,
     },
 
-    /// Map is being pulled towards the `my_position`. This happens when the user releases the
+    /// Map is being pulled back to the `my_position`. This happens when the user releases the
     /// dragging gesture, but the map is too close to the `my_position`.
     PulledToMyPosition(AdjustedPosition),
 }
@@ -79,8 +82,8 @@ impl Center {
             from_detached,
         } = &self
         {
-            // Depending on the distance, map can be either pushed away or pulled back to `my_position`.
-            if *from_detached || position.offset.to_vec2().length() > 20.0 {
+            if *from_detached || position.offset.to_vec2().length() > PULL_TO_MY_POSITION_THRESHOLD
+            {
                 *self = Center::Inertia {
                     position: position.clone(),
                     direction: direction.normalized(),
