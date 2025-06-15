@@ -1,11 +1,13 @@
 //! Some common HTTP tile sources. Make sure you follow terms of usage of the particular source.
 
 mod geoportal;
+mod googlemaps;
 mod mapbox;
 mod openstreetmap;
 
 use crate::TileId;
 pub use geoportal::Geoportal;
+pub use googlemaps::{GoogleMaps, GoogleMapsStyle};
 pub use mapbox::{Mapbox, MapboxStyle};
 pub use openstreetmap::OpenStreetMap;
 

@@ -8,6 +8,7 @@ use crate::local_tiles::LocalTiles;
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 pub enum Provider {
     OpenStreetMap,
+    GoogleMaps,
     Geoportal,
     OpenStreetMapWithGeoportal,
     MapboxStreets,
@@ -57,6 +58,15 @@ pub(crate) fn providers(egui_ctx: Context) -> BTreeMap<Provider, Vec<TilesKind>>
         Provider::OpenStreetMap,
         vec![TilesKind::Http(HttpTiles::with_options(
             walkers::sources::OpenStreetMap,
+            http_options(),
+            egui_ctx.to_owned(),
+        ))],
+    );
+
+    providers.insert(
+        Provider::GoogleMaps,
+        vec![TilesKind::Http(HttpTiles::with_options(
+            walkers::sources::GoogleMaps::default(),
             http_options(),
             egui_ctx.to_owned(),
         ))],
