@@ -8,8 +8,8 @@ use crate::{
 /// Time constant of inertia stopping filter
 const INERTIA_TAU: f32 = 0.2f32;
 
-/// Threshold for pulling the map back to `my_position` after dragging.
-const PULL_TO_MY_POSITION_THRESHOLD: f32 = 20.0;
+/// Threshold for pulling the map back to `my_position` after dragging or zooming.
+pub(crate) const PULL_TO_MY_POSITION_THRESHOLD: f32 = 20.0;
 
 /// Position of the map's center. Initially, the map follows `my_position` argument which typically
 /// is meant to be fed by a GPS sensor or other geo-localization method. If user drags the map,
