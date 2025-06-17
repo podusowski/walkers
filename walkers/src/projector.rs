@@ -47,10 +47,15 @@ impl Projector {
     pub fn unproject(&self, position: Vec2) -> Position {
         let zoom: f64 = self.memory.zoom();
         let center = self.memory.center_mode.position(self.my_position, zoom);
-        let projected =
-            project(center, zoom).to_vec2() + position - self.clip_rect.center().to_vec2();
 
-        unproject(Pixels::new(projected.x as f64, projected.y as f64), zoom)
+        // Despite being in pixel space `map_center_projected_position` is sufficiently large
+        // that we must do the arithmetic in f64 to avoid imprecision.
+        let map_center_projected_position = project(center, zoom);
+        let clip_center = self.clip_rect.center();
+        let x = map_center_projected_position.x() + (position.x as f64) - (clip_center.x as f64);
+        let y = map_center_projected_position.y() + (position.y as f64) - (clip_center.y as f64);
+
+        unproject(Pixels::new(x, y), zoom)
     }
 
     /// What is the local scale of the map at the provided position and given the current zoom
@@ -88,6 +93,33 @@ mod tests {
             diff < tolerance,
             "Values differ by more than {tolerance}: {a} vs {b}"
         );
+    }
+
+    #[test]
+    fn test_unproject_precision() {
+        let original = lon_lat(21., 52.);
+
+        let mut map_memory = MapMemory::default();
+        map_memory.set_zoom(18.).unwrap();
+
+        let projector = Projector::new(
+            Rect::from_min_size(Pos2::ZERO, Vec2::splat(100.)),
+            &map_memory,
+            original,
+        );
+
+        let mut projected = projector.project(original);
+        let mut prev_x = 0.0;
+        for offset in 0..10 {
+            projected.x += offset as f32;
+            let unprojected = projector.unproject(projected);
+            assert_ne!(
+                prev_x,
+                unprojected.x(),
+                "Input was different but projection remained the same"
+            );
+            prev_x = unprojected.x();
+        }
     }
 
     #[test]
