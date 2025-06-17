@@ -1,4 +1,4 @@
-use crate::{Plugin, Position, Projector};
+use crate::{MapMemory, Plugin, Position, Projector};
 use egui::{vec2, Id, Rect, Response, Sense, Ui};
 
 /// [`Plugin`] which shows places on the map. Place can be any type that implements the [`Place`]
@@ -23,7 +23,13 @@ impl<T> Plugin for Places<T>
 where
     T: Place + 'static,
 {
-    fn run(self: Box<Self>, ui: &mut Ui, _response: &Response, projector: &Projector) {
+    fn run(
+        self: Box<Self>,
+        ui: &mut Ui,
+        _response: &Response,
+        projector: &Projector,
+        _map_memory: &MapMemory,
+    ) {
         for place in &self.places {
             place.draw(ui, projector);
         }
@@ -87,7 +93,13 @@ impl<T> Plugin for GroupedPlaces<T>
 where
     T: Place + GroupedPlace,
 {
-    fn run(self: Box<Self>, ui: &mut Ui, _response: &Response, projector: &Projector) {
+    fn run(
+        self: Box<Self>,
+        ui: &mut Ui,
+        _response: &Response,
+        projector: &Projector,
+        _map_memory: &MapMemory,
+    ) {
         for (idx, group) in groups(&self.places, projector).iter().enumerate() {
             let id = ui.id().with(idx);
             let position = center(&group.iter().map(|p| p.position()).collect::<Vec<_>>());

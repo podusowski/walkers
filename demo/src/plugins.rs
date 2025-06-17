@@ -1,7 +1,7 @@
 use egui::{Color32, Response, Ui};
 use walkers::{
     extras::{GroupedPlaces, Image, LabeledSymbol, LabeledSymbolStyle, Places, Texture},
-    Plugin, Position, Projector,
+    MapMemory, Plugin, Position, Projector,
 };
 
 use crate::places;
@@ -57,7 +57,13 @@ pub fn images(images_plugin_data: &mut ImagesPluginData) -> impl Plugin {
 pub struct CustomShapes {}
 
 impl Plugin for CustomShapes {
-    fn run(self: Box<Self>, ui: &mut Ui, response: &Response, projector: &Projector) {
+    fn run(
+        self: Box<Self>,
+        ui: &mut Ui,
+        response: &Response,
+        projector: &Projector,
+        _map_memory: &MapMemory,
+    ) {
         // Position of the point we want to put our shapes.
         let position = places::capitol();
 
@@ -102,7 +108,13 @@ impl ClickWatcher {
 }
 
 impl Plugin for &mut ClickWatcher {
-    fn run(self: Box<Self>, ui: &mut Ui, response: &Response, projector: &Projector) {
+    fn run(
+        self: Box<Self>,
+        ui: &mut Ui,
+        response: &Response,
+        projector: &Projector,
+        _map_memory: &MapMemory,
+    ) {
         if !response.changed() && response.clicked_by(egui::PointerButton::Primary) {
             self.clicked_at = response
                 .interact_pointer_pos()
