@@ -1,7 +1,7 @@
 use egui::{PointerButton, Response, Sense, Ui, UiBuilder, Vec2, Widget};
 
 use crate::{
-    center::Center,
+    center::{Center, PULL_TO_MY_POSITION_THRESHOLD},
     position::AdjustedPosition,
     tiles::draw_tiles,
     zoom::{InvalidZoom, Zoom},
@@ -183,11 +183,16 @@ impl Map<'_, '_, '_> {
             // then adjust zoom level, finally move the location back to the original screen
             // position.
             if let Some(offset) = offset {
-                self.memory.center_mode = Center::Exact(
-                    AdjustedPosition::from(self.position())
-                        .shift(-offset)
-                        .zero_offset(self.memory.zoom()),
-                );
+                // If map is tracking `my_position` and the input offset is close, just let it be.
+                if self.memory.detached().is_some()
+                    || offset.length() > PULL_TO_MY_POSITION_THRESHOLD
+                {
+                    self.memory.center_mode = Center::Exact(
+                        AdjustedPosition::from(self.position())
+                            .shift(-offset)
+                            .zero_offset(self.memory.zoom()),
+                    );
+                }
             }
 
             // Shift by 1 because of the values given by zoom_delta(). Multiple by zoom_speed(defaults to 2.0),
