@@ -2,7 +2,7 @@
 
 All notable changes to this project will be documented in this file.
 
-## Unreleased
+## 0.40.0
 
 * When map is dragged or zoomed while not being in a detached state, it will get pulled back to
   `my_position`, unless offset reaches a certain threshold.
