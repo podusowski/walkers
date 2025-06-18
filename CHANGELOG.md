@@ -2,6 +2,11 @@
 
 All notable changes to this project will be documented in this file.
 
+## Unreleased
+
+* `Plugin::run()` has a new parameter `map_memory`, which allows plugins to access it after it is
+  modified by the map.
+
 ## 0.40.0
 
 * When map is dragged or zoomed while not being in a detached state, it will get pulled back to
