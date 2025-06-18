@@ -7,6 +7,7 @@ pub mod extras;
 mod http_tiles;
 mod io;
 mod map;
+mod memory;
 mod mercator;
 mod position;
 mod projector;
@@ -16,7 +17,8 @@ mod zoom;
 
 pub use download::{HeaderValue, HttpOptions, MaxParallelDownloads};
 pub use http_tiles::{HttpStats, HttpTiles};
-pub use map::{Map, MapMemory, Plugin};
+pub use map::{Map, Plugin};
+pub use memory::MapMemory;
 pub use position::{lat_lon, lon_lat, Position};
 pub use projector::Projector;
 pub use tiles::{Texture, TextureWithUv, TileId, Tiles};
