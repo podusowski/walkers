@@ -96,7 +96,9 @@ impl GroupedPlace for LabeledSymbol {
     type Group = LabeledSymbolGroup;
 }
 
-pub struct LabeledSymbolGroup;
+pub struct LabeledSymbolGroup {
+    pub style: LabeledSymbolGroupStyle,
+}
 
 impl Group for LabeledSymbolGroup {
     fn draw<T: Place>(places: &[&T], position: Position, projector: &Projector, ui: &mut Ui) {
@@ -118,5 +120,25 @@ impl Group for LabeledSymbolGroup {
             style.symbol_font.clone(),
             style.symbol_color,
         );
+    }
+}
+
+/// Visual style of a [`LabeledSymbolGroup`].
+#[derive(Clone)]
+pub struct LabeledSymbolGroupStyle {
+    pub font: FontId,
+    pub color: Color32,
+    pub background: Color32,
+    pub stroke: Stroke,
+}
+
+impl Default for LabeledSymbolGroupStyle {
+    fn default() -> Self {
+        Self {
+            font: FontId::proportional(14.),
+            color: Color32::BLACK.gamma_multiply(0.8),
+            background: Color32::WHITE.gamma_multiply(0.8),
+            stroke: Stroke::new(2., Color32::BLACK.gamma_multiply(0.8)),
+        }
     }
 }

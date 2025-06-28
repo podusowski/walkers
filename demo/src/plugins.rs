@@ -1,8 +1,8 @@
 use egui::{Color32, Response, Ui};
 use walkers::{
     extras::{
-        GroupedPlaces, Image, LabeledSymbol, LabeledSymbolGroup, LabeledSymbolStyle, Places,
-        Texture,
+        GroupedPlaces, Image, LabeledSymbol, LabeledSymbolGroup, LabeledSymbolGroupStyle,
+        LabeledSymbolStyle, Places, Texture,
     },
     MapMemory, Plugin, Position, Projector,
 };
@@ -26,7 +26,9 @@ pub fn places() -> impl Plugin {
                 style: LabeledSymbolStyle::default(),
             },
         ],
-        LabeledSymbolGroup {},
+        LabeledSymbolGroup {
+            style: LabeledSymbolGroupStyle::default(),
+        },
     )
 }
 
