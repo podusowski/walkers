@@ -1,4 +1,4 @@
-use super::places::{Group, GroupedPlace, Place};
+use super::places::{Group, Place};
 use crate::{Position, Projector};
 use egui::{vec2, Align2, Color32, FontId, Stroke, Ui};
 
@@ -11,7 +11,7 @@ pub struct LabeledSymbol {
     pub label: String,
 
     /// Symbol drawn on the place. You can check [egui's font book](https://www.egui.rs/) to pick
-    /// a proper character.
+    /// a desired character.
     pub symbol: char,
 
     /// Visual style of this place.
@@ -92,31 +92,54 @@ impl Default for LabeledSymbolStyle {
     }
 }
 
-impl GroupedPlace for LabeledSymbol {
-    type Group = LabeledSymbolGroup;
+pub struct LabeledSymbolGroup {
+    pub style: LabeledSymbolGroupStyle,
 }
 
-pub struct LabeledSymbolGroup;
-
 impl Group for LabeledSymbolGroup {
-    fn draw<T: Place>(places: &[&T], position: Position, projector: &Projector, ui: &mut Ui) {
+    fn draw<T: Place>(
+        &self,
+        places: &[&T],
+        position: Position,
+        projector: &Projector,
+        ui: &mut Ui,
+    ) {
         let screen_position = projector.project(position);
         let painter = ui.painter();
-        let style = LabeledSymbolStyle::default();
 
         painter.circle(
             screen_position.to_pos2(),
             10.,
-            style.symbol_background,
-            style.symbol_stroke,
+            self.style.background,
+            self.style.stroke,
         );
 
         painter.text(
             screen_position.to_pos2(),
             Align2::CENTER_CENTER,
             format!("{}", places.len()),
-            style.symbol_font.clone(),
-            style.symbol_color,
+            self.style.font.clone(),
+            self.style.color,
         );
+    }
+}
+
+/// Visual style of a [`LabeledSymbolGroup`].
+#[derive(Clone)]
+pub struct LabeledSymbolGroupStyle {
+    pub font: FontId,
+    pub color: Color32,
+    pub background: Color32,
+    pub stroke: Stroke,
+}
+
+impl Default for LabeledSymbolGroupStyle {
+    fn default() -> Self {
+        Self {
+            font: FontId::proportional(12.),
+            color: Color32::WHITE.gamma_multiply(0.8),
+            background: Color32::BLACK.gamma_multiply(0.8),
+            stroke: Stroke::new(2., Color32::BLACK.gamma_multiply(0.8)),
+        }
     }
 }

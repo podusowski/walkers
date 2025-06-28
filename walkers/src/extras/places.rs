@@ -41,31 +41,29 @@ pub trait Place {
     fn draw(&self, ui: &Ui, projector: &Projector);
 }
 
-/// Trait that can be implemented by a [`Place`] to provide grouping functionality.
-pub trait GroupedPlace {
-    type Group: Group;
-}
-
 /// A group of places that can be drawn together on the map.
 pub trait Group {
-    fn draw<T: Place>(places: &[&T], position: Position, projector: &Projector, ui: &mut Ui);
+    fn draw<T: Place>(&self, places: &[&T], position: Position, projector: &Projector, ui: &mut Ui);
 }
 
 /// Similar to [`Places`], but groups places that are close together and draws them as a
 /// single [`Group`].
-pub struct GroupedPlaces<T>
+pub struct GroupedPlaces<T, G>
 where
     T: Place,
+    G: Group,
 {
     places: Vec<T>,
+    group: G,
 }
 
-impl<T> GroupedPlaces<T>
+impl<T, G> GroupedPlaces<T, G>
 where
-    T: Place + GroupedPlace,
+    T: Place,
+    G: Group,
 {
-    pub fn new(places: Vec<T>) -> Self {
-        Self { places }
+    pub fn new(places: Vec<T>, group: G) -> Self {
+        Self { places, group }
     }
 
     /// Handle user interactions. Returns whether group should be expanded.
@@ -89,9 +87,10 @@ where
     }
 }
 
-impl<T> Plugin for GroupedPlaces<T>
+impl<T, G> Plugin for GroupedPlaces<T, G>
 where
-    T: Place + GroupedPlace,
+    T: Place,
+    G: Group,
 {
     fn run(
         self: Box<Self>,
@@ -100,15 +99,15 @@ where
         projector: &Projector,
         _map_memory: &MapMemory,
     ) {
-        for (idx, group) in groups(&self.places, projector).iter().enumerate() {
+        for (idx, places) in groups(&self.places, projector).iter().enumerate() {
             let id = ui.id().with(idx);
-            let position = center(&group.iter().map(|p| p.position()).collect::<Vec<_>>());
+            let position = center(&places.iter().map(|p| p.position()).collect::<Vec<_>>());
             let expand = self.interact(position, projector, ui, id);
 
-            if group.len() >= 2 && !expand {
-                T::Group::draw(group, position, projector, ui);
+            if places.len() >= 2 && !expand {
+                self.group.draw(places, position, projector, ui);
             } else {
-                for place in group {
+                for place in places {
                     place.draw(ui, projector);
                 }
             }
