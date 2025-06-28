@@ -101,24 +101,29 @@ pub struct LabeledSymbolGroup {
 }
 
 impl Group for LabeledSymbolGroup {
-    fn draw<T: Place>(&self, places: &[&T], position: Position, projector: &Projector, ui: &mut Ui) {
+    fn draw<T: Place>(
+        &self,
+        places: &[&T],
+        position: Position,
+        projector: &Projector,
+        ui: &mut Ui,
+    ) {
         let screen_position = projector.project(position);
         let painter = ui.painter();
-        let style = LabeledSymbolStyle::default();
 
         painter.circle(
             screen_position.to_pos2(),
             10.,
-            style.symbol_background,
-            style.symbol_stroke,
+            self.style.background,
+            self.style.stroke,
         );
 
         painter.text(
             screen_position.to_pos2(),
             Align2::CENTER_CENTER,
             format!("{}", places.len()),
-            style.symbol_font.clone(),
-            style.symbol_color,
+            self.style.font.clone(),
+            self.style.color,
         );
     }
 }
@@ -135,9 +140,9 @@ pub struct LabeledSymbolGroupStyle {
 impl Default for LabeledSymbolGroupStyle {
     fn default() -> Self {
         Self {
-            font: FontId::proportional(14.),
-            color: Color32::BLACK.gamma_multiply(0.8),
-            background: Color32::WHITE.gamma_multiply(0.8),
+            font: FontId::proportional(12.),
+            color: Color32::WHITE.gamma_multiply(0.8),
+            background: Color32::BLACK.gamma_multiply(0.8),
             stroke: Stroke::new(2., Color32::BLACK.gamma_multiply(0.8)),
         }
     }
