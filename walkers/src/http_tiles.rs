@@ -105,19 +105,21 @@ impl HttpTiles {
     }
 
     fn make_sure_is_downloaded(&mut self, tile_id: TileId) {
-        if self
-            .cache
-            .try_get_or_insert(
-                tile_id,
-                || -> Result<Option<Texture>, TrySendError<TileId>> {
-                    self.request_tx.try_send(tile_id)?;
-                    log::trace!("Requested tile: {:?}", tile_id);
-                    Ok(None)
-                },
-            )
-            .is_err()
-        {
-            log::debug!("Request queue is full.");
+        if let Err(err) = self.cache.try_get_or_insert(
+            tile_id,
+            || -> Result<Option<Texture>, TrySendError<TileId>> {
+                self.request_tx.try_send(tile_id)?;
+                log::trace!("Requested tile: {:?}", tile_id);
+                Ok(None)
+            },
+        ) {
+            if err.is_full() {
+                // Trying to download too many tiles at once.
+                log::trace!("Request queue is full.");
+            } else {
+                // This is a bug, we should never fail to send a request.
+                panic!("Failed to send tile request: {:?}", err);
+            }
         }
     }
 
