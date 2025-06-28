@@ -53,19 +53,22 @@ pub trait Group {
 
 /// Similar to [`Places`], but groups places that are close together and draws them as a
 /// single [`Group`].
-pub struct GroupedPlaces<T>
-where
-    T: Place,
-{
-    places: Vec<T>,
-}
-
-impl<T> GroupedPlaces<T>
+pub struct GroupedPlaces<T, G>
 where
     T: Place + GroupedPlace,
+    G: Group,
 {
-    pub fn new(places: Vec<T>) -> Self {
-        Self { places }
+    places: Vec<T>,
+    group: G,
+}
+
+impl<T, G> GroupedPlaces<T, G>
+where
+    T: Place + GroupedPlace,
+    G: Group,
+{
+    pub fn new(places: Vec<T>, group: G) -> Self {
+        Self { places, group }
     }
 
     /// Handle user interactions. Returns whether group should be expanded.
@@ -89,9 +92,10 @@ where
     }
 }
 
-impl<T> Plugin for GroupedPlaces<T>
+impl<T, G> Plugin for GroupedPlaces<T, G>
 where
     T: Place + GroupedPlace,
+    G: Group,
 {
     fn run(
         self: Box<Self>,
