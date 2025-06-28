@@ -11,7 +11,7 @@ pub struct LabeledSymbol {
     pub label: String,
 
     /// Symbol drawn on the place. You can check [egui's font book](https://www.egui.rs/) to pick
-    /// a proper character.
+    /// a desired character.
     pub symbol: char,
 
     /// Visual style of this place.
