@@ -27,7 +27,7 @@ jobs:
     steps:
     - uses: actions/checkout@v4
     - uses: Swatinem/rust-cache@v2
-    - run: cargo install trunk
+    - run: cargo install trunk@1.81.0 --locked
     - name: Build Demo Web
       run: env -C demo_web trunk build
 
