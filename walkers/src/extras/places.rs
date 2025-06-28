@@ -104,15 +104,15 @@ where
         projector: &Projector,
         _map_memory: &MapMemory,
     ) {
-        for (idx, group) in groups(&self.places, projector).iter().enumerate() {
+        for (idx, places) in groups(&self.places, projector).iter().enumerate() {
             let id = ui.id().with(idx);
-            let position = center(&group.iter().map(|p| p.position()).collect::<Vec<_>>());
+            let position = center(&places.iter().map(|p| p.position()).collect::<Vec<_>>());
             let expand = self.interact(position, projector, ui, id);
 
-            if group.len() >= 2 && !expand {
-                T::Group::draw(group, position, projector, ui);
+            if places.len() >= 2 && !expand {
+                T::Group::draw(places, position, projector, ui);
             } else {
-                for place in group {
+                for place in places {
                     place.draw(ui, projector);
                 }
             }
