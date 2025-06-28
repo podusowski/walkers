@@ -8,4 +8,4 @@ pub use image::Image;
 pub use labeled_symbol::{
     LabeledSymbol, LabeledSymbolGroup, LabeledSymbolGroupStyle, LabeledSymbolStyle,
 };
-pub use places::{Group, GroupedPlace, GroupedPlaces, Place, Places};
+pub use places::{Group, GroupedPlaces, Place, Places};

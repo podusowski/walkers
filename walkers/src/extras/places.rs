@@ -41,11 +41,6 @@ pub trait Place {
     fn draw(&self, ui: &Ui, projector: &Projector);
 }
 
-/// Trait that can be implemented by a [`Place`] to provide grouping functionality.
-pub trait GroupedPlace {
-    type Group: Group;
-}
-
 /// A group of places that can be drawn together on the map.
 pub trait Group {
     fn draw<T: Place>(&self, places: &[&T], position: Position, projector: &Projector, ui: &mut Ui);
@@ -55,7 +50,7 @@ pub trait Group {
 /// single [`Group`].
 pub struct GroupedPlaces<T, G>
 where
-    T: Place + GroupedPlace,
+    T: Place,
     G: Group,
 {
     places: Vec<T>,
@@ -64,7 +59,7 @@ where
 
 impl<T, G> GroupedPlaces<T, G>
 where
-    T: Place + GroupedPlace,
+    T: Place,
     G: Group,
 {
     pub fn new(places: Vec<T>, group: G) -> Self {
@@ -94,7 +89,7 @@ where
 
 impl<T, G> Plugin for GroupedPlaces<T, G>
 where
-    T: Place + GroupedPlace,
+    T: Place,
     G: Group,
 {
     fn run(

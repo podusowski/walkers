@@ -1,4 +1,4 @@
-use super::places::{Group, GroupedPlace, Place};
+use super::places::{Group, Place};
 use crate::{Position, Projector};
 use egui::{vec2, Align2, Color32, FontId, Stroke, Ui};
 
@@ -90,10 +90,6 @@ impl Default for LabeledSymbolStyle {
             symbol_stroke: Stroke::new(2., Color32::BLACK.gamma_multiply(0.8)),
         }
     }
-}
-
-impl GroupedPlace for LabeledSymbol {
-    type Group = LabeledSymbolGroup;
 }
 
 pub struct LabeledSymbolGroup {
