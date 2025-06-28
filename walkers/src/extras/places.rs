@@ -48,7 +48,7 @@ pub trait GroupedPlace {
 
 /// A group of places that can be drawn together on the map.
 pub trait Group {
-    fn draw<T: Place>(places: &[&T], position: Position, projector: &Projector, ui: &mut Ui);
+    fn draw<T: Place>(&self, places: &[&T], position: Position, projector: &Projector, ui: &mut Ui);
 }
 
 /// Similar to [`Places`], but groups places that are close together and draws them as a
@@ -110,7 +110,7 @@ where
             let expand = self.interact(position, projector, ui, id);
 
             if places.len() >= 2 && !expand {
-                T::Group::draw(places, position, projector, ui);
+                self.group.draw(places, position, projector, ui);
             } else {
                 for place in places {
                     place.draw(ui, projector);

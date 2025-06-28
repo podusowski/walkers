@@ -101,7 +101,7 @@ pub struct LabeledSymbolGroup {
 }
 
 impl Group for LabeledSymbolGroup {
-    fn draw<T: Place>(places: &[&T], position: Position, projector: &Projector, ui: &mut Ui) {
+    fn draw<T: Place>(&self, places: &[&T], position: Position, projector: &Projector, ui: &mut Ui) {
         let screen_position = projector.project(position);
         let painter = ui.painter();
         let style = LabeledSymbolStyle::default();
