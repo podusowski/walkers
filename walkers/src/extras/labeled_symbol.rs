@@ -38,7 +38,7 @@ impl Place for LabeledSymbol {
 
         match self.symbol {
             Some(Symbol::Circle(symbol)) => {
-                self.draw_symbol(symbol, painter, screen_position.to_pos2())
+                self.draw_circle_symbol(symbol, painter, screen_position.to_pos2())
             }
             Some(Symbol::TwoCorners) => {
                 self.draw_two_corners_symbol(painter, screen_position.to_pos2())
@@ -49,7 +49,12 @@ impl Place for LabeledSymbol {
 }
 
 impl LabeledSymbol {
-    fn draw_symbol(&self, symbol: char, painter: &egui::Painter, screen_position: egui::Pos2) {
+    fn draw_circle_symbol(
+        &self,
+        symbol: char,
+        painter: &egui::Painter,
+        screen_position: egui::Pos2,
+    ) {
         painter.circle(
             screen_position,
             10.,
