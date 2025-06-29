@@ -25,3 +25,8 @@ pub fn capitol() -> Position {
 pub fn wroclavia() -> Position {
     lon_lat(17.03471, 51.09648)
 }
+
+/// Main square of the city, with many restaurants and historical buildings.
+pub fn rynek() -> Position {
+    lon_lat(17.032094, 51.110090)
+}

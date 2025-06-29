@@ -13,7 +13,7 @@ pub struct LabeledSymbol {
 
     /// Symbol drawn on the place. You can check [egui's font book](https://www.egui.rs/) to pick
     /// a desired character.
-    pub symbol: char,
+    pub symbol: Option<char>,
 
     /// Visual style of this place.
     pub style: LabeledSymbolStyle,
@@ -29,12 +29,15 @@ impl Place for LabeledSymbol {
         let painter = ui.painter();
 
         self.draw_label(painter, screen_position);
-        self.draw_symbol(painter, screen_position.to_pos2());
+
+        if let Some(symbol) = self.symbol {
+            self.draw_symbol(symbol, painter, screen_position.to_pos2());
+        }
     }
 }
 
 impl LabeledSymbol {
-    fn draw_symbol(&self, painter: &egui::Painter, screen_position: egui::Pos2) {
+    fn draw_symbol(&self, symbol: char, painter: &egui::Painter, screen_position: egui::Pos2) {
         painter.circle(
             screen_position,
             10.,
@@ -45,7 +48,7 @@ impl LabeledSymbol {
         painter.text(
             screen_position,
             Align2::CENTER_CENTER,
-            self.symbol.to_string(),
+            symbol.to_string(),
             self.style.symbol_font.clone(),
             self.style.symbol_color,
         );

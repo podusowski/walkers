@@ -16,13 +16,19 @@ pub fn places() -> impl Plugin {
             LabeledSymbol {
                 position: places::wroclaw_glowny(),
                 label: "Wrocław Główny\ntrain station".to_owned(),
-                symbol: '🚆',
+                symbol: Some('🚆'),
                 style: LabeledSymbolStyle::default(),
             },
             LabeledSymbol {
                 position: places::dworcowa_bus_stop(),
                 label: "Bus stop".to_owned(),
-                symbol: '🚌',
+                symbol: Some('🚌'),
+                style: LabeledSymbolStyle::default(),
+            },
+            LabeledSymbol {
+                position: places::rynek(),
+                label: "Rynek".to_owned(),
+                symbol: None,
                 style: LabeledSymbolStyle::default(),
             },
         ],
