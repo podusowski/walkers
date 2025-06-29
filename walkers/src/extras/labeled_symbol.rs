@@ -5,7 +5,7 @@ use egui::{vec2, Align2, Color32, FontId, Stroke, Ui};
 #[derive(Clone)]
 /// Type of the symbol of a [`LabeledSymbol`].
 pub enum Symbol {
-    Circle(char),
+    Circle(String),
     TwoCorners,
 }
 
@@ -38,7 +38,7 @@ impl Place for LabeledSymbol {
         self.draw_label(painter, screen_position);
 
         match self.symbol {
-            Some(Symbol::Circle(symbol)) => {
+            Some(Symbol::Circle(ref symbol)) => {
                 self.draw_circle_symbol(symbol, painter, screen_position.to_pos2())
             }
             Some(Symbol::TwoCorners) => {
@@ -52,7 +52,7 @@ impl Place for LabeledSymbol {
 impl LabeledSymbol {
     fn draw_circle_symbol(
         &self,
-        symbol: char,
+        symbol: &str,
         painter: &egui::Painter,
         screen_position: egui::Pos2,
     ) {
