@@ -35,7 +35,9 @@ impl Place for LabeledSymbol {
         let screen_position = projector.project(self.position);
         let painter = ui.painter();
 
-        self.draw_label(painter, screen_position);
+        if !self.label.is_empty() {
+            self.draw_label(painter, screen_position);
+        }
 
         match self.symbol {
             Some(Symbol::Circle(ref text)) => {
