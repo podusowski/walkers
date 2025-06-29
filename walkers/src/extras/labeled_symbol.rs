@@ -3,6 +3,7 @@ use crate::{Position, Projector};
 use egui::{vec2, Align2, Color32, FontId, Stroke, Ui};
 
 #[derive(Clone)]
+/// Type of the symbol of a [`LabeledSymbol`].
 pub enum Symbol {
     Circle(char),
     TwoCorners,
