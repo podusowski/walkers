@@ -28,6 +28,30 @@ impl Place for LabeledSymbol {
         let screen_position = projector.project(self.position);
         let painter = ui.painter();
 
+        self.draw_label(painter, screen_position);
+        self.draw_symbol(painter, screen_position.to_pos2());
+    }
+}
+
+impl LabeledSymbol {
+    fn draw_symbol(&self, painter: &egui::Painter, screen_position: egui::Pos2) {
+        painter.circle(
+            screen_position,
+            10.,
+            self.style.symbol_background,
+            self.style.symbol_stroke,
+        );
+
+        painter.text(
+            screen_position,
+            Align2::CENTER_CENTER,
+            self.symbol.to_string(),
+            self.style.symbol_font.clone(),
+            self.style.symbol_color,
+        );
+    }
+
+    fn draw_label(&self, painter: &egui::Painter, screen_position: egui::Vec2) {
         let label = painter.layout_no_wrap(
             self.label.to_owned(),
             self.style.label_font.clone(),
@@ -49,27 +73,6 @@ impl Place for LabeledSymbol {
         );
 
         painter.galley((screen_position + offset).to_pos2(), label, Color32::BLACK);
-
-        self.draw_symbol(painter, screen_position.to_pos2());
-    }
-}
-
-impl LabeledSymbol {
-    fn draw_symbol(&self, painter: &egui::Painter, screen_position: egui::Pos2) {
-        painter.circle(
-            screen_position,
-            10.,
-            self.style.symbol_background,
-            self.style.symbol_stroke,
-        );
-
-        painter.text(
-            screen_position,
-            Align2::CENTER_CENTER,
-            self.symbol.to_string(),
-            self.style.symbol_font.clone(),
-            self.style.symbol_color,
-        );
     }
 }
 
