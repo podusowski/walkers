@@ -17,7 +17,10 @@ pub fn places() -> impl Plugin {
                 position: places::wroclaw_glowny(),
                 label: "Wrocław Główny\ntrain station".to_owned(),
                 symbol: Some(Symbol::Circle('🚆')),
-                style: LabeledSymbolStyle::default(),
+                style: LabeledSymbolStyle {
+                    symbol_size: 20.,
+                    ..Default::default()
+                },
             },
             LabeledSymbol {
                 position: places::dworcowa_bus_stop(),
@@ -25,6 +28,8 @@ pub fn places() -> impl Plugin {
                 symbol: Some(Symbol::TwoCorners),
                 style: LabeledSymbolStyle {
                     label_corner_radius: 2.,
+                    symbol_size: 8.,
+                    symbol_background: Color32::WHITE.gamma_multiply(0.4),
                     ..Default::default()
                 },
             },

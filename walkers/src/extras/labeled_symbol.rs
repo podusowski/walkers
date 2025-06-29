@@ -73,8 +73,7 @@ impl LabeledSymbol {
     }
 
     fn draw_two_corners_symbol(&self, painter: &egui::Painter, screen_position: egui::Pos2) {
-        let size = 10.;
-        let half_size = size / 2.;
+        let half_size = self.style.symbol_size / 2.;
         let top_left = screen_position + vec2(-half_size, -half_size);
         let bottom_right = screen_position + vec2(half_size, half_size);
         let top_right = screen_position + vec2(half_size, -half_size);
@@ -146,6 +145,7 @@ pub struct LabeledSymbolStyle {
     pub symbol_color: Color32,
     pub symbol_background: Color32,
     pub symbol_stroke: Stroke,
+    pub symbol_size: f32,
 }
 
 impl Default for LabeledSymbolStyle {
@@ -159,6 +159,7 @@ impl Default for LabeledSymbolStyle {
             symbol_color: Color32::BLACK.gamma_multiply(0.8),
             symbol_background: Color32::WHITE.gamma_multiply(0.8),
             symbol_stroke: Stroke::new(2., Color32::BLACK.gamma_multiply(0.8)),
+            symbol_size: 10.,
         }
     }
 }
