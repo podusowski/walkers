@@ -9,6 +9,7 @@ All notable changes to this project will be documented in this file.
 * `GroupedPlaces` now takes an instance of `Group` (e.g. `LabeledSymbolGroup`), which allows
   groups to be customized.
 * `LabeledSymbolGroup` now has the `style` field, which allows changing how the group looks.
+* `LabeledSymbol::symbol` is now optional.
 
 ## 0.40.0
 
