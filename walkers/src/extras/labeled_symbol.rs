@@ -127,7 +127,7 @@ impl LabeledSymbol {
                 .translate(screen_position)
                 .translate(offset)
                 .expand(5.),
-            10.,
+            self.style.label_corner_radius,
             self.style.label_background,
         );
 
@@ -141,6 +141,7 @@ pub struct LabeledSymbolStyle {
     pub label_font: FontId,
     pub label_color: Color32,
     pub label_background: Color32,
+    pub label_corner_radius: f32,
     pub symbol_font: FontId,
     pub symbol_color: Color32,
     pub symbol_background: Color32,
@@ -153,6 +154,7 @@ impl Default for LabeledSymbolStyle {
             label_font: FontId::proportional(12.),
             label_color: Color32::from_gray(200),
             label_background: Color32::BLACK.gamma_multiply(0.8),
+            label_corner_radius: 10.,
             symbol_font: FontId::proportional(14.),
             symbol_color: Color32::BLACK.gamma_multiply(0.8),
             symbol_background: Color32::WHITE.gamma_multiply(0.8),

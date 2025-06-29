@@ -22,9 +22,11 @@ pub fn places() -> impl Plugin {
             LabeledSymbol {
                 position: places::dworcowa_bus_stop(),
                 label: "Bus stop".to_owned(),
-                //symbol: Some(Symbol('🚌')),
                 symbol: Some(Symbol::TwoCorners),
-                style: LabeledSymbolStyle::default(),
+                style: LabeledSymbolStyle {
+                    label_corner_radius: 2.,
+                    ..Default::default()
+                },
             },
             LabeledSymbol {
                 position: places::rynek(),
