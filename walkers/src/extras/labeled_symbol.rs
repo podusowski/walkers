@@ -50,15 +50,21 @@ impl Place for LabeledSymbol {
 
         painter.galley((screen_position + offset).to_pos2(), label, Color32::BLACK);
 
+        self.draw_symbol(painter, screen_position.to_pos2());
+    }
+}
+
+impl LabeledSymbol {
+    fn draw_symbol(&self, painter: &egui::Painter, screen_position: egui::Pos2) {
         painter.circle(
-            screen_position.to_pos2(),
+            screen_position,
             10.,
             self.style.symbol_background,
             self.style.symbol_stroke,
         );
 
         painter.text(
-            screen_position.to_pos2(),
+            screen_position,
             Align2::CENTER_CENTER,
             self.symbol.to_string(),
             self.style.symbol_font.clone(),
