@@ -6,6 +6,6 @@ mod places;
 pub use crate::tiles::Texture;
 pub use image::Image;
 pub use labeled_symbol::{
-    LabeledSymbol, LabeledSymbolGroup, LabeledSymbolGroupStyle, LabeledSymbolStyle,
+    LabeledSymbol, LabeledSymbolGroup, LabeledSymbolGroupStyle, LabeledSymbolStyle, Symbol,
 };
 pub use places::{Group, GroupedPlaces, Place, Places};

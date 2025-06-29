@@ -9,6 +9,9 @@ All notable changes to this project will be documented in this file.
 * `GroupedPlaces` now takes an instance of `Group` (e.g. `LabeledSymbolGroup`), which allows
   groups to be customized.
 * `LabeledSymbolGroup` now has the `style` field, which allows changing how the group looks.
+* `LabeledSymbol::symbol` is now optional and can have a different types. See `Symbol` enum
+  for possible values.
+* `LabeledSymbolStyle` has new fields `label_corner_radius` and `symbol_size`.
 
 ## 0.40.0
 
