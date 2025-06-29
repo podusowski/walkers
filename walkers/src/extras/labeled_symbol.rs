@@ -6,7 +6,7 @@ use egui::{vec2, Align2, Color32, FontId, Stroke, Ui};
 /// Type of the symbol of a [`LabeledSymbol`].
 pub enum Symbol {
     Circle(String),
-    TwoCorners,
+    TwoCorners(String),
 }
 
 /// A symbol with a label to be drawn on the map.
@@ -41,8 +41,8 @@ impl Place for LabeledSymbol {
             Some(Symbol::Circle(ref symbol)) => {
                 self.draw_circle_symbol(symbol, painter, screen_position.to_pos2())
             }
-            Some(Symbol::TwoCorners) => {
-                self.draw_two_corners_symbol(painter, screen_position.to_pos2())
+            Some(Symbol::TwoCorners(ref text)) => {
+                self.draw_two_corners_symbol(text.clone(), painter, screen_position.to_pos2())
             }
             None => {}
         }
@@ -72,7 +72,12 @@ impl LabeledSymbol {
         );
     }
 
-    fn draw_two_corners_symbol(&self, painter: &egui::Painter, screen_position: egui::Pos2) {
+    fn draw_two_corners_symbol(
+        &self,
+        text: String,
+        painter: &egui::Painter,
+        screen_position: egui::Pos2,
+    ) {
         let half_size = self.style.symbol_size / 2.;
         let top_left = screen_position + vec2(-half_size, -half_size);
         let bottom_right = screen_position + vec2(half_size, half_size);
@@ -105,6 +110,15 @@ impl LabeledSymbol {
         painter.line_segment(
             [bottom_left, bottom_left + vec2(0., -len)],
             self.style.symbol_stroke,
+        );
+
+        // Text.
+        painter.text(
+            screen_position,
+            Align2::CENTER_CENTER,
+            text.clone(),
+            self.style.symbol_font.clone(),
+            self.style.symbol_color,
         );
     }
 

@@ -18,17 +18,17 @@ pub fn places() -> impl Plugin {
                 label: "Wrocław Główny\ntrain station".to_owned(),
                 symbol: Some(Symbol::Circle("🚆".to_string())),
                 style: LabeledSymbolStyle {
-                    symbol_size: 20.,
+                    symbol_size: 18.,
                     ..Default::default()
                 },
             },
             LabeledSymbol {
                 position: places::dworcowa_bus_stop(),
                 label: "Bus stop".to_owned(),
-                symbol: Some(Symbol::TwoCorners),
+                symbol: Some(Symbol::TwoCorners(String::from("🚌"))),
                 style: LabeledSymbolStyle {
                     label_corner_radius: 2.,
-                    symbol_size: 8.,
+                    symbol_size: 18.,
                     symbol_background: Color32::WHITE.gamma_multiply(0.4),
                     ..Default::default()
                 },
