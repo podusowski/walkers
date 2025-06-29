@@ -58,7 +58,7 @@ impl LabeledSymbol {
     ) {
         painter.circle(
             screen_position,
-            10.,
+            self.style.symbol_size / 2.,
             self.style.symbol_background,
             self.style.symbol_stroke,
         );

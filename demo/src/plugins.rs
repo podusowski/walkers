@@ -18,7 +18,7 @@ pub fn places() -> impl Plugin {
                 label: "Wrocław Główny\ntrain station".to_owned(),
                 symbol: Some(Symbol::Circle("🚆".to_string())),
                 style: LabeledSymbolStyle {
-                    symbol_size: 18.,
+                    symbol_size: 25.,
                     ..Default::default()
                 },
             },
