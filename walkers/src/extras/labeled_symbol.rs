@@ -2,6 +2,12 @@ use super::places::{Group, Place};
 use crate::{Position, Projector};
 use egui::{vec2, Align2, Color32, FontId, Stroke, Ui};
 
+#[derive(Clone)]
+pub enum Symbol {
+    Circle(char),
+    TwoCorners,
+}
+
 /// A symbol with a label to be drawn on the map.
 #[derive(Clone)]
 pub struct LabeledSymbol {
@@ -13,7 +19,7 @@ pub struct LabeledSymbol {
 
     /// Symbol drawn on the place. You can check [egui's font book](https://www.egui.rs/) to pick
     /// a desired character.
-    pub symbol: Option<char>,
+    pub symbol: Option<Symbol>,
 
     /// Visual style of this place.
     pub style: LabeledSymbolStyle,
@@ -30,8 +36,14 @@ impl Place for LabeledSymbol {
 
         self.draw_label(painter, screen_position);
 
-        if let Some(symbol) = self.symbol {
-            self.draw_symbol(symbol, painter, screen_position.to_pos2());
+        match self.symbol {
+            Some(Symbol::Circle(symbol)) => {
+                self.draw_symbol(symbol, painter, screen_position.to_pos2())
+            }
+            Some(Symbol::TwoCorners) => {
+                self.draw_two_corners_symbol(painter, screen_position.to_pos2())
+            }
+            None => {}
         }
     }
 }
@@ -51,6 +63,44 @@ impl LabeledSymbol {
             symbol.to_string(),
             self.style.symbol_font.clone(),
             self.style.symbol_color,
+        );
+    }
+
+    fn draw_two_corners_symbol(&self, painter: &egui::Painter, screen_position: egui::Pos2) {
+        let size = 10.;
+        let half_size = size / 2.;
+        let top_left = screen_position + vec2(-half_size, -half_size);
+        let bottom_right = screen_position + vec2(half_size, half_size);
+        let top_right = screen_position + vec2(half_size, -half_size);
+        let bottom_left = screen_position + vec2(-half_size, half_size);
+
+        let len = 4.;
+
+        // Background rectangle.
+        painter.rect_filled(
+            egui::Rect::from_min_max(top_left, bottom_right),
+            0.,
+            self.style.symbol_background,
+        );
+
+        // Top right.
+        painter.line_segment(
+            [top_right, top_right + vec2(-len, 0.)],
+            self.style.symbol_stroke,
+        );
+        painter.line_segment(
+            [top_right, top_right + vec2(0., len)],
+            self.style.symbol_stroke,
+        );
+
+        // Bottom left.
+        painter.line_segment(
+            [bottom_left, bottom_left + vec2(len, 0.)],
+            self.style.symbol_stroke,
+        );
+        painter.line_segment(
+            [bottom_left, bottom_left + vec2(0., -len)],
+            self.style.symbol_stroke,
         );
     }
 

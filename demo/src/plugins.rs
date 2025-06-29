@@ -2,7 +2,7 @@ use egui::{Color32, Response, Ui};
 use walkers::{
     extras::{
         GroupedPlaces, Image, LabeledSymbol, LabeledSymbolGroup, LabeledSymbolGroupStyle,
-        LabeledSymbolStyle, Places, Texture,
+        LabeledSymbolStyle, Places, Symbol, Texture,
     },
     MapMemory, Plugin, Position, Projector,
 };
@@ -16,13 +16,14 @@ pub fn places() -> impl Plugin {
             LabeledSymbol {
                 position: places::wroclaw_glowny(),
                 label: "Wrocław Główny\ntrain station".to_owned(),
-                symbol: Some('🚆'),
+                symbol: Some(Symbol::Circle('🚆')),
                 style: LabeledSymbolStyle::default(),
             },
             LabeledSymbol {
                 position: places::dworcowa_bus_stop(),
                 label: "Bus stop".to_owned(),
-                symbol: Some('🚌'),
+                //symbol: Some(Symbol('🚌')),
+                symbol: Some(Symbol::TwoCorners),
                 style: LabeledSymbolStyle::default(),
             },
             LabeledSymbol {
