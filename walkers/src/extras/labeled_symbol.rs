@@ -78,7 +78,6 @@ impl LabeledSymbol {
         let bottom_right = screen_position + vec2(half_size, half_size);
         let top_right = screen_position + vec2(half_size, -half_size);
         let bottom_left = screen_position + vec2(-half_size, half_size);
-
         let len = 4.;
 
         // Background rectangle.
