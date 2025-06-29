@@ -3,6 +3,7 @@ use crate::{Position, Projector};
 use egui::{vec2, Align2, Color32, FontId, Stroke, Ui};
 
 /// A symbol with a label to be drawn on the map.
+#[derive(Clone)]
 pub struct LabeledSymbol {
     /// Geographical position.
     pub position: Position,
