@@ -13,7 +13,7 @@ edition = "2021"
 log.workspace = true
 egui.workspace = true
 egui_extras.workspace = true
-lru = "0.14"
+lru = "0.15"
 thiserror = "2"
 image = { version = "0.25", default-features = false, features = [
     "jpeg",
