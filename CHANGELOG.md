@@ -2,7 +2,7 @@
 
 All notable changes to this project will be documented in this file.
 
-## Unreleased
+## 0.41.0
 
 * `Plugin::run()` has a new parameter `map_memory`, which allows plugins to access it after it is
   modified by the map.
