@@ -72,11 +72,9 @@ impl Center {
         };
 
         *self = Center::Moving {
-            position: self.adjusted_position().unwrap_or(AdjustedPosition::new(
-                my_position,
-                Default::default(),
-                zoom,
-            )),
+            position: self
+                .adjusted_position()
+                .unwrap_or(AdjustedPosition::new(my_position)),
             direction: response.drag_delta(),
             from_detached,
         };
@@ -113,7 +111,8 @@ impl Center {
                 let offset = position.offset + Pixels::new(delta.x as f64, delta.y as f64);
 
                 *self = Center::Moving {
-                    position: AdjustedPosition::new(position.position, offset, zoom),
+                    position: AdjustedPosition::new(position.position)
+                        .shift(offset.to_vec2(), zoom),
                     direction: *direction,
                     from_detached: *from_detached,
                 };
@@ -134,7 +133,8 @@ impl Center {
                     let lp_factor = INERTIA_TAU / (delta_time + INERTIA_TAU);
 
                     Center::Inertia {
-                        position: AdjustedPosition::new(position.position, offset, zoom),
+                        position: AdjustedPosition::new(position.position)
+                            .shift(offset.to_vec2(), zoom),
                         direction: *direction,
                         amount: *amount * lp_factor,
                     }
@@ -147,11 +147,9 @@ impl Center {
                 *self = if offset.to_vec2().length() < 1.0 {
                     Center::MyPosition
                 } else {
-                    Center::PulledToMyPosition(AdjustedPosition::new(
-                        position.position,
-                        offset,
-                        zoom,
-                    ))
+                    Center::PulledToMyPosition(
+                        AdjustedPosition::new(position.position).shift(offset.to_vec2(), zoom),
+                    )
                 };
                 true
             }

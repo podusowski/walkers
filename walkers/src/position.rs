@@ -31,11 +31,11 @@ pub struct AdjustedPosition {
 }
 
 impl AdjustedPosition {
-    pub(crate) fn new(position: Position, offset: Pixels, zoom: f64) -> Self {
+    pub(crate) fn new(position: Position) -> Self {
         Self {
             position,
-            offset,
-            zoom,
+            offset: Pixels::new(0.0, 0.0),
+            zoom: 1.0, // Does not matter, as offset is zero.
         }
     }
 
