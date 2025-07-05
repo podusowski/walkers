@@ -187,9 +187,7 @@ impl Map<'_, '_, '_> {
                     || offset.length() > PULL_TO_MY_POSITION_THRESHOLD
                 {
                     self.memory.center_mode = Center::Exact(
-                        AdjustedPosition::from(self.position())
-                            .shift(-offset, self.memory.zoom())
-                            .zero_offset(self.memory.zoom()),
+                        AdjustedPosition::from(self.position()).shift(-offset, self.memory.zoom()),
                     );
                 }
             }
