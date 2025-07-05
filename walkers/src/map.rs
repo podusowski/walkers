@@ -187,7 +187,7 @@ impl Map<'_, '_, '_> {
                     || offset.length() > PULL_TO_MY_POSITION_THRESHOLD
                 {
                     self.memory.center_mode = Center::Exact(
-                        AdjustedPosition::from(self.position()).shift(-offset, self.memory.zoom()),
+                        AdjustedPosition::new(self.position()).shift(-offset, self.memory.zoom()),
                     );
                 }
             }
@@ -223,7 +223,7 @@ impl Map<'_, '_, '_> {
             let scroll_delta = ui.input(|i| i.smooth_scroll_delta);
             if scroll_delta != Vec2::ZERO {
                 self.memory.center_mode = Center::Exact(
-                    AdjustedPosition::from(self.position()).shift(scroll_delta, self.memory.zoom()),
+                    AdjustedPosition::new(self.position()).shift(scroll_delta, self.memory.zoom()),
                 );
             }
         }

@@ -53,16 +53,6 @@ impl AdjustedPosition {
     }
 }
 
-impl From<Position> for AdjustedPosition {
-    fn from(position: Position) -> Self {
-        Self {
-            position,
-            offset: Default::default(),
-            zoom: 1.0, // TODO: THis is made up.
-        }
-    }
-}
-
 /// Location projected on the screen or an abstract bitmap.
 pub type Pixels = geo_types::Point;
 
