@@ -11,19 +11,16 @@ pub struct MapMemory {
 impl MapMemory {
     /// Try to zoom in, returning `Err(InvalidZoom)` if already at maximum.
     pub fn zoom_in(&mut self) -> Result<(), InvalidZoom> {
-        self.center_mode = self.center_mode.clone().zero_offset(self.zoom.into());
         self.zoom.zoom_in()
     }
 
     /// Try to zoom out, returning `Err(InvalidZoom)` if already at minimum.
     pub fn zoom_out(&mut self) -> Result<(), InvalidZoom> {
-        self.center_mode = self.center_mode.clone().zero_offset(self.zoom.into());
         self.zoom.zoom_out()
     }
 
     /// Set exact zoom level
     pub fn set_zoom(&mut self, zoom: f64) -> Result<(), InvalidZoom> {
-        self.center_mode = self.center_mode.clone().zero_offset(self.zoom.into());
         self.zoom = Zoom::try_from(zoom)?;
         Ok(())
     }
