@@ -94,13 +94,19 @@ mod tests {
     #[test]
     fn test_adjusted_position() {
         let position = lat_lon(51.0, 17.0);
-        let adjusted = AdjustedPosition::new(position, Pixels::new(10.0, 20.0), 10.0);
 
+        let adjusted = AdjustedPosition::new(position, Pixels::new(10.0, 20.0), 10.0);
         approx::assert_relative_eq!(adjusted.position().x(), 16.98626708984377);
         approx::assert_relative_eq!(adjusted.position().y(), 51.017281581280216);
 
         // When zoom is lower, the offset expressed as screen pixels will be larger.
         let adjusted = AdjustedPosition::new(position, Pixels::new(10.0, 20.0), 2.0);
+        approx::assert_relative_eq!(adjusted.position().x(), 13.48437500000002);
+        approx::assert_relative_eq!(adjusted.position().y(), 55.21655462355652);
+
+        let adjusted = AdjustedPosition::new(position, Pixels::default(), 2.0)
+            .shift(Pixels::new(10.0, 20.0).to_vec2(), 2.0)
+            .shift(Pixels::new(0.0, 0.0).to_vec2(), 10.0);
         approx::assert_relative_eq!(adjusted.position().x(), 13.48437500000002);
         approx::assert_relative_eq!(adjusted.position().y(), 55.21655462355652);
     }
