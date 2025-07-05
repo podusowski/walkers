@@ -200,13 +200,6 @@ impl Map<'_, '_, '_> {
                 .zoom
                 .zoom_by((zoom_delta - 1.) * self.zoom_speed);
 
-            // Recalculate the AdjustedPosition's offset, since it gets invalidated by zooming.
-            self.memory.center_mode = self
-                .memory
-                .center_mode
-                .clone()
-                .zero_offset(self.memory.zoom());
-
             if let Some(offset) = offset {
                 self.memory.center_mode = self
                     .memory
