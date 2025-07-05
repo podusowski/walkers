@@ -122,14 +122,12 @@ impl Center {
                     Center::Exact(position.to_owned())
                 } else {
                     let delta = *direction * *amount;
-                    let offset = position.offset + Pixels::new(delta.x as f64, delta.y as f64);
 
                     // Exponentially drive the `amount` value towards zero
                     let lp_factor = INERTIA_TAU / (delta_time + INERTIA_TAU);
 
                     Center::Inertia {
-                        position: AdjustedPosition::new(position.position)
-                            .shift(offset.to_vec2(), zoom),
+                        position: position.clone().shift(delta, zoom),
                         direction: *direction,
                         amount: *amount * lp_factor,
                     }
