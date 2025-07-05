@@ -2,7 +2,7 @@ use egui::{Response, Vec2};
 
 use crate::{
     position::{AdjustedPosition, Pixels, PixelsExt},
-    zoom, Position,
+    Position,
 };
 
 /// Time constant of inertia stopping filter
