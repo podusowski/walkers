@@ -217,11 +217,10 @@ impl Map<'_, '_, '_> {
 
             changed = true;
         } else if self.drag_gesture_enabled {
-            changed = self.memory.center_mode.handle_gestures(
-                response,
-                self.my_position,
-                self.memory.zoom().into(),
-            );
+            changed = self
+                .memory
+                .center_mode
+                .handle_gestures(response, self.my_position);
         }
 
         // Only enable panning with mouse_wheel if we are zooming with ctrl. But always allow touch devices to pan
@@ -232,8 +231,9 @@ impl Map<'_, '_, '_> {
             // Panning by scrolling, e.g. two-finger drag on a touchpad:
             let scroll_delta = ui.input(|i| i.smooth_scroll_delta);
             if scroll_delta != Vec2::ZERO {
-                self.memory.center_mode =
-                    Center::Exact(AdjustedPosition::from(self.position()).shift(scroll_delta, self.memory.zoom()));
+                self.memory.center_mode = Center::Exact(
+                    AdjustedPosition::from(self.position()).shift(scroll_delta, self.memory.zoom()),
+                );
             }
         }
 

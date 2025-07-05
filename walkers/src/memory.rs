@@ -33,7 +33,7 @@ impl MapMemory {
     /// Returns exact position if map is detached (i.e. not following `my_position`),
     /// `None` otherwise.
     pub fn detached(&self) -> Option<Position> {
-        self.center_mode.detached(self.zoom.into())
+        self.center_mode.detached()
     }
 
     /// Center exactly at the given position.

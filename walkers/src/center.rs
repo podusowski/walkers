@@ -46,14 +46,9 @@ pub(crate) enum Center {
 }
 
 impl Center {
-    pub(crate) fn handle_gestures(
-        &mut self,
-        response: &Response,
-        my_position: Position,
-        zoom: f64,
-    ) -> bool {
+    pub(crate) fn handle_gestures(&mut self, response: &Response, my_position: Position) -> bool {
         if response.dragged_by(egui::PointerButton::Primary) {
-            self.dragged_by(my_position, response, zoom);
+            self.dragged_by(my_position, response);
             true
         } else if response.drag_stopped() {
             self.drag_stopped();
@@ -63,7 +58,7 @@ impl Center {
         }
     }
 
-    fn dragged_by(&mut self, my_position: Position, response: &Response, zoom: f64) {
+    fn dragged_by(&mut self, my_position: Position, response: &Response) {
         let from_detached = if let Center::Moving { from_detached, .. } = self {
             *from_detached
         } else {
@@ -159,7 +154,7 @@ impl Center {
 
     /// Returns exact position if map is detached (i.e. not following `my_position`),
     /// `None` otherwise.
-    pub(crate) fn detached(&self, zoom: f64) -> Option<Position> {
+    pub(crate) fn detached(&self) -> Option<Position> {
         self.adjusted_position().map(|p| p.position())
     }
 
@@ -175,7 +170,7 @@ impl Center {
 
     /// Get the real position at the map's center.
     pub fn position(&self, my_position: Position, zoom: f64) -> Position {
-        self.detached(zoom).unwrap_or(my_position)
+        self.detached().unwrap_or(my_position)
     }
 
     pub fn zero_offset(self, zoom: f64) -> Self {
