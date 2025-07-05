@@ -167,7 +167,7 @@ impl Center {
     }
 
     /// Get the real position at the map's center.
-    pub fn position(&self, my_position: Position, zoom: f64) -> Position {
+    pub fn position(&self, my_position: Position) -> Position {
         self.detached().unwrap_or(my_position)
     }
 

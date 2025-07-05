@@ -261,9 +261,7 @@ impl Map<'_, '_, '_> {
 
     /// Get the real position at the map's center.
     fn position(&self) -> Position {
-        self.memory
-            .center_mode
-            .position(self.my_position, self.memory.zoom())
+        self.memory.center_mode.position(self.my_position)
     }
 }
 
