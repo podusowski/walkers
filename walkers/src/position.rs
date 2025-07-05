@@ -44,15 +44,6 @@ impl AdjustedPosition {
         unproject(project(self.position, self.zoom) - self.offset, self.zoom)
     }
 
-    /// Recalculate `position` so that `offset` is zero.
-    pub(crate) fn zero_offset(self, zoom: f64) -> Self {
-        Self {
-            position: self.position(),
-            offset: Default::default(),
-            zoom,
-        }
-    }
-
     pub(crate) fn shift(self, offset: Vec2, zoom: f64) -> Self {
         Self {
             position: self.position(),
