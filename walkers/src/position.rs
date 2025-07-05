@@ -31,8 +31,8 @@ pub struct AdjustedPosition {
 }
 
 impl AdjustedPosition {
-    pub(crate) fn new(position: Position, offset: Pixels) -> Self {
-        Self { position, offset }
+    pub(crate) fn new(position: Position, offset: Pixels, zoom: f64) -> Self {
+        Self { position, offset }.zero_offset(zoom)
     }
 
     /// Calculate the real position, i.e. including the offset.
@@ -48,11 +48,11 @@ impl AdjustedPosition {
         }
     }
 
-    pub(crate) fn shift(self, offset: Vec2) -> Self {
+    pub(crate) fn shift(self, offset: Vec2, zoom:f64) -> Self {
         Self {
             position: self.position,
             offset: self.offset + Pixels::new(offset.x as f64, offset.y as f64),
-        }
+        }.zero_offset(zoom)
     }
 }
 
@@ -75,5 +75,19 @@ pub trait PixelsExt {
 impl PixelsExt for Pixels {
     fn to_vec2(&self) -> egui::Vec2 {
         egui::Vec2::new(self.x() as f32, self.y() as f32)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_adjusted_position() {
+        let position = lat_lon(51.0, 17.0);
+        let adjusted = AdjustedPosition::new(position, Pixels::new(10.0, 20.0));
+
+        approx::assert_relative_eq!(adjusted.position(10.0).x(), 16.98626708984377);
+        approx::assert_relative_eq!(adjusted.position(10.0).y(), 51.017281581280216);
     }
 }

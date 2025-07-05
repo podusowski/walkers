@@ -1,8 +1,7 @@
 use egui::{Response, Vec2};
 
 use crate::{
-    position::{AdjustedPosition, Pixels, PixelsExt},
-    Position,
+    position::{AdjustedPosition, Pixels, PixelsExt}, zoom, Position
 };
 
 /// Time constant of inertia stopping filter
@@ -46,9 +45,9 @@ pub(crate) enum Center {
 }
 
 impl Center {
-    pub(crate) fn handle_gestures(&mut self, response: &Response, my_position: Position) -> bool {
+    pub(crate) fn handle_gestures(&mut self, response: &Response, my_position: Position, zoom: f64) -> bool {
         if response.dragged_by(egui::PointerButton::Primary) {
-            self.dragged_by(my_position, response);
+            self.dragged_by(my_position, response, zoom);
             true
         } else if response.drag_stopped() {
             self.drag_stopped();
@@ -58,7 +57,7 @@ impl Center {
         }
     }
 
-    fn dragged_by(&mut self, my_position: Position, response: &Response) {
+    fn dragged_by(&mut self, my_position: Position, response: &Response, zoom: f64) {
         let from_detached = if let Center::Moving { from_detached, .. } = self {
             *from_detached
         } else {
@@ -69,7 +68,7 @@ impl Center {
         *self = Center::Moving {
             position: self
                 .adjusted_position()
-                .unwrap_or(AdjustedPosition::new(my_position, Default::default())),
+                .unwrap_or(AdjustedPosition::new(my_position, Default::default(), zoom)),
             direction: response.drag_delta(),
             from_detached,
         };
@@ -95,7 +94,7 @@ impl Center {
         }
     }
 
-    pub(crate) fn update_movement(&mut self, delta_time: f32) -> bool {
+    pub(crate) fn update_movement(&mut self, delta_time: f32, zoom: f64) -> bool {
         match &self {
             Center::Moving {
                 position,
@@ -106,7 +105,7 @@ impl Center {
                 let offset = position.offset + Pixels::new(delta.x as f64, delta.y as f64);
 
                 *self = Center::Moving {
-                    position: AdjustedPosition::new(position.position, offset),
+                    position: AdjustedPosition::new(position.position, offset, zoom),
                     direction: *direction,
                     from_detached: *from_detached,
                 };
@@ -127,7 +126,7 @@ impl Center {
                     let lp_factor = INERTIA_TAU / (delta_time + INERTIA_TAU);
 
                     Center::Inertia {
-                        position: AdjustedPosition::new(position.position, offset),
+                        position: AdjustedPosition::new(position.position, offset, zoom),
                         direction: *direction,
                         amount: *amount * lp_factor,
                     }
@@ -140,7 +139,7 @@ impl Center {
                 *self = if offset.to_vec2().length() < 1.0 {
                     Center::MyPosition
                 } else {
-                    Center::PulledToMyPosition(AdjustedPosition::new(position.position, offset))
+                    Center::PulledToMyPosition(AdjustedPosition::new(position.position, offset, zoom))
                 };
                 true
             }
@@ -196,19 +195,19 @@ impl Center {
     }
 
     /// Shift position by given number of pixels, if detached.
-    pub(crate) fn shift(self, offset: Vec2) -> Self {
+    pub(crate) fn shift(self, offset: Vec2, zoom: f64) -> Self {
         match self {
             Center::MyPosition => Center::MyPosition,
             Center::PulledToMyPosition(position) => {
-                Center::PulledToMyPosition(position.shift(offset))
+                Center::PulledToMyPosition(position.shift(offset,zoom))
             }
-            Center::Exact(position) => Center::Exact(position.shift(offset)),
+            Center::Exact(position) => Center::Exact(position.shift(offset,zoom)),
             Center::Moving {
                 position,
                 direction,
                 from_detached,
             } => Center::Moving {
-                position: position.shift(offset),
+                position: position.shift(offset, zoom),
                 direction,
                 from_detached,
             },
@@ -217,7 +216,7 @@ impl Center {
                 direction,
                 amount,
             } => Center::Inertia {
-                position: position.shift(offset),
+                position: position.shift(offset,zoom),
                 direction,
                 amount,
             },

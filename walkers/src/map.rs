@@ -188,7 +188,7 @@ impl Map<'_, '_, '_> {
                 {
                     self.memory.center_mode = Center::Exact(
                         AdjustedPosition::from(self.position())
-                            .shift(-offset)
+                            .shift(-offset, self.memory.zoom())
                             .zero_offset(self.memory.zoom()),
                     );
                 }
@@ -208,15 +208,20 @@ impl Map<'_, '_, '_> {
                 .zero_offset(self.memory.zoom());
 
             if let Some(offset) = offset {
-                self.memory.center_mode = self.memory.center_mode.clone().shift(offset);
+                self.memory.center_mode = self
+                    .memory
+                    .center_mode
+                    .clone()
+                    .shift(offset, self.memory.zoom());
             }
 
             changed = true;
         } else if self.drag_gesture_enabled {
-            changed = self
-                .memory
-                .center_mode
-                .handle_gestures(response, self.my_position);
+            changed = self.memory.center_mode.handle_gestures(
+                response,
+                self.my_position,
+                self.memory.zoom().into(),
+            );
         }
 
         // Only enable panning with mouse_wheel if we are zooming with ctrl. But always allow touch devices to pan
@@ -228,7 +233,7 @@ impl Map<'_, '_, '_> {
             let scroll_delta = ui.input(|i| i.smooth_scroll_delta);
             if scroll_delta != Vec2::ZERO {
                 self.memory.center_mode =
-                    Center::Exact(AdjustedPosition::from(self.position()).shift(scroll_delta));
+                    Center::Exact(AdjustedPosition::from(self.position()).shift(scroll_delta, self.memory.zoom()));
             }
         }
 
@@ -278,14 +283,17 @@ impl Widget for Map<'_, '_, '_> {
 
         let mut changed = self.handle_gestures(ui, &response);
         let delta_time = ui.ctx().input(|reader| reader.stable_dt);
-        changed |= self.memory.center_mode.update_movement(delta_time);
+        let zoom = self.memory.zoom;
+        changed |= self
+            .memory
+            .center_mode
+            .update_movement(delta_time, zoom.into());
 
         if changed {
             response.mark_changed();
             ui.ctx().request_repaint();
         }
 
-        let zoom = self.memory.zoom;
         let map_center = self.position();
         let painter = ui.painter().with_clip_rect(rect);
 
