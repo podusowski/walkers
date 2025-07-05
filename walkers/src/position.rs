@@ -18,17 +18,15 @@ pub fn lon_lat(lon: f64, lat: f64) -> Position {
     Position::new(lon, lat)
 }
 
-/// [`Position`] alone is not able to represent detached (e.g. after map gets dragged) position
-/// due to insufficient accuracy.
+/// Geographical [`Position`] shifted by a number of pixels on the screen.
 #[derive(Debug, Clone, PartialEq)]
 #[cfg_attr(feature = "serde", derive(::serde::Serialize, ::serde::Deserialize))]
 pub struct AdjustedPosition {
     /// Base geographical position.
     pub position: Position,
-
     /// Offset in pixels.
     pub offset: Pixels,
-
+    /// Zoom level at which the position was adjusted.
     pub zoom: f64,
 }
 
