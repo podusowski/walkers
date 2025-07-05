@@ -28,11 +28,17 @@ pub struct AdjustedPosition {
 
     /// Offset in pixels.
     pub offset: Pixels,
+
+    pub zoom: f64,
 }
 
 impl AdjustedPosition {
     pub(crate) fn new(position: Position, offset: Pixels, zoom: f64) -> Self {
-        Self { position, offset }
+        Self {
+            position,
+            offset,
+            zoom,
+        }
     }
 
     /// Calculate the real position, i.e. including the offset.
@@ -45,6 +51,7 @@ impl AdjustedPosition {
         Self {
             position: self.position(zoom),
             offset: Default::default(),
+            zoom,
         }
     }
 
@@ -52,6 +59,7 @@ impl AdjustedPosition {
         Self {
             position: self.position,
             offset: self.offset + Pixels::new(offset.x as f64, offset.y as f64),
+            zoom,
         }
     }
 }
@@ -61,6 +69,7 @@ impl From<Position> for AdjustedPosition {
         Self {
             position,
             offset: Default::default(),
+            zoom: 1.0, // TODO: THis is made up.
         }
     }
 }
@@ -85,9 +94,14 @@ mod tests {
     #[test]
     fn test_adjusted_position() {
         let position = lat_lon(51.0, 17.0);
-        let adjusted = AdjustedPosition::new(position, Pixels::new(10.0, 20.0));
+        let adjusted = AdjustedPosition::new(position, Pixels::new(10.0, 20.0), 10.0);
 
         approx::assert_relative_eq!(adjusted.position(10.0).x(), 16.98626708984377);
         approx::assert_relative_eq!(adjusted.position(10.0).y(), 51.017281581280216);
+
+        // When zoom is lower, the offset expressed as screen pixels will be larger.
+        let adjusted = AdjustedPosition::new(position, Pixels::new(10.0, 20.0), 2.0);
+        approx::assert_relative_eq!(adjusted.position(2.0).x(), 13.48437500000002);
+        approx::assert_relative_eq!(adjusted.position(2.0).y(), 55.21655462355652);
     }
 }

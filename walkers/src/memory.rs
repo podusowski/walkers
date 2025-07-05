@@ -44,6 +44,7 @@ impl MapMemory {
         self.center_mode = Center::Exact(AdjustedPosition {
             position,
             offset: Default::default(),
+            zoom: self.zoom(),
         });
     }
 
