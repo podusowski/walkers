@@ -18,49 +18,37 @@ pub fn lon_lat(lon: f64, lat: f64) -> Position {
     Position::new(lon, lat)
 }
 
-/// [`Position`] alone is not able to represent detached (e.g. after map gets dragged) position
-/// due to insufficient accuracy.
+/// Geographical [`Position`] shifted by a number of pixels on the screen.
 #[derive(Debug, Clone, PartialEq)]
 #[cfg_attr(feature = "serde", derive(::serde::Serialize, ::serde::Deserialize))]
 pub struct AdjustedPosition {
     /// Base geographical position.
     pub position: Position,
-
     /// Offset in pixels.
     pub offset: Pixels,
+    /// Zoom level at which the position was adjusted.
+    pub zoom: f64,
 }
 
 impl AdjustedPosition {
-    pub(crate) fn new(position: Position, offset: Pixels) -> Self {
-        Self { position, offset }
+    pub(crate) fn new(position: Position) -> Self {
+        Self {
+            position,
+            offset: Pixels::new(0.0, 0.0),
+            zoom: 1.0, // Does not matter, as offset is zero.
+        }
     }
 
     /// Calculate the real position, i.e. including the offset.
-    pub(crate) fn position(&self, zoom: f64) -> Position {
-        unproject(project(self.position, zoom) - self.offset, zoom)
+    pub(crate) fn position(&self) -> Position {
+        unproject(project(self.position, self.zoom) - self.offset, self.zoom)
     }
 
-    /// Recalculate `position` so that `offset` is zero.
-    pub(crate) fn zero_offset(self, zoom: f64) -> Self {
+    pub(crate) fn shift(self, offset: Vec2, zoom: f64) -> Self {
         Self {
-            position: self.position(zoom),
-            offset: Default::default(),
-        }
-    }
-
-    pub(crate) fn shift(self, offset: Vec2) -> Self {
-        Self {
-            position: self.position,
-            offset: self.offset + Pixels::new(offset.x as f64, offset.y as f64),
-        }
-    }
-}
-
-impl From<Position> for AdjustedPosition {
-    fn from(position: Position) -> Self {
-        Self {
-            position,
-            offset: Default::default(),
+            position: self.position(),
+            offset: Pixels::new(offset.x as f64, offset.y as f64),
+            zoom,
         }
     }
 }
@@ -75,5 +63,32 @@ pub trait PixelsExt {
 impl PixelsExt for Pixels {
     fn to_vec2(&self) -> egui::Vec2 {
         egui::Vec2::new(self.x() as f32, self.y() as f32)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_adjusted_position() {
+        let position = lat_lon(51.0, 17.0);
+
+        let adjusted =
+            AdjustedPosition::new(position).shift(Pixels::new(10.0, 20.0).to_vec2(), 10.0);
+        approx::assert_relative_eq!(adjusted.position().x(), 16.98626708984377);
+        approx::assert_relative_eq!(adjusted.position().y(), 51.017281581280216);
+
+        // When zoom is lower, the offset expressed as screen pixels will be larger.
+        let adjusted =
+            AdjustedPosition::new(position).shift(Pixels::new(10.0, 20.0).to_vec2(), 2.0);
+        approx::assert_relative_eq!(adjusted.position().x(), 13.48437500000002);
+        approx::assert_relative_eq!(adjusted.position().y(), 55.21655462355652);
+
+        let adjusted = AdjustedPosition::new(position)
+            .shift(Pixels::new(10.0, 20.0).to_vec2(), 2.0)
+            .shift(Pixels::new(0.0, 0.0).to_vec2(), 10.0);
+        approx::assert_relative_eq!(adjusted.position().x(), 13.48437500000002);
+        approx::assert_relative_eq!(adjusted.position().y(), 55.21655462355652);
     }
 }

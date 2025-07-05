@@ -2,6 +2,11 @@
 
 All notable changes to this project will be documented in this file.
 
+## Unreleased
+
+* Fixed bug preventing map from entering detached state when `Memory::set_zoom` is called every
+  frame.
+
 ## 0.41.0
 
 * `Plugin::run()` has a new parameter `map_memory`, which allows plugins to access it after it is
