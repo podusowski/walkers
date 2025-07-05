@@ -1,7 +1,8 @@
 use egui::{Response, Vec2};
 
 use crate::{
-    position::{AdjustedPosition, Pixels, PixelsExt}, zoom, Position
+    position::{AdjustedPosition, Pixels, PixelsExt},
+    zoom, Position,
 };
 
 /// Time constant of inertia stopping filter
@@ -45,7 +46,12 @@ pub(crate) enum Center {
 }
 
 impl Center {
-    pub(crate) fn handle_gestures(&mut self, response: &Response, my_position: Position, zoom: f64) -> bool {
+    pub(crate) fn handle_gestures(
+        &mut self,
+        response: &Response,
+        my_position: Position,
+        zoom: f64,
+    ) -> bool {
         if response.dragged_by(egui::PointerButton::Primary) {
             self.dragged_by(my_position, response, zoom);
             true
@@ -66,9 +72,11 @@ impl Center {
         };
 
         *self = Center::Moving {
-            position: self
-                .adjusted_position()
-                .unwrap_or(AdjustedPosition::new(my_position, Default::default(), zoom)),
+            position: self.adjusted_position().unwrap_or(AdjustedPosition::new(
+                my_position,
+                Default::default(),
+                zoom,
+            )),
             direction: response.drag_delta(),
             from_detached,
         };
@@ -139,7 +147,11 @@ impl Center {
                 *self = if offset.to_vec2().length() < 1.0 {
                     Center::MyPosition
                 } else {
-                    Center::PulledToMyPosition(AdjustedPosition::new(position.position, offset, zoom))
+                    Center::PulledToMyPosition(AdjustedPosition::new(
+                        position.position,
+                        offset,
+                        zoom,
+                    ))
                 };
                 true
             }
@@ -150,7 +162,7 @@ impl Center {
     /// Returns exact position if map is detached (i.e. not following `my_position`),
     /// `None` otherwise.
     pub(crate) fn detached(&self, zoom: f64) -> Option<Position> {
-        self.adjusted_position().map(|p| p.position(zoom))
+        self.adjusted_position().map(|p| p.position())
     }
 
     fn adjusted_position(&self) -> Option<AdjustedPosition> {
@@ -199,9 +211,9 @@ impl Center {
         match self {
             Center::MyPosition => Center::MyPosition,
             Center::PulledToMyPosition(position) => {
-                Center::PulledToMyPosition(position.shift(offset,zoom))
+                Center::PulledToMyPosition(position.shift(offset, zoom))
             }
-            Center::Exact(position) => Center::Exact(position.shift(offset,zoom)),
+            Center::Exact(position) => Center::Exact(position.shift(offset, zoom)),
             Center::Moving {
                 position,
                 direction,
@@ -216,7 +228,7 @@ impl Center {
                 direction,
                 amount,
             } => Center::Inertia {
-                position: position.shift(offset,zoom),
+                position: position.shift(offset, zoom),
                 direction,
                 amount,
             },

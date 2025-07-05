@@ -42,14 +42,14 @@ impl AdjustedPosition {
     }
 
     /// Calculate the real position, i.e. including the offset.
-    pub(crate) fn position(&self, zoom: f64) -> Position {
-        unproject(project(self.position, zoom) - self.offset, zoom)
+    pub(crate) fn position(&self) -> Position {
+        unproject(project(self.position, self.zoom) - self.offset, self.zoom)
     }
 
     /// Recalculate `position` so that `offset` is zero.
     pub(crate) fn zero_offset(self, zoom: f64) -> Self {
         Self {
-            position: self.position(zoom),
+            position: self.position(),
             offset: Default::default(),
             zoom,
         }
@@ -57,8 +57,8 @@ impl AdjustedPosition {
 
     pub(crate) fn shift(self, offset: Vec2, zoom: f64) -> Self {
         Self {
-            position: self.position,
-            offset: self.offset + Pixels::new(offset.x as f64, offset.y as f64),
+            position: self.position(),
+            offset: Pixels::new(offset.x as f64, offset.y as f64),
             zoom,
         }
     }
