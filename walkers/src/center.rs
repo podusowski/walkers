@@ -173,32 +173,6 @@ impl Center {
         self.detached().unwrap_or(my_position)
     }
 
-    pub fn zero_offset(self, zoom: f64) -> Self {
-        match self {
-            Center::MyPosition => Center::MyPosition,
-            Center::PulledToMyPosition(_) => Center::MyPosition,
-            Center::Exact(position) => Center::Exact(position.zero_offset(zoom)),
-            Center::Moving {
-                position,
-                direction,
-                from_detached,
-            } => Center::Moving {
-                position: position.zero_offset(zoom),
-                direction,
-                from_detached,
-            },
-            Center::Inertia {
-                position,
-                direction,
-                amount,
-            } => Center::Inertia {
-                position: position.zero_offset(zoom),
-                direction,
-                amount,
-            },
-        }
-    }
-
     /// Shift position by given number of pixels, if detached.
     pub(crate) fn shift(self, offset: Vec2, zoom: f64) -> Self {
         match self {
