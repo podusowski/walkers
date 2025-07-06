@@ -30,22 +30,19 @@ impl MapMemory {
         self.zoom.into()
     }
 
-    /// Returns exact position if map is detached (i.e. not following `my_position`),
-    /// `None` otherwise.
+    /// If the map is in detached state, returns the geographical position
+    /// of the center. `None` if the map is not detached, i.e. following
+    /// `my_position`.
     pub fn detached(&self) -> Option<Position> {
         self.center_mode.detached()
     }
 
-    /// Center exactly at the given position.
+    /// Point the map exactly at the given geographical position.
     pub fn center_at(&mut self, position: Position) {
-        self.center_mode = Center::Exact(AdjustedPosition {
-            position,
-            offset: Default::default(),
-            zoom: self.zoom(),
-        });
+        self.center_mode = Center::Exact(AdjustedPosition::new(position));
     }
 
-    /// Follow `my_position`.
+    /// Start following `my_position` given in [`crate::Map::new`].
     pub fn follow_my_position(&mut self) {
         self.center_mode = Center::MyPosition;
     }
