@@ -130,14 +130,11 @@ impl Center {
                 true
             }
             Center::PulledToMyPosition(position) => {
-                // Shrink the offset towards zero.
-                let offset = position.offset / 2.0;
-                *self = if offset.to_vec2().length() < 1.0 {
+                let position = position.clone().half_offset();
+                *self = if position.offset_length() < 1.0 {
                     Center::MyPosition
                 } else {
-                    Center::PulledToMyPosition(
-                        AdjustedPosition::new(position.position).shift(offset.to_vec2(), zoom),
-                    )
+                    Center::PulledToMyPosition(position)
                 };
                 true
             }

@@ -23,11 +23,11 @@ pub fn lon_lat(lon: f64, lat: f64) -> Position {
 #[cfg_attr(feature = "serde", derive(::serde::Serialize, ::serde::Deserialize))]
 pub struct AdjustedPosition {
     /// Base geographical position.
-    pub position: Position,
+    position: Position,
     /// Offset in pixels.
-    pub offset: Pixels,
+    offset: Pixels,
     /// Zoom level at which the position was adjusted.
-    pub zoom: f64,
+    zoom: f64,
 }
 
 impl AdjustedPosition {
@@ -55,6 +55,14 @@ impl AdjustedPosition {
 
     pub fn offset_length(&self) -> f32 {
         self.offset.to_vec2().length()
+    }
+
+    pub fn half_offset(self) -> Self {
+        Self {
+            position: self.position,
+            offset: self.offset / 2.0,
+            zoom: self.zoom,
+        }
     }
 }
 
