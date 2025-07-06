@@ -45,11 +45,11 @@ impl AdjustedPosition {
     }
 
     pub(crate) fn shift(self, offset: Vec2, zoom: f64) -> Self {
-        let zoom_adjusted_offset = self.offset.to_vec2() * 2.0_f64.powf(zoom - self.zoom) as f32;
+        let changed_zoom_factor = 2.0_f32.powf(zoom as f32 - self.zoom as f32);
         Self {
             position: self.position,
-            offset: Pixels::from_vec2(zoom_adjusted_offset)
-                + Pixels::new(offset.x as f64, offset.y as f64),
+            offset: Pixels::from_vec2(self.offset.to_vec2() * changed_zoom_factor)
+                + Pixels::from_vec2(offset),
             zoom,
         }
     }
