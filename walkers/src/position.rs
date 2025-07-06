@@ -45,9 +45,12 @@ impl AdjustedPosition {
     }
 
     pub(crate) fn shift(self, offset: Vec2, zoom: f64) -> Self {
+        let zoom_adjusted_offset = self.offset.to_vec2() * 2.0_f64.powf(zoom - self.zoom) as f32;
+        let zoom_adjusted_offset =
+            Pixels::new(zoom_adjusted_offset.x as f64, zoom_adjusted_offset.y as f64);
         Self {
-            position: self.position(),
-            offset: Pixels::new(offset.x as f64, offset.y as f64),
+            position: self.position,
+            offset: zoom_adjusted_offset + Pixels::new(offset.x as f64, offset.y as f64),
             zoom,
         }
     }
@@ -73,6 +76,7 @@ impl PixelsExt for Pixels {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use approx::assert_relative_eq;
 
     fn base_adjusted_position() -> AdjustedPosition {
         AdjustedPosition::new(lat_lon(51.0, 17.0))
@@ -112,6 +116,10 @@ mod tests {
     #[test]
     fn test_adjusted_position_offset_length() {
         let position = base_adjusted_position().shift(Pixels::new(10.0, 0.0).to_vec2(), 10.0);
-        approx::assert_relative_eq!(position.offset_length(), 10.0);
+        assert_relative_eq!(position.offset_length(), 10.0);
+
+        // Shifting it further should increase the offset length.
+        let position = position.shift(Pixels::new(10.0, 0.0).to_vec2(), 10.0);
+        assert_relative_eq!(position.offset_length(), 20.0);
     }
 }

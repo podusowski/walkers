@@ -105,8 +105,7 @@ impl Center {
                 let offset = position.offset + Pixels::new(delta.x as f64, delta.y as f64);
 
                 *self = Center::Moving {
-                    position: AdjustedPosition::new(position.position)
-                        .shift(offset.to_vec2(), zoom),
+                    position: position.clone().shift(delta, zoom),
                     direction: *direction,
                     from_detached: *from_detached,
                 };
