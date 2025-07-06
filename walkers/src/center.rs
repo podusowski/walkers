@@ -116,13 +116,11 @@ impl Center {
                 *self = if amount < &mut 0.1 {
                     Center::Exact(position.to_owned())
                 } else {
-                    let delta = *direction * *amount;
-
                     // Exponentially drive the `amount` value towards zero
                     let lp_factor = INERTIA_TAU / (delta_time + INERTIA_TAU);
 
                     Center::Inertia {
-                        position: position.clone().shift(delta, zoom),
+                        position: position.clone().shift(*direction * *amount, zoom),
                         direction: *direction,
                         amount: *amount * lp_factor,
                     }
