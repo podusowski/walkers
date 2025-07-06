@@ -101,11 +101,8 @@ impl Center {
                 direction,
                 from_detached,
             } => {
-                let delta = *direction;
-                let offset = position.offset + Pixels::new(delta.x as f64, delta.y as f64);
-
                 *self = Center::Moving {
-                    position: position.clone().shift(delta, zoom),
+                    position: position.clone().shift(*direction, zoom),
                     direction: *direction,
                     from_detached: *from_detached,
                 };
