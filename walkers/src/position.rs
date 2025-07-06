@@ -31,7 +31,7 @@ pub struct AdjustedPosition {
 }
 
 impl AdjustedPosition {
-    pub(crate) fn new(position: Position) -> Self {
+    pub fn new(position: Position) -> Self {
         Self {
             position,
             offset: Pixels::new(0.0, 0.0),
@@ -40,11 +40,11 @@ impl AdjustedPosition {
     }
 
     /// Calculate the real position, i.e. including the offset.
-    pub(crate) fn position(&self) -> Position {
+    pub fn position(&self) -> Position {
         unproject(project(self.position, self.zoom) - self.offset, self.zoom)
     }
 
-    pub(crate) fn shift(self, offset: Vec2, zoom: f64) -> Self {
+    pub fn shift(self, offset: Vec2, zoom: f64) -> Self {
         let changed_zoom_factor = 2.0_f32.powf(zoom as f32 - self.zoom as f32);
         Self {
             position: self.position,
