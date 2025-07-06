@@ -46,11 +46,10 @@ impl AdjustedPosition {
 
     pub(crate) fn shift(self, offset: Vec2, zoom: f64) -> Self {
         let zoom_adjusted_offset = self.offset.to_vec2() * 2.0_f64.powf(zoom - self.zoom) as f32;
-        let zoom_adjusted_offset =
-            Pixels::new(zoom_adjusted_offset.x as f64, zoom_adjusted_offset.y as f64);
         Self {
             position: self.position,
-            offset: zoom_adjusted_offset + Pixels::new(offset.x as f64, offset.y as f64),
+            offset: Pixels::from_vec2(zoom_adjusted_offset)
+                + Pixels::new(offset.x as f64, offset.y as f64),
             zoom,
         }
     }
@@ -65,11 +64,16 @@ pub type Pixels = geo_types::Point;
 
 pub trait PixelsExt {
     fn to_vec2(&self) -> egui::Vec2;
+    fn from_vec2(_: egui::Vec2) -> Self;
 }
 
 impl PixelsExt for Pixels {
     fn to_vec2(&self) -> egui::Vec2 {
         egui::Vec2::new(self.x() as f32, self.y() as f32)
+    }
+
+    fn from_vec2(vec2: egui::Vec2) -> Self {
+        Pixels::new(vec2.x as f64, vec2.y as f64)
     }
 }
 
