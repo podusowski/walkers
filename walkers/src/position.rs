@@ -51,6 +51,10 @@ impl AdjustedPosition {
             zoom,
         }
     }
+
+    pub fn offset_length(&self) -> f32 {
+        self.offset.to_vec2().length()
+    }
 }
 
 /// Location projected on the screen or an abstract bitmap.
@@ -90,5 +94,13 @@ mod tests {
             .shift(Pixels::new(0.0, 0.0).to_vec2(), 10.0);
         approx::assert_relative_eq!(adjusted.position().x(), 13.48437500000002);
         approx::assert_relative_eq!(adjusted.position().y(), 55.21655462355652);
+    }
+
+    #[test]
+    fn test_adjusted_position_offset_length() {
+        let adjusted =
+            AdjustedPosition::new(lat_lon(0.0, 0.0)).shift(Pixels::new(10.0, 0.0).to_vec2(), 10.0);
+
+        approx::assert_relative_eq!(adjusted.offset_length(), 10.0);
     }
 }

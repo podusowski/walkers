@@ -82,8 +82,7 @@ impl Center {
             from_detached,
         } = &self
         {
-            if *from_detached || position.offset.to_vec2().length() > PULL_TO_MY_POSITION_THRESHOLD
-            {
+            if *from_detached || position.offset_length() > PULL_TO_MY_POSITION_THRESHOLD {
                 *self = Center::Inertia {
                     position: position.clone(),
                     direction: direction.normalized(),
