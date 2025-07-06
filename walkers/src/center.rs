@@ -1,9 +1,5 @@
+use crate::{position::AdjustedPosition, Position};
 use egui::{Response, Vec2};
-
-use crate::{
-    position::{AdjustedPosition, Pixels, PixelsExt},
-    Position,
-};
 
 /// Time constant of inertia stopping filter
 const INERTIA_TAU: f32 = 0.2f32;
@@ -69,7 +65,7 @@ impl Center {
         *self = Center::Moving {
             position: self
                 .adjusted_position()
-                .unwrap_or(AdjustedPosition::new(my_position, Default::default())),
+                .unwrap_or(AdjustedPosition::new(my_position)),
             direction: response.drag_delta(),
             from_detached,
         };
@@ -82,8 +78,7 @@ impl Center {
             from_detached,
         } = &self
         {
-            if *from_detached || position.offset.to_vec2().length() > PULL_TO_MY_POSITION_THRESHOLD
-            {
+            if *from_detached || position.offset_length() > PULL_TO_MY_POSITION_THRESHOLD {
                 *self = Center::Inertia {
                     position: position.clone(),
                     direction: direction.normalized(),
@@ -95,18 +90,15 @@ impl Center {
         }
     }
 
-    pub(crate) fn update_movement(&mut self, delta_time: f32) -> bool {
+    pub(crate) fn update_movement(&mut self, delta_time: f32, zoom: f64) -> bool {
         match &self {
             Center::Moving {
                 position,
                 direction,
                 from_detached,
             } => {
-                let delta = *direction;
-                let offset = position.offset + Pixels::new(delta.x as f64, delta.y as f64);
-
                 *self = Center::Moving {
-                    position: AdjustedPosition::new(position.position, offset),
+                    position: position.clone().shift(*direction, zoom),
                     direction: *direction,
                     from_detached: *from_detached,
                 };
@@ -120,14 +112,11 @@ impl Center {
                 *self = if amount < &mut 0.1 {
                     Center::Exact(position.to_owned())
                 } else {
-                    let delta = *direction * *amount;
-                    let offset = position.offset + Pixels::new(delta.x as f64, delta.y as f64);
-
                     // Exponentially drive the `amount` value towards zero
                     let lp_factor = INERTIA_TAU / (delta_time + INERTIA_TAU);
 
                     Center::Inertia {
-                        position: AdjustedPosition::new(position.position, offset),
+                        position: position.clone().shift(*direction * *amount, zoom),
                         direction: *direction,
                         amount: *amount * lp_factor,
                     }
@@ -135,12 +124,11 @@ impl Center {
                 true
             }
             Center::PulledToMyPosition(position) => {
-                // Shrink the offset towards zero.
-                let offset = position.offset / 2.0;
-                *self = if offset.to_vec2().length() < 1.0 {
+                let position = position.clone().half_offset();
+                *self = if position.offset_length() < 1.0 {
                     Center::MyPosition
                 } else {
-                    Center::PulledToMyPosition(AdjustedPosition::new(position.position, offset))
+                    Center::PulledToMyPosition(position)
                 };
                 true
             }
@@ -150,8 +138,8 @@ impl Center {
 
     /// Returns exact position if map is detached (i.e. not following `my_position`),
     /// `None` otherwise.
-    pub(crate) fn detached(&self, zoom: f64) -> Option<Position> {
-        self.adjusted_position().map(|p| p.position(zoom))
+    pub(crate) fn detached(&self) -> Option<Position> {
+        self.adjusted_position().map(|p| p.position())
     }
 
     fn adjusted_position(&self) -> Option<AdjustedPosition> {
@@ -165,50 +153,24 @@ impl Center {
     }
 
     /// Get the real position at the map's center.
-    pub fn position(&self, my_position: Position, zoom: f64) -> Position {
-        self.detached(zoom).unwrap_or(my_position)
-    }
-
-    pub fn zero_offset(self, zoom: f64) -> Self {
-        match self {
-            Center::MyPosition => Center::MyPosition,
-            Center::PulledToMyPosition(_) => Center::MyPosition,
-            Center::Exact(position) => Center::Exact(position.zero_offset(zoom)),
-            Center::Moving {
-                position,
-                direction,
-                from_detached,
-            } => Center::Moving {
-                position: position.zero_offset(zoom),
-                direction,
-                from_detached,
-            },
-            Center::Inertia {
-                position,
-                direction,
-                amount,
-            } => Center::Inertia {
-                position: position.zero_offset(zoom),
-                direction,
-                amount,
-            },
-        }
+    pub fn position(&self, my_position: Position) -> Position {
+        self.detached().unwrap_or(my_position)
     }
 
     /// Shift position by given number of pixels, if detached.
-    pub(crate) fn shift(self, offset: Vec2) -> Self {
+    pub(crate) fn shift(self, offset: Vec2, zoom: f64) -> Self {
         match self {
             Center::MyPosition => Center::MyPosition,
             Center::PulledToMyPosition(position) => {
-                Center::PulledToMyPosition(position.shift(offset))
+                Center::PulledToMyPosition(position.shift(offset, zoom))
             }
-            Center::Exact(position) => Center::Exact(position.shift(offset)),
+            Center::Exact(position) => Center::Exact(position.shift(offset, zoom)),
             Center::Moving {
                 position,
                 direction,
                 from_detached,
             } => Center::Moving {
-                position: position.shift(offset),
+                position: position.shift(offset, zoom),
                 direction,
                 from_detached,
             },
@@ -217,7 +179,7 @@ impl Center {
                 direction,
                 amount,
             } => Center::Inertia {
-                position: position.shift(offset),
+                position: position.shift(offset, zoom),
                 direction,
                 amount,
             },

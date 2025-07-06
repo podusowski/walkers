@@ -11,19 +11,16 @@ pub struct MapMemory {
 impl MapMemory {
     /// Try to zoom in, returning `Err(InvalidZoom)` if already at maximum.
     pub fn zoom_in(&mut self) -> Result<(), InvalidZoom> {
-        self.center_mode = self.center_mode.clone().zero_offset(self.zoom.into());
         self.zoom.zoom_in()
     }
 
     /// Try to zoom out, returning `Err(InvalidZoom)` if already at minimum.
     pub fn zoom_out(&mut self) -> Result<(), InvalidZoom> {
-        self.center_mode = self.center_mode.clone().zero_offset(self.zoom.into());
         self.zoom.zoom_out()
     }
 
     /// Set exact zoom level
     pub fn set_zoom(&mut self, zoom: f64) -> Result<(), InvalidZoom> {
-        self.center_mode = self.center_mode.clone().zero_offset(self.zoom.into());
         self.zoom = Zoom::try_from(zoom)?;
         Ok(())
     }
@@ -33,21 +30,19 @@ impl MapMemory {
         self.zoom.into()
     }
 
-    /// Returns exact position if map is detached (i.e. not following `my_position`),
-    /// `None` otherwise.
+    /// If the map is in detached state, returns the geographical position
+    /// of the center. `None` if the map is not detached, i.e. following
+    /// `my_position`.
     pub fn detached(&self) -> Option<Position> {
-        self.center_mode.detached(self.zoom.into())
+        self.center_mode.detached()
     }
 
-    /// Center exactly at the given position.
+    /// Point the map exactly at the given geographical position.
     pub fn center_at(&mut self, position: Position) {
-        self.center_mode = Center::Exact(AdjustedPosition {
-            position,
-            offset: Default::default(),
-        });
+        self.center_mode = Center::Exact(AdjustedPosition::new(position));
     }
 
-    /// Follow `my_position`.
+    /// Start following `my_position` given in [`crate::Map::new`].
     pub fn follow_my_position(&mut self) {
         self.center_mode = Center::MyPosition;
     }

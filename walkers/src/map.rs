@@ -187,9 +187,7 @@ impl Map<'_, '_, '_> {
                     || offset.length() > PULL_TO_MY_POSITION_THRESHOLD
                 {
                     self.memory.center_mode = Center::Exact(
-                        AdjustedPosition::from(self.position())
-                            .shift(-offset)
-                            .zero_offset(self.memory.zoom()),
+                        AdjustedPosition::new(self.position()).shift(-offset, self.memory.zoom()),
                     );
                 }
             }
@@ -200,15 +198,12 @@ impl Map<'_, '_, '_> {
                 .zoom
                 .zoom_by((zoom_delta - 1.) * self.zoom_speed);
 
-            // Recalculate the AdjustedPosition's offset, since it gets invalidated by zooming.
-            self.memory.center_mode = self
-                .memory
-                .center_mode
-                .clone()
-                .zero_offset(self.memory.zoom());
-
             if let Some(offset) = offset {
-                self.memory.center_mode = self.memory.center_mode.clone().shift(offset);
+                self.memory.center_mode = self
+                    .memory
+                    .center_mode
+                    .clone()
+                    .shift(offset, self.memory.zoom());
             }
 
             changed = true;
@@ -227,8 +222,9 @@ impl Map<'_, '_, '_> {
             // Panning by scrolling, e.g. two-finger drag on a touchpad:
             let scroll_delta = ui.input(|i| i.smooth_scroll_delta);
             if scroll_delta != Vec2::ZERO {
-                self.memory.center_mode =
-                    Center::Exact(AdjustedPosition::from(self.position()).shift(scroll_delta));
+                self.memory.center_mode = Center::Exact(
+                    AdjustedPosition::new(self.position()).shift(scroll_delta, self.memory.zoom()),
+                );
             }
         }
 
@@ -265,9 +261,7 @@ impl Map<'_, '_, '_> {
 
     /// Get the real position at the map's center.
     fn position(&self) -> Position {
-        self.memory
-            .center_mode
-            .position(self.my_position, self.memory.zoom())
+        self.memory.center_mode.position(self.my_position)
     }
 }
 
@@ -278,14 +272,17 @@ impl Widget for Map<'_, '_, '_> {
 
         let mut changed = self.handle_gestures(ui, &response);
         let delta_time = ui.ctx().input(|reader| reader.stable_dt);
-        changed |= self.memory.center_mode.update_movement(delta_time);
+        let zoom = self.memory.zoom;
+        changed |= self
+            .memory
+            .center_mode
+            .update_movement(delta_time, zoom.into());
 
         if changed {
             response.mark_changed();
             ui.ctx().request_repaint();
         }
 
-        let zoom = self.memory.zoom;
         let map_center = self.position();
         let painter = ui.painter().with_clip_rect(rect);
 

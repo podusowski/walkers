@@ -28,13 +28,9 @@ impl Projector {
         // Turn that into a flat, mercator projection.
         let projected_position = project(position, self.memory.zoom());
 
-        // We need the precision of f64 here,
-        // since some "gaps" between tiles are noticeable on large zoom levels (e.g. 16+)
-        let zoom: f64 = self.memory.zoom();
-
         // We also need to know where the map center is.
         let map_center_projected_position = project(
-            self.memory.center_mode.position(self.my_position, zoom),
+            self.memory.center_mode.position(self.my_position),
             self.memory.zoom(),
         );
 
@@ -46,7 +42,7 @@ impl Projector {
     /// Get coordinates from viewport's pixels position
     pub fn unproject(&self, position: Vec2) -> Position {
         let zoom: f64 = self.memory.zoom();
-        let center = self.memory.center_mode.position(self.my_position, zoom);
+        let center = self.memory.center_mode.position(self.my_position);
 
         // Despite being in pixel space `map_center_projected_position` is sufficiently large
         // that we must do the arithmetic in f64 to avoid imprecision.
