@@ -97,6 +97,18 @@ mod tests {
     }
 
     #[test]
+    fn shifting_adjusted_position_using_different_zoom() {
+        let position = lat_lon(51.0, 17.0);
+
+        let adjusted = AdjustedPosition::new(position)
+            .shift(Pixels::new(5.0, 10.0).to_vec2(), 10.0)
+            .shift(Pixels::new(10.0, 20.0).to_vec2(), 11.0);
+
+        approx::assert_relative_eq!(adjusted.position().x(), 16.98626708984377);
+        approx::assert_relative_eq!(adjusted.position().y(), 51.017281581280216);
+    }
+
+    #[test]
     fn test_adjusted_position_offset_length() {
         let adjusted =
             AdjustedPosition::new(lat_lon(0.0, 0.0)).shift(Pixels::new(10.0, 0.0).to_vec2(), 10.0);
