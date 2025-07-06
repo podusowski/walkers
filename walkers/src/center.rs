@@ -1,9 +1,5 @@
+use crate::{position::AdjustedPosition, Position};
 use egui::{Response, Vec2};
-
-use crate::{
-    position::{AdjustedPosition, PixelsExt},
-    Position,
-};
 
 /// Time constant of inertia stopping filter
 const INERTIA_TAU: f32 = 0.2f32;
