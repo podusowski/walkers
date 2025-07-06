@@ -1,7 +1,7 @@
 use egui::{Response, Vec2};
 
 use crate::{
-    position::{AdjustedPosition, Pixels, PixelsExt},
+    position::{AdjustedPosition, PixelsExt},
     Position,
 };
 
