@@ -33,6 +33,30 @@ struct Layer<'a> {
     transparency: f32,
 }
 
+struct Options {
+    zoom_gesture_enabled: bool,
+    drag_gesture_enabled: bool,
+    zoom_speed: f64,
+    double_click_to_zoom: bool,
+    double_click_to_zoom_out: bool,
+    zoom_with_ctrl: bool,
+    panning: bool,
+}
+
+impl Default for Options {
+    fn default() -> Self {
+        Self {
+            zoom_gesture_enabled: true,
+            drag_gesture_enabled: true,
+            zoom_speed: 2.0,
+            double_click_to_zoom: false,
+            double_click_to_zoom_out: false,
+            zoom_with_ctrl: true,
+            panning: true,
+        }
+    }
+}
+
 /// The actual map widget. Instances are to be created on each frame, as all necessary state is
 /// stored in [`Tiles`] and [`MapMemory`].
 ///
@@ -59,14 +83,7 @@ pub struct Map<'a, 'b, 'c> {
     memory: &'a mut MapMemory,
     my_position: Position,
     plugins: Vec<Box<dyn Plugin + 'c>>,
-
-    zoom_gesture_enabled: bool,
-    drag_gesture_enabled: bool,
-    zoom_speed: f64,
-    double_click_to_zoom: bool,
-    double_click_to_zoom_out: bool,
-    zoom_with_ctrl: bool,
-    panning: bool,
+    options: Options,
 }
 
 impl<'a, 'b, 'c> Map<'a, 'b, 'c> {
@@ -81,13 +98,7 @@ impl<'a, 'b, 'c> Map<'a, 'b, 'c> {
             memory,
             my_position,
             plugins: Vec::default(),
-            zoom_gesture_enabled: true,
-            drag_gesture_enabled: true,
-            zoom_speed: 2.0,
-            double_click_to_zoom: false,
-            double_click_to_zoom_out: false,
-            zoom_with_ctrl: true,
-            panning: true,
+            options: Options::default(),
         }
     }
 
@@ -111,32 +122,32 @@ impl<'a, 'b, 'c> Map<'a, 'b, 'c> {
     /// Zoom is typically triggered by the mouse wheel while holding <kbd>ctrl</kbd> key on native
     /// and web, and by pinch gesture on Android.
     pub fn zoom_gesture(mut self, enabled: bool) -> Self {
-        self.zoom_gesture_enabled = enabled;
+        self.options.zoom_gesture_enabled = enabled;
         self
     }
 
     /// Set whether map should perform drag gesture.
     pub fn drag_gesture(mut self, enabled: bool) -> Self {
-        self.drag_gesture_enabled = enabled;
+        self.options.drag_gesture_enabled = enabled;
         self
     }
 
     /// Change how far to zoom in/out.
     /// Default value is 2.0
     pub fn zoom_speed(mut self, speed: f64) -> Self {
-        self.zoom_speed = speed;
+        self.options.zoom_speed = speed;
         self
     }
 
     /// Set whether to enable double click primary mouse button to zoom
     pub fn double_click_to_zoom(mut self, enabled: bool) -> Self {
-        self.double_click_to_zoom = enabled;
+        self.options.double_click_to_zoom = enabled;
         self
     }
 
     /// Set whether to enable double click secondary mouse button to zoom out
     pub fn double_click_to_zoom_out(mut self, enabled: bool) -> Self {
-        self.double_click_to_zoom_out = enabled;
+        self.options.double_click_to_zoom_out = enabled;
         self
     }
 
@@ -150,7 +161,7 @@ impl<'a, 'b, 'c> Map<'a, 'b, 'c> {
     ///
     /// Has no effect on Android
     pub fn zoom_with_ctrl(mut self, enabled: bool) -> Self {
-        self.zoom_with_ctrl = enabled;
+        self.options.zoom_with_ctrl = enabled;
         self
     }
 
@@ -158,7 +169,7 @@ impl<'a, 'b, 'c> Map<'a, 'b, 'c> {
     /// By default, panning is disabled when zooming with ctrl is disabled.
     /// Allow to disable panning even when zooming with ctrl is enabled.
     pub fn panning(mut self, enabled: bool) -> Self {
-        self.panning = enabled;
+        self.options.panning = enabled;
         self
     }
 }
@@ -172,7 +183,9 @@ impl Map<'_, '_, '_> {
 
         // Zooming and dragging need to be exclusive, otherwise the map will get dragged when
         // pinch gesture is used.
-        if (zoom_delta - 1.0).abs() > 0.01 && ui.ui_contains_pointer() && self.zoom_gesture_enabled
+        if (zoom_delta - 1.0).abs() > 0.01
+            && ui.ui_contains_pointer()
+            && self.options.zoom_gesture_enabled
         {
             // Displacement of mouse pointer relative to widget center
             let offset = input_offset(ui, response);
@@ -196,7 +209,7 @@ impl Map<'_, '_, '_> {
             // because then it felt right with both mouse wheel, and an Android phone.
             self.memory
                 .zoom
-                .zoom_by((zoom_delta - 1.) * self.zoom_speed);
+                .zoom_by((zoom_delta - 1.) * self.options.zoom_speed);
 
             if let Some(offset) = offset {
                 self.memory.center_mode = self
@@ -207,7 +220,7 @@ impl Map<'_, '_, '_> {
             }
 
             changed = true;
-        } else if self.drag_gesture_enabled {
+        } else if self.options.drag_gesture_enabled {
             changed = self
                 .memory
                 .center_mode
@@ -216,7 +229,7 @@ impl Map<'_, '_, '_> {
 
         // Only enable panning with mouse_wheel if we are zooming with ctrl. But always allow touch devices to pan
         let panning_enabled =
-            self.panning && (ui.input(|i| i.any_touches()) || self.zoom_with_ctrl);
+            self.options.panning && (ui.input(|i| i.any_touches()) || self.options.zoom_with_ctrl);
 
         if ui.ui_contains_pointer() && panning_enabled {
             // Panning by scrolling, e.g. two-finger drag on a touchpad:
@@ -235,21 +248,21 @@ impl Map<'_, '_, '_> {
     fn zoom_delta(&self, ui: &mut Ui, response: &Response) -> f64 {
         let mut zoom_delta = ui.input(|input| input.zoom_delta()) as f64;
 
-        if self.double_click_to_zoom
+        if self.options.double_click_to_zoom
             && ui.ui_contains_pointer()
             && response.double_clicked_by(PointerButton::Primary)
         {
             zoom_delta = 2.0;
         }
 
-        if self.double_click_to_zoom_out
+        if self.options.double_click_to_zoom_out
             && ui.ui_contains_pointer()
             && response.double_clicked_by(PointerButton::Secondary)
         {
             zoom_delta = 0.0;
         }
 
-        if !self.zoom_with_ctrl && zoom_delta == 1.0 {
+        if !self.options.zoom_with_ctrl && zoom_delta == 1.0 {
             // We only use the raw scroll values, if we are zooming without ctrl,
             // and zoom_delta is not already over/under 1.0 (eg. a ctrl + scroll event or a pinch zoom)
             // These values seem to correspond to the same values as one would get in `zoom_delta()`
