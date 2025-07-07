@@ -1,10 +1,8 @@
 use egui::{PointerButton, Response, Sense, Ui, UiBuilder, Vec2, Widget};
 
 use crate::{
-    center::{Center, PULL_TO_MY_POSITION_THRESHOLD},
-    position::AdjustedPosition,
-    tiles::draw_tiles,
-    MapMemory, Position, Projector, Tiles,
+    center::Center, position::AdjustedPosition, tiles::draw_tiles, MapMemory, Position, Projector,
+    Tiles,
 };
 
 /// Plugins allow drawing custom shapes on the map. After implementing this trait for your type,
@@ -41,6 +39,7 @@ struct Options {
     double_click_to_zoom_out: bool,
     zoom_with_ctrl: bool,
     panning: bool,
+    pull_to_my_position_threshold: f32,
 }
 
 impl Default for Options {
@@ -53,6 +52,7 @@ impl Default for Options {
             double_click_to_zoom_out: false,
             zoom_with_ctrl: true,
             panning: true,
+            pull_to_my_position_threshold: 0.0,
         }
     }
 }
@@ -172,6 +172,15 @@ impl<'a, 'b, 'c> Map<'a, 'b, 'c> {
         self.options.panning = enabled;
         self
     }
+
+    /// Set the threshold for pulling the map back to `my_position` when dragged.
+    ///
+    /// It can be used to prevent the map from being accidentally detached when the user clicks on
+    /// something causing a small drag.
+    pub fn pull_to_my_position_threshold(mut self, threshold: f32) -> Self {
+        self.options.pull_to_my_position_threshold = threshold;
+        self
+    }
 }
 
 impl Map<'_, '_, '_> {
@@ -197,7 +206,7 @@ impl Map<'_, '_, '_> {
             if let Some(offset) = offset {
                 // If map is tracking `my_position` and the input offset is close, just let it be.
                 if self.memory.detached().is_some()
-                    || offset.length() > PULL_TO_MY_POSITION_THRESHOLD
+                    || offset.length() > self.options.pull_to_my_position_threshold
                 {
                     self.memory.center_mode = Center::Exact(
                         AdjustedPosition::new(self.position()).shift(-offset, self.memory.zoom()),
@@ -221,10 +230,11 @@ impl Map<'_, '_, '_> {
 
             changed = true;
         } else if self.options.drag_gesture_enabled {
-            changed = self
-                .memory
-                .center_mode
-                .handle_gestures(response, self.my_position);
+            changed = self.memory.center_mode.handle_gestures(
+                response,
+                self.my_position,
+                self.options.pull_to_my_position_threshold,
+            );
         }
 
         // Only enable panning with mouse_wheel if we are zooming with ctrl. But always allow touch devices to pan
