@@ -4,9 +4,6 @@ use egui::{Response, Vec2};
 /// Time constant of inertia stopping filter
 const INERTIA_TAU: f32 = 0.2f32;
 
-/// Threshold for pulling the map back to `my_position` after dragging or zooming.
-pub(crate) const PULL_TO_MY_POSITION_THRESHOLD: f32 = 20.0;
-
 /// Position of the map's center. Initially, the map follows `my_position` argument which typically
 /// is meant to be fed by a GPS sensor or other geo-localization method. If user drags the map,
 /// it becomes "detached" and stays this way until [`MapMemory::center_mode`] is changed back to
@@ -42,12 +39,17 @@ pub(crate) enum Center {
 }
 
 impl Center {
-    pub(crate) fn handle_gestures(&mut self, response: &Response, my_position: Position) -> bool {
+    pub(crate) fn handle_gestures(
+        &mut self,
+        response: &Response,
+        my_position: Position,
+        pull_to_my_position_threshold: f32,
+    ) -> bool {
         if response.dragged_by(egui::PointerButton::Primary) {
             self.dragged_by(my_position, response);
             true
         } else if response.drag_stopped() {
-            self.drag_stopped();
+            self.drag_stopped(pull_to_my_position_threshold);
             true
         } else {
             false
@@ -71,14 +73,14 @@ impl Center {
         };
     }
 
-    fn drag_stopped(&mut self) {
+    fn drag_stopped(&mut self, pull_to_my_position_threshold: f32) {
         if let Center::Moving {
             position,
             direction,
             from_detached,
         } = &self
         {
-            if *from_detached || position.offset_length() > PULL_TO_MY_POSITION_THRESHOLD {
+            if *from_detached || position.offset_length() > pull_to_my_position_threshold {
                 *self = Center::Inertia {
                     position: position.clone(),
                     direction: direction.normalized(),
