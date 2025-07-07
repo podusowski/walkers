@@ -52,7 +52,7 @@ impl Default for Options {
             double_click_to_zoom_out: false,
             zoom_with_ctrl: true,
             panning: true,
-            pull_to_my_position_threshold: 20.0,
+            pull_to_my_position_threshold: 0.0,
         }
     }
 }
