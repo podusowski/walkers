@@ -6,6 +6,8 @@ All notable changes to this project will be documented in this file.
 
 * Fixed bug preventing map from entering detached state when `Memory::set_zoom` is called every
   frame.
+* New `Map::pull_to_my_position_threshold` function for setting the threshold of the feature
+  introduced in 0.40.0.
 
 ## 0.41.0
 
