@@ -2,7 +2,7 @@
 
 All notable changes to this project will be documented in this file.
 
-## Unreleased
+## 0.42.0
 
 * Fixed bug preventing map from entering detached state when `Memory::set_zoom` is called every
   frame.
