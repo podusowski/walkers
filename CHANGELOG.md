@@ -8,6 +8,7 @@ All notable changes to this project will be documented in this file.
   frame.
 * New `Map::pull_to_my_position_threshold` function for setting the threshold of the feature
   introduced in 0.40.0. It defaults to `0.0`, meaning that the map will not be pulled at all.
+* Bump egui to 0.32
 * Bump MSRV to 1.85
 
 ## 0.41.0
