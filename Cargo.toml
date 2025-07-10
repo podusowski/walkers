@@ -16,15 +16,14 @@ rust-version = "1.85" # Aligned to egui
 [workspace.dependencies]
 image = { version = "0.25", default-features = false }
 log = "0.4"
-egui = "0.31.1"
-egui_extras = { version = "0.31.1", features = ["svg"] }
-eframe = "0.31.1"
-egui-winit = "0.31.1"
+egui = "0.32"
+egui_extras = { version = "0.32", features = ["svg"] }
+eframe = "0.32"
+egui-winit = "0.32"
 
 
-# TODO: remove this and bump egui to 0.32 when released
 [patch.crates-io]
-eframe = { git = "https://github.com/emilk/egui.git", branch = "main" }
-egui = { git = "https://github.com/emilk/egui.git", branch = "main" }
-egui_extras = { git = "https://github.com/emilk/egui.git", branch = "main" }
-egui-winit = { git = "https://github.com/emilk/egui.git", branch = "main" }
+#eframe = { git = "https://github.com/emilk/egui.git", branch = "main" }
+#egui = { git = "https://github.com/emilk/egui.git", branch = "main" }
+#egui_extras = { git = "https://github.com/emilk/egui.git", branch = "main" }
+#egui-winit = { git = "https://github.com/emilk/egui.git", branch = "main" }
