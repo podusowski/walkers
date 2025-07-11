@@ -10,7 +10,7 @@ members = [
 resolver = "2"
 
 [workspace.package]
-version = "0.42.0"
+version = "0.43.0"
 rust-version = "1.85" # Aligned to egui
 
 [workspace.dependencies]
@@ -20,7 +20,6 @@ egui = "0.32"
 egui_extras = { version = "0.32", features = ["svg"] }
 eframe = "0.32"
 egui-winit = "0.32"
-
 
 [patch.crates-io]
 #eframe = { git = "https://github.com/emilk/egui.git", branch = "main" }
