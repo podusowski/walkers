@@ -32,7 +32,7 @@ wasm-bindgen-futures = "0.4"
 
 [target.'cfg(not(target_family = "wasm"))'.dependencies]
 tokio = "1"
-http-cache-reqwest = "0.15.1"
+http-cache-reqwest = "0.16.0"
 
 [dev-dependencies]
 eframe.workspace = true
