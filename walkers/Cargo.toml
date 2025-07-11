@@ -28,7 +28,7 @@ serde = { version = "1", features = ["derive"], optional = true }
 reqwest-middleware = "0.4.2"
 
 [target.'cfg(target_family = "wasm")'.dependencies]
-wasm-bindgen-futures = "0.4.37"
+wasm-bindgen-futures = "0.4"
 
 [target.'cfg(not(target_family = "wasm"))'.dependencies]
 tokio = "1"

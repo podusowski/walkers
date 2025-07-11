@@ -2,6 +2,11 @@
 
 All notable changes to this project will be documented in this file.
 
+## Unreleased
+
+* `egui` updated to 0.32.
+* MSRV set to 1.85.
+
 ## 0.42.0
 
 * Fixed bug preventing map from entering detached state when `Memory::set_zoom` is called every
