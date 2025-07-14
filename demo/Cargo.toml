@@ -11,4 +11,4 @@ egui.workspace = true
 egui_extras.workspace = true
 
 # This is needed until https://github.com/emilk/egui/pull/7344 is released.
-wgpu = { version = "25", default-features = true }
+wgpu = { version = "26", default-features = true }
