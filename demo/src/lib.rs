@@ -7,7 +7,7 @@ mod windows;
 use std::collections::BTreeMap;
 
 use crate::plugins::ImagesPluginData;
-use egui::{CentralPanel, Context, Frame};
+use egui::{CentralPanel, Context, DragPanButtons, Frame};
 use tiles::{providers, Provider, TilesKind};
 use walkers::{Map, MapMemory};
 
@@ -54,7 +54,9 @@ impl eframe::App for MyApp {
             let mut map = Map::new(None, &mut self.map_memory, my_position);
 
             // Various aspects of the map can be configured.
-            map = map.zoom_with_ctrl(self.zoom_with_ctrl);
+            map = map
+                .zoom_with_ctrl(self.zoom_with_ctrl)
+                .drag_pan_buttons(DragPanButtons::PRIMARY | DragPanButtons::SECONDARY);
 
             // Optionally, plugins can be attached.
             map = map
