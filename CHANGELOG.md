@@ -2,6 +2,11 @@
 
 All notable changes to this project will be documented in this file.
 
+## Unreleased
+
+* `Map::drag_gesture()` is replaced by `Map::drag_pan_buttons()`, which allows configuring which
+  mouse buttons can be used for dragging.
+
 ## 0.43.0
 
 * `egui` updated to 0.32.

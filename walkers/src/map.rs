@@ -1,4 +1,4 @@
-use egui::{PointerButton, Response, Sense, Ui, UiBuilder, Vec2, Widget};
+use egui::{DragPanButtons, PointerButton, Response, Sense, Ui, UiBuilder, Vec2, Widget};
 
 use crate::{
     center::Center, position::AdjustedPosition, tiles::draw_tiles, MapMemory, Position, Projector,
@@ -33,7 +33,7 @@ struct Layer<'a> {
 
 struct Options {
     zoom_gesture_enabled: bool,
-    drag_gesture_enabled: bool,
+    drag_pan_buttons: DragPanButtons,
     zoom_speed: f64,
     double_click_to_zoom: bool,
     double_click_to_zoom_out: bool,
@@ -46,7 +46,7 @@ impl Default for Options {
     fn default() -> Self {
         Self {
             zoom_gesture_enabled: true,
-            drag_gesture_enabled: true,
+            drag_pan_buttons: DragPanButtons::PRIMARY,
             zoom_speed: 2.0,
             double_click_to_zoom: false,
             double_click_to_zoom_out: false,
@@ -126,9 +126,9 @@ impl<'a, 'b, 'c> Map<'a, 'b, 'c> {
         self
     }
 
-    /// Set whether map should perform drag gesture.
-    pub fn drag_gesture(mut self, enabled: bool) -> Self {
-        self.options.drag_gesture_enabled = enabled;
+    /// Specify which pointer buttons can be used to pan by clicking and dragging.
+    pub fn drag_pan_buttons(mut self, buttons: DragPanButtons) -> Self {
+        self.options.drag_pan_buttons = buttons;
         self
     }
 
@@ -188,11 +188,9 @@ impl Map<'_, '_, '_> {
     fn handle_gestures(&mut self, ui: &mut Ui, response: &Response) -> bool {
         let zoom_delta = self.zoom_delta(ui, response);
 
-        let mut changed = false;
-
         // Zooming and dragging need to be exclusive, otherwise the map will get dragged when
         // pinch gesture is used.
-        if (zoom_delta - 1.0).abs() > 0.01
+        let changed = if (zoom_delta - 1.0).abs() > 0.01
             && ui.ui_contains_pointer()
             && self.options.zoom_gesture_enabled
         {
@@ -228,14 +226,15 @@ impl Map<'_, '_, '_> {
                     .shift(offset, self.memory.zoom());
             }
 
-            changed = true;
-        } else if self.options.drag_gesture_enabled {
-            changed = self.memory.center_mode.handle_gestures(
+            true
+        } else {
+            self.memory.center_mode.handle_gestures(
                 response,
                 self.my_position,
                 self.options.pull_to_my_position_threshold,
-            );
-        }
+                self.options.drag_pan_buttons,
+            )
+        };
 
         // Only enable panning with mouse_wheel if we are zooming with ctrl. But always allow touch devices to pan
         let panning_enabled =

@@ -1,5 +1,5 @@
 use crate::{position::AdjustedPosition, Position};
-use egui::{Response, Vec2};
+use egui::{DragPanButtons, PointerButton, Response, Vec2};
 
 /// Time constant of inertia stopping filter
 const INERTIA_TAU: f32 = 0.2f32;
@@ -44,8 +44,9 @@ impl Center {
         response: &Response,
         my_position: Position,
         pull_to_my_position_threshold: f32,
+        drag_pan_buttons: DragPanButtons,
     ) -> bool {
-        if response.dragged_by(egui::PointerButton::Primary) {
+        if dragged_by(response, drag_pan_buttons) {
             self.dragged_by(my_position, response);
             true
         } else if response.drag_stopped() {
@@ -187,4 +188,15 @@ impl Center {
             },
         }
     }
+}
+
+fn dragged_by(response: &Response, buttons: DragPanButtons) -> bool {
+    buttons.iter().any(|button| match button {
+        DragPanButtons::PRIMARY => response.dragged_by(PointerButton::Primary),
+        DragPanButtons::SECONDARY => response.dragged_by(PointerButton::Secondary),
+        DragPanButtons::MIDDLE => response.dragged_by(PointerButton::Middle),
+        DragPanButtons::EXTRA_1 => response.dragged_by(PointerButton::Extra1),
+        DragPanButtons::EXTRA_2 => response.dragged_by(PointerButton::Extra2),
+        _ => false,
+    })
 }
