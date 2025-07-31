@@ -184,6 +184,7 @@ impl<'a, 'b, 'c> Map<'a, 'b, 'c> {
         self
     }
 
+    /// Show the map widget inside a [`egui::Ui`].
     pub fn show<R>(
         mut self,
         ui: &mut Ui,
