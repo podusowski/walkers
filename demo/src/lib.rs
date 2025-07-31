@@ -7,7 +7,7 @@ mod windows;
 use std::collections::BTreeMap;
 
 use crate::plugins::ImagesPluginData;
-use egui::{CentralPanel, Context, DragPanButtons, Frame};
+use egui::{CentralPanel, Context, DragPanButtons, Frame, Hyperlink, Label, Rect, Vec2};
 use tiles::{providers, Provider, TilesKind};
 use walkers::{Map, MapMemory};
 
@@ -73,10 +73,16 @@ impl eframe::App for MyApp {
             }
 
             // Draw the map widget.
-            //ui.add(map);
-
-            map.show(ui, |ui| {
-                // Add any additional contents to the map's UI here.
+            map.show(ui, |ui, projector| {
+                // You can add any additional contents to the map's UI here.
+                let bastion = projector.project(places::bastion_sakwowy()).to_pos2();
+                ui.put(
+                    Rect::from_center_size(bastion, Vec2::splat(100.0)),
+                    Hyperlink::from_label_and_url(
+                        "Bastion Sakwowy",
+                        "https://www.wroclaw.pl/dla-mieszkanca/bastion-sakwowy-wroclaw-atrakcje",
+                    ),
+                );
             });
 
             // Draw utility windows.
