@@ -44,7 +44,7 @@ jobs:
     - name: Setup Android SDK
       uses: android-actions/setup-android@v3
     - name: Install Cargo NDK
-      run: cargo install cargo-ndk
+      run: cargo install cargo-ndk@3.5.4 --locked
     - name: Build APK
       working-directory: ./demo_android
       run: make apk
