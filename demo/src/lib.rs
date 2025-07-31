@@ -7,7 +7,7 @@ mod windows;
 use std::collections::BTreeMap;
 
 use crate::plugins::ImagesPluginData;
-use egui::{CentralPanel, Context, DragPanButtons, Frame, Hyperlink, Label, Rect, Vec2};
+use egui::{CentralPanel, Context, DragPanButtons, Frame, Hyperlink, Rect, Vec2};
 use tiles::{providers, Provider, TilesKind};
 use walkers::{Map, MapMemory};
 
