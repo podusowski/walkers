@@ -1,4 +1,6 @@
-use egui::{DragPanButtons, PointerButton, Response, Sense, Ui, UiBuilder, Vec2, Widget};
+use egui::{
+    DragPanButtons, InnerResponse, PointerButton, Response, Sense, Ui, UiBuilder, Vec2, Widget,
+};
 
 use crate::{
     center::Center, position::AdjustedPosition, tiles::draw_tiles, MapMemory, Position, Projector,
@@ -182,7 +184,11 @@ impl<'a, 'b, 'c> Map<'a, 'b, 'c> {
         self
     }
 
-    pub fn show(mut self, ui: &mut Ui, add_contents: impl FnOnce(&mut Ui, &Projector)) -> Response {
+    pub fn show<R>(
+        mut self,
+        ui: &mut Ui,
+        add_contents: impl FnOnce(&mut Ui, &Projector) -> R,
+    ) -> InnerResponse<R> {
         let (rect, mut response) =
             ui.allocate_exact_size(ui.available_size(), Sense::click_and_drag());
 
@@ -218,9 +224,9 @@ impl<'a, 'b, 'c> Map<'a, 'b, 'c> {
         }
 
         let mut child_ui = ui.new_child(UiBuilder::new().max_rect(rect).id_salt("inner"));
-        add_contents(&mut child_ui, &projector);
+        let inner = add_contents(&mut child_ui, &projector);
 
-        response
+        InnerResponse { inner, response }
     }
 }
 
@@ -330,7 +336,7 @@ impl Map<'_, '_, '_> {
 
 impl Widget for Map<'_, '_, '_> {
     fn ui(self, ui: &mut Ui) -> Response {
-        self.show(ui, |_, _| ())
+        self.show(ui, |_, _| ()).response
     }
 }
 
