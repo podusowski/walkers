@@ -145,6 +145,10 @@ impl Center {
         self.adjusted_position().map(|p| p.position())
     }
 
+    pub fn animating(&self) -> bool {
+        matches!(self, Center::Inertia { .. } | Center::PulledToMyPosition(_))
+    }
+
     fn adjusted_position(&self) -> Option<AdjustedPosition> {
         match self {
             Center::MyPosition => None,
