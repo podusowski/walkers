@@ -182,7 +182,7 @@ impl<'a, 'b, 'c> Map<'a, 'b, 'c> {
         self
     }
 
-    pub fn show(mut self, ui: &mut Ui) -> Response {
+    pub fn show(mut self, ui: &mut Ui, add_contents: impl FnOnce(&mut Ui)) -> Response {
         let (rect, mut response) =
             ui.allocate_exact_size(ui.available_size(), Sense::click_and_drag());
 
@@ -216,6 +216,9 @@ impl<'a, 'b, 'c> Map<'a, 'b, 'c> {
             let mut child_ui = ui.new_child(UiBuilder::new().max_rect(rect).id_salt(idx));
             plugin.run(&mut child_ui, &response, &projector, self.memory);
         }
+
+        let mut child_ui = ui.new_child(UiBuilder::new().max_rect(rect).id_salt("inner"));
+        add_contents(&mut child_ui);
 
         response
     }
@@ -327,7 +330,7 @@ impl Map<'_, '_, '_> {
 
 impl Widget for Map<'_, '_, '_> {
     fn ui(self, ui: &mut Ui) -> Response {
-        self.show(ui)
+        self.show(ui, |_| ())
     }
 }
 

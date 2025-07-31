@@ -73,7 +73,11 @@ impl eframe::App for MyApp {
             }
 
             // Draw the map widget.
-            ui.add(map);
+            //ui.add(map);
+
+            map.show(ui, |ui| {
+                // Add any additional contents to the map's UI here.
+            });
 
             // Draw utility windows.
             {
