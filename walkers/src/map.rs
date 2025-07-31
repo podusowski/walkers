@@ -181,6 +181,44 @@ impl<'a, 'b, 'c> Map<'a, 'b, 'c> {
         self.options.pull_to_my_position_threshold = threshold;
         self
     }
+
+    pub fn show(mut self, ui: &mut Ui) -> Response {
+        let (rect, mut response) =
+            ui.allocate_exact_size(ui.available_size(), Sense::click_and_drag());
+
+        let mut changed = self.handle_gestures(ui, &response);
+        let delta_time = ui.ctx().input(|reader| reader.stable_dt);
+        let zoom = self.memory.zoom;
+        changed |= self
+            .memory
+            .center_mode
+            .update_movement(delta_time, zoom.into());
+
+        if changed {
+            response.mark_changed();
+            ui.ctx().request_repaint();
+        }
+
+        let map_center = self.position();
+        let painter = ui.painter().with_clip_rect(rect);
+
+        if let Some(tiles) = self.tiles {
+            draw_tiles(&painter, map_center, zoom, tiles, 1.0);
+        }
+
+        for layer in self.layers {
+            draw_tiles(&painter, map_center, zoom, layer.tiles, layer.transparency);
+        }
+
+        // Run plugins.
+        let projector = Projector::new(response.rect, self.memory, self.my_position);
+        for (idx, plugin) in self.plugins.into_iter().enumerate() {
+            let mut child_ui = ui.new_child(UiBuilder::new().max_rect(rect).id_salt(idx));
+            plugin.run(&mut child_ui, &response, &projector, self.memory);
+        }
+
+        response
+    }
 }
 
 impl Map<'_, '_, '_> {
@@ -288,42 +326,8 @@ impl Map<'_, '_, '_> {
 }
 
 impl Widget for Map<'_, '_, '_> {
-    fn ui(mut self, ui: &mut Ui) -> Response {
-        let (rect, mut response) =
-            ui.allocate_exact_size(ui.available_size(), Sense::click_and_drag());
-
-        let mut changed = self.handle_gestures(ui, &response);
-        let delta_time = ui.ctx().input(|reader| reader.stable_dt);
-        let zoom = self.memory.zoom;
-        changed |= self
-            .memory
-            .center_mode
-            .update_movement(delta_time, zoom.into());
-
-        if changed {
-            response.mark_changed();
-            ui.ctx().request_repaint();
-        }
-
-        let map_center = self.position();
-        let painter = ui.painter().with_clip_rect(rect);
-
-        if let Some(tiles) = self.tiles {
-            draw_tiles(&painter, map_center, zoom, tiles, 1.0);
-        }
-
-        for layer in self.layers {
-            draw_tiles(&painter, map_center, zoom, layer.tiles, layer.transparency);
-        }
-
-        // Run plugins.
-        let projector = Projector::new(response.rect, self.memory, self.my_position);
-        for (idx, plugin) in self.plugins.into_iter().enumerate() {
-            let mut child_ui = ui.new_child(UiBuilder::new().max_rect(rect).id_salt(idx));
-            plugin.run(&mut child_ui, &response, &projector, self.memory);
-        }
-
-        response
+    fn ui(self, ui: &mut Ui) -> Response {
+        self.show(ui)
     }
 }
 
