@@ -41,6 +41,14 @@ pub fn controls(app: &mut MyApp, ui: &Ui, http_stats: Vec<walkers::HttpStats>) {
                     });
 
                 ui.checkbox(&mut app.zoom_with_ctrl, "Zoom with Ctrl");
+
+                ui.separator();
+
+                if app.map_memory.animating() {
+                    ui.label("Map is animating");
+                } else {
+                    ui.label("Map is not animating");
+                }
             });
 
             ui.collapsing("HTTP statistics", |ui| {

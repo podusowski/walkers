@@ -6,6 +6,7 @@ All notable changes to this project will be documented in this file.
 
 * `Map::drag_gesture()` is replaced by `Map::drag_pan_buttons()`, which allows configuring which
   mouse buttons can be used for dragging.
+* New `MapMemory::animating()` function, which returns whether the map is currently animating.
 
 ## 0.43.0
 

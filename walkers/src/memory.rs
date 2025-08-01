@@ -37,6 +37,12 @@ impl MapMemory {
         self.center_mode.detached()
     }
 
+    /// Whether the map is currently animating. Dragging, zooming and `my_position` changes are not
+    /// considered animation.
+    pub fn animating(&self) -> bool {
+        self.center_mode.animating()
+    }
+
     /// Point the map exactly at the given geographical position.
     pub fn center_at(&mut self, position: Position) {
         self.center_mode = Center::Exact(AdjustedPosition::new(position));
