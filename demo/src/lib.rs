@@ -7,7 +7,7 @@ mod windows;
 use std::collections::BTreeMap;
 
 use crate::plugins::ImagesPluginData;
-use egui::{CentralPanel, Context, DragPanButtons, Frame};
+use egui::{Button, CentralPanel, Context, DragPanButtons, Frame, OpenUrl, Rect, Vec2};
 use tiles::{providers, Provider, TilesKind};
 use walkers::{Map, MapMemory};
 
@@ -73,7 +73,22 @@ impl eframe::App for MyApp {
             }
 
             // Draw the map widget.
-            ui.add(map);
+            let response = map.show(ui, |ui, projector| {
+                // You can add any additional contents to the map's UI here.
+                let bastion = projector.project(places::bastion_sakwowy()).to_pos2();
+                ui.put(
+                    Rect::from_center_size(bastion, Vec2::new(140., 20.)),
+                    Button::new("Bastion Sakwowy"),
+                )
+                .on_hover_text("Click to see some information about this place.")
+                .clicked()
+                .then_some("https://www.wroclaw.pl/dla-mieszkanca/bastion-sakwowy-wroclaw-atrakcje")
+            });
+
+            // Could have done it in the closure, but this way you can see how to pass values outside.
+            if let Some(url) = response.inner {
+                ctx.open_url(OpenUrl::new_tab(url));
+            }
 
             // Draw utility windows.
             {

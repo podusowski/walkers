@@ -30,3 +30,7 @@ pub fn wroclavia() -> Position {
 pub fn rynek() -> Position {
     lon_lat(17.032094, 51.110090)
 }
+
+pub fn bastion_sakwowy() -> Position {
+    lon_lat(17.0377, 51.1033)
+}
