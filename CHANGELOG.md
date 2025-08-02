@@ -2,7 +2,7 @@
 
 All notable changes to this project will be documented in this file.
 
-## Unreleased
+## 0.44.0
 
 * New `Map::show()` function. It takes a closure that can draw custom content on the map. It is
   similar to plugins, but more idiomatic to `egui` which might help to avoid some of the workarounds
