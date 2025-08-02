@@ -73,7 +73,7 @@ impl eframe::App for MyApp {
             }
 
             // Draw the map widget.
-            let response = map.show(ui, |ui, projector| {
+            let response = map.show(ui, |ui, projector, _| {
                 // You can add any additional contents to the map's UI here.
                 let bastion = projector.project(places::bastion_sakwowy()).to_pos2();
                 ui.put(
