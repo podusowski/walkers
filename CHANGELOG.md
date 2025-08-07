@@ -2,7 +2,7 @@
 
 All notable changes to this project will be documented in this file.
 
-## Unreleased
+## 0.45.0
 
 * `Map::show()` now passes `&MapMemory` to the closure.
 
