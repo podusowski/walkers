@@ -2,6 +2,10 @@
 
 All notable changes to this project will be documented in this file.
 
+## Unreleased
+
+* `Map::show()` now passes `&MapMemory` to the closure.
+
 ## 0.44.0
 
 * New `Map::show()` function. It takes a closure that can draw custom content on the map. It is
