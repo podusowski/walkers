@@ -11,6 +11,7 @@ enum CachedTexture {
     Invalid,
 }
 
+/// Uses local directory as tile source.
 pub struct LocalTiles {
     path: PathBuf,
     egui_ctx: egui::Context,
