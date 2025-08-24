@@ -11,7 +11,7 @@ use crate::sources::Attribution;
 use crate::zoom::Zoom;
 use crate::Position;
 
-// Source of tiles to be put together to render the map.
+/// Source of tiles to be put together to render the map.
 pub trait Tiles {
     fn at(&mut self, tile_id: TileId) -> Option<TextureWithUv>;
     fn attribution(&self) -> Attribution;
