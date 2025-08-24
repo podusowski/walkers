@@ -1,6 +1,6 @@
 use std::path::{Path, PathBuf};
 
-use crate::Tiles;
+use crate::{sources::Attribution, Tiles};
 
 pub struct LocalTiles {
     path: PathBuf,
@@ -19,8 +19,13 @@ impl Tiles for LocalTiles {
         todo!()
     }
 
-    fn attribution(&self) -> crate::sources::Attribution {
-        todo!()
+    fn attribution(&self) -> Attribution {
+        Attribution {
+            text: "Local tiles",
+            url: "",
+            logo_light: None,
+            logo_dark: None,
+        }
     }
 
     fn tile_size(&self) -> u32 {
