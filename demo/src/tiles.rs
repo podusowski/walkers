@@ -1,9 +1,7 @@
-use std::collections::BTreeMap;
+use std::{collections::BTreeMap, path::PathBuf};
 
 use egui::Context;
-use walkers::{HttpOptions, HttpTiles, Tiles};
-
-use crate::local_tiles::LocalTiles;
+use walkers::{HttpOptions, HttpTiles, LocalTiles, Tiles};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 pub enum Provider {
@@ -98,7 +96,10 @@ pub(crate) fn providers(egui_ctx: Context) -> BTreeMap<Provider, Vec<TilesKind>>
 
     providers.insert(
         Provider::LocalTiles,
-        vec![TilesKind::Local(LocalTiles::new(egui_ctx.to_owned()))],
+        vec![TilesKind::Local(LocalTiles::new(PathBuf::from_iter(&[
+            env!("CARGO_MANIFEST_DIR"),
+            "assets",
+        ])))],
     );
 
     // Pass in a mapbox access token at compile time. May or may not be what you want to do,
