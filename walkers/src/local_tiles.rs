@@ -1,4 +1,6 @@
-use crate::{sources::Attribution, Texture, TextureWithUv, TileId, Tiles};
+use crate::{
+    sources::Attribution, tiles::interpolate_from_lower_zoom, Texture, TextureWithUv, TileId, Tiles,
+};
 use log::warn;
 use lru::LruCache;
 use std::path::{Path, PathBuf};
@@ -21,20 +23,35 @@ impl LocalTiles {
             cache: LruCache::new(cache_size),
         }
     }
-}
 
-impl Tiles for LocalTiles {
-    fn at(&mut self, tile_id: TileId) -> Option<TextureWithUv> {
-        let texture = self
-            .cache
+    fn load_and_cache(&mut self, tile_id: TileId) -> Option<Texture> {
+        self.cache
             .try_get_or_insert(tile_id, || load(&self.path, tile_id, &self.egui_ctx))
             .inspect_err(|err| {
                 warn!("Failed to load tile {:?}: {}", tile_id, err);
             })
             .cloned()
-            .ok()?;
+            .ok()
+    }
+}
 
-        Some(TextureWithUv::full(texture))
+impl Tiles for LocalTiles {
+    fn at(&mut self, tile_id: TileId) -> Option<TextureWithUv> {
+        let mut zoom_candidate = tile_id.zoom;
+
+        loop {
+            let (zoomed_tile_id, uv) = interpolate_from_lower_zoom(tile_id, zoom_candidate);
+
+            if let Some(texture) = self.load_and_cache(zoomed_tile_id) {
+                break Some(TextureWithUv {
+                    texture: texture.clone(),
+                    uv,
+                });
+            }
+
+            // Keep zooming out until we find a donor or there is no more zoom levels.
+            zoom_candidate = zoom_candidate.checked_sub(1)?;
+        }
     }
 
     fn attribution(&self) -> Attribution {
