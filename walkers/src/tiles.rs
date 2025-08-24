@@ -137,6 +137,10 @@ pub struct TextureWithUv {
 }
 
 impl TextureWithUv {
+    pub fn new(texture: Texture, uv: Rect) -> Self {
+        Self { texture, uv }
+    }
+
     pub fn full(texture: Texture) -> Self {
         Self {
             texture,

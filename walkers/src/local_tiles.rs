@@ -37,21 +37,15 @@ impl LocalTiles {
 
 impl Tiles for LocalTiles {
     fn at(&mut self, tile_id: TileId) -> Option<TextureWithUv> {
-        let mut zoom_candidate = tile_id.zoom;
+        for zoom_candidate in (0..=tile_id.zoom).rev() {
+            let (donor_tile_id, uv) = interpolate_from_lower_zoom(tile_id, zoom_candidate);
 
-        loop {
-            let (zoomed_tile_id, uv) = interpolate_from_lower_zoom(tile_id, zoom_candidate);
-
-            if let Some(texture) = self.load_and_cache(zoomed_tile_id) {
-                break Some(TextureWithUv {
-                    texture: texture.clone(),
-                    uv,
-                });
+            if let Some(texture) = self.load_and_cache(donor_tile_id) {
+                return Some(TextureWithUv::new(texture.clone(), uv));
             }
-
-            // Keep zooming out until we find a donor or there is no more zoom levels.
-            zoom_candidate = zoom_candidate.checked_sub(1)?;
         }
+
+        None
     }
 
     fn attribution(&self) -> Attribution {
