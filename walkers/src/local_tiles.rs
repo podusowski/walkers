@@ -26,9 +26,12 @@ impl Tiles for LocalTiles {
     fn at(&mut self, tile_id: crate::TileId) -> Option<crate::TextureWithUv> {
         let texture = self
             .cache
-            .get(&tile_id)
+            .try_get_or_insert(tile_id, || load(&self.path, tile_id, &self.egui_ctx))
+            .inspect_err(|err| {
+                log::warn!("Failed to load tile {:?}: {}", tile_id, err);
+            })
             .cloned()
-            .or_else(|| load(&self.path, tile_id, &self.egui_ctx))?;
+            .ok()?;
 
         Some(TextureWithUv {
             texture,
@@ -50,17 +53,9 @@ impl Tiles for LocalTiles {
     }
 }
 
-fn load(tiles_dir: &Path, tile_id: crate::TileId, egui_ctx: &egui::Context) -> Option<Texture> {
-    load_impl(tiles_dir, tile_id, egui_ctx)
-        .inspect_err(|err| {
-            log::warn!("Failed to load tile {:?}: {}", tile_id, err);
-        })
-        .ok()
-}
-
-fn load_impl(
+fn load(
     tiles_dir: &Path,
-    tile_id: crate::TileId,
+    tile_id: TileId,
     egui_ctx: &egui::Context,
 ) -> Result<Texture, Box<dyn std::error::Error>> {
     let path = PathBuf::from_iter(&[
