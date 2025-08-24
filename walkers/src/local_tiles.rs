@@ -76,3 +76,68 @@ fn load(
     let bytes = std::fs::read(path)?;
     Ok(Texture::new(&bytes, egui_ctx)?)
 }
+
+struct Limits {
+    pub min: u32,
+    pub max: u32,
+
+    valid: Option<u32>,
+}
+
+impl Default for Limits {
+    fn default() -> Self {
+        Self {
+            min: 0,
+            max: u32::MAX,
+            valid: None,
+        }
+    }
+}
+
+impl Limits {
+    fn set_valid(&mut self, value: u32) {
+        self.valid = Some(value);
+    }
+
+    fn set_invalid(&mut self, invalid: u32) {
+        if let Some(valid) = self.valid {
+            if invalid < valid {
+                self.min = self.min.max(invalid + 1);
+            } else if invalid > valid {
+                self.max = self.max.min(invalid - 1);
+            }
+        }
+    }
+}
+
+mod tests {
+    use super::*;
+
+    #[test]
+    fn too_little_data() {
+        let mut limits = Limits::default();
+        limits.set_valid(5);
+        assert_eq!(limits.min, 0);
+        assert_eq!(limits.max, u32::MAX);
+    }
+
+    #[test]
+    fn also_too_little_data() {
+        let mut limits = Limits::default();
+        limits.set_invalid(4);
+        assert_eq!(limits.min, 0);
+        assert_eq!(limits.max, u32::MAX);
+    }
+
+    #[test]
+    fn enough_data_to_get_min() {
+        let mut limits = Limits::default();
+        limits.set_valid(5);
+        limits.set_invalid(4);
+        assert_eq!(limits.min, 5);
+        assert_eq!(limits.max, u32::MAX);
+
+        limits.set_invalid(7);
+        assert_eq!(limits.max, 6);
+    }
+}
