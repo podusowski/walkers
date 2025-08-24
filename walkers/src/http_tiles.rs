@@ -1,12 +1,13 @@
 use std::sync::{Arc, Mutex};
 
-use egui::{pos2, Context, Rect};
+use egui::Context;
 use futures::channel::mpsc::{channel, Receiver, Sender, TrySendError};
 use lru::LruCache;
 
 use crate::download::{download_continuously, HttpOptions};
 use crate::io::Runtime;
 use crate::sources::{Attribution, TileSource};
+use crate::tiles::interpolate_from_lower_zoom;
 use crate::TileId;
 use crate::{Texture, TextureWithUv, Tiles};
 
@@ -149,31 +150,6 @@ impl HttpTiles {
 pub struct HttpStats {
     /// Number of tiles that are currently being downloaded.
     pub in_progress: usize,
-}
-
-/// Take a piece of a tile with lower zoom level and use it as a required tile.
-fn interpolate_from_lower_zoom(tile_id: TileId, available_zoom: u8) -> (TileId, Rect) {
-    assert!(tile_id.zoom >= available_zoom);
-
-    let dzoom = 2u32.pow((tile_id.zoom - available_zoom) as u32);
-
-    let x = (tile_id.x / dzoom, tile_id.x % dzoom);
-    let y = (tile_id.y / dzoom, tile_id.y % dzoom);
-
-    let zoomed_tile_id = TileId {
-        x: x.0,
-        y: y.0,
-        zoom: available_zoom,
-    };
-
-    let z = (dzoom as f32).recip();
-
-    let uv = Rect::from_min_max(
-        pos2(x.1 as f32 * z, y.1 as f32 * z),
-        pos2(x.1 as f32 * z + z, y.1 as f32 * z + z),
-    );
-
-    (zoomed_tile_id, uv)
 }
 
 impl Tiles for HttpTiles {

@@ -6,6 +6,7 @@ mod download;
 pub mod extras;
 mod http_tiles;
 mod io;
+mod local_tiles;
 mod map;
 mod memory;
 mod mercator;
@@ -17,6 +18,7 @@ mod zoom;
 
 pub use download::{HeaderValue, HttpOptions, MaxParallelDownloads};
 pub use http_tiles::{HttpStats, HttpTiles};
+pub use local_tiles::LocalTiles;
 pub use map::{Map, Plugin};
 pub use memory::MapMemory;
 pub use position::{lat_lon, lon_lat, Position};

@@ -2,6 +2,10 @@
 
 All notable changes to this project will be documented in this file.
 
+## Unreleased
+
+* New `LocalTiles` implementation for loading tiles from a local directory.
+
 ## 0.45.0
 
 * `Map::show()` now passes `&MapMemory` to the closure.

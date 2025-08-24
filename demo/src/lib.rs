@@ -1,4 +1,3 @@
-mod local_tiles;
 mod places;
 mod plugins;
 mod tiles;
