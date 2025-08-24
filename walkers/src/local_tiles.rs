@@ -5,10 +5,16 @@ use log::warn;
 use lru::LruCache;
 use std::path::{Path, PathBuf};
 
+#[derive(Clone)]
+enum CachedTexture {
+    Valid(Texture),
+    Invalid,
+}
+
 pub struct LocalTiles {
     path: PathBuf,
     egui_ctx: egui::Context,
-    cache: LruCache<TileId, Texture>,
+    cache: LruCache<TileId, CachedTexture>,
 }
 
 impl LocalTiles {
@@ -24,14 +30,18 @@ impl LocalTiles {
         }
     }
 
-    fn load_and_cache(&mut self, tile_id: TileId) -> Option<Texture> {
+    fn load_and_cache(&mut self, tile_id: TileId) -> CachedTexture {
         self.cache
-            .try_get_or_insert(tile_id, || load(&self.path, tile_id, &self.egui_ctx))
-            .inspect_err(|err| {
-                warn!("Failed to load tile {:?}: {}", tile_id, err);
+            .get_or_insert(tile_id, || {
+                match load(&self.path, tile_id, &self.egui_ctx) {
+                    Ok(texture) => CachedTexture::Valid(texture),
+                    Err(err) => {
+                        warn!("Failed to load tile {:?}: {}", tile_id, err);
+                        CachedTexture::Invalid
+                    }
+                }
             })
-            .cloned()
-            .ok()
+            .clone()
     }
 }
 
@@ -40,7 +50,7 @@ impl Tiles for LocalTiles {
         for zoom_candidate in (0..=tile_id.zoom).rev() {
             let (donor_tile_id, uv) = interpolate_from_lower_zoom(tile_id, zoom_candidate);
 
-            if let Some(texture) = self.load_and_cache(donor_tile_id) {
+            if let CachedTexture::Valid(texture) = self.load_and_cache(donor_tile_id) {
                 return Some(TextureWithUv::new(texture.clone(), uv));
             }
         }
