@@ -34,10 +34,7 @@ impl Tiles for LocalTiles {
             .cloned()
             .ok()?;
 
-        Some(TextureWithUv {
-            texture,
-            uv: egui::Rect::from_min_max(egui::pos2(0.0, 0.0), egui::pos2(1.0, 1.0)),
-        })
+        Some(TextureWithUv::full(texture))
     }
 
     fn attribution(&self) -> Attribution {

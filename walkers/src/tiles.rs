@@ -136,6 +136,15 @@ pub struct TextureWithUv {
     pub uv: Rect,
 }
 
+impl TextureWithUv {
+    pub fn full(texture: Texture) -> Self {
+        Self {
+            texture,
+            uv: Rect::from_min_max(pos2(0.0, 0.0), pos2(1.0, 1.0)),
+        }
+    }
+}
+
 pub(crate) fn draw_tiles(
     painter: &egui::Painter,
     map_center: Position,
