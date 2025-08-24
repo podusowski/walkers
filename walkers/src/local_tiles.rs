@@ -1,4 +1,5 @@
 use crate::{sources::Attribution, Texture, TextureWithUv, TileId, Tiles};
+use log::warn;
 use lru::LruCache;
 use std::path::{Path, PathBuf};
 
@@ -23,12 +24,12 @@ impl LocalTiles {
 }
 
 impl Tiles for LocalTiles {
-    fn at(&mut self, tile_id: crate::TileId) -> Option<crate::TextureWithUv> {
+    fn at(&mut self, tile_id: TileId) -> Option<TextureWithUv> {
         let texture = self
             .cache
             .try_get_or_insert(tile_id, || load(&self.path, tile_id, &self.egui_ctx))
             .inspect_err(|err| {
-                log::warn!("Failed to load tile {:?}: {}", tile_id, err);
+                warn!("Failed to load tile {:?}: {}", tile_id, err);
             })
             .cloned()
             .ok()?;
