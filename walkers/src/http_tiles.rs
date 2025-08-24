@@ -1,6 +1,6 @@
 use std::sync::{Arc, Mutex};
 
-use egui::{pos2, Context, Rect};
+use egui::Context;
 use futures::channel::mpsc::{channel, Receiver, Sender, TrySendError};
 use lru::LruCache;
 
