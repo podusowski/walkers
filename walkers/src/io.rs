@@ -88,7 +88,10 @@ mod native {
         if let Some(cache) = http_options.cache {
             builder.with(Cache(HttpCache {
                 mode: CacheMode::Default,
-                manager: CACacheManager { path: cache },
+                manager: CACacheManager {
+                    path: cache,
+                    remove_opts: Default::default(),
+                },
                 options: HttpCacheOptions::default(),
             }))
         } else {
