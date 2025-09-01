@@ -11,7 +11,7 @@ It compiles to native applications as well as WASM. See the **[online demo here]
 ![Screenshot](https://raw.githubusercontent.com/podusowski/walkers/main/screenshot.png)
 
 It supports [OpenStreetMap](https://www.openstreetmap.org), [mapbox](https://www.mapbox.com/), 
-and compatible tile servers.
+[Yandex Maps](https://yandex.com/maps-api/) and compatible tile servers.
 
 Before deploying your application, please get yourself familiar with the
 [OpenStreetMap usage policy](https://operations.osmfoundation.org/policies/tiles/), 
@@ -68,6 +68,10 @@ necessarily compatible with Cargo alone.
 To enable mapbox layers, you need to define `MAPBOX_ACCESS_TOKEN` environment
 variable before building. You can obtain one, by creating a
 [mapbox account](https://account.mapbox.com/).
+
+To use Yandex Maps, you'll need to define `YANDEX_MAPS_API_KEY` environment variable.
+You can get a free API key for personal use by registering at
+[Yandex Developer Portal](https://developer.tech.yandex.ru/).
 
 ```sh
 cd demo_native

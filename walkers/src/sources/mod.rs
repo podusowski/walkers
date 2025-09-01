@@ -3,11 +3,13 @@
 mod geoportal;
 mod mapbox;
 mod openstreetmap;
+mod yandex_maps;
 
 use crate::TileId;
 pub use geoportal::Geoportal;
 pub use mapbox::{Mapbox, MapboxStyle};
 pub use openstreetmap::OpenStreetMap;
+pub use yandex_maps::{YandexMaps, YandexMapsLanguage, YandexMapsMapType, YandexMapsProjection};
 
 #[derive(Clone)]
 pub struct Attribution {

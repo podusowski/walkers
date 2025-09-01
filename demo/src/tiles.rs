@@ -11,6 +11,7 @@ pub enum Provider {
     MapboxStreets,
     MapboxSatellite,
     LocalTiles,
+    YandexMaps,
 }
 
 pub(crate) enum TilesKind {
@@ -127,6 +128,24 @@ pub(crate) fn providers(egui_ctx: Context) -> BTreeMap<Provider, Vec<TilesKind>>
                     style: walkers::sources::MapboxStyle::Satellite,
                     access_token: token.to_string(),
                     high_resolution: true,
+                },
+                http_options(),
+                egui_ctx.to_owned(),
+            ))],
+        );
+    }
+
+    let yandex_access_token = std::option_env!("YANDEX_ACCESS_TOKEN");
+
+    if let Some(token) = yandex_access_token {
+        providers.insert(
+            Provider::YandexMaps,
+            vec![TilesKind::Http(HttpTiles::with_options(
+                walkers::sources::YandexMaps {
+                    language: walkers::sources::YandexMapsLanguage::EnUS,
+                    projection: walkers::sources::YandexMapsProjection::WebMercator,
+                    maptype: walkers::sources::YandexMapsMapType::FutureMap,
+                    access_token: token.to_string(),
                 },
                 http_options(),
                 egui_ctx.to_owned(),
