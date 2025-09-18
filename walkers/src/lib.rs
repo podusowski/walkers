@@ -15,6 +15,7 @@ mod projector;
 pub mod sources;
 mod tiles;
 mod zoom;
+mod pmtiles;
 
 pub use download::{HeaderValue, HttpOptions, MaxParallelDownloads};
 pub use http_tiles::{HttpStats, HttpTiles};
