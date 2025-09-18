@@ -1,8 +1,10 @@
 use crate::{
-    sources::Attribution, tiles::interpolate_from_lower_zoom, Texture, TextureWithUv, TileId, Tiles,
+    io::Runtime, sources::Attribution, tiles::interpolate_from_lower_zoom, Texture, TextureWithUv,
+    TileId, Tiles,
 };
 use log::trace;
 use lru::LruCache;
+use pmtiles::{AsyncPmTilesReader, TileCoord};
 use std::path::{Path, PathBuf};
 
 #[derive(Clone)]
@@ -72,16 +74,29 @@ impl Tiles for PmTiles {
 }
 
 fn load(
-    tiles_dir: &Path,
+    path: &Path,
     tile_id: TileId,
     egui_ctx: &egui::Context,
 ) -> Result<Texture, Box<dyn std::error::Error>> {
-    let path = PathBuf::from_iter(&[
-        tiles_dir.to_owned(),
-        tile_id.zoom.to_string().into(),
-        tile_id.x.to_string().into(),
-        format!("{}.png", tile_id.y).into(),
-    ]);
-    let bytes = std::fs::read(path)?;
+    let bytes = tokio::runtime::Builder::new_current_thread()
+        .enable_all()
+        .build()?
+        .block_on(async {
+            let reader = AsyncPmTilesReader::new_with_path(path).await.unwrap();
+            let tile = reader
+                .get_tile(TileCoord::new(tile_id.zoom, tile_id.x, tile_id.y).unwrap())
+                .await
+                .unwrap()
+                .unwrap();
+            tile
+        });
+
+    //    let path = PathBuf::from_iter(&[
+    //        path.to_owned(),
+    //        tile_id.zoom.to_string().into(),
+    //        tile_id.x.to_string().into(),
+    //        format!("{}.png", tile_id.y).into(),
+    //    ]);
+    //    let bytes = std::fs::read(path)?;
     Ok(Texture::new(&bytes, egui_ctx)?)
 }
