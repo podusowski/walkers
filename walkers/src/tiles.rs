@@ -6,6 +6,7 @@ use egui::{ColorImage, TextureHandle};
 use image::ImageError;
 use resvg::usvg::{Options, Transform};
 use thiserror::Error;
+use tiny_skia::Color;
 
 use crate::mercator::{project, tile_id, total_tiles};
 use crate::position::{Pixels, PixelsExt};
@@ -106,17 +107,6 @@ impl Texture {
         Ok(Self::from_color_image(image, ctx))
     }
 
-    pub fn from_svg(data: &[u8], ctx: &Context) -> Result<Self, Error> {
-        let tree = resvg::usvg::Tree::from_data(data, &Options::default())?;
-        let mut pixmap = resvg::tiny_skia::Pixmap::new(4096, 4096).unwrap();
-        resvg::render(&tree, Transform::default(), &mut pixmap.as_mut());
-        let image = ColorImage::from_rgba_premultiplied(
-            [pixmap.width() as usize, pixmap.height() as usize],
-            pixmap.data(),
-        );
-        Ok(Self::from_color_image(image, ctx))
-    }
-
     pub fn from_mvt(data: &[u8], ctx: &Context) -> Result<Self, Error> {
         let tile = mvt_reader::Reader::new(data.to_vec())?;
         let mut pixmap = resvg::tiny_skia::Pixmap::new(256, 256).unwrap();
@@ -182,9 +172,14 @@ impl Texture {
 
                                 pixmap.stroke_path(
                                     &path.finish().unwrap(),
-                                    &tiny_skia::Paint::default(),
+                                    &tiny_skia::Paint {
+                                        shader: tiny_skia::Shader::SolidColor(Color::from_rgba8(
+                                            100, 0, 0, 255,
+                                        )),
+                                        ..Default::default()
+                                    },
                                     &tiny_skia::Stroke {
-                                        width: 10.0,
+                                        width: 5.0,
                                         ..Default::default()
                                     },
                                     tiny_skia::Transform::identity(),
