@@ -1,7 +1,7 @@
 //! Renderer for Mapbox Vector Tiles.
 
 use egui::{ColorImage, Context};
-use tiny_skia::{Color, Shader};
+use tiny_skia::{Color, FillRule, Paint, Shader, Stroke, Transform};
 
 use crate::Texture;
 
@@ -29,12 +29,15 @@ pub fn render(data: &[u8], ctx: &Context) -> Result<Texture, mvt_reader::error::
 
                         pixmap.stroke_path(
                             &path.finish().unwrap(),
-                            &tiny_skia::Paint::default(),
-                            &tiny_skia::Stroke {
-                                width: 10.0,
+                            &Paint {
+                                shader: Shader::SolidColor(Color::from_rgba8(0, 0, 100, 255)),
                                 ..Default::default()
                             },
-                            tiny_skia::Transform::identity(),
+                            &Stroke {
+                                width: 2.0,
+                                ..Default::default()
+                            },
+                            Transform::identity(),
                             None,
                         );
                     }
@@ -50,9 +53,12 @@ pub fn render(data: &[u8], ctx: &Context) -> Result<Texture, mvt_reader::error::
 
                             pixmap.fill_path(
                                 &path.finish().unwrap(),
-                                &tiny_skia::Paint::default(),
-                                tiny_skia::FillRule::Winding,
-                                tiny_skia::Transform::identity(),
+                                &Paint {
+                                    shader: Shader::SolidColor(Color::from_rgba8(100, 100, 0, 255)),
+                                    ..Default::default()
+                                },
+                                FillRule::Winding,
+                                Transform::identity(),
                                 None,
                             );
                         }
@@ -73,7 +79,7 @@ pub fn render(data: &[u8], ctx: &Context) -> Result<Texture, mvt_reader::error::
                                     ..Default::default()
                                 },
                                 &tiny_skia::Stroke {
-                                    width: 5.0,
+                                    width: 2.0,
                                     ..Default::default()
                                 },
                                 tiny_skia::Transform::identity(),
@@ -95,7 +101,12 @@ pub fn render(data: &[u8], ctx: &Context) -> Result<Texture, mvt_reader::error::
 
                                 pixmap.fill_path(
                                     &path.finish().unwrap(),
-                                    &tiny_skia::Paint::default(),
+                                    &Paint {
+                                        shader: Shader::SolidColor(Color::from_rgba8(
+                                            0, 100, 0, 100,
+                                        )),
+                                        ..Default::default()
+                                    },
                                     tiny_skia::FillRule::Winding,
                                     tiny_skia::Transform::identity(),
                                     None,
