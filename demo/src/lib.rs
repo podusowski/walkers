@@ -28,7 +28,7 @@ impl MyApp {
 
         Self {
             providers: providers(egui_ctx.to_owned()),
-            selected_provider: Provider::OpenStreetMap,
+            selected_provider: Provider::LocalPmTiles,
             map_memory: MapMemory::default(),
             images_plugin_data,
             click_watcher: Default::default(),

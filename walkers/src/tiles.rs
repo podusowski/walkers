@@ -108,7 +108,7 @@ impl Texture {
 
     pub fn from_svg(data: &[u8], ctx: &Context) -> Result<Self, Error> {
         let tree = resvg::usvg::Tree::from_data(data, &Options::default())?;
-        let mut pixmap = resvg::tiny_skia::Pixmap::new(256, 256).unwrap();
+        let mut pixmap = resvg::tiny_skia::Pixmap::new(4096, 4096).unwrap();
         resvg::render(&tree, Transform::default(), &mut pixmap.as_mut());
         let image = ColorImage::from_rgba_premultiplied(
             [pixmap.width() as usize, pixmap.height() as usize],
@@ -125,14 +125,52 @@ impl Texture {
         // That is just dumb, but mvt-reader API sucks.
         let layer_count = tile.get_layer_names().unwrap().len();
         for i in 0..layer_count {
+            let layer_metadata = &tile.get_layer_metadata().unwrap()[i];
+            assert_eq!(layer_metadata.extent, 4096);
+
             for layer in tile.get_features(0) {
                 for feature in layer {
                     match feature.geometry {
                         geo_types::Geometry::Point(point) => todo!(),
                         geo_types::Geometry::Line(line) => todo!(),
-                        geo_types::Geometry::LineString(line_string) => todo!(),
+                        geo_types::Geometry::LineString(line_string) => {
+                            let mut path = tiny_skia::PathBuilder::new();
+
+                            path.move_to(line_string.0[0].x, line_string.0[0].y);
+                            for point in &line_string.0[1..] {
+                                path.line_to(point.x, point.y);
+                            }
+
+                            pixmap.stroke_path(
+                                &path.finish().unwrap(),
+                                &tiny_skia::Paint::default(),
+                                &tiny_skia::Stroke {
+                                    width: 10.0,
+                                    ..Default::default()
+                                },
+                                tiny_skia::Transform::identity(),
+                                None,
+                            );
+                        }
                         geo_types::Geometry::Polygon(polygon) => todo!(),
-                        geo_types::Geometry::MultiPoint(multi_point) => todo!(),
+                        geo_types::Geometry::MultiPoint(multi_point) => {
+                            for point in multi_point {
+                                let mut path = tiny_skia::PathBuilder::new();
+
+                                path.move_to(point.x(), point.y());
+                                path.line_to(point.x() + 10.0, point.y() + 10.0);
+                                path.line_to(point.x() - 10.0, point.y() + 10.0);
+                                path.close();
+
+                                pixmap.fill_path(
+                                    &path.finish().unwrap(),
+                                    &tiny_skia::Paint::default(),
+                                    tiny_skia::FillRule::Winding,
+                                    tiny_skia::Transform::identity(),
+                                    None,
+                                );
+                            }
+                        }
                         geo_types::Geometry::MultiLineString(multi_line_string) => {
                             for line_string in multi_line_string {
                                 let mut path = tiny_skia::PathBuilder::new();
@@ -145,13 +183,37 @@ impl Texture {
                                 pixmap.stroke_path(
                                     &path.finish().unwrap(),
                                     &tiny_skia::Paint::default(),
-                                    &tiny_skia::Stroke::default(),
+                                    &tiny_skia::Stroke {
+                                        width: 10.0,
+                                        ..Default::default()
+                                    },
                                     tiny_skia::Transform::identity(),
                                     None,
                                 );
                             }
                         }
-                        geo_types::Geometry::MultiPolygon(multi_polygon) => todo!(),
+                        geo_types::Geometry::MultiPolygon(multi_polygon) => {
+                            for polygon in multi_polygon {
+                                for line_string in [&polygon.exterior()]
+                                // .iter().chain(polygon.interiors.iter())
+                                {
+                                    let mut path = tiny_skia::PathBuilder::new();
+
+                                    path.move_to(line_string.0[0].x, line_string.0[0].y);
+                                    for point in &line_string.0[1..] {
+                                        path.line_to(point.x, point.y);
+                                    }
+
+                                    pixmap.fill_path(
+                                        &path.finish().unwrap(),
+                                        &tiny_skia::Paint::default(),
+                                        tiny_skia::FillRule::Winding,
+                                        tiny_skia::Transform::identity(),
+                                        None,
+                                    );
+                                }
+                            }
+                        }
                         geo_types::Geometry::GeometryCollection(geometry_collection) => todo!(),
                         geo_types::Geometry::Rect(rect) => todo!(),
                         geo_types::Geometry::Triangle(triangle) => todo!(),
@@ -160,7 +222,7 @@ impl Texture {
             }
         }
 
-        let image = ColorImage::from_rgba_premultiplied(
+        let image = ColorImage::from_rgba_unmultiplied(
             [pixmap.width() as usize, pixmap.height() as usize],
             pixmap.data(),
         );
