@@ -118,7 +118,7 @@ impl Texture {
             let layer_metadata = &tile.get_layer_metadata().unwrap()[i];
             assert_eq!(layer_metadata.extent, 4096);
 
-            for layer in tile.get_features(0) {
+            for layer in tile.get_features(i) {
                 for feature in layer {
                     match feature.geometry {
                         geo_types::Geometry::Point(point) => todo!(),
