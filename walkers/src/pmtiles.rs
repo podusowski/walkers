@@ -106,6 +106,7 @@ fn load(
 /// Decode the tile.
 ///
 /// This function assumes the input is gzip compressed data, but this might not always be the case.
+/// You can use `pmtiles info <file>` to check the compression type.
 fn decompress(data: &[u8]) -> Vec<u8> {
     let mut decoder = flate2::read::GzDecoder::new(data);
     let mut buf = Vec::new();

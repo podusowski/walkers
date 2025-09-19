@@ -120,28 +120,51 @@ impl Texture {
     pub fn from_mvt(data: &[u8], ctx: &Context) -> Result<Self, Error> {
         let tile = mvt_reader::Reader::new(data.to_vec())?;
         let mut pixmap = resvg::tiny_skia::Pixmap::new(256, 256).unwrap();
-        //for layer in tile.layers {
-        //    for feature in layer.features {
-        //        if let Some(geom) = feature.geometry() {
-        //            let path = resvg::tiny_skia::PathBuilder::from_mvt_geom(&geom);
-        //            let mut paint = resvg::tiny_skia::Paint::default();
-        //            paint.set_color(resvg::tiny_skia::Color::from_rgba8(0, 0, 0, 255));
-        //            pixmap.fill_path(
-        //                &path,
-        //                &paint,
-        //                resvg::tiny_skia::FillRule::Winding,
-        //                resvg::tiny_skia::Transform::identity(),
-        //                None,
-        //            );
-        //        }
-        //    }
-        //}
-        //let image = ColorImage::from_rgba_premultiplied(
-        //    [pixmap.width() as usize, pixmap.height() as usize],
-        //    pixmap.data(),
-        //);
-        //Ok(Self::from_color_image(image, ctx))
-        todo!();
+        pixmap.fill(tiny_skia::Color::WHITE);
+
+        // That is just dumb, but mvt-reader API sucks.
+        let layer_count = tile.get_layer_names().unwrap().len();
+        for i in 0..layer_count {
+            for layer in tile.get_features(0) {
+                for feature in layer {
+                    match feature.geometry {
+                        geo_types::Geometry::Point(point) => todo!(),
+                        geo_types::Geometry::Line(line) => todo!(),
+                        geo_types::Geometry::LineString(line_string) => todo!(),
+                        geo_types::Geometry::Polygon(polygon) => todo!(),
+                        geo_types::Geometry::MultiPoint(multi_point) => todo!(),
+                        geo_types::Geometry::MultiLineString(multi_line_string) => {
+                            for line_string in multi_line_string {
+                                let mut path = tiny_skia::PathBuilder::new();
+
+                                path.move_to(line_string.0[0].x, line_string.0[0].y);
+                                for point in &line_string.0[1..] {
+                                    path.line_to(point.x, point.y);
+                                }
+
+                                pixmap.stroke_path(
+                                    &path.finish().unwrap(),
+                                    &tiny_skia::Paint::default(),
+                                    &tiny_skia::Stroke::default(),
+                                    tiny_skia::Transform::identity(),
+                                    None,
+                                );
+                            }
+                        }
+                        geo_types::Geometry::MultiPolygon(multi_polygon) => todo!(),
+                        geo_types::Geometry::GeometryCollection(geometry_collection) => todo!(),
+                        geo_types::Geometry::Rect(rect) => todo!(),
+                        geo_types::Geometry::Triangle(triangle) => todo!(),
+                    }
+                }
+            }
+        }
+
+        let image = ColorImage::from_rgba_premultiplied(
+            [pixmap.width() as usize, pixmap.height() as usize],
+            pixmap.data(),
+        );
+        Ok(Self::from_color_image(image, ctx))
     }
 
     /// Load the texture from egui's [`ColorImage`].
