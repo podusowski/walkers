@@ -6,6 +6,7 @@ use log::trace;
 use lru::LruCache;
 use pmtiles::{AsyncPmTilesReader, TileCoord};
 use std::path::{Path, PathBuf};
+use thiserror::Error;
 
 #[derive(Clone)]
 enum CachedTexture {
@@ -39,7 +40,7 @@ impl PmTiles {
                 match load(&self.path, tile_id, &self.egui_ctx) {
                     Ok(texture) => CachedTexture::Valid(texture),
                     Err(err) => {
-                        trace!("Failed to load tile {:?}: {}", tile_id, err);
+                        log::warn!("Failed to load tile {:?}: {}", tile_id, err);
                         CachedTexture::Invalid
                     }
                 }
@@ -73,6 +74,10 @@ impl Tiles for PmTiles {
     }
 }
 
+#[derive(Debug, Error)]
+#[error("PMTiles error")]
+struct PmTilesError;
+
 fn load(
     path: &Path,
     tile_id: TileId,
@@ -83,13 +88,12 @@ fn load(
         .build()?
         .block_on(async {
             let reader = AsyncPmTilesReader::new_with_path(path).await.unwrap();
-            let tile = reader
+             reader
                 .get_tile(TileCoord::new(tile_id.zoom, tile_id.x, tile_id.y).unwrap())
                 .await
                 .unwrap()
-                .unwrap();
-            tile
-        });
+                .ok_or(PmTilesError)
+        })?;
 
     //    let path = PathBuf::from_iter(&[
     //        path.to_owned(),
@@ -98,5 +102,5 @@ fn load(
     //        format!("{}.png", tile_id.y).into(),
     //    ]);
     //    let bytes = std::fs::read(path)?;
-    Ok(Texture::new(&bytes, egui_ctx)?)
+    Ok(Texture::from_svg(&bytes, egui_ctx)?)
 }

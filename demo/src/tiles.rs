@@ -1,7 +1,7 @@
 use std::{collections::BTreeMap, path::PathBuf};
 
 use egui::Context;
-use walkers::{HttpOptions, HttpTiles, LocalTiles, Tiles};
+use walkers::{HttpOptions, HttpTiles, LocalTiles, PmTiles, Tiles};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 pub enum Provider {
@@ -11,11 +11,14 @@ pub enum Provider {
     MapboxStreets,
     MapboxSatellite,
     LocalTiles,
+    LocalPmTiles,
+    LocalPmTilesPlanet,
 }
 
 pub(crate) enum TilesKind {
     Http(HttpTiles),
     Local(LocalTiles),
+    PmTiles(PmTiles),
 }
 
 impl AsMut<dyn Tiles> for TilesKind {
@@ -23,6 +26,7 @@ impl AsMut<dyn Tiles> for TilesKind {
         match self {
             TilesKind::Http(tiles) => tiles,
             TilesKind::Local(tiles) => tiles,
+            TilesKind::PmTiles(tiles) => tiles,
         }
     }
 }
@@ -32,6 +36,7 @@ impl AsRef<dyn Tiles> for TilesKind {
         match self {
             TilesKind::Http(tiles) => tiles,
             TilesKind::Local(tiles) => tiles,
+            TilesKind::PmTiles(tiles) => tiles,
         }
     }
 }
@@ -98,6 +103,22 @@ pub(crate) fn providers(egui_ctx: Context) -> BTreeMap<Provider, Vec<TilesKind>>
         Provider::LocalTiles,
         vec![TilesKind::Local(LocalTiles::new(
             PathBuf::from_iter(&[env!("CARGO_MANIFEST_DIR"), "assets"]),
+            egui_ctx.to_owned(),
+        ))],
+    );
+
+    providers.insert(
+        Provider::LocalPmTiles,
+        vec![TilesKind::PmTiles(PmTiles::new(
+            PathBuf::from_iter(&[env!("CARGO_MANIFEST_DIR"), "wroclaw.pmtiles"]),
+            egui_ctx.to_owned(),
+        ))],
+    );
+
+    providers.insert(
+        Provider::LocalPmTilesPlanet,
+        vec![TilesKind::PmTiles(PmTiles::new(
+            PathBuf::from_iter(&[env!("CARGO_MANIFEST_DIR"), "planet_z6.pmtiles"]),
             egui_ctx.to_owned(),
         ))],
     );

@@ -4,6 +4,8 @@ use std::collections::HashMap;
 use egui::{pos2, Color32, Context, Mesh, Rect, Vec2};
 use egui::{ColorImage, TextureHandle};
 use image::ImageError;
+use resvg::usvg::{Options, Transform};
+use thiserror::Error;
 
 use crate::mercator::{project, tile_id, total_tiles};
 use crate::position::{Pixels, PixelsExt};
@@ -82,6 +84,14 @@ pub(crate) fn rect(screen_position: Vec2, tile_size: f64) -> Rect {
 #[derive(Clone)]
 pub struct Texture(TextureHandle);
 
+#[derive(Debug, Error)]
+pub enum Error {
+    #[error(transparent)]
+    ImageError(ImageError),
+    #[error(transparent)]
+    SvgError(#[from] resvg::usvg::Error),
+}
+
 impl Texture {
     pub fn new(image: &[u8], ctx: &Context) -> Result<Self, ImageError> {
         let image = image::load_from_memory(image)?.to_rgba8();
@@ -93,6 +103,28 @@ impl Texture {
 
         Ok(Self::from_color_image(image, ctx))
     }
+
+    pub fn from_svg(data: &[u8], ctx: &Context) -> Result<Self, Error> {
+        let tree = resvg::usvg::Tree::from_data(data, &Options::default())?;
+        let mut pixmap = resvg::tiny_skia::Pixmap::new(256, 256).unwrap();
+        resvg::render(&tree, Transform::default(), &mut pixmap.as_mut());
+        let image = ColorImage::from_rgba_premultiplied(
+            [pixmap.width() as usize, pixmap.height() as usize],
+            pixmap.data(),
+        );
+        Ok(Self::from_color_image(image, ctx))
+    }
+
+//    pub fn from_mvt(data: &[u8], ctx: &Context) -> Result<Self, Error> {
+//        let tree = resvg::usvg::Tree::from_data(data, &Options::default())?;
+//        let mut pixmap = resvg::tiny_skia::Pixmap::new(256, 256).unwrap();
+//        resvg::render(&tree, Transform::default(), &mut pixmap.as_mut());
+//        let image = ColorImage::from_rgba_premultiplied(
+//            [pixmap.width() as usize, pixmap.height() as usize],
+//            pixmap.data(),
+//        );
+//        Ok(Self::from_color_image(image, ctx))
+//    }
 
     /// Load the texture from egui's [`ColorImage`].
     pub fn from_color_image(color_image: ColorImage, ctx: &Context) -> Self {
