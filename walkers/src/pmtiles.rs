@@ -100,7 +100,7 @@ fn load(
         })?;
 
     let decompressed = decompress(&bytes);
-    Ok(Texture::from_mvt(&decompressed, egui_ctx)?)
+    Ok(crate::mvt::render(&decompressed, egui_ctx)?)
 }
 
 /// Decode the tile.
