@@ -109,7 +109,7 @@ impl Texture {
 
     pub fn from_mvt(data: &[u8], ctx: &Context) -> Result<Self, Error> {
         let tile = mvt_reader::Reader::new(data.to_vec())?;
-        let mut pixmap = resvg::tiny_skia::Pixmap::new(256, 256).unwrap();
+        let mut pixmap = resvg::tiny_skia::Pixmap::new(4096, 4096).unwrap();
         pixmap.fill(tiny_skia::Color::WHITE);
 
         // That is just dumb, but mvt-reader API sucks.
