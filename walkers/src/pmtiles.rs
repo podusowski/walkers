@@ -2,10 +2,14 @@ use crate::{
     io::Runtime, sources::Attribution, tiles::interpolate_from_lower_zoom, Texture, TextureWithUv,
     TileId, Tiles,
 };
+use flate2::read::ZlibDecoder;
 use log::trace;
 use lru::LruCache;
 use pmtiles::{AsyncPmTilesReader, TileCoord};
-use std::path::{Path, PathBuf};
+use std::{
+    io::Read as _,
+    path::{Path, PathBuf},
+};
 use thiserror::Error;
 
 #[derive(Clone)]
@@ -88,19 +92,25 @@ fn load(
         .build()?
         .block_on(async {
             let reader = AsyncPmTilesReader::new_with_path(path).await.unwrap();
-             reader
+            reader
                 .get_tile(TileCoord::new(tile_id.zoom, tile_id.x, tile_id.y).unwrap())
                 .await
                 .unwrap()
                 .ok_or(PmTilesError)
         })?;
 
-    //    let path = PathBuf::from_iter(&[
-    //        path.to_owned(),
-    //        tile_id.zoom.to_string().into(),
-    //        tile_id.x.to_string().into(),
-    //        format!("{}.png", tile_id.y).into(),
-    //    ]);
-    //    let bytes = std::fs::read(path)?;
-    Ok(Texture::from_svg(&bytes, egui_ctx)?)
+    let decompressed = decompress(&bytes);
+    Ok(Texture::from_mvt(&decompressed, egui_ctx)?)
+}
+
+/// Decode the tile.
+///
+/// This function assumes the input is gzip compressed data, but this might not always be the case.
+fn decompress(data: &[u8]) -> Vec<u8> {
+    let mut decoder = flate2::read::GzDecoder::new(data);
+    let mut buf = Vec::new();
+    decoder
+        .read_to_end(&mut buf)
+        .expect("Failed to decompress tile");
+    buf
 }
