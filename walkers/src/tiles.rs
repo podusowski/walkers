@@ -6,7 +6,7 @@ use egui::{ColorImage, TextureHandle};
 use image::ImageError;
 use resvg::usvg::{Options, Transform};
 use thiserror::Error;
-use tiny_skia::Color;
+use tiny_skia::{Color, Shader};
 
 use crate::mercator::{project, tile_id, total_tiles};
 use crate::position::{Pixels, PixelsExt};
@@ -113,10 +113,8 @@ impl Texture {
         pixmap.fill(tiny_skia::Color::WHITE);
 
         // That is just dumb, but mvt-reader API sucks.
-        let layer_count = tile.get_layer_names().unwrap().len();
-        for i in 0..layer_count {
-            let layer_metadata = &tile.get_layer_metadata().unwrap()[i];
-            assert_eq!(layer_metadata.extent, 4096);
+        for (i, metadata) in tile.get_layer_metadata().unwrap().iter().enumerate() {
+            assert_eq!(metadata.extent, 4096);
 
             for layer in tile.get_features(i) {
                 for feature in layer {
@@ -173,7 +171,7 @@ impl Texture {
                                 pixmap.stroke_path(
                                     &path.finish().unwrap(),
                                     &tiny_skia::Paint {
-                                        shader: tiny_skia::Shader::SolidColor(Color::from_rgba8(
+                                        shader: Shader::SolidColor(Color::from_rgba8(
                                             100, 0, 0, 255,
                                         )),
                                         ..Default::default()
@@ -217,7 +215,7 @@ impl Texture {
             }
         }
 
-        let image = ColorImage::from_rgba_unmultiplied(
+        let image = ColorImage::from_rgba_premultiplied(
             [pixmap.width() as usize, pixmap.height() as usize],
             pixmap.data(),
         );
