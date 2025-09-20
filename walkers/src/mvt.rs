@@ -128,33 +128,27 @@ pub fn render2(
 /// Egui can only draw convex polygons, so we need to triangulate arbitrary ones.
 fn arbitrary_polygon(points: &[Pos2], painter: &egui::Painter) {
     let flat_points = points.iter().flat_map(|p| [p.x, p.y]).collect::<Vec<_>>();
-    //let triangles = earcutr::earcut(&flat_points, &[], 2).unwrap();
 
     let mut triangles = Vec::<usize>::new();
     let mut earcut = earcut::Earcut::new();
     earcut.earcut(points.iter().map(|p| [p.x, p.y]), &[], &mut triangles);
 
     for (i, triangle_indices) in triangles.chunks(3).enumerate() {
-        //if i != 1 {
-        //    continue;
-        //}
-
         let triangle = [
             points[triangle_indices[0]],
             points[triangle_indices[1]],
             points[triangle_indices[2]],
         ];
 
-        if triangle_area(triangle[0], triangle[1], triangle[2]) < 1.0 {
+        if triangle_area(triangle[0], triangle[1], triangle[2]) < 0.1 {
             // too small
             continue;
         }
 
-        //println!("Triangle {i}: {:?}", triangle);
         painter.add(PathShape::convex_polygon(
             triangle.to_vec(),
             Color32::from_rgb(100, 150, 200).gamma_multiply(0.5),
-            PathStroke::NONE
+            PathStroke::NONE,
         ));
     }
 }
