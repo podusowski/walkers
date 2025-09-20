@@ -2,6 +2,7 @@ use crate::{
     io::Runtime, sources::Attribution, tiles::interpolate_from_lower_zoom, Texture, TextureWithUv,
     TileId, Tiles,
 };
+use egui::{pos2, Rect};
 use flate2::read::ZlibDecoder;
 use log::trace;
 use lru::LruCache;
@@ -55,13 +56,13 @@ impl PmTiles {
 
 impl Tiles for PmTiles {
     fn at(&mut self, tile_id: TileId) -> Option<TextureWithUv> {
-        (0..=tile_id.zoom).rev().find_map(|zoom_candidate| {
-            let (donor_tile_id, uv) = interpolate_from_lower_zoom(tile_id, zoom_candidate);
-            match self.load_and_cache(donor_tile_id) {
-                CachedTexture::Valid(texture) => Some(TextureWithUv::new(texture.clone(), uv)),
-                CachedTexture::Invalid => None,
-            }
-        })
+        match self.load_and_cache(tile_id) {
+            CachedTexture::Valid(texture) => Some(TextureWithUv::new(
+                texture.clone(),
+                Rect::from_min_size(pos2(0.0, 0.0), egui::Vec2::splat(1.0)),
+            )),
+            CachedTexture::Invalid => None,
+        }
     }
 
     fn attribution(&self) -> Attribution {
