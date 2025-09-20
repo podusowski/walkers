@@ -117,6 +117,11 @@ impl Texture {
         Self::Raster(ctx.load_texture("image", color_image, Default::default()))
     }
 
+    pub fn from_mvt(data: &[u8]) -> Result<Self, mvt_reader::error::ParserError> {
+        let reader = mvt_reader::Reader::new(data.to_vec())?;
+        Ok(Self::Vector(Arc::new(reader)))
+    }
+
     pub(crate) fn size(&self) -> Vec2 {
         match self {
             Self::Raster(texture) => texture.size_vec2(),
@@ -131,7 +136,7 @@ impl Texture {
                 mesh.add_rect_with_uv(rect, uv, Color32::WHITE.gamma_multiply(transparency));
                 painter.add(egui::Shape::mesh(mesh));
             }
-            Texture::Vector(reader) => todo!(),
+            Texture::Vector(reader) => crate::mvt::render2(&*reader, painter),
         }
     }
 }
