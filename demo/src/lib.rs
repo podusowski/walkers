@@ -23,7 +23,7 @@ impl MyApp {
 
         Self {
             providers: providers(egui_ctx.to_owned()),
-            selected_provider: Provider::OpenStreetMap,
+            selected_provider: Provider::LocalPmTiles,
             map_memory: MapMemory::default(),
             click_watcher: Default::default(),
             zoom_with_ctrl: true,

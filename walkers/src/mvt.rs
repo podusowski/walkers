@@ -1,6 +1,6 @@
 //! Renderer for Mapbox Vector Tiles.
 
-use egui::{pos2, Color32, ColorImage, Context};
+use egui::{pos2, Color32, ColorImage, Context, Shape};
 use tiny_skia::{Color, FillRule, Paint, Shader, Stroke, Transform};
 
 use crate::Texture;
@@ -39,7 +39,7 @@ pub fn render2(tile: &mvt_reader::Reader, painter: &egui::Painter, rect: egui::R
                         for point in multi_point {
                             painter.circle_filled(
                                 transformed_pos2(point.x(), point.y()),
-                                5.0,
+                                3.0,
                                 Color32::from_rgb(200, 200, 0),
                             );
                         }
@@ -63,8 +63,8 @@ pub fn render2(tile: &mvt_reader::Reader, painter: &egui::Painter, rect: egui::R
                                 .iter()
                                 .map(|p| transformed_pos2(p.x, p.y))
                                 .collect::<Vec<_>>();
-                            let stroke = egui::Stroke::new(2.0, Color32::GRAY.gamma_multiply(0.4));
-                            painter.line(points, stroke);
+                            let stroke = egui::Stroke::new(2.0, Color32::GREEN.gamma_multiply(0.4));
+                            painter.add(Shape::closed_line(points, stroke));
                         }
                     }
                     geo_types::Geometry::GeometryCollection(geometry_collection) => todo!(),
@@ -74,128 +74,4 @@ pub fn render2(tile: &mvt_reader::Reader, painter: &egui::Painter, rect: egui::R
             }
         }
     }
-}
-
-pub fn render(data: &[u8], ctx: &Context) -> Result<Texture, mvt_reader::error::ParserError> {
-    let tile = mvt_reader::Reader::new(data.to_vec())?;
-    let mut pixmap = resvg::tiny_skia::Pixmap::new(4096, 4096).unwrap();
-    pixmap.fill(tiny_skia::Color::WHITE);
-
-    // That is just dumb, but mvt-reader API sucks.
-    for (i, metadata) in tile.get_layer_metadata().unwrap().iter().enumerate() {
-        assert_eq!(metadata.extent, 4096);
-
-        for layer in tile.get_features(i) {
-            for feature in layer {
-                match feature.geometry {
-                    geo_types::Geometry::Point(point) => todo!(),
-                    geo_types::Geometry::Line(line) => todo!(),
-                    geo_types::Geometry::LineString(line_string) => {
-                        let mut path = tiny_skia::PathBuilder::new();
-
-                        path.move_to(line_string.0[0].x, line_string.0[0].y);
-                        for point in &line_string.0[1..] {
-                            path.line_to(point.x, point.y);
-                        }
-
-                        pixmap.stroke_path(
-                            &path.finish().unwrap(),
-                            &Paint {
-                                shader: Shader::SolidColor(Color::from_rgba8(0, 0, 100, 255)),
-                                ..Default::default()
-                            },
-                            &Stroke {
-                                width: 2.0,
-                                ..Default::default()
-                            },
-                            Transform::identity(),
-                            None,
-                        );
-                    }
-                    geo_types::Geometry::Polygon(polygon) => todo!(),
-                    geo_types::Geometry::MultiPoint(multi_point) => {
-                        for point in multi_point {
-                            let mut path = tiny_skia::PathBuilder::new();
-
-                            path.move_to(point.x(), point.y());
-                            path.line_to(point.x() + 10.0, point.y() + 10.0);
-                            path.line_to(point.x() - 10.0, point.y() + 10.0);
-                            path.close();
-
-                            pixmap.fill_path(
-                                &path.finish().unwrap(),
-                                &Paint {
-                                    shader: Shader::SolidColor(Color::from_rgba8(100, 100, 0, 255)),
-                                    ..Default::default()
-                                },
-                                FillRule::Winding,
-                                Transform::identity(),
-                                None,
-                            );
-                        }
-                    }
-                    geo_types::Geometry::MultiLineString(multi_line_string) => {
-                        for line_string in multi_line_string {
-                            let mut path = tiny_skia::PathBuilder::new();
-
-                            path.move_to(line_string.0[0].x, line_string.0[0].y);
-                            for point in &line_string.0[1..] {
-                                path.line_to(point.x, point.y);
-                            }
-
-                            pixmap.stroke_path(
-                                &path.finish().unwrap(),
-                                &tiny_skia::Paint {
-                                    shader: Shader::SolidColor(Color::from_rgba8(100, 0, 0, 255)),
-                                    ..Default::default()
-                                },
-                                &tiny_skia::Stroke {
-                                    width: 2.0,
-                                    ..Default::default()
-                                },
-                                tiny_skia::Transform::identity(),
-                                None,
-                            );
-                        }
-                    }
-                    geo_types::Geometry::MultiPolygon(multi_polygon) => {
-                        for polygon in multi_polygon {
-                            for line_string in [&polygon.exterior()]
-                            // .iter().chain(polygon.interiors.iter())
-                            {
-                                let mut path = tiny_skia::PathBuilder::new();
-
-                                path.move_to(line_string.0[0].x, line_string.0[0].y);
-                                for point in &line_string.0[1..] {
-                                    path.line_to(point.x, point.y);
-                                }
-
-                                pixmap.fill_path(
-                                    &path.finish().unwrap(),
-                                    &Paint {
-                                        shader: Shader::SolidColor(Color::from_rgba8(
-                                            0, 100, 0, 100,
-                                        )),
-                                        ..Default::default()
-                                    },
-                                    tiny_skia::FillRule::Winding,
-                                    tiny_skia::Transform::identity(),
-                                    None,
-                                );
-                            }
-                        }
-                    }
-                    geo_types::Geometry::GeometryCollection(geometry_collection) => todo!(),
-                    geo_types::Geometry::Rect(rect) => todo!(),
-                    geo_types::Geometry::Triangle(triangle) => todo!(),
-                }
-            }
-        }
-    }
-
-    let image = ColorImage::from_rgba_premultiplied(
-        [pixmap.width() as usize, pixmap.height() as usize],
-        pixmap.data(),
-    );
-    Ok(Texture::from_color_image(image, ctx))
 }
