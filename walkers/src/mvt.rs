@@ -1,6 +1,9 @@
 //! Renderer for Mapbox Vector Tiles.
 
-use egui::{pos2, Color32, Shape};
+use egui::{
+    epaint::{PathShape, PathStroke},
+    pos2, Color32, Pos2, Shape,
+};
 
 #[derive(thiserror::Error, Debug)]
 pub enum Error {
@@ -41,6 +44,27 @@ pub fn render2(
         }
 
         for feature in tile.get_features(i)? {
+            let Some(properties) = feature.properties else {
+                continue;
+            };
+
+            let Some(kind) = properties.get("kind") else {
+                continue;
+            };
+
+            //match kind {
+            //    mvt_reader::feature::Value::String(s) if s == "building" => {}
+            //    _ => {
+            //        //    println!("Unknown kind: {:?}", kind);
+            //        continue;
+            //    }
+            //}
+
+            //if feature.id != Some(35184472817089)
+            //{
+            //    continue;
+            //}
+
             match feature.geometry {
                 geo_types::Geometry::Point(_point) => todo!(),
                 geo_types::Geometry::Line(_line) => todo!(),
@@ -77,15 +101,19 @@ pub fn render2(
                     }
                 }
                 geo_types::Geometry::MultiPolygon(multi_polygon) => {
-                    for polygon in multi_polygon {
+                    for (i, polygon) in multi_polygon.iter().enumerate() {
+                       // if i != 172 {
+                       //     continue;
+                       // }
                         let points = polygon
                             .exterior()
                             .0
                             .iter()
                             .map(|p| transformed_pos2(p.x, p.y))
                             .collect::<Vec<_>>();
-                        let stroke = egui::Stroke::new(2.0, Color32::GREEN.gamma_multiply(0.4));
-                        painter.add(Shape::closed_line(points, stroke));
+                        //let stroke = egui::Stroke::new(2.0, Color32::GREEN.gamma_multiply(0.4));
+                        //painter.add(Shape::closed_line(points, stroke));
+                        arbitrary_polygon(&points, painter);
                     }
                 }
                 geo_types::Geometry::GeometryCollection(_geometry_collection) => todo!(),
@@ -95,4 +123,46 @@ pub fn render2(
         }
     }
     Ok(())
+}
+
+/// Egui can only draw convex polygons, so we need to triangulate arbitrary ones.
+fn arbitrary_polygon(points: &[Pos2], painter: &egui::Painter) {
+    let flat_points = points.iter().flat_map(|p| [p.x, p.y]).collect::<Vec<_>>();
+    //let triangles = earcutr::earcut(&flat_points, &[], 2).unwrap();
+
+    let mut triangles = Vec::<usize>::new();
+    let mut earcut = earcut::Earcut::new();
+    earcut.earcut(points.iter().map(|p| [p.x, p.y]), &[], &mut triangles);
+
+    for (i, triangle_indices) in triangles.chunks(3).enumerate() {
+        //if i != 1 {
+        //    continue;
+        //}
+
+        let triangle = [
+            points[triangle_indices[0]],
+            points[triangle_indices[1]],
+            points[triangle_indices[2]],
+        ];
+
+        if triangle_area(triangle[0], triangle[1], triangle[2]) < 1.0 {
+            // too small
+            continue;
+        }
+
+        //println!("Triangle {i}: {:?}", triangle);
+        painter.add(PathShape::convex_polygon(
+            triangle.to_vec(),
+            Color32::from_rgb(100, 150, 200).gamma_multiply(0.5),
+            PathStroke::new(1.0, Color32::RED),
+        ));
+
+        for point in triangle {
+            painter.circle_filled((point).into(), 3.0, Color32::BLUE);
+        }
+    }
+}
+
+fn triangle_area(a: Pos2, b: Pos2, c: Pos2) -> f32 {
+    ((a.x * (b.y - c.y) + b.x * (c.y - a.y) + c.x * (a.y - b.y)) / 2.0).abs()
 }
