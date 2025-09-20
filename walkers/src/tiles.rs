@@ -6,9 +6,7 @@ use std::sync::Arc;
 use egui::{pos2, Color32, Context, Mesh, Rect, Vec2};
 use egui::{ColorImage, TextureHandle};
 use image::ImageError;
-use resvg::usvg::{Options, Transform};
 use thiserror::Error;
-use tiny_skia::{Color, Shader};
 
 use crate::mercator::{project, tile_id, total_tiles};
 use crate::position::{Pixels, PixelsExt};
@@ -94,8 +92,6 @@ pub enum Texture {
 pub enum Error {
     #[error(transparent)]
     ImageError(ImageError),
-    #[error(transparent)]
-    SvgError(#[from] resvg::usvg::Error),
     #[error(transparent)]
     MvtError(#[from] mvt_reader::error::ParserError),
 }
