@@ -2,7 +2,7 @@ use egui::{Color32, Response, Ui};
 use walkers::{
     extras::{
         GroupedPlaces, LabeledSymbol, LabeledSymbolGroup, LabeledSymbolGroupStyle,
-        LabeledSymbolStyle, Places, Symbol, Texture,
+        LabeledSymbolStyle, Symbol,
     },
     MapMemory, Plugin, Position, Projector,
 };

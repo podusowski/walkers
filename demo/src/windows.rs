@@ -1,5 +1,5 @@
 use crate::MyApp;
-use egui::{Align2, ComboBox, Image, RichText, Slider, Ui, Window};
+use egui::{Align2, ComboBox, Image, RichText, Ui, Window};
 use walkers::{sources::Attribution, MapMemory};
 
 pub fn acknowledge(ui: &Ui, attributions: Vec<Attribution>) {
