@@ -59,12 +59,6 @@ pub fn controls(app: &mut MyApp, ui: &Ui, http_stats: Vec<walkers::HttpStats>) {
                     ));
                 }
             });
-
-            ui.collapsing("Images plugin", |ui| {
-                ui.add(Slider::new(&mut app.images_plugin_data.angle, 0.0..=360.0).text("Rotate"));
-                ui.add(Slider::new(&mut app.images_plugin_data.x_scale, 0.1..=3.0).text("Scale X"));
-                ui.add(Slider::new(&mut app.images_plugin_data.y_scale, 0.1..=3.0).text("Scale Y"));
-            });
         });
 }
 
