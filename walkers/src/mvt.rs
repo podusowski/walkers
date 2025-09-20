@@ -1,7 +1,6 @@
 //! Renderer for Mapbox Vector Tiles.
 
 use egui::{pos2, Color32, Shape};
-use tiny_skia::{Color, FillRule, Paint, Shader, Stroke, Transform};
 
 use crate::Texture;
 
