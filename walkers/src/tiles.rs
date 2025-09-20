@@ -1,5 +1,7 @@
 use std::collections::hash_map::Entry;
 use std::collections::{HashMap, HashSet};
+use std::rc::Rc;
+use std::sync::Arc;
 
 use egui::{pos2, Color32, Context, Mesh, Rect, Vec2};
 use egui::{ColorImage, TextureHandle};
@@ -83,7 +85,10 @@ pub(crate) fn rect(screen_position: Vec2, tile_size: f64) -> Rect {
 }
 
 #[derive(Clone)]
-pub struct Texture(TextureHandle);
+pub enum Texture {
+    Raster(TextureHandle),
+    Vector(Arc<mvt_reader::Reader>),
+}
 
 #[derive(Debug, Error)]
 pub enum Error {
@@ -109,45 +114,25 @@ impl Texture {
 
     /// Load the texture from egui's [`ColorImage`].
     pub fn from_color_image(color_image: ColorImage, ctx: &Context) -> Self {
-        Self(ctx.load_texture("image", color_image, Default::default()))
+        Self::Raster(ctx.load_texture("image", color_image, Default::default()))
     }
 
     pub(crate) fn size(&self) -> Vec2 {
-        self.0.size_vec2()
+        match self {
+            Self::Raster(texture) => texture.size_vec2(),
+            Self::Vector(reader) => Vec2::splat(4096.0),
+        }
     }
 
     pub(crate) fn draw(&self, painter: &egui::Painter, rect: Rect, uv: Rect, transparency: f32) {
-        painter.add(egui::Shape::mesh(self.mesh_with_rect_and_uv(
-            rect,
-            uv,
-            transparency,
-        )));
-    }
-
-    fn mesh_with_uv(
-        &self,
-        screen_position: Vec2,
-        tile_size: f64,
-        uv: Rect,
-        transparency: f32,
-    ) -> Mesh {
-        self.mesh_with_rect_and_uv(rect(screen_position, tile_size), uv, transparency)
-    }
-
-    fn mesh_with_rect(&self, rect: Rect) -> Mesh {
-        let mut mesh = Mesh::with_texture(self.0.id());
-        mesh.add_rect_with_uv(
-            rect,
-            Rect::from_min_max(pos2(0., 0.0), pos2(1.0, 1.0)),
-            Color32::WHITE,
-        );
-        mesh
-    }
-
-    fn mesh_with_rect_and_uv(&self, rect: Rect, uv: Rect, transparency: f32) -> Mesh {
-        let mut mesh = Mesh::with_texture(self.0.id());
-        mesh.add_rect_with_uv(rect, uv, Color32::WHITE.gamma_multiply(transparency));
-        mesh
+        match self {
+            Texture::Raster(texture_handle) => {
+                let mut mesh = Mesh::with_texture(texture_handle.id());
+                mesh.add_rect_with_uv(rect, uv, Color32::WHITE.gamma_multiply(transparency));
+                painter.add(egui::Shape::mesh(mesh));
+            }
+            Texture::Vector(reader) => todo!(),
+        }
     }
 }
 
