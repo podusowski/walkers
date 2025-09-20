@@ -2,8 +2,6 @@
 
 use egui::{pos2, Color32, Shape};
 
-use crate::Texture;
-
 #[derive(thiserror::Error, Debug)]
 pub enum Error {
     #[error(transparent)]
