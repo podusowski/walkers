@@ -88,14 +88,6 @@ pub enum Texture {
     Vector(Arc<mvt_reader::Reader>),
 }
 
-#[derive(Debug, Error)]
-pub enum Error {
-    #[error(transparent)]
-    ImageError(ImageError),
-    #[error(transparent)]
-    MvtError(#[from] mvt_reader::error::ParserError),
-}
-
 impl Texture {
     pub fn new(image: &[u8], ctx: &Context) -> Result<Self, ImageError> {
         let image = image::load_from_memory(image)?.to_rgba8();

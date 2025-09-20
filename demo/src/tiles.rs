@@ -109,18 +109,18 @@ pub(crate) fn providers(egui_ctx: Context) -> BTreeMap<Provider, Vec<TilesKind>>
 
     providers.insert(
         Provider::LocalPmTiles,
-        vec![TilesKind::PmTiles(PmTiles::new(
-            PathBuf::from_iter(&[env!("CARGO_MANIFEST_DIR"), "wroclaw.pmtiles"]),
-            egui_ctx.to_owned(),
-        ))],
+        vec![TilesKind::PmTiles(PmTiles::new(PathBuf::from_iter(&[
+            env!("CARGO_MANIFEST_DIR"),
+            "wroclaw.pmtiles",
+        ])))],
     );
 
     providers.insert(
         Provider::LocalPmTilesPlanet,
-        vec![TilesKind::PmTiles(PmTiles::new(
-            PathBuf::from_iter(&[env!("CARGO_MANIFEST_DIR"), "planet_z6.pmtiles"]),
-            egui_ctx.to_owned(),
-        ))],
+        vec![TilesKind::PmTiles(PmTiles::new(PathBuf::from_iter(&[
+            env!("CARGO_MANIFEST_DIR"),
+            "planet_z6.pmtiles",
+        ])))],
     );
 
     // Pass in a mapbox access token at compile time. May or may not be what you want to do,

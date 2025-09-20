@@ -22,32 +22,28 @@ enum CachedTexture {
 /// https://docs.protomaps.com/guide/getting-started
 pub struct PmTiles {
     path: PathBuf,
-    egui_ctx: egui::Context,
     cache: LruCache<TileId, CachedTexture>,
 }
 
 impl PmTiles {
-    pub fn new(path: impl AsRef<Path>, egui_ctx: egui::Context) -> Self {
+    pub fn new(path: impl AsRef<Path>) -> Self {
         // Just arbitrary value which seemed right.
         #[allow(clippy::unwrap_used)]
         let cache_size = std::num::NonZeroUsize::new(256).unwrap();
 
         Self {
             path: path.as_ref().into(),
-            egui_ctx,
             cache: LruCache::new(cache_size),
         }
     }
 
     fn load_and_cache(&mut self, tile_id: TileId) -> CachedTexture {
         self.cache
-            .get_or_insert(tile_id, || {
-                match load(&self.path, tile_id, &self.egui_ctx) {
-                    Ok(texture) => CachedTexture::Valid(texture),
-                    Err(err) => {
-                        log::warn!("Failed to load tile {:?}: {}", tile_id, err);
-                        CachedTexture::Invalid
-                    }
+            .get_or_insert(tile_id, || match load(&self.path, tile_id) {
+                Ok(texture) => CachedTexture::Valid(texture),
+                Err(err) => {
+                    log::warn!("Failed to load tile {:?}: {}", tile_id, err);
+                    CachedTexture::Invalid
                 }
             })
             .clone()
@@ -83,11 +79,7 @@ impl Tiles for PmTiles {
 #[error("PMTiles error")]
 struct PmTilesError;
 
-fn load(
-    path: &Path,
-    tile_id: TileId,
-    egui_ctx: &egui::Context,
-) -> Result<Texture, Box<dyn std::error::Error>> {
+fn load(path: &Path, tile_id: TileId) -> Result<Texture, Box<dyn std::error::Error>> {
     let bytes = tokio::runtime::Builder::new_current_thread()
         .enable_all()
         .build()?
