@@ -136,7 +136,9 @@ impl Texture {
                 mesh.add_rect_with_uv(rect, uv, Color32::WHITE.gamma_multiply(transparency));
                 painter.add(egui::Shape::mesh(mesh));
             }
-            Texture::Vector(reader) => crate::mvt::render2(&*reader, painter),
+            Texture::Vector(reader) => {
+                crate::mvt::render2(&*reader, painter, rect);
+            }
         }
     }
 }

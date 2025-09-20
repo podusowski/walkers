@@ -5,7 +5,15 @@ use tiny_skia::{Color, FillRule, Paint, Shader, Stroke, Transform};
 
 use crate::Texture;
 
-pub fn render2(tile: &mvt_reader::Reader, painter: &egui::Painter) {
+pub fn render2(tile: &mvt_reader::Reader, painter: &egui::Painter, rect: egui::Rect) {
+    // Tile coords are from 0 to 4096, but we have a rect to fill.
+    let transformed_pos2 = |x: f32, y: f32| {
+        pos2(
+            rect.left() + (x / 4096.0) * rect.width(),
+            rect.top() + (y / 4096.0) * rect.height(),
+        )
+    };
+
     // That is just dumb, but mvt-reader API sucks.
     for (i, metadata) in tile.get_layer_metadata().unwrap().iter().enumerate() {
         assert_eq!(metadata.extent, 4096);
@@ -19,8 +27,8 @@ pub fn render2(tile: &mvt_reader::Reader, painter: &egui::Painter) {
                         for segment in line_string.0.windows(2) {
                             painter.line_segment(
                                 [
-                                    pos2(segment[0].x, segment[0].y),
-                                    pos2(segment[1].x, segment[1].y),
+                                    transformed_pos2(segment[0].x, segment[0].y),
+                                    transformed_pos2(segment[1].x, segment[1].y),
                                 ],
                                 egui::Stroke::new(1.0, Color32::from_rgb(200, 200, 200)),
                             );
@@ -30,7 +38,7 @@ pub fn render2(tile: &mvt_reader::Reader, painter: &egui::Painter) {
                     geo_types::Geometry::MultiPoint(multi_point) => {
                         for point in multi_point {
                             painter.circle_filled(
-                                pos2(point.x(), point.y()),
+                                transformed_pos2(point.x(), point.y()),
                                 5.0,
                                 Color32::from_rgb(200, 200, 0),
                             );
@@ -41,10 +49,9 @@ pub fn render2(tile: &mvt_reader::Reader, painter: &egui::Painter) {
                             let points = line_string
                                 .0
                                 .iter()
-                                .map(|p| pos2(p.x, p.y))
+                                .map(|p| transformed_pos2(p.x, p.y))
                                 .collect::<Vec<_>>();
-                            let stroke =
-                                egui::Stroke::new(2.0, Color32::ORANGE);
+                            let stroke = egui::Stroke::new(2.0, Color32::ORANGE);
                             painter.line(points, stroke);
                         }
                     }
@@ -54,7 +61,7 @@ pub fn render2(tile: &mvt_reader::Reader, painter: &egui::Painter) {
                                 .exterior()
                                 .0
                                 .iter()
-                                .map(|p| pos2(p.x, p.y))
+                                .map(|p| transformed_pos2(p.x, p.y))
                                 .collect::<Vec<_>>();
                             let stroke = egui::Stroke::new(2.0, Color32::GRAY.gamma_multiply(0.4));
                             painter.line(points, stroke);
