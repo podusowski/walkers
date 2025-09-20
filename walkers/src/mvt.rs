@@ -18,6 +18,14 @@ pub fn render2(
     painter: &egui::Painter,
     rect: egui::Rect,
 ) -> Result<(), Error> {
+    // debug box around the tile
+    painter.rect_stroke(
+        rect,
+        0.0,
+        egui::Stroke::new(1.0, Color32::RED),
+        egui::StrokeKind::Inside,
+    );
+
     // Tile coords are from 0 to 4096, but we have a rect to fill.
     let transformed_pos2 = |x: f32, y: f32| {
         pos2(
