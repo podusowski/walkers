@@ -118,13 +118,6 @@ impl Texture {
         Ok(Self::Vector(Arc::new(reader)))
     }
 
-    pub(crate) fn size(&self) -> Vec2 {
-        match self {
-            Self::Raster(texture) => texture.size_vec2(),
-            Self::Vector(_) => Vec2::splat(4096.0),
-        }
-    }
-
     pub(crate) fn draw(&self, painter: &egui::Painter, rect: Rect, uv: Rect, transparency: f32) {
         match self {
             Texture::Raster(texture_handle) => {
