@@ -102,9 +102,9 @@ pub fn render2(
                 }
                 geo_types::Geometry::MultiPolygon(multi_polygon) => {
                     for (i, polygon) in multi_polygon.iter().enumerate() {
-                       // if i != 172 {
-                       //     continue;
-                       // }
+                        // if i != 172 {
+                        //     continue;
+                        // }
                         let points = polygon
                             .exterior()
                             .0
@@ -154,12 +154,8 @@ fn arbitrary_polygon(points: &[Pos2], painter: &egui::Painter) {
         painter.add(PathShape::convex_polygon(
             triangle.to_vec(),
             Color32::from_rgb(100, 150, 200).gamma_multiply(0.5),
-            PathStroke::new(1.0, Color32::RED),
+            PathStroke::NONE
         ));
-
-        for point in triangle {
-            painter.circle_filled((point).into(), 3.0, Color32::BLUE);
-        }
     }
 }
 
