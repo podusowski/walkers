@@ -121,7 +121,7 @@ impl Texture {
     pub(crate) fn size(&self) -> Vec2 {
         match self {
             Self::Raster(texture) => texture.size_vec2(),
-            Self::Vector(reader) => Vec2::splat(4096.0),
+            Self::Vector(_) => Vec2::splat(4096.0),
         }
     }
 

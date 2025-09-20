@@ -44,8 +44,8 @@ pub fn render2(
 
         for feature in tile.get_features(i)? {
             match feature.geometry {
-                geo_types::Geometry::Point(point) => todo!(),
-                geo_types::Geometry::Line(line) => todo!(),
+                geo_types::Geometry::Point(_point) => todo!(),
+                geo_types::Geometry::Line(_line) => todo!(),
                 geo_types::Geometry::LineString(line_string) => {
                     for segment in line_string.0.windows(2) {
                         painter.line_segment(
@@ -57,7 +57,7 @@ pub fn render2(
                         );
                     }
                 }
-                geo_types::Geometry::Polygon(polygon) => todo!(),
+                geo_types::Geometry::Polygon(_polygon) => todo!(),
                 geo_types::Geometry::MultiPoint(multi_point) => {
                     for point in multi_point {
                         painter.circle_filled(
@@ -90,9 +90,9 @@ pub fn render2(
                         painter.add(Shape::closed_line(points, stroke));
                     }
                 }
-                geo_types::Geometry::GeometryCollection(geometry_collection) => todo!(),
-                geo_types::Geometry::Rect(rect) => todo!(),
-                geo_types::Geometry::Triangle(triangle) => todo!(),
+                geo_types::Geometry::GeometryCollection(_geometry_collection) => todo!(),
+                geo_types::Geometry::Rect(_rect) => todo!(),
+                geo_types::Geometry::Triangle(_triangle) => todo!(),
             }
         }
     }
