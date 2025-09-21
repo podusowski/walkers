@@ -31,34 +31,42 @@ pub fn controls(app: &mut MyApp, ui: &Ui, http_stats: Vec<walkers::HttpStats>) {
         .anchor(Align2::RIGHT_TOP, [-10., 10.])
         .fixed_size([150., 150.])
         .show(ui.ctx(), |ui| {
-            ui.collapsing("Map", |ui| {
-                ComboBox::from_label("Tile Provider")
-                    .selected_text(app.selected_provider.to_owned())
-                    .show_ui(ui, |ui| {
-                        for p in app.providers.available.keys() {
-                            ui.selectable_value(&mut app.selected_provider, p.clone(), p);
-                        }
-                    });
+            ui.heading("Map");
 
-                ui.checkbox(&mut app.zoom_with_ctrl, "Zoom with Ctrl");
+            ComboBox::from_label("Tile Provider")
+                .selected_text(app.selected_provider.to_owned())
+                .show_ui(ui, |ui| {
+                    for p in app.providers.available.keys() {
+                        ui.selectable_value(&mut app.selected_provider, p.clone(), p);
+                    }
+                });
 
-                ui.separator();
+            if !app.providers.have_some_pmtiles {
+                ui.label("No .pmtiles files found in the current directory. Go to");
+                ui.hyperlink("https://docs.protomaps.com/guide/getting-started");
+                ui.label(" to see how to fetch some.");
+            }
 
-                if app.map_memory.animating() {
-                    ui.label("Map is animating");
-                } else {
-                    ui.label("Map is not animating");
-                }
-            });
+            ui.add_space(10.0);
+            ui.heading("Settings");
 
-            ui.collapsing("HTTP statistics", |ui| {
-                for http_stats in http_stats {
-                    ui.label(format!(
-                        "{:?} requests in progress: {}",
-                        app.selected_provider, http_stats.in_progress
-                    ));
-                }
-            });
+            ui.checkbox(&mut app.zoom_with_ctrl, "Zoom with Ctrl");
+
+            ui.add_space(10.0);
+            ui.heading("Debug");
+
+            if app.map_memory.animating() {
+                ui.label("Map is animating");
+            } else {
+                ui.label("Map is not animating");
+            }
+
+            for http_stats in http_stats {
+                ui.label(format!(
+                    "{:?} requests in progress: {}",
+                    app.selected_provider, http_stats.in_progress
+                ));
+            }
         });
 }
 
