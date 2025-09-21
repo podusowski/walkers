@@ -2,7 +2,7 @@
 
 use egui::{
     epaint::{PathShape, PathStroke},
-    pos2, Color32, Pos2,
+    pos2, Color32, Pos2, Stroke,
 };
 use geo_types::Geometry;
 
@@ -36,6 +36,8 @@ pub fn render(
         )
     };
 
+    let line_stroke = Stroke::new(4.0, Color32::WHITE);
+
     // That is just dumb, but mvt-reader API sucks.
     for (i, metadata) in tile.get_layer_metadata().unwrap().iter().enumerate() {
         if metadata.extent != 4096 {
@@ -56,7 +58,7 @@ pub fn render(
                                 transformed_pos2(segment[0].x, segment[0].y),
                                 transformed_pos2(segment[1].x, segment[1].y),
                             ],
-                            egui::Stroke::new(1.0, Color32::from_rgb(200, 200, 200)),
+                            line_stroke,
                         );
                     }
                 }
@@ -77,8 +79,7 @@ pub fn render(
                             .iter()
                             .map(|p| transformed_pos2(p.x, p.y))
                             .collect::<Vec<_>>();
-                        let stroke = egui::Stroke::new(2.0, Color32::ORANGE);
-                        painter.line(points, stroke);
+                        painter.line(points, line_stroke);
                     }
                 }
                 Geometry::MultiPolygon(multi_polygon) => {
@@ -121,7 +122,8 @@ fn arbitrary_polygon(points: &[Pos2], painter: &egui::Painter) {
 
         painter.add(PathShape::convex_polygon(
             triangle.to_vec(),
-            Color32::from_rgb(100, 150, 200).gamma_multiply(0.5),
+            //Color32::from_rgb(100, 150, 200).gamma_multiply(0.5),
+            Color32::WHITE.gamma_multiply(0.2),
             PathStroke::NONE,
         ));
 
