@@ -14,6 +14,9 @@ pub enum Error {
     Other(String),
 }
 
+/// Currently this is the only supported extent.
+const ONLY_SUPPORTED_EXTENT: u32 = 4096;
+
 pub fn render(
     tile: &mvt_reader::Reader,
     painter: egui::Painter,
@@ -28,21 +31,21 @@ pub fn render(
         egui::StrokeKind::Inside,
     );
 
-    // Tile coords are from 0 to 4096, but we have a rect to fill.
+    // Transform coordinates from MVT space to screen space.
     let transformed_pos2 = |x: f32, y: f32| {
         pos2(
-            rect.left() + (x / 4096.0) * rect.width(),
-            rect.top() + (y / 4096.0) * rect.height(),
+            rect.left() + (x / ONLY_SUPPORTED_EXTENT as f32) * rect.width(),
+            rect.top() + (y / ONLY_SUPPORTED_EXTENT as f32) * rect.height(),
         )
     };
 
-    let line_stroke = Stroke::new(4.0, Color32::WHITE);
+    let line_stroke = Stroke::new(3.0, Color32::WHITE);
 
     // That is just dumb, but mvt-reader API sucks.
     for (i, metadata) in tile.get_layer_metadata().unwrap().iter().enumerate() {
-        if metadata.extent != 4096 {
+        if metadata.extent != ONLY_SUPPORTED_EXTENT {
             return Err(Error::Other(format!(
-                "Unsupported extent: {}, expected 4096",
+                "Unsupported extent: {}, expected {ONLY_SUPPORTED_EXTENT}",
                 metadata.extent
             )));
         }
@@ -122,7 +125,6 @@ fn arbitrary_polygon(points: &[Pos2], painter: &egui::Painter) {
 
         painter.add(PathShape::convex_polygon(
             triangle.to_vec(),
-            //Color32::from_rgb(100, 150, 200).gamma_multiply(0.5),
             Color32::WHITE.gamma_multiply(0.2),
             PathStroke::NONE,
         ));
