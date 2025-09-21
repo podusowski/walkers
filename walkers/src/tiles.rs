@@ -115,7 +115,7 @@ impl Texture {
                 painter.add(egui::Shape::mesh(mesh));
             }
             Texture::Vector(reader) => {
-                if let Err(err) = crate::mvt::render2(&*reader, painter, rect) {
+                if let Err(err) = crate::mvt::render2(&*reader, painter.with_clip_rect(rect), rect) {
                     log::warn!("Could not render MVT tile: {}", err);
                 }
             }

@@ -15,7 +15,7 @@ pub enum Error {
 
 pub fn render2(
     tile: &mvt_reader::Reader,
-    painter: &egui::Painter,
+    painter: egui::Painter,
     rect: egui::Rect,
 ) -> Result<(), Error> {
     // debug box around the tile
@@ -87,7 +87,7 @@ pub fn render2(
                             .iter()
                             .map(|p| transformed_pos2(p.x, p.y))
                             .collect::<Vec<_>>();
-                        arbitrary_polygon(&points, painter);
+                        arbitrary_polygon(&points, &painter);
                     }
                 }
                 geo_types::Geometry::GeometryCollection(_geometry_collection) => todo!(),
