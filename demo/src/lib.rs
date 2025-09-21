@@ -10,8 +10,8 @@ use tiles::{providers, Provider, TilesKind};
 use walkers::{Map, MapMemory};
 
 pub struct MyApp {
-    providers: BTreeMap<Provider, Vec<TilesKind>>,
-    selected_provider: Provider,
+    providers: BTreeMap<String, Vec<TilesKind>>,
+    selected_provider: String,
     map_memory: MapMemory,
     click_watcher: plugins::ClickWatcher,
     zoom_with_ctrl: bool,
@@ -23,7 +23,7 @@ impl MyApp {
 
         Self {
             providers: providers(egui_ctx.to_owned()),
-            selected_provider: Provider::LocalPmTiles,
+            selected_provider: "LocalPmTiles".to_string(),
             map_memory: MapMemory::default(),
             click_watcher: Default::default(),
             zoom_with_ctrl: true,

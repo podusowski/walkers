@@ -36,7 +36,7 @@ pub fn controls(app: &mut MyApp, ui: &Ui, http_stats: Vec<walkers::HttpStats>) {
                     .selected_text(format!("{:?}", app.selected_provider))
                     .show_ui(ui, |ui| {
                         for p in app.providers.keys() {
-                            ui.selectable_value(&mut app.selected_provider, *p, format!("{:?}", p));
+                            ui.selectable_value(&mut app.selected_provider, p.clone(), format!("{:?}", p));
                         }
                     });
 
