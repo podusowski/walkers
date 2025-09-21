@@ -13,7 +13,7 @@ pub enum Error {
     Other(String),
 }
 
-pub fn render2(
+pub fn render(
     tile: &mvt_reader::Reader,
     painter: egui::Painter,
     rect: egui::Rect,
