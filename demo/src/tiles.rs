@@ -105,28 +105,11 @@ pub(crate) fn providers(egui_ctx: Context) -> Providers {
     providers.have_some_pmtiles = !pmtiles.is_empty();
 
     for path in pmtiles {
-        let name = format!("PmTiles: {}", path.file_name().unwrap().to_string_lossy());
         providers.available.insert(
-            name,
+            path.file_name().unwrap().to_string_lossy().to_string(),
             vec![TilesKind::PmTiles(PmTiles::new(path.to_owned()))],
         );
     }
-
-    providers.available.insert(
-        "LocalPmTiles".to_string(),
-        vec![TilesKind::PmTiles(PmTiles::new(PathBuf::from_iter(&[
-            env!("CARGO_MANIFEST_DIR"),
-            "wroclaw.pmtiles",
-        ])))],
-    );
-
-    providers.available.insert(
-        "LocalPmTilesPlanet".to_string(),
-        vec![TilesKind::PmTiles(PmTiles::new(PathBuf::from_iter(&[
-            env!("CARGO_MANIFEST_DIR"),
-            "planet_z6.pmtiles",
-        ])))],
-    );
 
     // Pass in a mapbox access token at compile time. May or may not be what you want to do,
     // potentially loading it from application settings instead.
