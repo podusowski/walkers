@@ -31,7 +31,6 @@ pmtiles = { version = "0.16.0", default-features = false, features = [
 ] }
 mvt-reader = "2.1.0"
 flate2 = "1.1.2"
-earcutr = "0.5.0"
 earcut = "0.4.4"
 
 [target.'cfg(target_family = "wasm")'.dependencies]
