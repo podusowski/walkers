@@ -33,10 +33,10 @@ pub fn controls(app: &mut MyApp, ui: &Ui, http_stats: Vec<walkers::HttpStats>) {
         .show(ui.ctx(), |ui| {
             ui.collapsing("Map", |ui| {
                 ComboBox::from_label("Tile Provider")
-                    .selected_text(format!("{:?}", app.selected_provider))
+                    .selected_text(app.selected_provider.to_owned())
                     .show_ui(ui, |ui| {
                         for p in app.providers.keys() {
-                            ui.selectable_value(&mut app.selected_provider, p.clone(), format!("{:?}", p));
+                            ui.selectable_value(&mut app.selected_provider, p.clone(), p);
                         }
                     });
 

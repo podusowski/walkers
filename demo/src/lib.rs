@@ -6,7 +6,7 @@ mod windows;
 use std::collections::BTreeMap;
 
 use egui::{Button, CentralPanel, Context, DragPanButtons, Frame, OpenUrl, Rect, Vec2};
-use tiles::{providers, Provider, TilesKind};
+use tiles::{providers, TilesKind};
 use walkers::{Map, MapMemory};
 
 pub struct MyApp {

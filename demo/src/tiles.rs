@@ -3,18 +3,6 @@ use std::{collections::BTreeMap, path::PathBuf};
 use egui::Context;
 use walkers::{HttpOptions, HttpTiles, LocalTiles, PmTiles, Tiles};
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
-pub enum Provider {
-    OpenStreetMap,
-    Geoportal,
-    OpenStreetMapWithGeoportal,
-    MapboxStreets,
-    MapboxSatellite,
-    LocalTiles,
-    LocalPmTiles,
-    LocalPmTilesPlanet,
-}
-
 pub(crate) enum TilesKind {
     Http(HttpTiles),
     Local(LocalTiles),
