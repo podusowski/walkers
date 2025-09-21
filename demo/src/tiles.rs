@@ -41,10 +41,16 @@ fn http_options() -> HttpOptions {
     }
 }
 
-pub(crate) fn providers(egui_ctx: Context) -> BTreeMap<String, Vec<TilesKind>> {
-    let mut providers = BTreeMap::default();
+#[derive(Default)]
+pub struct Providers {
+    pub available: BTreeMap<String, Vec<TilesKind>>,
+    pub have_some_pmtiles: bool,
+}
 
-    providers.insert(
+pub(crate) fn providers(egui_ctx: Context) -> Providers {
+    let mut providers = Providers::default();
+
+    providers.available.insert(
         "OpenStreetMap".to_string(),
         vec![TilesKind::Http(HttpTiles::with_options(
             walkers::sources::OpenStreetMap,
@@ -53,7 +59,7 @@ pub(crate) fn providers(egui_ctx: Context) -> BTreeMap<String, Vec<TilesKind>> {
         ))],
     );
 
-    providers.insert(
+    providers.available.insert(
         "Geoportal".to_string(),
         vec![TilesKind::Http(HttpTiles::with_options(
             walkers::sources::Geoportal,
@@ -62,7 +68,7 @@ pub(crate) fn providers(egui_ctx: Context) -> BTreeMap<String, Vec<TilesKind>> {
         ))],
     );
 
-    providers.insert(
+    providers.available.insert(
         "OpenStreetMapWithGeoportal".to_string(),
         vec![
             TilesKind::Http(HttpTiles::with_options(
@@ -78,7 +84,7 @@ pub(crate) fn providers(egui_ctx: Context) -> BTreeMap<String, Vec<TilesKind>> {
         ],
     );
 
-    providers.insert(
+    providers.available.insert(
         "Geoportal".to_string(),
         vec![TilesKind::Http(HttpTiles::with_options(
             walkers::sources::Geoportal,
@@ -87,7 +93,7 @@ pub(crate) fn providers(egui_ctx: Context) -> BTreeMap<String, Vec<TilesKind>> {
         ))],
     );
 
-    providers.insert(
+    providers.available.insert(
         "LocalTiles".to_string(),
         vec![TilesKind::Local(LocalTiles::new(
             PathBuf::from_iter(&[env!("CARGO_MANIFEST_DIR"), "assets"]),
@@ -95,7 +101,18 @@ pub(crate) fn providers(egui_ctx: Context) -> BTreeMap<String, Vec<TilesKind>> {
         ))],
     );
 
-    providers.insert(
+    let pmtiles = pmtiles();
+    providers.have_some_pmtiles = !pmtiles.is_empty();
+
+    for path in pmtiles {
+        let name = format!("PmTiles: {}", path.file_name().unwrap().to_string_lossy());
+        providers.available.insert(
+            name,
+            vec![TilesKind::PmTiles(PmTiles::new(path.to_owned()))],
+        );
+    }
+
+    providers.available.insert(
         "LocalPmTiles".to_string(),
         vec![TilesKind::PmTiles(PmTiles::new(PathBuf::from_iter(&[
             env!("CARGO_MANIFEST_DIR"),
@@ -103,7 +120,7 @@ pub(crate) fn providers(egui_ctx: Context) -> BTreeMap<String, Vec<TilesKind>> {
         ])))],
     );
 
-    providers.insert(
+    providers.available.insert(
         "LocalPmTilesPlanet".to_string(),
         vec![TilesKind::PmTiles(PmTiles::new(PathBuf::from_iter(&[
             env!("CARGO_MANIFEST_DIR"),
@@ -117,7 +134,7 @@ pub(crate) fn providers(egui_ctx: Context) -> BTreeMap<String, Vec<TilesKind>> {
 
     // We only show the mapbox map if we have an access token
     if let Some(token) = mapbox_access_token {
-        providers.insert(
+        providers.available.insert(
             "MapboxStreets".to_string(),
             vec![TilesKind::Http(HttpTiles::with_options(
                 walkers::sources::Mapbox {
@@ -129,7 +146,7 @@ pub(crate) fn providers(egui_ctx: Context) -> BTreeMap<String, Vec<TilesKind>> {
                 egui_ctx.to_owned(),
             ))],
         );
-        providers.insert(
+        providers.available.insert(
             "MapboxSatellite".to_string(),
             vec![TilesKind::Http(HttpTiles::with_options(
                 walkers::sources::Mapbox {
@@ -146,7 +163,7 @@ pub(crate) fn providers(egui_ctx: Context) -> BTreeMap<String, Vec<TilesKind>> {
     providers
 }
 
-fn find_pmtiles_files() -> Vec<PathBuf> {
+fn pmtiles() -> Vec<PathBuf> {
     let Ok(dir) = std::fs::read_dir(".") else {
         return Vec::new();
     };

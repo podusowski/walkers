@@ -35,7 +35,7 @@ pub fn controls(app: &mut MyApp, ui: &Ui, http_stats: Vec<walkers::HttpStats>) {
                 ComboBox::from_label("Tile Provider")
                     .selected_text(app.selected_provider.to_owned())
                     .show_ui(ui, |ui| {
-                        for p in app.providers.keys() {
+                        for p in app.providers.available.keys() {
                             ui.selectable_value(&mut app.selected_provider, p.clone(), p);
                         }
                     });

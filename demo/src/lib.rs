@@ -3,14 +3,14 @@ mod plugins;
 mod tiles;
 mod windows;
 
-use std::collections::BTreeMap;
-
 use egui::{Button, CentralPanel, Context, DragPanButtons, Frame, OpenUrl, Rect, Vec2};
 use tiles::{providers, TilesKind};
 use walkers::{Map, MapMemory};
 
+use crate::tiles::Providers;
+
 pub struct MyApp {
-    providers: BTreeMap<String, Vec<TilesKind>>,
+    providers: Providers,
     selected_provider: String,
     map_memory: MapMemory,
     click_watcher: plugins::ClickWatcher,
@@ -37,7 +37,11 @@ impl eframe::App for MyApp {
             // Typically this would be a GPS acquired position which is tracked by the map.
             let my_position = places::wroclaw_glowny();
 
-            let tiles = self.providers.get_mut(&self.selected_provider).unwrap();
+            let tiles = self
+                .providers
+                .available
+                .get_mut(&self.selected_provider)
+                .unwrap();
             let attributions: Vec<_> = tiles
                 .iter()
                 .map(|tile| tile.as_ref().attribution())
