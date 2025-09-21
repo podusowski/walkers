@@ -157,3 +157,19 @@ pub(crate) fn providers(egui_ctx: Context) -> BTreeMap<Provider, Vec<TilesKind>>
 
     providers
 }
+
+fn find_pmtiles_files() -> Vec<PathBuf> {
+    let Ok(dir) = std::fs::read_dir(".") else {
+        return Vec::new();
+    };
+
+    dir.filter_map(|entry| {
+        let path = entry.ok()?.path();
+        if path.extension()?.to_str()? == "pmtiles" {
+            Some(path)
+        } else {
+            None
+        }
+    })
+    .collect::<Vec<_>>()
+}
