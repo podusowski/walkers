@@ -101,7 +101,7 @@ pub(crate) fn providers(egui_ctx: Context) -> Providers {
         ))],
     );
 
-    let pmtiles = pmtiles();
+    let pmtiles = find_pmtiles_files();
     providers.have_some_pmtiles = !pmtiles.is_empty();
 
     for path in pmtiles {
@@ -163,7 +163,7 @@ pub(crate) fn providers(egui_ctx: Context) -> Providers {
     providers
 }
 
-fn pmtiles() -> Vec<PathBuf> {
+fn find_pmtiles_files() -> Vec<PathBuf> {
     let Ok(dir) = std::fs::read_dir(".") else {
         return Vec::new();
     };
