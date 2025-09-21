@@ -18,6 +18,7 @@ enum CachedTexture {
 pub struct PmTiles {
     path: PathBuf,
     cache: LruCache<TileId, CachedTexture>,
+    //pub layers: HashMap<String, bool>,
 }
 
 impl PmTiles {

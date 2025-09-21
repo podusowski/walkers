@@ -123,6 +123,12 @@ fn arbitrary_polygon(points: &[Pos2], painter: &egui::Painter) {
             Color32::from_rgb(100, 150, 200).gamma_multiply(0.5),
             PathStroke::NONE,
         ));
+
+        #[cfg(feature = "debug_mvt_rendering")]
+        painter.add(PathShape::closed_line(
+            triangle.to_vec(),
+            PathStroke::new(2.0, Color32::RED),
+        ));
     }
 }
 
