@@ -19,7 +19,8 @@ pub fn render(
     painter: egui::Painter,
     rect: egui::Rect,
 ) -> Result<(), Error> {
-    // debug box around the tile
+    #[cfg(feature = "debug_mvt_rendering")]
+    // Draw a rect around the tile.
     painter.rect_stroke(
         rect,
         0.0,
