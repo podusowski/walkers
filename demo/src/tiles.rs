@@ -170,11 +170,7 @@ fn find_pmtiles_files() -> Vec<PathBuf> {
 
     dir.filter_map(|entry| {
         let path = entry.ok()?.path();
-        if path.extension()?.to_str()? == "pmtiles" {
-            Some(path)
-        } else {
-            None
-        }
+        (path.extension()?.to_str()? == "pmtiles").then_some(path)
     })
-    .collect::<Vec<_>>()
+    .collect()
 }
