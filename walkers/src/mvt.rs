@@ -4,6 +4,7 @@ use egui::{
     epaint::{PathShape, PathStroke},
     pos2, Color32, Pos2,
 };
+use geo_types::Geometry;
 
 #[derive(thiserror::Error, Debug)]
 pub enum Error {
@@ -45,9 +46,9 @@ pub fn render(
 
         for feature in tile.get_features(i)? {
             match feature.geometry {
-                geo_types::Geometry::Point(_point) => todo!(),
-                geo_types::Geometry::Line(_line) => todo!(),
-                geo_types::Geometry::LineString(line_string) => {
+                Geometry::Point(_point) => todo!(),
+                Geometry::Line(_line) => todo!(),
+                Geometry::LineString(line_string) => {
                     for segment in line_string.0.windows(2) {
                         painter.line_segment(
                             [
@@ -58,8 +59,8 @@ pub fn render(
                         );
                     }
                 }
-                geo_types::Geometry::Polygon(_polygon) => todo!(),
-                geo_types::Geometry::MultiPoint(multi_point) => {
+                Geometry::Polygon(_polygon) => todo!(),
+                Geometry::MultiPoint(multi_point) => {
                     for point in multi_point {
                         painter.circle_filled(
                             transformed_pos2(point.x(), point.y()),
@@ -68,7 +69,7 @@ pub fn render(
                         );
                     }
                 }
-                geo_types::Geometry::MultiLineString(multi_line_string) => {
+                Geometry::MultiLineString(multi_line_string) => {
                     for line_string in multi_line_string {
                         let points = line_string
                             .0
@@ -79,7 +80,7 @@ pub fn render(
                         painter.line(points, stroke);
                     }
                 }
-                geo_types::Geometry::MultiPolygon(multi_polygon) => {
+                Geometry::MultiPolygon(multi_polygon) => {
                     for polygon in multi_polygon.iter() {
                         let points = polygon
                             .exterior()
@@ -90,9 +91,9 @@ pub fn render(
                         arbitrary_polygon(&points, &painter);
                     }
                 }
-                geo_types::Geometry::GeometryCollection(_geometry_collection) => todo!(),
-                geo_types::Geometry::Rect(_rect) => todo!(),
-                geo_types::Geometry::Triangle(_triangle) => todo!(),
+                Geometry::GeometryCollection(_geometry_collection) => todo!(),
+                Geometry::Rect(_rect) => todo!(),
+                Geometry::Triangle(_triangle) => todo!(),
             }
         }
     }
