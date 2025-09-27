@@ -177,36 +177,35 @@ fn flood_fill_tiles(
     if painter
         .clip_rect()
         .intersects(rect(tile_screen_position, corrected_tile_size))
+        && meshes.insert(tile_id)
     {
-        if meshes.insert(tile_id) {
-            if let Some(tile) = tiles.at(tile_id) {
-                tile.texture.draw(
-                    painter,
-                    rect(tile_screen_position, corrected_tile_size),
-                    tile.uv,
-                    transparency,
-                )
-            }
+        if let Some(tile) = tiles.at(tile_id) {
+            tile.texture.draw(
+                painter,
+                rect(tile_screen_position, corrected_tile_size),
+                tile.uv,
+                transparency,
+            )
+        }
 
-            for next_tile_id in [
-                tile_id.north(),
-                tile_id.east(),
-                tile_id.south(),
-                tile_id.west(),
-            ]
-            .iter()
-            .flatten()
-            {
-                flood_fill_tiles(
-                    painter,
-                    *next_tile_id,
-                    map_center_projected_position,
-                    zoom,
-                    tiles,
-                    transparency,
-                    meshes,
-                );
-            }
+        for next_tile_id in [
+            tile_id.north(),
+            tile_id.east(),
+            tile_id.south(),
+            tile_id.west(),
+        ]
+        .iter()
+        .flatten()
+        {
+            flood_fill_tiles(
+                painter,
+                *next_tile_id,
+                map_center_projected_position,
+                zoom,
+                tiles,
+                transparency,
+                meshes,
+            );
         }
     }
 }
