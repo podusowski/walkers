@@ -1,9 +1,9 @@
 use std::{collections::BTreeMap, path::PathBuf};
 
 use egui::Context;
-use walkers::{HttpOptions, HttpTiles, LocalTiles, Tiles};
 #[cfg(feature = "vector_tiles")]
 use walkers::PmTiles;
+use walkers::{HttpOptions, HttpTiles, LocalTiles, Tiles};
 
 pub(crate) enum TilesKind {
     Http(HttpTiles),
