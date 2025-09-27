@@ -10,8 +10,6 @@ use geo_types::Geometry;
 pub enum Error {
     #[error(transparent)]
     Mvt(#[from] mvt_reader::error::ParserError),
-    #[error("Mvt rendering error: {0}")]
-    Other(String),
 }
 
 /// Currently this is the only supported extent.
