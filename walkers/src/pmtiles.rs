@@ -71,8 +71,12 @@ impl Tiles for PmTiles {
 }
 
 #[derive(Debug, Error)]
-#[error("PMTiles error")]
-struct PmTilesError;
+enum PmTilesError {
+    #[error("Tile not found")]
+    TileNotFound,
+    #[error(transparent)]
+    Other(#[from] pmtiles::PmtError),
+}
 
 fn load(path: &Path, tile_id: TileId) -> Result<Texture, Box<dyn std::error::Error>> {
     let bytes = tokio::runtime::Builder::new_current_thread()
@@ -82,9 +86,8 @@ fn load(path: &Path, tile_id: TileId) -> Result<Texture, Box<dyn std::error::Err
             let reader = AsyncPmTilesReader::new_with_path(path).await.unwrap();
             reader
                 .get_tile(TileCoord::new(tile_id.zoom, tile_id.x, tile_id.y).unwrap())
-                .await
-                .unwrap()
-                .ok_or(PmTilesError)
+                .await?
+                .ok_or(PmTilesError::TileNotFound)
         })?;
 
     let decompressed = decompress(&bytes);
