@@ -5,8 +5,8 @@ All notable changes to this project will be documented in this file.
 ## Unreleased
 
 * New `LocalTiles` implementation for loading tiles from a local directory.
-* New, highly experimental vector tile rendering. It has very poor performance and at this point
-  it should be considered more of a tech demo than a usable feature.
+* New, highly experimental vector tile rendering using `.pmtiles`. It has very poor performance and
+  at this point it should be considered more of a tech demo than a usable feature.
 * Removed `Image` plugin.
 
 ## 0.45.0
