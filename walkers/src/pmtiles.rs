@@ -85,7 +85,7 @@ fn load(path: &Path, tile_id: TileId) -> Result<Texture, Box<dyn std::error::Err
         .enable_all()
         .build()?
         .block_on(async {
-            let reader = AsyncPmTilesReader::new_with_path(path).await.unwrap();
+            let reader = AsyncPmTilesReader::new_with_path(path).await?;
             reader
                 .get_tile(TileCoord::new(tile_id.zoom, tile_id.x, tile_id.y).unwrap())
                 .await?
@@ -96,7 +96,7 @@ fn load(path: &Path, tile_id: TileId) -> Result<Texture, Box<dyn std::error::Err
     Ok(Texture::from_mvt(&decompressed)?)
 }
 
-/// Decode the tile.
+/// Decompress the tile.
 ///
 /// This function assumes the input is gzip compressed data, but this might not always be the case.
 /// You can use `pmtiles info <file>` to check the compression type.
