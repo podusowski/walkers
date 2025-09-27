@@ -1,4 +1,5 @@
 use std::collections::HashSet;
+#[cfg(feature = "vector_tiles")]
 use std::sync::Arc;
 
 use egui::{pos2, Color32, Context, Mesh, Rect, Vec2};
@@ -82,6 +83,7 @@ pub(crate) fn rect(screen_position: Vec2, tile_size: f64) -> Rect {
 #[derive(Clone)]
 pub enum Texture {
     Raster(TextureHandle),
+    #[cfg(feature = "vector_tiles")]
     Vector(Arc<mvt_reader::Reader>),
 }
 
@@ -102,6 +104,7 @@ impl Texture {
         Self::Raster(ctx.load_texture("image", color_image, Default::default()))
     }
 
+    #[cfg(feature = "vector_tiles")]
     pub fn from_mvt(data: &[u8]) -> Result<Self, mvt_reader::error::ParserError> {
         let reader = mvt_reader::Reader::new(data.to_vec())?;
         Ok(Self::Vector(Arc::new(reader)))
@@ -114,6 +117,7 @@ impl Texture {
                 mesh.add_rect_with_uv(rect, uv, Color32::WHITE.gamma_multiply(transparency));
                 painter.add(egui::Shape::mesh(mesh));
             }
+            #[cfg(feature = "vector_tiles")]
             Texture::Vector(reader) => {
                 if let Err(err) = crate::mvt::render(&*reader, painter.with_clip_rect(rect), rect) {
                     log::warn!("Could not render MVT tile: {}", err);

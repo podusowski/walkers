@@ -5,7 +5,7 @@ edition = "2021"
 publish = false
 
 [dependencies]
-walkers = { path = "../walkers" }
+walkers = { path = "../walkers", features = ["vector_tiles"] }
 eframe.workspace = true
 egui.workspace = true
 egui_extras.workspace = true
