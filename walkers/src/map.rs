@@ -326,7 +326,8 @@ impl Map<'_, '_, '_> {
             zoom_delta = 1f64
                 + ui.input(|input| {
                     input.smooth_scroll_delta.y * input.stable_dt.max(input.predicted_dt * 1.5)
-                }) as f64 / 4.0;
+                }) as f64
+                    / 4.0;
         };
 
         zoom_delta
