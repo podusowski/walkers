@@ -49,4 +49,4 @@ hypermocker = { path = "../hypermocker" }
 [features]
 default = []
 serde = ["dep:serde", "geo-types/serde", "egui/serde"]
-debug_mvt_rendering = []
+debug_vector_rendering = []

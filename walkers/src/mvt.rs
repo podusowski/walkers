@@ -22,7 +22,7 @@ pub fn render(
     painter: egui::Painter,
     rect: egui::Rect,
 ) -> Result<(), Error> {
-    #[cfg(feature = "debug_mvt_rendering")]
+    #[cfg(feature = "debug_vector_rendering")]
     // Draw a rect around the tile.
     painter.rect_stroke(
         rect,
@@ -129,7 +129,7 @@ fn arbitrary_polygon(points: &[Pos2], painter: &egui::Painter) {
             PathStroke::NONE,
         ));
 
-        #[cfg(feature = "debug_mvt_rendering")]
+        #[cfg(feature = "debug_vector_rendering")]
         painter.add(PathShape::closed_line(
             triangle.to_vec(),
             PathStroke::new(2.0, Color32::RED),
