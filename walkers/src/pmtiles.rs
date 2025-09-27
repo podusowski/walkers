@@ -3,7 +3,7 @@ use egui::{pos2, Rect};
 use lru::LruCache;
 use pmtiles::{AsyncPmTilesReader, TileCoord};
 use std::{
-    io::Read as _,
+    io::{self, Read as _},
     path::{Path, PathBuf},
 };
 use thiserror::Error;
@@ -92,7 +92,7 @@ fn load(path: &Path, tile_id: TileId) -> Result<Texture, Box<dyn std::error::Err
                 .ok_or(PmTilesError::TileNotFound)
         })?;
 
-    let decompressed = decompress(&bytes);
+    let decompressed = decompress(&bytes)?;
     Ok(Texture::from_mvt(&decompressed)?)
 }
 
@@ -100,11 +100,9 @@ fn load(path: &Path, tile_id: TileId) -> Result<Texture, Box<dyn std::error::Err
 ///
 /// This function assumes the input is gzip compressed data, but this might not always be the case.
 /// You can use `pmtiles info <file>` to check the compression type.
-fn decompress(data: &[u8]) -> Vec<u8> {
+fn decompress(data: &[u8]) -> io::Result<Vec<u8>> {
     let mut decoder = flate2::read::GzDecoder::new(data);
     let mut buf = Vec::new();
-    decoder
-        .read_to_end(&mut buf)
-        .expect("Failed to decompress tile");
-    buf
+    decoder.read_to_end(&mut buf)?;
+    Ok(buf)
 }
