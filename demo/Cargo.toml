@@ -5,10 +5,13 @@ edition = "2021"
 publish = false
 
 [dependencies]
-walkers = { path = "../walkers", features = ["vector_tiles"] }
+walkers = { path = "../walkers" }
 eframe.workspace = true
 egui.workspace = true
 egui_extras.workspace = true
 
 # This is needed until https://github.com/emilk/egui/pull/7344 is released.
 wgpu = { version = "25", default-features = true }
+
+[features]
+vector_tiles = ["walkers/vector_tiles"]

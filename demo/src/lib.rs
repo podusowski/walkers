@@ -23,7 +23,7 @@ impl MyApp {
 
         Self {
             providers: providers(egui_ctx.to_owned()),
-            selected_provider: "wroclaw.pmtiles".to_string(),
+            selected_provider: "OpenStreetMap".to_string(),
             map_memory: MapMemory::default(),
             click_watcher: Default::default(),
             zoom_with_ctrl: true,

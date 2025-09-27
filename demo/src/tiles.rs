@@ -1,11 +1,14 @@
 use std::{collections::BTreeMap, path::PathBuf};
 
 use egui::Context;
-use walkers::{HttpOptions, HttpTiles, LocalTiles, PmTiles, Tiles};
+use walkers::{HttpOptions, HttpTiles, LocalTiles, Tiles};
+#[cfg(feature = "vector_tiles")]
+use walkers::PmTiles;
 
 pub(crate) enum TilesKind {
     Http(HttpTiles),
     Local(LocalTiles),
+    #[cfg(feature = "vector_tiles")]
     PmTiles(PmTiles),
 }
 
@@ -14,6 +17,7 @@ impl AsMut<dyn Tiles> for TilesKind {
         match self {
             TilesKind::Http(tiles) => tiles,
             TilesKind::Local(tiles) => tiles,
+            #[cfg(feature = "vector_tiles")]
             TilesKind::PmTiles(tiles) => tiles,
         }
     }
@@ -24,6 +28,7 @@ impl AsRef<dyn Tiles> for TilesKind {
         match self {
             TilesKind::Http(tiles) => tiles,
             TilesKind::Local(tiles) => tiles,
+            #[cfg(feature = "vector_tiles")]
             TilesKind::PmTiles(tiles) => tiles,
         }
     }
@@ -44,6 +49,7 @@ fn http_options() -> HttpOptions {
 #[derive(Default)]
 pub struct Providers {
     pub available: BTreeMap<String, Vec<TilesKind>>,
+    #[cfg(feature = "vector_tiles")]
     pub have_some_pmtiles: bool,
 }
 
@@ -101,14 +107,17 @@ pub(crate) fn providers(egui_ctx: Context) -> Providers {
         ))],
     );
 
-    let pmtiles = find_pmtiles_files();
-    providers.have_some_pmtiles = !pmtiles.is_empty();
+    #[cfg(feature = "vector_tiles")]
+    {
+        let pmtiles = find_pmtiles_files();
+        providers.have_some_pmtiles = !pmtiles.is_empty();
 
-    for path in pmtiles {
-        providers.available.insert(
-            path.file_name().unwrap().to_string_lossy().to_string(),
-            vec![TilesKind::PmTiles(PmTiles::new(path.to_owned()))],
-        );
+        for path in pmtiles {
+            providers.available.insert(
+                path.file_name().unwrap().to_string_lossy().to_string(),
+                vec![TilesKind::PmTiles(PmTiles::new(path.to_owned()))],
+            );
+        }
     }
 
     // Pass in a mapbox access token at compile time. May or may not be what you want to do,
@@ -146,6 +155,7 @@ pub(crate) fn providers(egui_ctx: Context) -> Providers {
     providers
 }
 
+#[cfg(feature = "vector_tiles")]
 fn find_pmtiles_files() -> Vec<PathBuf> {
     let Ok(dir) = std::fs::read_dir(".") else {
         return Vec::new();
