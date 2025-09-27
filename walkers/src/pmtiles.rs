@@ -66,7 +66,7 @@ impl Tiles for PmTiles {
     }
 
     fn tile_size(&self) -> u32 {
-        4096
+        512
     }
 }
 
