@@ -119,7 +119,7 @@ impl Texture {
             }
             #[cfg(feature = "vector_tiles")]
             Texture::Vector(reader) => {
-                if let Err(err) = crate::mvt::render(&*reader, painter.with_clip_rect(rect), rect) {
+                if let Err(err) = crate::mvt::render(reader, painter.with_clip_rect(rect), rect) {
                     log::warn!("Could not render MVT tile: {}", err);
                 }
             }
@@ -149,7 +149,6 @@ pub(crate) fn draw_tiles(
     let mut meshes = Default::default();
     flood_fill_tiles(
         painter,
-        painter.clip_rect(),
         tile_id(map_center, zoom.round(), tiles.tile_size()),
         project(map_center, zoom.into()),
         zoom.into(),
@@ -162,7 +161,6 @@ pub(crate) fn draw_tiles(
 /// Use simple [flood fill algorithm](https://en.wikipedia.org/wiki/Flood_fill) to draw tiles on the map.
 fn flood_fill_tiles(
     painter: &egui::Painter,
-    viewport: Rect,
     tile_id: TileId,
     map_center_projected_position: Pixels,
     zoom: f64,
@@ -173,14 +171,17 @@ fn flood_fill_tiles(
     // We need to make up the difference between integer and floating point zoom levels.
     let corrected_tile_size = tiles.tile_size() as f64 * 2f64.powf(zoom - zoom.round());
     let tile_projected = tile_id.project(corrected_tile_size);
-    let tile_screen_position =
-        viewport.center().to_vec2() + (tile_projected - map_center_projected_position).to_vec2();
+    let tile_screen_position = painter.clip_rect().center().to_vec2()
+        + (tile_projected - map_center_projected_position).to_vec2();
 
-    if viewport.intersects(rect(tile_screen_position, corrected_tile_size)) {
+    if painter
+        .clip_rect()
+        .intersects(rect(tile_screen_position, corrected_tile_size))
+    {
         if meshes.insert(tile_id) {
             if let Some(tile) = tiles.at(tile_id) {
                 tile.texture.draw(
-                    &painter,
+                    painter,
                     rect(tile_screen_position, corrected_tile_size),
                     tile.uv,
                     transparency,
@@ -198,7 +199,6 @@ fn flood_fill_tiles(
             {
                 flood_fill_tiles(
                     painter,
-                    viewport,
                     *next_tile_id,
                     map_center_projected_position,
                     zoom,
