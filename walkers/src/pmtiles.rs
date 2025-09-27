@@ -87,7 +87,7 @@ fn load(path: &Path, tile_id: TileId) -> Result<Texture, Box<dyn std::error::Err
         .block_on(async {
             let reader = AsyncPmTilesReader::new_with_path(path).await?;
             reader
-                .get_tile(TileCoord::new(tile_id.zoom, tile_id.x, tile_id.y).unwrap())
+                .get_tile(TileCoord::new(tile_id.zoom, tile_id.x, tile_id.y)?)
                 .await?
                 .ok_or(PmTilesError::TileNotFound)
         })?;
