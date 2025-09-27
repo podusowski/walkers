@@ -81,6 +81,7 @@ enum PmTilesError {
 }
 
 fn load(path: &Path, tile_id: TileId) -> Result<Texture, Box<dyn std::error::Error>> {
+    // TODO: Yes, that's heavy.
     let bytes = tokio::runtime::Builder::new_current_thread()
         .enable_all()
         .build()?
