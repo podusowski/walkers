@@ -41,16 +41,21 @@ pub fn render(
 
     let line_stroke = Stroke::new(3.0, Color32::WHITE);
 
-    // That is just dumb, but mvt-reader API sucks.
-    for (i, metadata) in tile.get_layer_metadata().unwrap().iter().enumerate() {
-        if metadata.extent != ONLY_SUPPORTED_EXTENT {
-            return Err(Error::Other(format!(
-                "Unsupported extent: {}, expected {ONLY_SUPPORTED_EXTENT}",
-                metadata.extent
-            )));
+    let supported_layers = tile.get_layer_metadata()?.into_iter().filter_map(|layer| {
+        if layer.extent == ONLY_SUPPORTED_EXTENT {
+            Some(layer.layer_index)
+        } else {
+            log::warn!(
+                "Skipping layer '{}' with unsupported extent {}.",
+                layer.name,
+                layer.extent
+            );
+            None
         }
+    });
 
-        for feature in tile.get_features(i)? {
+    for index in supported_layers {
+        for feature in tile.get_features(index)? {
             match feature.geometry {
                 Geometry::Point(_point) => todo!(),
                 Geometry::Line(_line) => todo!(),
