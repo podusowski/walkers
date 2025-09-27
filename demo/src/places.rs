@@ -21,11 +21,6 @@ pub fn capitol() -> Position {
     lon_lat(17.03018, 51.10073)
 }
 
-/// Shopping center, and the main intercity bus station.
-pub fn wroclavia() -> Position {
-    lon_lat(17.03471, 51.09648)
-}
-
 /// Main square of the city, with many restaurants and historical buildings.
 pub fn rynek() -> Position {
     lon_lat(17.032094, 51.110090)

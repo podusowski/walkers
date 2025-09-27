@@ -10,6 +10,10 @@ mod local_tiles;
 mod map;
 mod memory;
 mod mercator;
+#[cfg(feature = "vector_tiles")]
+mod mvt;
+#[cfg(feature = "vector_tiles")]
+mod pmtiles;
 mod position;
 mod projector;
 pub mod sources;
@@ -21,6 +25,8 @@ pub use http_tiles::{HttpStats, HttpTiles};
 pub use local_tiles::LocalTiles;
 pub use map::{Map, Plugin};
 pub use memory::MapMemory;
+#[cfg(feature = "vector_tiles")]
+pub use pmtiles::PmTiles;
 pub use position::{lat_lon, lon_lat, Position};
 pub use projector::Projector;
 pub use tiles::{Texture, TextureWithUv, TileId, Tiles};

@@ -1,0 +1,145 @@
+//! Renderer for Mapbox Vector Tiles.
+
+use egui::{
+    epaint::{PathShape, PathStroke},
+    pos2, Color32, Pos2, Stroke,
+};
+use geo_types::Geometry;
+
+#[derive(thiserror::Error, Debug)]
+pub enum Error {
+    #[error(transparent)]
+    Mvt(#[from] mvt_reader::error::ParserError),
+}
+
+/// Currently this is the only supported extent.
+const ONLY_SUPPORTED_EXTENT: u32 = 4096;
+
+pub fn render(
+    tile: &mvt_reader::Reader,
+    painter: egui::Painter,
+    rect: egui::Rect,
+) -> Result<(), Error> {
+    #[cfg(feature = "debug_vector_rendering")]
+    // Draw a rect around the tile.
+    painter.rect_stroke(
+        rect,
+        0.0,
+        egui::Stroke::new(1.0, Color32::RED),
+        egui::StrokeKind::Inside,
+    );
+
+    // Transform coordinates from MVT space to screen space.
+    let transformed_pos2 = |x: f32, y: f32| {
+        pos2(
+            rect.left() + (x / ONLY_SUPPORTED_EXTENT as f32) * rect.width(),
+            rect.top() + (y / ONLY_SUPPORTED_EXTENT as f32) * rect.height(),
+        )
+    };
+
+    let line_stroke = Stroke::new(3.0, Color32::WHITE);
+
+    let supported_layers = tile.get_layer_metadata()?.into_iter().filter_map(|layer| {
+        if layer.extent == ONLY_SUPPORTED_EXTENT {
+            Some(layer.layer_index)
+        } else {
+            log::warn!(
+                "Skipping layer '{}' with unsupported extent {}.",
+                layer.name,
+                layer.extent
+            );
+            None
+        }
+    });
+
+    for index in supported_layers {
+        for feature in tile.get_features(index)? {
+            match feature.geometry {
+                Geometry::Point(_point) => todo!(),
+                Geometry::Line(_line) => todo!(),
+                Geometry::LineString(line_string) => {
+                    for segment in line_string.0.windows(2) {
+                        painter.line_segment(
+                            [
+                                transformed_pos2(segment[0].x, segment[0].y),
+                                transformed_pos2(segment[1].x, segment[1].y),
+                            ],
+                            line_stroke,
+                        );
+                    }
+                }
+                Geometry::Polygon(_polygon) => todo!(),
+                Geometry::MultiPoint(multi_point) => {
+                    for point in multi_point {
+                        painter.circle_filled(
+                            transformed_pos2(point.x(), point.y()),
+                            3.0,
+                            Color32::from_rgb(200, 200, 0),
+                        );
+                    }
+                }
+                Geometry::MultiLineString(multi_line_string) => {
+                    for line_string in multi_line_string {
+                        let points = line_string
+                            .0
+                            .iter()
+                            .map(|p| transformed_pos2(p.x, p.y))
+                            .collect::<Vec<_>>();
+                        painter.line(points, line_stroke);
+                    }
+                }
+                Geometry::MultiPolygon(multi_polygon) => {
+                    for polygon in multi_polygon.iter() {
+                        let points = polygon
+                            .exterior()
+                            .0
+                            .iter()
+                            .map(|p| transformed_pos2(p.x, p.y))
+                            .collect::<Vec<_>>();
+                        arbitrary_polygon(&points, &painter);
+                    }
+                }
+                Geometry::GeometryCollection(_geometry_collection) => todo!(),
+                Geometry::Rect(_rect) => todo!(),
+                Geometry::Triangle(_triangle) => todo!(),
+            }
+        }
+    }
+    Ok(())
+}
+
+/// Egui can only draw convex polygons, so we need to triangulate arbitrary ones.
+fn arbitrary_polygon(points: &[Pos2], painter: &egui::Painter) {
+    let mut triangles = Vec::<usize>::new();
+    let mut earcut = earcut::Earcut::new();
+    earcut.earcut(points.iter().map(|p| [p.x, p.y]), &[], &mut triangles);
+
+    for triangle_indices in triangles.chunks(3) {
+        let triangle = [
+            points[triangle_indices[0]],
+            points[triangle_indices[1]],
+            points[triangle_indices[2]],
+        ];
+
+        if triangle_area(triangle[0], triangle[1], triangle[2]) < 0.1 {
+            // Too small to render without artifacts.
+            continue;
+        }
+
+        painter.add(PathShape::convex_polygon(
+            triangle.to_vec(),
+            Color32::WHITE.gamma_multiply(0.2),
+            PathStroke::NONE,
+        ));
+
+        #[cfg(feature = "debug_vector_rendering")]
+        painter.add(PathShape::closed_line(
+            triangle.to_vec(),
+            PathStroke::new(2.0, Color32::RED),
+        ));
+    }
+}
+
+fn triangle_area(a: Pos2, b: Pos2, c: Pos2) -> f32 {
+    ((a.x * (b.y - c.y) + b.x * (c.y - a.y) + c.x * (a.y - b.y)) / 2.0).abs()
+}
