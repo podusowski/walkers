@@ -31,10 +31,9 @@ pub fn render(
     );
 
     let line_stroke = Stroke::new(3.0, Color32::WHITE);
-    let supported_layers = supported_layers(tile);
     let mut shapes = Vec::new();
 
-    for index in supported_layers {
+    for index in supported_layers(tile) {
         for feature in tile.get_features(index)? {
             match feature.geometry {
                 Geometry::Point(_point) => todo!(),
