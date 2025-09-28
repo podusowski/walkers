@@ -86,7 +86,7 @@ pub fn render(
                             .iter()
                             .map(|p| transformed_pos2(p.x, p.y))
                             .collect::<Vec<_>>();
-                        arbitrary_polygon(&points, &painter);
+                        painter.extend(arbitrary_polygon(&points));
                     }
                 }
                 Geometry::GeometryCollection(_geometry_collection) => todo!(),
@@ -117,7 +117,8 @@ fn supported_layers(tile: &mvt_reader::Reader) -> impl Iterator<Item = usize> + 
 }
 
 /// Egui can only draw convex polygons, so we need to triangulate arbitrary ones.
-fn arbitrary_polygon(points: &[Pos2], painter: &egui::Painter) {
+fn arbitrary_polygon(points: &[Pos2]) -> Vec<Shape> {
+    let mut shapes = Vec::new();
     let mut triangles = Vec::<usize>::new();
     let mut earcut = earcut::Earcut::new();
     earcut.earcut(points.iter().map(|p| [p.x, p.y]), &[], &mut triangles);
@@ -134,18 +135,19 @@ fn arbitrary_polygon(points: &[Pos2], painter: &egui::Painter) {
             continue;
         }
 
-        painter.add(PathShape::convex_polygon(
+        shapes.push(PathShape::convex_polygon(
             triangle.to_vec(),
             Color32::WHITE.gamma_multiply(0.2),
             PathStroke::NONE,
-        ));
+        ).into());
 
         #[cfg(feature = "debug_vector_rendering")]
-        painter.add(PathShape::closed_line(
+        shapes.push(PathShape::closed_line(
             triangle.to_vec(),
             PathStroke::new(2.0, Color32::RED),
         ));
     }
+    shapes
 }
 
 fn triangle_area(a: Pos2, b: Pos2, c: Pos2) -> f32 {
