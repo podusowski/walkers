@@ -1,8 +1,8 @@
 //! Renderer for Mapbox Vector Tiles.
 
 use egui::{
-    epaint::{PathShape, PathStroke},
-    pos2, Color32, Pos2, Stroke,
+    epaint::{CircleShape, PathShape, PathStroke},
+    pos2, Color32, Pos2, Shape, Stroke,
 };
 use geo_types::Geometry;
 
@@ -48,23 +48,24 @@ pub fn render(
                 Geometry::Line(_line) => todo!(),
                 Geometry::LineString(line_string) => {
                     for segment in line_string.0.windows(2) {
-                        painter.line_segment(
+                        painter.add(Shape::line_segment(
                             [
                                 transformed_pos2(segment[0].x, segment[0].y),
                                 transformed_pos2(segment[1].x, segment[1].y),
                             ],
                             line_stroke,
-                        );
+                        ));
                     }
                 }
                 Geometry::Polygon(_polygon) => todo!(),
                 Geometry::MultiPoint(multi_point) => {
                     for point in multi_point {
-                        painter.circle_filled(
-                            transformed_pos2(point.x(), point.y()),
-                            3.0,
-                            Color32::from_rgb(200, 200, 0),
-                        );
+                        painter.add(CircleShape {
+                            center: transformed_pos2(point.x(), point.y()),
+                            radius: 3.0,
+                            fill: Color32::from_rgb(200, 200, 0),
+                            stroke: Stroke::NONE,
+                        });
                     }
                 }
                 Geometry::MultiLineString(multi_line_string) => {
@@ -74,7 +75,7 @@ pub fn render(
                             .iter()
                             .map(|p| transformed_pos2(p.x, p.y))
                             .collect::<Vec<_>>();
-                        painter.line(points, line_stroke);
+                        painter.add(Shape::line(points, line_stroke));
                     }
                 }
                 Geometry::MultiPolygon(multi_polygon) => {
