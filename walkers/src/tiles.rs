@@ -110,7 +110,9 @@ impl Texture {
         Ok(Self::Vector(Arc::new(reader)))
     }
 
-    pub(crate) fn draw(&self, painter: &egui::Painter, rect: Rect, uv: Rect, transparency: f32) {
+    /// Draw the tile on the given `rect`. The `uv` parameter defines which part of the tile
+    /// should be drawn on the `rect`.
+    fn draw(&self, painter: &egui::Painter, rect: Rect, uv: Rect, transparency: f32) {
         match self {
             Texture::Raster(texture_handle) => {
                 let mut mesh = Mesh::with_texture(texture_handle.id());
@@ -119,7 +121,9 @@ impl Texture {
             }
             #[cfg(feature = "vector_tiles")]
             Texture::Vector(reader) => {
-                if let Err(err) = crate::mvt::render(reader, painter.with_clip_rect(rect), rect) {
+                if let Err(err) =
+                    crate::mvt::render(reader, painter.with_clip_rect(rect), tile_rect)
+                {
                     log::warn!("Could not render MVT tile: {}", err);
                 }
             }
