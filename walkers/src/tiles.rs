@@ -124,13 +124,13 @@ impl Texture {
             }
             #[cfg(feature = "vector_tiles")]
             Texture::Vector(shapes) => {
-                // Renderer needs to work on the full tile, before it was clipped with `uv`.
+                // Renderer needs to work on the full tile, before it was clipped with `uv`...
                 let full_rect = full_rect_of_clipped_tile(rect, uv);
 
-                // Then it can be clipped to the `rect`.
+                // ...and then it can be clipped to the `rect`.
                 let painter = painter.with_clip_rect(rect);
 
-                painter.extend(mvt::transformed(&shapes, full_rect));
+                painter.extend(mvt::transformed(shapes, full_rect));
             }
         }
     }
