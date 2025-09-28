@@ -1,3 +1,4 @@
+#[cfg(feature = "vector_tiles")]
 use crate::mvt;
 use std::collections::HashSet;
 
