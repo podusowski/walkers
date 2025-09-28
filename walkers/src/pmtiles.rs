@@ -15,7 +15,7 @@ enum CachedTexture {
     Invalid,
 }
 
-/// https://docs.protomaps.com/guide/getting-started
+/// <https://docs.protomaps.com/guide/getting-started>
 pub struct PmTiles {
     path: PathBuf,
     cache: LruCache<TileId, CachedTexture>,

@@ -16,6 +16,7 @@ pub enum Error {
 /// Currently this is the only supported extent.
 const ONLY_SUPPORTED_EXTENT: u32 = 4096;
 
+/// Render MVT data into a list of [`epaint::Shape`]s.
 pub fn render(data: &mvt_reader::Reader) -> Result<Vec<Shape>, Error> {
     let line_stroke = Stroke::new(3.0, Color32::WHITE);
     let mut shapes = Vec::new();
