@@ -52,4 +52,3 @@ hypermocker = { path = "../hypermocker" }
 default = []
 serde = ["dep:serde", "geo-types/serde", "egui/serde"]
 vector_tiles = ["dep:pmtiles", "dep:mvt-reader", "dep:flate2", "dep:earcut"]
-debug_vector_rendering = []

@@ -1,8 +1,9 @@
 //! Renderer for Mapbox Vector Tiles.
 
 use egui::{
-    epaint::{PathShape, PathStroke},
-    pos2, Color32, Pos2, Stroke,
+    emath::TSTransform,
+    epaint::{CircleShape, PathShape, PathStroke},
+    pos2, Color32, Pos2, Shape, Stroke,
 };
 use geo_types::Geometry;
 
@@ -15,66 +16,38 @@ pub enum Error {
 /// Currently this is the only supported extent.
 const ONLY_SUPPORTED_EXTENT: u32 = 4096;
 
-pub fn render(
-    tile: &mvt_reader::Reader,
-    painter: egui::Painter,
-    rect: egui::Rect,
-) -> Result<(), Error> {
-    #[cfg(feature = "debug_vector_rendering")]
-    // Draw a rect around the tile.
-    painter.rect_stroke(
-        rect,
-        0.0,
-        egui::Stroke::new(1.0, Color32::RED),
-        egui::StrokeKind::Inside,
-    );
-
-    // Transform coordinates from MVT space to screen space.
-    let transformed_pos2 = |x: f32, y: f32| {
-        pos2(
-            rect.left() + (x / ONLY_SUPPORTED_EXTENT as f32) * rect.width(),
-            rect.top() + (y / ONLY_SUPPORTED_EXTENT as f32) * rect.height(),
-        )
-    };
-
+/// Render MVT data into a list of [`epaint::Shape`]s.
+pub fn render(data: &mvt_reader::Reader) -> Result<Vec<Shape>, Error> {
     let line_stroke = Stroke::new(3.0, Color32::WHITE);
+    let mut shapes = Vec::new();
 
-    let supported_layers = tile.get_layer_metadata()?.into_iter().filter_map(|layer| {
-        if layer.extent == ONLY_SUPPORTED_EXTENT {
-            Some(layer.layer_index)
-        } else {
-            log::warn!(
-                "Skipping layer '{}' with unsupported extent {}.",
-                layer.name,
-                layer.extent
-            );
-            None
-        }
-    });
-
-    for index in supported_layers {
-        for feature in tile.get_features(index)? {
+    for index in supported_layers(data) {
+        for feature in data.get_features(index)? {
             match feature.geometry {
                 Geometry::Point(_point) => todo!(),
                 Geometry::Line(_line) => todo!(),
                 Geometry::LineString(line_string) => {
                     for segment in line_string.0.windows(2) {
-                        painter.line_segment(
+                        shapes.push(Shape::line_segment(
                             [
-                                transformed_pos2(segment[0].x, segment[0].y),
-                                transformed_pos2(segment[1].x, segment[1].y),
+                                pos2(segment[0].x, segment[0].y),
+                                pos2(segment[1].x, segment[1].y),
                             ],
                             line_stroke,
-                        );
+                        ));
                     }
                 }
                 Geometry::Polygon(_polygon) => todo!(),
                 Geometry::MultiPoint(multi_point) => {
                     for point in multi_point {
-                        painter.circle_filled(
-                            transformed_pos2(point.x(), point.y()),
-                            3.0,
-                            Color32::from_rgb(200, 200, 0),
+                        shapes.push(
+                            CircleShape {
+                                center: pos2(point.x(), point.y()),
+                                radius: 3.0,
+                                fill: Color32::from_rgb(200, 200, 0),
+                                stroke: Stroke::NONE,
+                            }
+                            .into(),
                         );
                     }
                 }
@@ -83,9 +56,9 @@ pub fn render(
                         let points = line_string
                             .0
                             .iter()
-                            .map(|p| transformed_pos2(p.x, p.y))
+                            .map(|p| pos2(p.x, p.y))
                             .collect::<Vec<_>>();
-                        painter.line(points, line_stroke);
+                        shapes.push(Shape::line(points, line_stroke));
                     }
                 }
                 Geometry::MultiPolygon(multi_polygon) => {
@@ -94,9 +67,9 @@ pub fn render(
                             .exterior()
                             .0
                             .iter()
-                            .map(|p| transformed_pos2(p.x, p.y))
+                            .map(|p| pos2(p.x, p.y))
                             .collect::<Vec<_>>();
-                        arbitrary_polygon(&points, &painter);
+                        shapes.extend(arbitrary_polygon(&points));
                     }
                 }
                 Geometry::GeometryCollection(_geometry_collection) => todo!(),
@@ -105,11 +78,46 @@ pub fn render(
             }
         }
     }
-    Ok(())
+
+    Ok(shapes)
+}
+
+/// Transform shapes from MVT space to screen space.
+pub fn transformed(shapes: &[Shape], rect: egui::Rect) -> Vec<Shape> {
+    shapes
+        .iter()
+        .map(|shape| {
+            let mut shape = shape.clone();
+            shape.transform(TSTransform {
+                scaling: rect.width() / ONLY_SUPPORTED_EXTENT as f32,
+                translation: rect.min.to_vec2(),
+            });
+            shape
+        })
+        .collect()
+}
+
+fn supported_layers(data: &mvt_reader::Reader) -> impl Iterator<Item = usize> + '_ {
+    data.get_layer_metadata()
+        .unwrap_or_default()
+        .into_iter()
+        .filter_map(|layer| {
+            if layer.extent == ONLY_SUPPORTED_EXTENT {
+                Some(layer.layer_index)
+            } else {
+                log::warn!(
+                    "Skipping layer '{}' with unsupported extent {}.",
+                    layer.name,
+                    layer.extent
+                );
+                None
+            }
+        })
 }
 
 /// Egui can only draw convex polygons, so we need to triangulate arbitrary ones.
-fn arbitrary_polygon(points: &[Pos2], painter: &egui::Painter) {
+fn arbitrary_polygon(points: &[Pos2]) -> Vec<Shape> {
+    let mut shapes = Vec::new();
     let mut triangles = Vec::<usize>::new();
     let mut earcut = earcut::Earcut::new();
     earcut.earcut(points.iter().map(|p| [p.x, p.y]), &[], &mut triangles);
@@ -121,23 +129,21 @@ fn arbitrary_polygon(points: &[Pos2], painter: &egui::Painter) {
             points[triangle_indices[2]],
         ];
 
-        if triangle_area(triangle[0], triangle[1], triangle[2]) < 0.1 {
+        if triangle_area(triangle[0], triangle[1], triangle[2]) < 100.0 {
             // Too small to render without artifacts.
             continue;
         }
 
-        painter.add(PathShape::convex_polygon(
-            triangle.to_vec(),
-            Color32::WHITE.gamma_multiply(0.2),
-            PathStroke::NONE,
-        ));
-
-        #[cfg(feature = "debug_vector_rendering")]
-        painter.add(PathShape::closed_line(
-            triangle.to_vec(),
-            PathStroke::new(2.0, Color32::RED),
-        ));
+        shapes.push(
+            PathShape::convex_polygon(
+                triangle.to_vec(),
+                Color32::WHITE.gamma_multiply(0.2),
+                PathStroke::NONE,
+            )
+            .into(),
+        );
     }
+    shapes
 }
 
 fn triangle_area(a: Pos2, b: Pos2, c: Pos2) -> f32 {
