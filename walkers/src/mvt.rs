@@ -17,15 +17,6 @@ pub enum Error {
 const ONLY_SUPPORTED_EXTENT: u32 = 4096;
 
 pub fn render(data: &mvt_reader::Reader) -> Result<Vec<Shape>, Error> {
-    #[cfg(feature = "debug_vector_rendering")]
-    // Draw a rect around the tile.
-    painter.rect_stroke(
-        rect,
-        0.0,
-        egui::Stroke::new(1.0, Color32::RED),
-        egui::StrokeKind::Inside,
-    );
-
     let line_stroke = Stroke::new(3.0, Color32::WHITE);
     let mut shapes = Vec::new();
 
@@ -150,12 +141,6 @@ fn arbitrary_polygon(points: &[Pos2]) -> Vec<Shape> {
             )
             .into(),
         );
-
-        #[cfg(feature = "debug_vector_rendering")]
-        shapes.push(PathShape::closed_line(
-            triangle.to_vec(),
-            PathStroke::new(2.0, Color32::RED),
-        ));
     }
     shapes
 }
