@@ -69,7 +69,7 @@ impl Tiles for PmTiles {
     fn tile_size(&self) -> u32 {
         // Vector tiles can be rendered at any size. Effectively this means that the lower the
         // tile, the more details are visible.
-        512
+        1024
     }
 }
 
