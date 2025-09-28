@@ -16,11 +16,7 @@ pub enum Error {
 /// Currently this is the only supported extent.
 const ONLY_SUPPORTED_EXTENT: u32 = 4096;
 
-pub fn render(
-    tile: &mvt_reader::Reader,
-    painter: egui::Painter,
-    rect: egui::Rect,
-) -> Result<(), Error> {
+pub fn render(tile: &mvt_reader::Reader, rect: egui::Rect) -> Result<Vec<Shape>, Error> {
     #[cfg(feature = "debug_vector_rendering")]
     // Draw a rect around the tile.
     painter.rect_stroke(
@@ -91,17 +87,24 @@ pub fn render(
         }
     }
 
-    // Transform coordinates from MVT space to screen space.
-    for shape in shapes.iter_mut() {
-        shape.transform(TSTransform {
-            scaling: rect.width() / ONLY_SUPPORTED_EXTENT as f32,
-            translation: rect.min.to_vec2(),
-        });
-    }
+    //painter.extend(transformed(&shapes, rect));
 
-    painter.extend(shapes);
+    Ok(shapes)
+}
 
-    Ok(())
+/// Transform shapes from MVT space to screen space.
+pub fn transformed(shapes: &[Shape], rect: egui::Rect) -> Vec<Shape> {
+    shapes
+        .iter()
+        .map(|shape| {
+            let mut shape = shape.clone();
+            shape.transform(TSTransform {
+                scaling: rect.width() / ONLY_SUPPORTED_EXTENT as f32,
+                translation: rect.min.to_vec2(),
+            });
+            shape
+        })
+        .collect()
 }
 
 fn supported_layers(tile: &mvt_reader::Reader) -> impl Iterator<Item = usize> + '_ {

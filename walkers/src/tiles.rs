@@ -1,3 +1,4 @@
+use crate::mvt;
 use std::collections::HashSet;
 #[cfg(feature = "vector_tiles")]
 use std::sync::Arc;
@@ -127,8 +128,13 @@ impl Texture {
                 // Then it can be clipped to the `rect`.
                 let painter = painter.with_clip_rect(rect);
 
-                if let Err(err) = crate::mvt::render(reader, painter, full_rect) {
-                    log::warn!("Could not render MVT tile: {}", err);
+                match mvt::render(reader, full_rect) {
+                    Ok(shapes) => {
+                        painter.extend(mvt::transformed(&shapes, full_rect));
+                    }
+                    Err(err) => {
+                        log::warn!("Could not render MVT tile: {}", err);
+                    }
                 }
             }
         }
