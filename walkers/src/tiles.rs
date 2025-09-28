@@ -121,9 +121,7 @@ impl Texture {
             }
             #[cfg(feature = "vector_tiles")]
             Texture::Vector(reader) => {
-                if let Err(err) =
-                    crate::mvt::render(reader, painter.with_clip_rect(rect), tile_rect)
-                {
+                if let Err(err) = crate::mvt::render(reader, painter.with_clip_rect(rect), rect) {
                     log::warn!("Could not render MVT tile: {}", err);
                 }
             }
