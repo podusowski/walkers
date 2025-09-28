@@ -1,5 +1,6 @@
-use crate::{sources::Attribution, tiles::interpolate_from_lower_zoom, Texture, TextureWithUv, TileId, Tiles};
-use egui::{pos2, Rect};
+use crate::{
+    sources::Attribution, tiles::interpolate_from_lower_zoom, Texture, TextureWithUv, TileId, Tiles,
+};
 use lru::LruCache;
 use pmtiles::{AsyncPmTilesReader, TileCoord};
 use std::{

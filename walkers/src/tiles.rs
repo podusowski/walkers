@@ -121,7 +121,13 @@ impl Texture {
             }
             #[cfg(feature = "vector_tiles")]
             Texture::Vector(reader) => {
-                if let Err(err) = crate::mvt::render(reader, painter.with_clip_rect(rect), rect) {
+                // Renderer needs to work on the full tile, before it was clipped with `uv`.
+                let full_rect = full_rect_of_clipped_tile(rect, uv);
+
+                // Then it can be clipped to the `rect`.
+                let painter = painter.with_clip_rect(rect);
+
+                if let Err(err) = crate::mvt::render(reader, painter, full_rect) {
                     log::warn!("Could not render MVT tile: {}", err);
                 }
             }
@@ -237,9 +243,37 @@ pub(crate) fn interpolate_from_lower_zoom(tile_id: TileId, available_zoom: u8) -
     (zoomed_tile_id, uv)
 }
 
+/// Get the original rect which was clipped using the `uv`.
+fn full_rect_of_clipped_tile(rect: Rect, uv: Rect) -> Rect {
+    let uv_width = uv.max.x - uv.min.x;
+    let uv_height = uv.max.y - uv.min.y;
+
+    let full_width = rect.width() / uv_width;
+    let full_height = rect.height() / uv_height;
+
+    let full_min_x = rect.min.x - (full_width * uv.min.x);
+    let full_min_y = rect.min.y - (full_height * uv.min.y);
+
+    Rect::from_min_max(
+        pos2(full_min_x, full_min_y),
+        pos2(full_min_x + full_width, full_min_y + full_height),
+    )
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn test_full_rect_of_clipped_tile() {
+        let rect = Rect::from_min_max(pos2(0.0, 0.0), pos2(50.0, 50.0));
+        let uv = Rect::from_min_max(pos2(0.0, 0.0), pos2(0.5, 0.5));
+
+        let full_rect = full_rect_of_clipped_tile(rect, uv);
+
+        assert_eq!(full_rect.min, pos2(0.0, 0.0));
+        assert_eq!(full_rect.max, pos2(100.0, 100.0));
+    }
 
     #[test]
     fn tile_id_cannot_go_beyond_limits() {
