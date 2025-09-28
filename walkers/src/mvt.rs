@@ -30,19 +30,8 @@ pub fn render(
         egui::StrokeKind::Inside,
     );
 
-    // Transform coordinates from MVT space to screen space.
-    let transformed_pos2 = |x: f32, y: f32| {
-        pos2(x, y)
-        //pos2(
-        //    rect.left() + (x / ONLY_SUPPORTED_EXTENT as f32) * rect.width(),
-        //    rect.top() + (y / ONLY_SUPPORTED_EXTENT as f32) * rect.height(),
-        //)
-    };
-
     let line_stroke = Stroke::new(3.0, Color32::WHITE);
-
     let supported_layers = supported_layers(tile);
-
     let mut shapes = Vec::new();
 
     for index in supported_layers {
@@ -54,8 +43,8 @@ pub fn render(
                     for segment in line_string.0.windows(2) {
                         shapes.push(Shape::line_segment(
                             [
-                                transformed_pos2(segment[0].x, segment[0].y),
-                                transformed_pos2(segment[1].x, segment[1].y),
+                                pos2(segment[0].x, segment[0].y),
+                                pos2(segment[1].x, segment[1].y),
                             ],
                             line_stroke,
                         ));
@@ -66,7 +55,7 @@ pub fn render(
                     for point in multi_point {
                         shapes.push(
                             CircleShape {
-                                center: transformed_pos2(point.x(), point.y()),
+                                center: pos2(point.x(), point.y()),
                                 radius: 3.0,
                                 fill: Color32::from_rgb(200, 200, 0),
                                 stroke: Stroke::NONE,
@@ -80,7 +69,7 @@ pub fn render(
                         let points = line_string
                             .0
                             .iter()
-                            .map(|p| transformed_pos2(p.x, p.y))
+                            .map(|p| pos2(p.x, p.y))
                             .collect::<Vec<_>>();
                         shapes.push(Shape::line(points, line_stroke));
                     }
@@ -91,7 +80,7 @@ pub fn render(
                             .exterior()
                             .0
                             .iter()
-                            .map(|p| transformed_pos2(p.x, p.y))
+                            .map(|p| pos2(p.x, p.y))
                             .collect::<Vec<_>>();
                         shapes.extend(arbitrary_polygon(&points));
                     }
@@ -103,9 +92,9 @@ pub fn render(
         }
     }
 
-    // transform shapes
+    // Transform coordinates from MVT space to screen space.
     for shape in shapes.iter_mut() {
-        shape.transform(TSTransform{
+        shape.transform(TSTransform {
             scaling: rect.width() / ONLY_SUPPORTED_EXTENT as f32,
             translation: rect.min.to_vec2(),
         });
