@@ -3,6 +3,8 @@ use std::collections::HashSet;
 #[cfg(feature = "vector_tiles")]
 use std::sync::Arc;
 
+#[cfg(feature = "vector_tiles")]
+use egui::Shape;
 use egui::{pos2, Color32, Context, Mesh, Rect, Vec2};
 use egui::{ColorImage, TextureHandle};
 use image::ImageError;
@@ -85,7 +87,7 @@ pub(crate) fn rect(screen_position: Vec2, tile_size: f64) -> Rect {
 pub enum Texture {
     Raster(TextureHandle),
     #[cfg(feature = "vector_tiles")]
-    Vector(Arc<mvt_reader::Reader>),
+    Vector(Vec<Shape>),
 }
 
 impl Texture {
@@ -106,9 +108,10 @@ impl Texture {
     }
 
     #[cfg(feature = "vector_tiles")]
-    pub fn from_mvt(data: &[u8]) -> Result<Self, mvt_reader::error::ParserError> {
+    pub fn from_mvt(data: &[u8]) -> Result<Self, mvt::Error> {
         let reader = mvt_reader::Reader::new(data.to_vec())?;
-        Ok(Self::Vector(Arc::new(reader)))
+        let shapes = mvt::render(&reader)?;
+        Ok(Self::Vector(shapes))
     }
 
     /// Draw the tile on the given `rect`. The `uv` parameter defines which part of the tile
@@ -121,21 +124,14 @@ impl Texture {
                 painter.add(egui::Shape::mesh(mesh));
             }
             #[cfg(feature = "vector_tiles")]
-            Texture::Vector(reader) => {
+            Texture::Vector(shapes) => {
                 // Renderer needs to work on the full tile, before it was clipped with `uv`.
                 let full_rect = full_rect_of_clipped_tile(rect, uv);
 
                 // Then it can be clipped to the `rect`.
                 let painter = painter.with_clip_rect(rect);
 
-                match mvt::render(reader) {
-                    Ok(shapes) => {
-                        painter.extend(mvt::transformed(&shapes, full_rect));
-                    }
-                    Err(err) => {
-                        log::warn!("Could not render MVT tile: {}", err);
-                    }
-                }
+                painter.extend(mvt::transformed(&shapes, full_rect));
             }
         }
     }
