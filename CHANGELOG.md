@@ -5,6 +5,7 @@ All notable changes to this project will be documented in this file.
 ## Unreleased
 
 * New `LocalTiles` implementation for loading tiles from a local directory.
+* Fixed zooming on high refresh rates.
 
 ## 0.45.0
 
