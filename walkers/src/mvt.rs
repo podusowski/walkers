@@ -97,8 +97,8 @@ pub fn transformed(shapes: &[Shape], rect: egui::Rect) -> Vec<Shape> {
         .collect()
 }
 
-fn supported_layers(tile: &mvt_reader::Reader) -> impl Iterator<Item = usize> + '_ {
-    tile.get_layer_metadata()
+fn supported_layers(data: &mvt_reader::Reader) -> impl Iterator<Item = usize> + '_ {
+    data.get_layer_metadata()
         .unwrap_or_default()
         .into_iter()
         .filter_map(|layer| {
