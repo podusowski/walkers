@@ -65,14 +65,25 @@ necessarily compatible with Cargo alone.
 
 ### Native
 
+```sh
+cargo run
+```
+
+#### PMTiles
+
+To see PMTiles support in action, you need to obtain some `.pmtiles` files and
+put them into the directory from where you run the demo. One way of doing that
+is to download an extract from [Protonmaps](https://docs.protomaps.com/guide/getting-started).
+
+```sh
+pmtiles extract https://build.protomaps.com/20250928.pmtiles --bbox 16.802768,51.036355,17.209205,51.180686 wroclaw.pmtiles
+```
+
+#### Mapbox
+
 To enable mapbox layers, you need to define `MAPBOX_ACCESS_TOKEN` environment
 variable before building. You can obtain one, by creating a
 [mapbox account](https://account.mapbox.com/).
-
-```sh
-cd demo_native
-cargo run
-```
 
 ### Web / WASM
 
