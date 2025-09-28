@@ -1,7 +1,5 @@
 use crate::mvt;
 use std::collections::HashSet;
-#[cfg(feature = "vector_tiles")]
-use std::sync::Arc;
 
 #[cfg(feature = "vector_tiles")]
 use egui::Shape;

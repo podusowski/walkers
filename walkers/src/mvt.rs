@@ -87,8 +87,6 @@ pub fn render(data: &mvt_reader::Reader) -> Result<Vec<Shape>, Error> {
         }
     }
 
-    //painter.extend(transformed(&shapes, rect));
-
     Ok(shapes)
 }
 
