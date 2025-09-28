@@ -128,7 +128,7 @@ impl Texture {
                 // Then it can be clipped to the `rect`.
                 let painter = painter.with_clip_rect(rect);
 
-                match mvt::render(reader, full_rect) {
+                match mvt::render(reader) {
                     Ok(shapes) => {
                         painter.extend(mvt::transformed(&shapes, full_rect));
                     }

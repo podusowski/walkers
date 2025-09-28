@@ -16,7 +16,7 @@ pub enum Error {
 /// Currently this is the only supported extent.
 const ONLY_SUPPORTED_EXTENT: u32 = 4096;
 
-pub fn render(tile: &mvt_reader::Reader, rect: egui::Rect) -> Result<Vec<Shape>, Error> {
+pub fn render(data: &mvt_reader::Reader) -> Result<Vec<Shape>, Error> {
     #[cfg(feature = "debug_vector_rendering")]
     // Draw a rect around the tile.
     painter.rect_stroke(
@@ -29,8 +29,8 @@ pub fn render(tile: &mvt_reader::Reader, rect: egui::Rect) -> Result<Vec<Shape>,
     let line_stroke = Stroke::new(3.0, Color32::WHITE);
     let mut shapes = Vec::new();
 
-    for index in supported_layers(tile) {
-        for feature in tile.get_features(index)? {
+    for index in supported_layers(data) {
+        for feature in data.get_features(index)? {
             match feature.geometry {
                 Geometry::Point(_point) => todo!(),
                 Geometry::Line(_line) => todo!(),
