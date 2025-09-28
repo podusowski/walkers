@@ -41,6 +41,8 @@ pub fn render(
 
     let supported_layers = supported_layers(tile);
 
+    let mut shapes = Vec::new();
+
     for index in supported_layers {
         for feature in tile.get_features(index)? {
             match feature.geometry {
@@ -48,7 +50,7 @@ pub fn render(
                 Geometry::Line(_line) => todo!(),
                 Geometry::LineString(line_string) => {
                     for segment in line_string.0.windows(2) {
-                        painter.add(Shape::line_segment(
+                        shapes.push(Shape::line_segment(
                             [
                                 transformed_pos2(segment[0].x, segment[0].y),
                                 transformed_pos2(segment[1].x, segment[1].y),
@@ -60,12 +62,15 @@ pub fn render(
                 Geometry::Polygon(_polygon) => todo!(),
                 Geometry::MultiPoint(multi_point) => {
                     for point in multi_point {
-                        painter.add(CircleShape {
-                            center: transformed_pos2(point.x(), point.y()),
-                            radius: 3.0,
-                            fill: Color32::from_rgb(200, 200, 0),
-                            stroke: Stroke::NONE,
-                        });
+                        shapes.push(
+                            CircleShape {
+                                center: transformed_pos2(point.x(), point.y()),
+                                radius: 3.0,
+                                fill: Color32::from_rgb(200, 200, 0),
+                                stroke: Stroke::NONE,
+                            }
+                            .into(),
+                        );
                     }
                 }
                 Geometry::MultiLineString(multi_line_string) => {
@@ -75,7 +80,7 @@ pub fn render(
                             .iter()
                             .map(|p| transformed_pos2(p.x, p.y))
                             .collect::<Vec<_>>();
-                        painter.add(Shape::line(points, line_stroke));
+                        shapes.push(Shape::line(points, line_stroke));
                     }
                 }
                 Geometry::MultiPolygon(multi_polygon) => {
@@ -86,7 +91,7 @@ pub fn render(
                             .iter()
                             .map(|p| transformed_pos2(p.x, p.y))
                             .collect::<Vec<_>>();
-                        painter.extend(arbitrary_polygon(&points));
+                        shapes.extend(arbitrary_polygon(&points));
                     }
                 }
                 Geometry::GeometryCollection(_geometry_collection) => todo!(),
@@ -95,6 +100,9 @@ pub fn render(
             }
         }
     }
+
+    painter.extend(shapes);
+
     Ok(())
 }
 
@@ -135,11 +143,14 @@ fn arbitrary_polygon(points: &[Pos2]) -> Vec<Shape> {
             continue;
         }
 
-        shapes.push(PathShape::convex_polygon(
-            triangle.to_vec(),
-            Color32::WHITE.gamma_multiply(0.2),
-            PathStroke::NONE,
-        ).into());
+        shapes.push(
+            PathShape::convex_polygon(
+                triangle.to_vec(),
+                Color32::WHITE.gamma_multiply(0.2),
+                PathStroke::NONE,
+            )
+            .into(),
+        );
 
         #[cfg(feature = "debug_vector_rendering")]
         shapes.push(PathShape::closed_line(
