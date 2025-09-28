@@ -39,18 +39,7 @@ pub fn render(
 
     let line_stroke = Stroke::new(3.0, Color32::WHITE);
 
-    let supported_layers = tile.get_layer_metadata()?.into_iter().filter_map(|layer| {
-        if layer.extent == ONLY_SUPPORTED_EXTENT {
-            Some(layer.layer_index)
-        } else {
-            log::warn!(
-                "Skipping layer '{}' with unsupported extent {}.",
-                layer.name,
-                layer.extent
-            );
-            None
-        }
-    });
+    let supported_layers = supported_layers(tile);
 
     for index in supported_layers {
         for feature in tile.get_features(index)? {
@@ -106,6 +95,24 @@ pub fn render(
         }
     }
     Ok(())
+}
+
+fn supported_layers(tile: &mvt_reader::Reader) -> impl Iterator<Item = usize> + '_ {
+    tile.get_layer_metadata()
+        .unwrap_or_default()
+        .into_iter()
+        .filter_map(|layer| {
+            if layer.extent == ONLY_SUPPORTED_EXTENT {
+                Some(layer.layer_index)
+            } else {
+                log::warn!(
+                    "Skipping layer '{}' with unsupported extent {}.",
+                    layer.name,
+                    layer.extent
+                );
+                None
+            }
+        })
 }
 
 /// Egui can only draw convex polygons, so we need to triangulate arbitrary ones.
