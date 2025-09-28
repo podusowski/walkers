@@ -1,6 +1,7 @@
 //! Renderer for Mapbox Vector Tiles.
 
 use egui::{
+    emath::TSTransform,
     epaint::{CircleShape, PathShape, PathStroke},
     pos2, Color32, Pos2, Shape, Stroke,
 };
@@ -31,10 +32,11 @@ pub fn render(
 
     // Transform coordinates from MVT space to screen space.
     let transformed_pos2 = |x: f32, y: f32| {
-        pos2(
-            rect.left() + (x / ONLY_SUPPORTED_EXTENT as f32) * rect.width(),
-            rect.top() + (y / ONLY_SUPPORTED_EXTENT as f32) * rect.height(),
-        )
+        pos2(x, y)
+        //pos2(
+        //    rect.left() + (x / ONLY_SUPPORTED_EXTENT as f32) * rect.width(),
+        //    rect.top() + (y / ONLY_SUPPORTED_EXTENT as f32) * rect.height(),
+        //)
     };
 
     let line_stroke = Stroke::new(3.0, Color32::WHITE);
@@ -101,6 +103,14 @@ pub fn render(
         }
     }
 
+    // transform shapes
+    for shape in shapes.iter_mut() {
+        shape.transform(TSTransform{
+            scaling: rect.width() / ONLY_SUPPORTED_EXTENT as f32,
+            translation: rect.min.to_vec2(),
+        });
+    }
+
     painter.extend(shapes);
 
     Ok(())
@@ -138,7 +148,7 @@ fn arbitrary_polygon(points: &[Pos2]) -> Vec<Shape> {
             points[triangle_indices[2]],
         ];
 
-        if triangle_area(triangle[0], triangle[1], triangle[2]) < 0.1 {
+        if triangle_area(triangle[0], triangle[1], triangle[2]) < 100.0 {
             // Too small to render without artifacts.
             continue;
         }
