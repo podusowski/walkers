@@ -1,5 +1,6 @@
-use std::collections::hash_map::Entry;
-use std::collections::HashMap;
+use std::collections::HashSet;
+#[cfg(feature = "vector_tiles")]
+use std::sync::Arc;
 
 use egui::{pos2, Color32, Context, Mesh, Rect, Vec2};
 use egui::{ColorImage, TextureHandle};
@@ -80,7 +81,11 @@ pub(crate) fn rect(screen_position: Vec2, tile_size: f64) -> Rect {
 }
 
 #[derive(Clone)]
-pub struct Texture(TextureHandle);
+pub enum Texture {
+    Raster(TextureHandle),
+    #[cfg(feature = "vector_tiles")]
+    Vector(Arc<mvt_reader::Reader>),
+}
 
 impl Texture {
     pub fn new(image: &[u8], ctx: &Context) -> Result<Self, ImageError> {
@@ -96,37 +101,37 @@ impl Texture {
 
     /// Load the texture from egui's [`ColorImage`].
     pub fn from_color_image(color_image: ColorImage, ctx: &Context) -> Self {
-        Self(ctx.load_texture("image", color_image, Default::default()))
+        Self::Raster(ctx.load_texture("image", color_image, Default::default()))
     }
 
-    pub(crate) fn size(&self) -> Vec2 {
-        self.0.size_vec2()
+    #[cfg(feature = "vector_tiles")]
+    pub fn from_mvt(data: &[u8]) -> Result<Self, mvt_reader::error::ParserError> {
+        let reader = mvt_reader::Reader::new(data.to_vec())?;
+        Ok(Self::Vector(Arc::new(reader)))
     }
 
-    pub(crate) fn mesh_with_uv(
-        &self,
-        screen_position: Vec2,
-        tile_size: f64,
-        uv: Rect,
-        transparency: f32,
-    ) -> Mesh {
-        self.mesh_with_rect_and_uv(rect(screen_position, tile_size), uv, transparency)
-    }
+    /// Draw the tile on the given `rect`. The `uv` parameter defines which part of the tile
+    /// should be drawn on the `rect`.
+    fn draw(&self, painter: &egui::Painter, rect: Rect, uv: Rect, transparency: f32) {
+        match self {
+            Texture::Raster(texture_handle) => {
+                let mut mesh = Mesh::with_texture(texture_handle.id());
+                mesh.add_rect_with_uv(rect, uv, Color32::WHITE.gamma_multiply(transparency));
+                painter.add(egui::Shape::mesh(mesh));
+            }
+            #[cfg(feature = "vector_tiles")]
+            Texture::Vector(reader) => {
+                // Renderer needs to work on the full tile, before it was clipped with `uv`.
+                let full_rect = full_rect_of_clipped_tile(rect, uv);
 
-    pub(crate) fn mesh_with_rect(&self, rect: Rect) -> Mesh {
-        let mut mesh = Mesh::with_texture(self.0.id());
-        mesh.add_rect_with_uv(
-            rect,
-            Rect::from_min_max(pos2(0., 0.0), pos2(1.0, 1.0)),
-            Color32::WHITE,
-        );
-        mesh
-    }
+                // Then it can be clipped to the `rect`.
+                let painter = painter.with_clip_rect(rect);
 
-    pub(crate) fn mesh_with_rect_and_uv(&self, rect: Rect, uv: Rect, transparency: f32) -> Mesh {
-        let mut mesh = Mesh::with_texture(self.0.id());
-        mesh.add_rect_with_uv(rect, uv, Color32::WHITE.gamma_multiply(transparency));
-        mesh
+                if let Err(err) = crate::mvt::render(reader, painter, full_rect) {
+                    log::warn!("Could not render MVT tile: {}", err);
+                }
+            }
+        }
     }
 }
 
@@ -151,7 +156,7 @@ pub(crate) fn draw_tiles(
 ) {
     let mut meshes = Default::default();
     flood_fill_tiles(
-        painter.clip_rect(),
+        painter,
         tile_id(map_center, zoom.round(), tiles.tile_size()),
         project(map_center, zoom.into()),
         zoom.into(),
@@ -159,61 +164,56 @@ pub(crate) fn draw_tiles(
         transparency,
         &mut meshes,
     );
-
-    for shape in meshes.drain().filter_map(|(_, mesh)| mesh) {
-        painter.add(shape);
-    }
 }
 
 /// Use simple [flood fill algorithm](https://en.wikipedia.org/wiki/Flood_fill) to draw tiles on the map.
 fn flood_fill_tiles(
-    viewport: Rect,
+    painter: &egui::Painter,
     tile_id: TileId,
     map_center_projected_position: Pixels,
     zoom: f64,
     tiles: &mut dyn Tiles,
     transparency: f32,
-    meshes: &mut HashMap<TileId, Option<Mesh>>,
+    meshes: &mut HashSet<TileId>,
 ) {
     // We need to make up the difference between integer and floating point zoom levels.
     let corrected_tile_size = tiles.tile_size() as f64 * 2f64.powf(zoom - zoom.round());
     let tile_projected = tile_id.project(corrected_tile_size);
-    let tile_screen_position =
-        viewport.center().to_vec2() + (tile_projected - map_center_projected_position).to_vec2();
+    let tile_screen_position = painter.clip_rect().center().to_vec2()
+        + (tile_projected - map_center_projected_position).to_vec2();
 
-    if viewport.intersects(rect(tile_screen_position, corrected_tile_size)) {
-        if let Entry::Vacant(entry) = meshes.entry(tile_id) {
-            // It's still OK to insert an empty one, as we need to mark the spot for the filling algorithm.
-            let tile = tiles.at(tile_id).map(|tile| {
-                tile.texture.mesh_with_uv(
-                    tile_screen_position,
-                    corrected_tile_size,
-                    tile.uv,
-                    transparency,
-                )
-            });
+    if painter
+        .clip_rect()
+        .intersects(rect(tile_screen_position, corrected_tile_size))
+        && meshes.insert(tile_id)
+    {
+        if let Some(tile) = tiles.at(tile_id) {
+            tile.texture.draw(
+                painter,
+                rect(tile_screen_position, corrected_tile_size),
+                tile.uv,
+                transparency,
+            )
+        }
 
-            entry.insert(tile);
-
-            for next_tile_id in [
-                tile_id.north(),
-                tile_id.east(),
-                tile_id.south(),
-                tile_id.west(),
-            ]
-            .iter()
-            .flatten()
-            {
-                flood_fill_tiles(
-                    viewport,
-                    *next_tile_id,
-                    map_center_projected_position,
-                    zoom,
-                    tiles,
-                    transparency,
-                    meshes,
-                );
-            }
+        for next_tile_id in [
+            tile_id.north(),
+            tile_id.east(),
+            tile_id.south(),
+            tile_id.west(),
+        ]
+        .iter()
+        .flatten()
+        {
+            flood_fill_tiles(
+                painter,
+                *next_tile_id,
+                map_center_projected_position,
+                zoom,
+                tiles,
+                transparency,
+                meshes,
+            );
         }
     }
 }
@@ -243,9 +243,37 @@ pub(crate) fn interpolate_from_lower_zoom(tile_id: TileId, available_zoom: u8) -
     (zoomed_tile_id, uv)
 }
 
+/// Get the original rect which was clipped using the `uv`.
+fn full_rect_of_clipped_tile(rect: Rect, uv: Rect) -> Rect {
+    let uv_width = uv.max.x - uv.min.x;
+    let uv_height = uv.max.y - uv.min.y;
+
+    let full_width = rect.width() / uv_width;
+    let full_height = rect.height() / uv_height;
+
+    let full_min_x = rect.min.x - (full_width * uv.min.x);
+    let full_min_y = rect.min.y - (full_height * uv.min.y);
+
+    Rect::from_min_max(
+        pos2(full_min_x, full_min_y),
+        pos2(full_min_x + full_width, full_min_y + full_height),
+    )
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn test_full_rect_of_clipped_tile() {
+        let rect = Rect::from_min_max(pos2(0.0, 0.0), pos2(50.0, 50.0));
+        let uv = Rect::from_min_max(pos2(0.0, 0.0), pos2(0.5, 0.5));
+
+        let full_rect = full_rect_of_clipped_tile(rect, uv);
+
+        assert_eq!(full_rect.min, pos2(0.0, 0.0));
+        assert_eq!(full_rect.max, pos2(100.0, 100.0));
+    }
 
     #[test]
     fn tile_id_cannot_go_beyond_limits() {

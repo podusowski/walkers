@@ -27,6 +27,14 @@ futures = "0.3.28"
 serde = { version = "1", features = ["derive"], optional = true }
 reqwest-middleware = "0.4.2"
 
+# Vector tiles
+pmtiles = { version = "0.16.0", default-features = false, features = [
+    "mmap-async-tokio",
+], optional = true }
+mvt-reader = { version = "2.1.0", optional = true }
+flate2 = { version = "1.1.2", optional = true }
+earcut = { version = "0.4.4", optional = true }
+
 [target.'cfg(target_family = "wasm")'.dependencies]
 wasm-bindgen-futures = "0.4"
 
@@ -43,3 +51,5 @@ hypermocker = { path = "../hypermocker" }
 [features]
 default = []
 serde = ["dep:serde", "geo-types/serde", "egui/serde"]
+vector_tiles = ["dep:pmtiles", "dep:mvt-reader", "dep:flate2", "dep:earcut"]
+debug_vector_rendering = []

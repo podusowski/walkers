@@ -3,18 +3,16 @@ mod plugins;
 mod tiles;
 mod windows;
 
-use std::collections::BTreeMap;
-
-use crate::plugins::ImagesPluginData;
 use egui::{Button, CentralPanel, Context, DragPanButtons, Frame, OpenUrl, Rect, Vec2};
-use tiles::{providers, Provider, TilesKind};
+use tiles::{providers, TilesKind};
 use walkers::{Map, MapMemory};
 
+use crate::tiles::Providers;
+
 pub struct MyApp {
-    providers: BTreeMap<Provider, Vec<TilesKind>>,
-    selected_provider: Provider,
+    providers: Providers,
+    selected_provider: String,
     map_memory: MapMemory,
-    images_plugin_data: ImagesPluginData,
     click_watcher: plugins::ClickWatcher,
     zoom_with_ctrl: bool,
 }
@@ -23,14 +21,10 @@ impl MyApp {
     pub fn new(egui_ctx: Context) -> Self {
         egui_extras::install_image_loaders(&egui_ctx);
 
-        // Data for the `images` plugin showcase.
-        let images_plugin_data = ImagesPluginData::new(egui_ctx.to_owned());
-
         Self {
             providers: providers(egui_ctx.to_owned()),
-            selected_provider: Provider::OpenStreetMap,
+            selected_provider: "OpenStreetMap".to_string(),
             map_memory: MapMemory::default(),
-            images_plugin_data,
             click_watcher: Default::default(),
             zoom_with_ctrl: true,
         }
@@ -43,7 +37,11 @@ impl eframe::App for MyApp {
             // Typically this would be a GPS acquired position which is tracked by the map.
             let my_position = places::wroclaw_glowny();
 
-            let tiles = self.providers.get_mut(&self.selected_provider).unwrap();
+            let tiles = self
+                .providers
+                .available
+                .get_mut(&self.selected_provider)
+                .unwrap();
             let attributions: Vec<_> = tiles
                 .iter()
                 .map(|tile| tile.as_ref().attribution())
@@ -60,7 +58,6 @@ impl eframe::App for MyApp {
             // Optionally, plugins can be attached.
             map = map
                 .with_plugin(plugins::places())
-                .with_plugin(plugins::images(&mut self.images_plugin_data))
                 .with_plugin(plugins::CustomShapes {})
                 .with_plugin(&mut self.click_watcher);
 
