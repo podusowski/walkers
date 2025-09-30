@@ -153,24 +153,6 @@ fn find_layer(data: &mvt_reader::Reader, name: &str) -> Result<usize, Error> {
     Ok(layer.layer_index)
 }
 
-fn supported_layers(data: &mvt_reader::Reader) -> impl Iterator<Item = usize> + '_ {
-    data.get_layer_metadata()
-        .unwrap_or_default()
-        .into_iter()
-        .filter_map(|layer| {
-            if layer.extent == ONLY_SUPPORTED_EXTENT {
-                Some(layer.layer_index)
-            } else {
-                log::warn!(
-                    "Skipping layer '{}' with unsupported extent {}.",
-                    layer.name,
-                    layer.extent
-                );
-                None
-            }
-        })
-}
-
 /// Egui can only draw convex polygons, so we need to triangulate arbitrary ones.
 fn arbitrary_polygon(points: &[Pos2], fill: Color32) -> Vec<Shape> {
     let mut shapes = Vec::new();
