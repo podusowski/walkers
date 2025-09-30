@@ -1,12 +1,15 @@
 //! Renderer for Mapbox Vector Tiles.
 
+use std::collections::HashMap;
+
 use egui::{
     emath::TSTransform,
     epaint::{CircleShape, PathShape, PathStroke},
     pos2, Color32, Pos2, Shape, Stroke,
 };
 use geo_types::Geometry;
-use mvt_reader::feature::Feature;
+use log::warn;
+use mvt_reader::feature::{Feature, Value};
 
 #[derive(thiserror::Error, Debug)]
 pub enum Error {
@@ -94,12 +97,33 @@ fn render_feature(feature: &Feature, shapes: &mut Vec<Shape>) {
                     .iter()
                     .map(|p| pos2(p.x, p.y))
                     .collect::<Vec<_>>();
-                shapes.extend(arbitrary_polygon(&points));
+                shapes.extend(arbitrary_polygon(
+                    &points,
+                    polygon_fill(feature.properties.as_ref().unwrap_or(&HashMap::new())),
+                ));
             }
         }
         Geometry::GeometryCollection(_geometry_collection) => todo!(),
         Geometry::Rect(_rect) => todo!(),
         Geometry::Triangle(_triangle) => todo!(),
+    }
+}
+
+fn polygon_fill(properties: &HashMap<String, Value>) -> Color32 {
+    let default = Color32::WHITE.gamma_multiply(0.15);
+
+    if let Some(Value::String(kind)) = properties.get("kind") {
+        match kind.as_str() {
+            "water" => Color32::from_rgb(12, 39, 77),
+            "building" => Color32::from_rgb(50, 50, 50),
+            other => {
+                warn!("Unknown 'kind' property: {other}");
+                default
+            }
+        }
+    } else {
+        warn!("Feature without 'kind' property: {properties:?}");
+        default
     }
 }
 
@@ -122,7 +146,7 @@ fn supported_layers(data: &mvt_reader::Reader) -> impl Iterator<Item = usize> + 
 }
 
 /// Egui can only draw convex polygons, so we need to triangulate arbitrary ones.
-fn arbitrary_polygon(points: &[Pos2]) -> Vec<Shape> {
+fn arbitrary_polygon(points: &[Pos2], fill: Color32) -> Vec<Shape> {
     let mut shapes = Vec::new();
     let mut triangles = Vec::<usize>::new();
     let mut earcut = earcut::Earcut::new();
@@ -140,14 +164,7 @@ fn arbitrary_polygon(points: &[Pos2]) -> Vec<Shape> {
             continue;
         }
 
-        shapes.push(
-            PathShape::convex_polygon(
-                triangle.to_vec(),
-                Color32::WHITE.gamma_multiply(0.2),
-                PathStroke::NONE,
-            )
-            .into(),
-        );
+        shapes.push(PathShape::convex_polygon(triangle.to_vec(), fill, PathStroke::NONE).into());
     }
     shapes
 }
