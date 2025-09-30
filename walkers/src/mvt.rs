@@ -115,21 +115,22 @@ fn render_feature(feature: &Feature, shapes: &mut Vec<Shape>) {
 }
 
 fn polygon_fill(properties: &HashMap<String, Value>) -> Color32 {
-    let default = Color32::WHITE.gamma_multiply(0.15);
-
     if let Some(Value::String(kind)) = properties.get("kind") {
         match kind.as_str() {
             "water" => Color32::from_rgb(12, 39, 77),
-            "grass" | "garden" | "playground" => Color32::from_rgb(18, 43, 28),
+            "grass" | "garden" | "playground" | "park" | "forest" | "wood" | "village_green"
+            | "scrub" | "grassland" | "allotments" => Color32::from_rgb(18, 43, 28),
             "building" | "building_part" => Color32::from_rgb(50, 50, 50),
+            "pedestrian" | "recreation_ground" | "railway" | "industrial" | "residential"
+            | "commercial" => Color32::TRANSPARENT,
             other => {
                 warn!("Unknown 'kind' property: {other}");
-                default
+                Color32::TRANSPARENT
             }
         }
     } else {
         warn!("Feature without 'kind' property: {properties:?}");
-        default
+        Color32::TRANSPARENT
     }
 }
 
