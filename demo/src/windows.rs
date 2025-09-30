@@ -23,7 +23,12 @@ pub fn acknowledge(ui: &Ui, attributions: Vec<Attribution>) {
         });
 }
 
-pub fn controls(app: &mut MyApp, ui: &Ui, http_stats: Vec<walkers::HttpStats>) {
+pub fn controls(
+    app: &mut MyApp,
+    ui: &Ui,
+    http_stats: Vec<walkers::HttpStats>,
+    frame: &mut eframe::Frame,
+) {
     Window::new("Controls")
         .collapsible(false)
         .resizable(false)
@@ -67,6 +72,10 @@ pub fn controls(app: &mut MyApp, ui: &Ui, http_stats: Vec<walkers::HttpStats>) {
                     "{:?} requests in progress: {}",
                     app.selected_provider, http_stats.in_progress
                 ));
+            }
+
+            if let Some(cpu_usage) = frame.info().cpu_usage {
+                ui.label(format!("CPU usage: {:.2}ms", cpu_usage * 1000.0));
             }
         });
 }
