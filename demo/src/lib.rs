@@ -105,7 +105,7 @@ impl eframe::App for MyApp {
                     })
                     .collect();
 
-                controls(self, ui, http_stats);
+                controls(self, ui, http_stats, _frame);
                 acknowledge(ui, attributions);
             }
         });
