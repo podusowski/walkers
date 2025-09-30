@@ -6,6 +6,7 @@ use egui::{
     pos2, Color32, Pos2, Shape, Stroke,
 };
 use geo_types::Geometry;
+use mvt_reader::feature::Feature;
 
 #[derive(thiserror::Error, Debug)]
 pub enum Error {
@@ -18,64 +19,11 @@ const ONLY_SUPPORTED_EXTENT: u32 = 4096;
 
 /// Render MVT data into a list of [`epaint::Shape`]s.
 pub fn render(data: &mvt_reader::Reader) -> Result<Vec<Shape>, Error> {
-    let line_stroke = Stroke::new(3.0, Color32::WHITE);
     let mut shapes = Vec::new();
 
     for index in supported_layers(data) {
         for feature in data.get_features(index)? {
-            match feature.geometry {
-                Geometry::Point(_point) => todo!(),
-                Geometry::Line(_line) => todo!(),
-                Geometry::LineString(line_string) => {
-                    for segment in line_string.0.windows(2) {
-                        shapes.push(Shape::line_segment(
-                            [
-                                pos2(segment[0].x, segment[0].y),
-                                pos2(segment[1].x, segment[1].y),
-                            ],
-                            line_stroke,
-                        ));
-                    }
-                }
-                Geometry::Polygon(_polygon) => todo!(),
-                Geometry::MultiPoint(multi_point) => {
-                    for point in multi_point {
-                        shapes.push(
-                            CircleShape {
-                                center: pos2(point.x(), point.y()),
-                                radius: 3.0,
-                                fill: Color32::from_rgb(200, 200, 0),
-                                stroke: Stroke::NONE,
-                            }
-                            .into(),
-                        );
-                    }
-                }
-                Geometry::MultiLineString(multi_line_string) => {
-                    for line_string in multi_line_string {
-                        let points = line_string
-                            .0
-                            .iter()
-                            .map(|p| pos2(p.x, p.y))
-                            .collect::<Vec<_>>();
-                        shapes.push(Shape::line(points, line_stroke));
-                    }
-                }
-                Geometry::MultiPolygon(multi_polygon) => {
-                    for polygon in multi_polygon.iter() {
-                        let points = polygon
-                            .exterior()
-                            .0
-                            .iter()
-                            .map(|p| pos2(p.x, p.y))
-                            .collect::<Vec<_>>();
-                        shapes.extend(arbitrary_polygon(&points));
-                    }
-                }
-                Geometry::GeometryCollection(_geometry_collection) => todo!(),
-                Geometry::Rect(_rect) => todo!(),
-                Geometry::Triangle(_triangle) => todo!(),
-            }
+            render_feature(&feature, &mut shapes);
         }
     }
 
@@ -95,6 +43,64 @@ pub fn transformed(shapes: &[Shape], rect: egui::Rect) -> Vec<Shape> {
             shape
         })
         .collect()
+}
+
+fn render_feature(feature: &Feature, shapes: &mut Vec<Shape>) {
+    let line_stroke = Stroke::new(3.0, Color32::WHITE);
+
+    match &feature.geometry {
+        Geometry::Point(_point) => todo!(),
+        Geometry::Line(_line) => todo!(),
+        Geometry::LineString(line_string) => {
+            for segment in line_string.0.windows(2) {
+                shapes.push(Shape::line_segment(
+                    [
+                        pos2(segment[0].x, segment[0].y),
+                        pos2(segment[1].x, segment[1].y),
+                    ],
+                    line_stroke,
+                ));
+            }
+        }
+        Geometry::Polygon(_polygon) => todo!(),
+        Geometry::MultiPoint(multi_point) => {
+            for point in multi_point {
+                shapes.push(
+                    CircleShape {
+                        center: pos2(point.x(), point.y()),
+                        radius: 3.0,
+                        fill: Color32::from_rgb(200, 200, 0),
+                        stroke: Stroke::NONE,
+                    }
+                    .into(),
+                );
+            }
+        }
+        Geometry::MultiLineString(multi_line_string) => {
+            for line_string in multi_line_string {
+                let points = line_string
+                    .0
+                    .iter()
+                    .map(|p| pos2(p.x, p.y))
+                    .collect::<Vec<_>>();
+                shapes.push(Shape::line(points, line_stroke));
+            }
+        }
+        Geometry::MultiPolygon(multi_polygon) => {
+            for polygon in multi_polygon.iter() {
+                let points = polygon
+                    .exterior()
+                    .0
+                    .iter()
+                    .map(|p| pos2(p.x, p.y))
+                    .collect::<Vec<_>>();
+                shapes.extend(arbitrary_polygon(&points));
+            }
+        }
+        Geometry::GeometryCollection(_geometry_collection) => todo!(),
+        Geometry::Rect(_rect) => todo!(),
+        Geometry::Triangle(_triangle) => todo!(),
+    }
 }
 
 fn supported_layers(data: &mvt_reader::Reader) -> impl Iterator<Item = usize> + '_ {
