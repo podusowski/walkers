@@ -115,6 +115,7 @@ fn polygon_fill(properties: &HashMap<String, Value>) -> Color32 {
     if let Some(Value::String(kind)) = properties.get("kind") {
         match kind.as_str() {
             "water" => Color32::from_rgb(12, 39, 77),
+            "grass" | "garden" | "playground" => Color32::from_rgb(18, 43, 28),
             "building" => Color32::from_rgb(50, 50, 50),
             other => {
                 warn!("Unknown 'kind' property: {other}");
