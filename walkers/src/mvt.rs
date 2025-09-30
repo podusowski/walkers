@@ -15,6 +15,10 @@ use mvt_reader::feature::{Feature, Value};
 pub enum Error {
     #[error(transparent)]
     Mvt(#[from] mvt_reader::error::ParserError),
+    #[error("Layer not found: {0}. Available layers: {1:?}")]
+    LayerNotFound(String, Vec<String>),
+    #[error("Unsupported layer extent: {0}")]
+    UnsupportedLayerExtent(String),
 }
 
 /// Currently this is the only supported extent.
@@ -24,8 +28,9 @@ const ONLY_SUPPORTED_EXTENT: u32 = 4096;
 pub fn render(data: &mvt_reader::Reader) -> Result<Vec<Shape>, Error> {
     let mut shapes = Vec::new();
 
-    for index in supported_layers(data) {
-        for feature in data.get_features(index)? {
+    for layer in ["water", "landuse", "buildings", "roads"] {
+        let layer_index = find_layer(data, layer)?;
+        for feature in data.get_features(layer_index)? {
             render_feature(&feature, &mut shapes);
         }
     }
@@ -114,7 +119,7 @@ fn polygon_fill(properties: &HashMap<String, Value>) -> Color32 {
 
     if let Some(Value::String(kind)) = properties.get("kind") {
         match kind.as_str() {
-            "water" => Color32::from_rgb(12, 39, 77),
+            //"water" => Color32::from_rgb(12, 39, 77),
             "grass" | "garden" | "playground" => Color32::from_rgb(18, 43, 28),
             "building" => Color32::from_rgb(50, 50, 50),
             other => {
@@ -126,6 +131,26 @@ fn polygon_fill(properties: &HashMap<String, Value>) -> Color32 {
         warn!("Feature without 'kind' property: {properties:?}");
         default
     }
+}
+
+fn find_layer(data: &mvt_reader::Reader, name: &str) -> Result<usize, Error> {
+    let layer = data
+        .get_layer_metadata()?
+        .into_iter()
+        .find(|layer| layer.name == name);
+
+    let Some(layer) = layer else {
+        return Err(Error::LayerNotFound(
+            name.to_string(),
+            data.get_layer_names()?,
+        ));
+    };
+
+    if layer.extent != ONLY_SUPPORTED_EXTENT {
+        return Err(Error::UnsupportedLayerExtent(name.to_string()));
+    }
+
+    Ok(layer.layer_index)
 }
 
 fn supported_layers(data: &mvt_reader::Reader) -> impl Iterator<Item = usize> + '_ {
