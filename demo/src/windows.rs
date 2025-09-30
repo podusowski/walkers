@@ -39,10 +39,10 @@ pub fn controls(
             ui.heading("Map");
 
             ComboBox::from_label("Tile Provider")
-                .selected_text(app.selected_provider.to_owned())
+                .selected_text(app.providers.selected.to_owned())
                 .show_ui(ui, |ui| {
                     for p in app.providers.available.keys() {
-                        ui.selectable_value(&mut app.selected_provider, p.clone(), p);
+                        ui.selectable_value(&mut app.providers.selected, p.clone(), p);
                     }
                 });
 
@@ -70,7 +70,7 @@ pub fn controls(
             for http_stats in http_stats {
                 ui.label(format!(
                     "{:?} requests in progress: {}",
-                    app.selected_provider, http_stats.in_progress
+                    app.providers.selected, http_stats.in_progress
                 ));
             }
 
