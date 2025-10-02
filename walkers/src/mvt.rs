@@ -65,12 +65,11 @@ pub fn transformed(shapes: &[Shape], rect: egui::Rect) -> Vec<Shape> {
 }
 
 fn render_feature(feature: &Feature, shapes: &mut Vec<Shape>) {
-    let line_stroke = Stroke::new(3.0, Color32::WHITE);
-
     match &feature.geometry {
         Geometry::Point(_point) => todo!(),
         Geometry::Line(_line) => todo!(),
         Geometry::LineString(line_string) => {
+            let line_stroke = line_stroke(&feature.properties.as_ref().unwrap_or(&HashMap::new()));
             for segment in line_string.0.windows(2) {
                 shapes.push(Shape::line_segment(
                     [
@@ -78,6 +77,19 @@ fn render_feature(feature: &Feature, shapes: &mut Vec<Shape>) {
                         pos2(segment[1].x, segment[1].y),
                     ],
                     line_stroke,
+                ));
+            }
+        }
+        Geometry::MultiLineString(multi_line_string) => {
+            for line_string in multi_line_string {
+                let points = line_string
+                    .0
+                    .iter()
+                    .map(|p| pos2(p.x, p.y))
+                    .collect::<Vec<_>>();
+                shapes.push(Shape::line(
+                    points,
+                    line_stroke(&feature.properties.as_ref().unwrap_or(&HashMap::new())),
                 ));
             }
         }
@@ -93,16 +105,6 @@ fn render_feature(feature: &Feature, shapes: &mut Vec<Shape>) {
                     }
                     .into(),
                 );
-            }
-        }
-        Geometry::MultiLineString(multi_line_string) => {
-            for line_string in multi_line_string {
-                let points = line_string
-                    .0
-                    .iter()
-                    .map(|p| pos2(p.x, p.y))
-                    .collect::<Vec<_>>();
-                shapes.push(Shape::line(points, line_stroke));
             }
         }
         Geometry::MultiPolygon(multi_polygon) => {
@@ -151,6 +153,30 @@ fn polygon_fill(properties: &HashMap<String, Value>) -> Color32 {
     } else {
         warn!("Feature without kind: {properties:?}");
         Color32::TRANSPARENT
+    }
+}
+
+fn line_stroke(properties: &HashMap<String, Value>) -> Stroke {
+    let road_color = Color32::from_rgb(100, 100, 100);
+    if let Some(Value::String(kind)) = properties.get("kind") {
+        match kind.as_str() {
+            //  "motorway" => Stroke::new(6.0, Color32::from_rgb(255, 200, 0)),
+            //  "trunk" => Stroke::new(5.0, Color32::from_rgb(255, 160, 0)),
+            //  "primary" => Stroke::new(4.0, Color32::from_rgb(255, 120, 0)),
+            //  "secondary" => Stroke::new(3.0, Color32::from_rgb(255, 80, 0)),
+            //  "tertiary" => Stroke::new(2.0, Color32::from_rgb(255, 40, 0)),
+            "major_road" => Stroke::new(7.0, road_color),
+            "minor_road" => Stroke::new(5.0, road_color),
+            "rail" => Stroke::new(3.0, road_color),
+            "path" => Stroke::new(3.0, Color32::from_rgb(94, 62, 32)),
+            other => {
+                warn!("Unknown kind: {other}");
+                Stroke::new(3.0, Color32::RED)
+            }
+        }
+    } else {
+        warn!("Feature without kind: {properties:?}");
+        Stroke::new(3.0, Color32::RED)
     }
 }
 
