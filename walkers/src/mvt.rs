@@ -160,11 +160,6 @@ fn line_stroke(properties: &HashMap<String, Value>) -> Stroke {
     let road_color = Color32::from_rgb(100, 100, 100);
     if let Some(Value::String(kind)) = properties.get("kind") {
         match kind.as_str() {
-            //  "motorway" => Stroke::new(6.0, Color32::from_rgb(255, 200, 0)),
-            //  "trunk" => Stroke::new(5.0, Color32::from_rgb(255, 160, 0)),
-            //  "primary" => Stroke::new(4.0, Color32::from_rgb(255, 120, 0)),
-            //  "secondary" => Stroke::new(3.0, Color32::from_rgb(255, 80, 0)),
-            //  "tertiary" => Stroke::new(2.0, Color32::from_rgb(255, 40, 0)),
             "major_road" => Stroke::new(7.0, road_color),
             "minor_road" => Stroke::new(5.0, road_color),
             "rail" => Stroke::new(3.0, road_color),
