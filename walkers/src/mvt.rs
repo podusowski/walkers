@@ -28,10 +28,21 @@ const ONLY_SUPPORTED_EXTENT: u32 = 4096;
 pub fn render(data: &mvt_reader::Reader) -> Result<Vec<Shape>, Error> {
     let mut shapes = Vec::new();
 
-    for layer in ["water", "landuse", "buildings", "roads"] {
-        let layer_index = find_layer(data, layer)?;
-        for feature in data.get_features(layer_index)? {
-            render_feature(&feature, &mut shapes);
+    let known_layers = ["earth", "water", "landuse", "buildings", "roads"];
+
+    for layer in data.get_layer_names()? {
+        if !known_layers.contains(&layer.as_str()) {
+            warn!("Unknown layer '{layer}' found. Skipping.");
+        }
+    }
+
+    for layer in known_layers {
+        if let Ok(layer_index) = find_layer(data, layer) {
+            for feature in data.get_features(layer_index)? {
+                render_feature(&feature, &mut shapes);
+            }
+        } else {
+            warn!("Layer '{layer}' not found. Skipping.");
         }
     }
 
@@ -117,19 +128,28 @@ fn render_feature(feature: &Feature, shapes: &mut Vec<Shape>) {
 fn polygon_fill(properties: &HashMap<String, Value>) -> Color32 {
     if let Some(Value::String(kind)) = properties.get("kind") {
         match kind.as_str() {
-            "water" => Color32::from_rgb(12, 39, 77),
-            "grass" | "garden" | "playground" | "park" | "forest" | "wood" | "village_green"
-            | "scrub" | "grassland" | "allotments" => Color32::from_rgb(18, 43, 28),
-            "building" | "building_part" => Color32::from_rgb(50, 50, 50),
+            "water" | "fountain" | "swimming_pool" | "basin" | "lake" | "ditch" | "ocean" => {
+                Color32::from_rgb(12, 39, 77)
+            }
+            "grass" | "garden" | "playground" | "zoo" | "park" | "forest" | "wood"
+            | "village_green" | "scrub" | "grassland" | "allotments" | "pitch" | "farmland"
+            | "dog_park" | "meadow" | "wetland" | "cemetery" | "golf_course" | "nature_reserve" => {
+                Color32::from_rgb(18, 43, 28)
+            }
+            "building" | "building_part" | "pier" | "runway" => Color32::from_rgb(50, 50, 50),
             "pedestrian" | "recreation_ground" | "railway" | "industrial" | "residential"
-            | "commercial" => Color32::TRANSPARENT,
+            | "commercial" | "protected_area" | "school" | "platform" | "kindergarten"
+            | "university" | "hospital" | "college" | "aerodrome" => Color32::TRANSPARENT,
+            "military" => Color32::from_rgb(60, 0, 0),
+            "sand" | "beach" => Color32::from_rgb(150, 135, 0),
+            "national_park" => Color32::RED,
             other => {
-                warn!("Unknown 'kind' property: {other}");
+                warn!("Unknown kind: {other}");
                 Color32::TRANSPARENT
             }
         }
     } else {
-        warn!("Feature without 'kind' property: {properties:?}");
+        warn!("Feature without kind: {properties:?}");
         Color32::TRANSPARENT
     }
 }
