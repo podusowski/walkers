@@ -56,14 +56,11 @@ pub fn transformed(shapes: &[Shape], rect: egui::Rect) -> Vec<Shape> {
         translation: rect.min.to_vec2(),
     };
 
-    shapes
-        .iter()
-        .map(|shape| {
-            let mut shape = shape.clone();
-            shape.transform(transform);
-            shape
-        })
-        .collect()
+    let mut result = shapes.to_vec();
+    for shape in result.iter_mut() {
+        shape.transform(transform);
+    }
+    result
 }
 
 fn render_feature(feature: &Feature, shapes: &mut Vec<Shape>) {
