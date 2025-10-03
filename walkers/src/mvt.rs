@@ -51,14 +51,16 @@ pub fn render(data: &mvt_reader::Reader) -> Result<Vec<Shape>, Error> {
 
 /// Transform shapes from MVT space to screen space.
 pub fn transformed(shapes: &[Shape], rect: egui::Rect) -> Vec<Shape> {
+    let transform = TSTransform {
+        scaling: rect.width() / ONLY_SUPPORTED_EXTENT as f32,
+        translation: rect.min.to_vec2(),
+    };
+
     shapes
         .iter()
         .map(|shape| {
             let mut shape = shape.clone();
-            shape.transform(TSTransform {
-                scaling: rect.width() / ONLY_SUPPORTED_EXTENT as f32,
-                translation: rect.min.to_vec2(),
-            });
+            shape.transform(transform);
             shape
         })
         .collect()
