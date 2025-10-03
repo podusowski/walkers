@@ -127,11 +127,13 @@ fn render_feature(feature: &Feature, shapes: &mut Vec<Shape>) {
     }
 }
 
+const WATER_COLOR: Color32 = Color32::from_rgb(12, 39, 77);
+
 fn polygon_fill(properties: &HashMap<String, Value>) -> Color32 {
     if let Some(Value::String(kind)) = properties.get("kind") {
         match kind.as_str() {
             "water" | "fountain" | "swimming_pool" | "basin" | "lake" | "ditch" | "ocean" => {
-                Color32::from_rgb(12, 39, 77)
+                WATER_COLOR
             }
             "grass" | "garden" | "playground" | "zoo" | "park" | "forest" | "wood"
             | "village_green" | "scrub" | "grassland" | "allotments" | "pitch" | "farmland"
@@ -139,19 +141,19 @@ fn polygon_fill(properties: &HashMap<String, Value>) -> Color32 {
                 Color32::from_rgb(18, 43, 28)
             }
             "building" | "building_part" | "pier" | "runway" => Color32::from_rgb(50, 50, 50),
-            "pedestrian" | "recreation_ground" | "railway" | "industrial" | "residential"
-            | "commercial" | "protected_area" | "school" | "platform" | "kindergarten"
-            | "university" | "hospital" | "college" | "aerodrome" => Color32::TRANSPARENT,
             "military" => Color32::from_rgb(60, 0, 0),
             "sand" | "beach" => Color32::from_rgb(150, 135, 0),
             "national_park" => Color32::RED,
+            "pedestrian" | "recreation_ground" | "railway" | "industrial" | "residential"
+            | "commercial" | "protected_area" | "school" | "platform" | "kindergarten"
+            | "university" | "hospital" | "college" | "aerodrome" | "earth" => Color32::TRANSPARENT,
             other => {
-                warn!("Unknown kind: {other}");
-                Color32::TRANSPARENT
+                warn!("Unknown polygon kind: {other}");
+                Color32::RED
             }
         }
     } else {
-        warn!("Feature without kind: {properties:?}");
+        warn!("Polygon without kind: {properties:?}");
         Color32::TRANSPARENT
     }
 }
@@ -160,17 +162,20 @@ fn line_stroke(properties: &HashMap<String, Value>) -> Stroke {
     let road_color = Color32::from_rgb(100, 100, 100);
     if let Some(Value::String(kind)) = properties.get("kind") {
         match kind.as_str() {
+            "highway" | "aeroway" => Stroke::new(12.0, road_color),
             "major_road" => Stroke::new(7.0, road_color),
             "minor_road" => Stroke::new(5.0, road_color),
             "rail" => Stroke::new(3.0, road_color),
             "path" => Stroke::new(3.0, Color32::from_rgb(94, 62, 32)),
+            "river" | "stream" | "drain" | "ditch" | "canal" => Stroke::new(3.0, WATER_COLOR),
+            "other" | "aerialway" => Stroke::new(0.0, Color32::TRANSPARENT),
             other => {
-                warn!("Unknown kind: {other}");
-                Stroke::new(3.0, Color32::RED)
+                warn!("Unknown line kind: {other}");
+                Stroke::new(10.0, Color32::RED)
             }
         }
     } else {
-        warn!("Feature without kind: {properties:?}");
+        warn!("Line without kind: {properties:?}");
         Stroke::new(3.0, Color32::RED)
     }
 }
