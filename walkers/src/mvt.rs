@@ -118,6 +118,7 @@ fn render_feature(feature: &Feature, shapes: &mut Vec<Shape>) {
 }
 
 const WATER_COLOR: Color32 = Color32::from_rgb(12, 39, 77);
+const ROAD_COLOR: Color32 = Color32::from_rgb(100, 100, 100);
 
 fn polygon_fill(properties: &HashMap<String, Value>) -> Option<Color32> {
     if let Some(Value::String(kind)) = properties.get("kind") {
@@ -148,13 +149,12 @@ fn polygon_fill(properties: &HashMap<String, Value>) -> Option<Color32> {
 }
 
 fn line_stroke(properties: &HashMap<String, Value>) -> Option<Stroke> {
-    let road_color = Color32::from_rgb(100, 100, 100);
     if let Some(Value::String(kind)) = properties.get("kind") {
         match kind.as_str() {
-            "highway" | "aeroway" => Some(Stroke::new(15.0, road_color)),
-            "major_road" => Some(Stroke::new(12.0, road_color)),
-            "minor_road" => Some(Stroke::new(8.0, road_color)),
-            "rail" => Some(Stroke::new(3.0, road_color)),
+            "highway" | "aeroway" => Some(Stroke::new(15.0, ROAD_COLOR)),
+            "major_road" => Some(Stroke::new(12.0, ROAD_COLOR)),
+            "minor_road" => Some(Stroke::new(8.0, ROAD_COLOR)),
+            "rail" => Some(Stroke::new(3.0, ROAD_COLOR)),
             "path" => Some(Stroke::new(3.0, Color32::from_rgb(94, 62, 32))),
             "river" | "stream" | "drain" | "ditch" | "canal" => Some(Stroke::new(3.0, WATER_COLOR)),
             "other" | "aerialway" | "cliff" => None,
