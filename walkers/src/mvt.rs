@@ -83,13 +83,14 @@ fn render_feature(feature: &Feature, shapes: &mut Vec<Shape>) {
             }
         }
         Geometry::MultiLineString(multi_line_string) => {
+            let stroke = line_stroke(properties);
             for line_string in multi_line_string {
                 let points = line_string
                     .0
                     .iter()
                     .map(|p| pos2(p.x, p.y))
                     .collect::<Vec<_>>();
-                shapes.push(Shape::line(points, line_stroke(properties)));
+                shapes.push(Shape::line(points, stroke));
             }
         }
         Geometry::Polygon(_polygon) => todo!(),
@@ -97,6 +98,7 @@ fn render_feature(feature: &Feature, shapes: &mut Vec<Shape>) {
             // Not drawing points at the moment.
         }
         Geometry::MultiPolygon(multi_polygon) => {
+            let fill = polygon_fill(properties);
             for polygon in multi_polygon.iter() {
                 let points = polygon
                     .exterior()
@@ -104,7 +106,7 @@ fn render_feature(feature: &Feature, shapes: &mut Vec<Shape>) {
                     .iter()
                     .map(|p| pos2(p.x, p.y))
                     .collect::<Vec<_>>();
-                shapes.extend(arbitrary_polygon(&points, polygon_fill(properties)));
+                shapes.extend(arbitrary_polygon(&points, fill));
             }
         }
         Geometry::GeometryCollection(_geometry_collection) => todo!(),
