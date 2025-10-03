@@ -70,26 +70,28 @@ fn render_feature(feature: &Feature, shapes: &mut Vec<Shape>) {
         Geometry::Point(_point) => todo!(),
         Geometry::Line(_line) => todo!(),
         Geometry::LineString(line_string) => {
-            let line_stroke = line_stroke(properties);
-            for segment in line_string.0.windows(2) {
-                shapes.push(Shape::line_segment(
-                    [
-                        pos2(segment[0].x, segment[0].y),
-                        pos2(segment[1].x, segment[1].y),
-                    ],
-                    line_stroke,
-                ));
+            if let Some(line_stroke) = line_stroke(properties) {
+                for segment in line_string.0.windows(2) {
+                    shapes.push(Shape::line_segment(
+                        [
+                            pos2(segment[0].x, segment[0].y),
+                            pos2(segment[1].x, segment[1].y),
+                        ],
+                        line_stroke,
+                    ));
+                }
             }
         }
         Geometry::MultiLineString(multi_line_string) => {
-            let stroke = line_stroke(properties);
-            for line_string in multi_line_string {
-                let points = line_string
-                    .0
-                    .iter()
-                    .map(|p| pos2(p.x, p.y))
-                    .collect::<Vec<_>>();
-                shapes.push(Shape::line(points, stroke));
+            if let Some(stroke) = line_stroke(properties) {
+                for line_string in multi_line_string {
+                    let points = line_string
+                        .0
+                        .iter()
+                        .map(|p| pos2(p.x, p.y))
+                        .collect::<Vec<_>>();
+                    shapes.push(Shape::line(points, stroke));
+                }
             }
         }
         Geometry::Polygon(_polygon) => todo!(),
@@ -145,25 +147,25 @@ fn polygon_fill(properties: &HashMap<String, Value>) -> Option<Color32> {
     }
 }
 
-fn line_stroke(properties: &HashMap<String, Value>) -> Stroke {
+fn line_stroke(properties: &HashMap<String, Value>) -> Option<Stroke> {
     let road_color = Color32::from_rgb(100, 100, 100);
     if let Some(Value::String(kind)) = properties.get("kind") {
         match kind.as_str() {
-            "highway" | "aeroway" => Stroke::new(15.0, road_color),
-            "major_road" => Stroke::new(12.0, road_color),
-            "minor_road" => Stroke::new(8.0, road_color),
-            "rail" => Stroke::new(3.0, road_color),
-            "path" => Stroke::new(3.0, Color32::from_rgb(94, 62, 32)),
-            "river" | "stream" | "drain" | "ditch" | "canal" => Stroke::new(3.0, WATER_COLOR),
-            "other" | "aerialway" | "cliff" => Stroke::new(0.0, Color32::TRANSPARENT),
+            "highway" | "aeroway" => Some(Stroke::new(15.0, road_color)),
+            "major_road" => Some(Stroke::new(12.0, road_color)),
+            "minor_road" => Some(Stroke::new(8.0, road_color)),
+            "rail" => Some(Stroke::new(3.0, road_color)),
+            "path" => Some(Stroke::new(3.0, Color32::from_rgb(94, 62, 32))),
+            "river" | "stream" | "drain" | "ditch" | "canal" => Some(Stroke::new(3.0, WATER_COLOR)),
+            "other" | "aerialway" | "cliff" => None,
             other => {
                 warn!("Unknown line kind: {other}");
-                Stroke::new(10.0, Color32::RED)
+                Some(Stroke::new(10.0, Color32::RED))
             }
         }
     } else {
         warn!("Line without kind: {properties:?}");
-        Stroke::new(3.0, Color32::RED)
+        Some(Stroke::new(3.0, Color32::RED))
     }
 }
 
