@@ -154,9 +154,9 @@ fn line_stroke(properties: &HashMap<String, Value>) -> Stroke {
     let road_color = Color32::from_rgb(100, 100, 100);
     if let Some(Value::String(kind)) = properties.get("kind") {
         match kind.as_str() {
-            "highway" | "aeroway" => Stroke::new(12.0, road_color),
-            "major_road" => Stroke::new(7.0, road_color),
-            "minor_road" => Stroke::new(5.0, road_color),
+            "highway" | "aeroway" => Stroke::new(15.0, road_color),
+            "major_road" => Stroke::new(12.0, road_color),
+            "minor_road" => Stroke::new(8.0, road_color),
             "rail" => Stroke::new(3.0, road_color),
             "path" => Stroke::new(3.0, Color32::from_rgb(94, 62, 32)),
             "river" | "stream" | "drain" | "ditch" | "canal" => Stroke::new(3.0, WATER_COLOR),
