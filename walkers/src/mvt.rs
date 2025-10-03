@@ -4,7 +4,7 @@ use std::collections::HashMap;
 
 use egui::{
     emath::TSTransform,
-    epaint::{CircleShape, PathShape, PathStroke},
+    epaint::{PathShape, PathStroke},
     pos2, Color32, Pos2, Shape, Stroke,
 };
 use geo_types::Geometry;
@@ -28,7 +28,7 @@ const ONLY_SUPPORTED_EXTENT: u32 = 4096;
 pub fn render(data: &mvt_reader::Reader) -> Result<Vec<Shape>, Error> {
     let mut shapes = Vec::new();
 
-    let known_layers = ["earth", "water", "landuse", "buildings", "roads"];
+    let known_layers = ["earth", "landuse", "water", "buildings", "roads"];
 
     for layer in data.get_layer_names()? {
         if !known_layers.contains(&layer.as_str()) {
@@ -94,18 +94,8 @@ fn render_feature(feature: &Feature, shapes: &mut Vec<Shape>) {
             }
         }
         Geometry::Polygon(_polygon) => todo!(),
-        Geometry::MultiPoint(multi_point) => {
-            for point in multi_point {
-                shapes.push(
-                    CircleShape {
-                        center: pos2(point.x(), point.y()),
-                        radius: 3.0,
-                        fill: Color32::from_rgb(200, 200, 0),
-                        stroke: Stroke::NONE,
-                    }
-                    .into(),
-                );
-            }
+        Geometry::MultiPoint(_multi_point) => {
+            // Not drawing points at the moment.
         }
         Geometry::MultiPolygon(multi_polygon) => {
             for polygon in multi_polygon.iter() {
@@ -146,7 +136,9 @@ fn polygon_fill(properties: &HashMap<String, Value>) -> Color32 {
             "national_park" => Color32::RED,
             "pedestrian" | "recreation_ground" | "railway" | "industrial" | "residential"
             | "commercial" | "protected_area" | "school" | "platform" | "kindergarten"
-            | "university" | "hospital" | "college" | "aerodrome" | "earth" => Color32::TRANSPARENT,
+            | "cliff" | "university" | "hospital" | "college" | "aerodrome" | "earth" => {
+                Color32::TRANSPARENT
+            }
             other => {
                 warn!("Unknown polygon kind: {other}");
                 Color32::RED
@@ -168,7 +160,7 @@ fn line_stroke(properties: &HashMap<String, Value>) -> Stroke {
             "rail" => Stroke::new(3.0, road_color),
             "path" => Stroke::new(3.0, Color32::from_rgb(94, 62, 32)),
             "river" | "stream" | "drain" | "ditch" | "canal" => Stroke::new(3.0, WATER_COLOR),
-            "other" | "aerialway" => Stroke::new(0.0, Color32::TRANSPARENT),
+            "other" | "aerialway" | "cliff" => Stroke::new(0.0, Color32::TRANSPARENT),
             other => {
                 warn!("Unknown line kind: {other}");
                 Stroke::new(10.0, Color32::RED)
