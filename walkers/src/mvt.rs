@@ -65,11 +65,13 @@ pub fn transformed(shapes: &[Shape], rect: egui::Rect) -> Vec<Shape> {
 }
 
 fn render_feature(feature: &Feature, shapes: &mut Vec<Shape>) {
+    let empty = HashMap::new();
+    let properties = feature.properties.as_ref().unwrap_or(&empty);
     match &feature.geometry {
         Geometry::Point(_point) => todo!(),
         Geometry::Line(_line) => todo!(),
         Geometry::LineString(line_string) => {
-            let line_stroke = line_stroke(&feature.properties.as_ref().unwrap_or(&HashMap::new()));
+            let line_stroke = line_stroke(properties);
             for segment in line_string.0.windows(2) {
                 shapes.push(Shape::line_segment(
                     [
@@ -87,10 +89,7 @@ fn render_feature(feature: &Feature, shapes: &mut Vec<Shape>) {
                     .iter()
                     .map(|p| pos2(p.x, p.y))
                     .collect::<Vec<_>>();
-                shapes.push(Shape::line(
-                    points,
-                    line_stroke(&feature.properties.as_ref().unwrap_or(&HashMap::new())),
-                ));
+                shapes.push(Shape::line(points, line_stroke(properties)));
             }
         }
         Geometry::Polygon(_polygon) => todo!(),
@@ -105,10 +104,7 @@ fn render_feature(feature: &Feature, shapes: &mut Vec<Shape>) {
                     .iter()
                     .map(|p| pos2(p.x, p.y))
                     .collect::<Vec<_>>();
-                shapes.extend(arbitrary_polygon(
-                    &points,
-                    polygon_fill(feature.properties.as_ref().unwrap_or(&HashMap::new())),
-                ));
+                shapes.extend(arbitrary_polygon(&points, polygon_fill(properties)));
             }
         }
         Geometry::GeometryCollection(_geometry_collection) => todo!(),
