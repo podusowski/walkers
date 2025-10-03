@@ -97,15 +97,16 @@ fn render_feature(feature: &Feature, shapes: &mut Vec<Shape>) {
             // Not drawing points at the moment.
         }
         Geometry::MultiPolygon(multi_polygon) => {
-            let fill = polygon_fill(properties);
-            for polygon in multi_polygon.iter() {
-                let points = polygon
-                    .exterior()
-                    .0
-                    .iter()
-                    .map(|p| pos2(p.x, p.y))
-                    .collect::<Vec<_>>();
-                shapes.extend(arbitrary_polygon(&points, fill));
+            if let Some(fill) = polygon_fill(properties) {
+                for polygon in multi_polygon.iter() {
+                    let points = polygon
+                        .exterior()
+                        .0
+                        .iter()
+                        .map(|p| pos2(p.x, p.y))
+                        .collect::<Vec<_>>();
+                    shapes.extend(arbitrary_polygon(&points, fill));
+                }
             }
         }
         Geometry::GeometryCollection(_geometry_collection) => todo!(),
@@ -116,34 +117,32 @@ fn render_feature(feature: &Feature, shapes: &mut Vec<Shape>) {
 
 const WATER_COLOR: Color32 = Color32::from_rgb(12, 39, 77);
 
-fn polygon_fill(properties: &HashMap<String, Value>) -> Color32 {
+fn polygon_fill(properties: &HashMap<String, Value>) -> Option<Color32> {
     if let Some(Value::String(kind)) = properties.get("kind") {
         match kind.as_str() {
             "water" | "fountain" | "swimming_pool" | "basin" | "lake" | "ditch" | "ocean" => {
-                WATER_COLOR
+                Some(WATER_COLOR)
             }
             "grass" | "garden" | "playground" | "zoo" | "park" | "forest" | "wood"
             | "village_green" | "scrub" | "grassland" | "allotments" | "pitch" | "farmland"
             | "dog_park" | "meadow" | "wetland" | "cemetery" | "golf_course" | "nature_reserve" => {
-                Color32::from_rgb(18, 43, 28)
+                Some(Color32::from_rgb(18, 43, 28))
             }
-            "building" | "building_part" | "pier" | "runway" => Color32::from_rgb(50, 50, 50),
-            "military" => Color32::from_rgb(60, 0, 0),
-            "sand" | "beach" => Color32::from_rgb(150, 135, 0),
-            "national_park" => Color32::RED,
+            "building" | "building_part" | "pier" | "runway" => Some(Color32::from_rgb(50, 50, 50)),
+            "military" => Some(Color32::from_rgb(60, 0, 0)),
+            "sand" | "beach" => Some(Color32::from_rgb(150, 135, 0)),
+            "national_park" => Some(Color32::RED),
             "pedestrian" | "recreation_ground" | "railway" | "industrial" | "residential"
             | "commercial" | "protected_area" | "school" | "platform" | "kindergarten"
-            | "cliff" | "university" | "hospital" | "college" | "aerodrome" | "earth" => {
-                Color32::TRANSPARENT
-            }
+            | "cliff" | "university" | "hospital" | "college" | "aerodrome" | "earth" => None,
             other => {
                 warn!("Unknown polygon kind: {other}");
-                Color32::RED
+                Some(Color32::RED)
             }
         }
     } else {
         warn!("Polygon without kind: {properties:?}");
-        Color32::TRANSPARENT
+        Some(Color32::RED)
     }
 }
 
