@@ -49,6 +49,7 @@ fn http_options() -> HttpOptions {
 #[derive(Default)]
 pub struct Providers {
     pub available: BTreeMap<String, Vec<TilesKind>>,
+    pub selected: String,
     #[cfg(feature = "vector_tiles")]
     pub have_some_pmtiles: bool,
 }
@@ -64,6 +65,7 @@ pub(crate) fn providers(egui_ctx: Context) -> Providers {
             egui_ctx.to_owned(),
         ))],
     );
+    providers.selected = "OpenStreetMap".to_string();
 
     providers.available.insert(
         "Geoportal".to_string(),
@@ -113,10 +115,11 @@ pub(crate) fn providers(egui_ctx: Context) -> Providers {
         providers.have_some_pmtiles = !pmtiles.is_empty();
 
         for path in pmtiles {
-            providers.available.insert(
-                path.file_name().unwrap().to_string_lossy().to_string(),
-                vec![TilesKind::PmTiles(PmTiles::new(path))],
-            );
+            let name = path.file_stem().unwrap().to_string_lossy().to_string();
+            providers
+                .available
+                .insert(name.clone(), vec![TilesKind::PmTiles(PmTiles::new(path))]);
+            providers.selected = name;
         }
     }
 

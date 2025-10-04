@@ -1,16 +1,24 @@
 //! Renderer for Mapbox Vector Tiles.
 
+use std::collections::HashMap;
+
 use egui::{
     emath::TSTransform,
-    epaint::{CircleShape, PathShape, PathStroke},
+    epaint::{PathShape, PathStroke},
     pos2, Color32, Pos2, Shape, Stroke,
 };
 use geo_types::Geometry;
+use log::warn;
+use mvt_reader::feature::{Feature, Value};
 
 #[derive(thiserror::Error, Debug)]
 pub enum Error {
     #[error(transparent)]
     Mvt(#[from] mvt_reader::error::ParserError),
+    #[error("Layer not found: {0}. Available layers: {1:?}")]
+    LayerNotFound(String, Vec<String>),
+    #[error("Unsupported layer extent: {0}")]
+    UnsupportedLayerExtent(String),
 }
 
 /// Currently this is the only supported extent.
@@ -18,64 +26,23 @@ const ONLY_SUPPORTED_EXTENT: u32 = 4096;
 
 /// Render MVT data into a list of [`epaint::Shape`]s.
 pub fn render(data: &mvt_reader::Reader) -> Result<Vec<Shape>, Error> {
-    let line_stroke = Stroke::new(3.0, Color32::WHITE);
     let mut shapes = Vec::new();
 
-    for index in supported_layers(data) {
-        for feature in data.get_features(index)? {
-            match feature.geometry {
-                Geometry::Point(_point) => todo!(),
-                Geometry::Line(_line) => todo!(),
-                Geometry::LineString(line_string) => {
-                    for segment in line_string.0.windows(2) {
-                        shapes.push(Shape::line_segment(
-                            [
-                                pos2(segment[0].x, segment[0].y),
-                                pos2(segment[1].x, segment[1].y),
-                            ],
-                            line_stroke,
-                        ));
-                    }
-                }
-                Geometry::Polygon(_polygon) => todo!(),
-                Geometry::MultiPoint(multi_point) => {
-                    for point in multi_point {
-                        shapes.push(
-                            CircleShape {
-                                center: pos2(point.x(), point.y()),
-                                radius: 3.0,
-                                fill: Color32::from_rgb(200, 200, 0),
-                                stroke: Stroke::NONE,
-                            }
-                            .into(),
-                        );
-                    }
-                }
-                Geometry::MultiLineString(multi_line_string) => {
-                    for line_string in multi_line_string {
-                        let points = line_string
-                            .0
-                            .iter()
-                            .map(|p| pos2(p.x, p.y))
-                            .collect::<Vec<_>>();
-                        shapes.push(Shape::line(points, line_stroke));
-                    }
-                }
-                Geometry::MultiPolygon(multi_polygon) => {
-                    for polygon in multi_polygon.iter() {
-                        let points = polygon
-                            .exterior()
-                            .0
-                            .iter()
-                            .map(|p| pos2(p.x, p.y))
-                            .collect::<Vec<_>>();
-                        shapes.extend(arbitrary_polygon(&points));
-                    }
-                }
-                Geometry::GeometryCollection(_geometry_collection) => todo!(),
-                Geometry::Rect(_rect) => todo!(),
-                Geometry::Triangle(_triangle) => todo!(),
+    let known_layers = ["earth", "landuse", "water", "buildings", "roads"];
+
+    for layer in data.get_layer_names()? {
+        if !known_layers.contains(&layer.as_str()) {
+            warn!("Unknown layer '{layer}' found. Skipping.");
+        }
+    }
+
+    for layer in known_layers {
+        if let Ok(layer_index) = find_layer(data, layer) {
+            for feature in data.get_features(layer_index)? {
+                render_feature(&feature, &mut shapes);
             }
+        } else {
+            warn!("Layer '{layer}' not found. Skipping.");
         }
     }
 
@@ -84,39 +51,146 @@ pub fn render(data: &mvt_reader::Reader) -> Result<Vec<Shape>, Error> {
 
 /// Transform shapes from MVT space to screen space.
 pub fn transformed(shapes: &[Shape], rect: egui::Rect) -> Vec<Shape> {
-    shapes
-        .iter()
-        .map(|shape| {
-            let mut shape = shape.clone();
-            shape.transform(TSTransform {
-                scaling: rect.width() / ONLY_SUPPORTED_EXTENT as f32,
-                translation: rect.min.to_vec2(),
-            });
-            shape
-        })
-        .collect()
+    let transform = TSTransform {
+        scaling: rect.width() / ONLY_SUPPORTED_EXTENT as f32,
+        translation: rect.min.to_vec2(),
+    };
+
+    let mut result = shapes.to_vec();
+    for shape in result.iter_mut() {
+        shape.transform(transform);
+    }
+    result
 }
 
-fn supported_layers(data: &mvt_reader::Reader) -> impl Iterator<Item = usize> + '_ {
-    data.get_layer_metadata()
-        .unwrap_or_default()
-        .into_iter()
-        .filter_map(|layer| {
-            if layer.extent == ONLY_SUPPORTED_EXTENT {
-                Some(layer.layer_index)
-            } else {
-                log::warn!(
-                    "Skipping layer '{}' with unsupported extent {}.",
-                    layer.name,
-                    layer.extent
-                );
-                None
+fn render_feature(feature: &Feature, shapes: &mut Vec<Shape>) {
+    let empty = HashMap::new();
+    let properties = feature.properties.as_ref().unwrap_or(&empty);
+    match &feature.geometry {
+        Geometry::Point(_point) => todo!(),
+        Geometry::Line(_line) => todo!(),
+        Geometry::LineString(line_string) => {
+            if let Some(line_stroke) = line_stroke(properties) {
+                for segment in line_string.0.windows(2) {
+                    shapes.push(Shape::line_segment(
+                        [
+                            pos2(segment[0].x, segment[0].y),
+                            pos2(segment[1].x, segment[1].y),
+                        ],
+                        line_stroke,
+                    ));
+                }
             }
-        })
+        }
+        Geometry::MultiLineString(multi_line_string) => {
+            if let Some(stroke) = line_stroke(properties) {
+                for line_string in multi_line_string {
+                    let points = line_string
+                        .0
+                        .iter()
+                        .map(|p| pos2(p.x, p.y))
+                        .collect::<Vec<_>>();
+                    shapes.push(Shape::line(points, stroke));
+                }
+            }
+        }
+        Geometry::Polygon(_polygon) => todo!(),
+        Geometry::MultiPoint(_multi_point) => {
+            // Not drawing points at the moment.
+        }
+        Geometry::MultiPolygon(multi_polygon) => {
+            if let Some(fill) = polygon_fill(properties) {
+                for polygon in multi_polygon.iter() {
+                    let points = polygon
+                        .exterior()
+                        .0
+                        .iter()
+                        .map(|p| pos2(p.x, p.y))
+                        .collect::<Vec<_>>();
+                    shapes.extend(arbitrary_polygon(&points, fill));
+                }
+            }
+        }
+        Geometry::GeometryCollection(_geometry_collection) => todo!(),
+        Geometry::Rect(_rect) => todo!(),
+        Geometry::Triangle(_triangle) => todo!(),
+    }
+}
+
+const WATER_COLOR: Color32 = Color32::from_rgb(12, 39, 77);
+const ROAD_COLOR: Color32 = Color32::from_rgb(100, 100, 100);
+
+fn polygon_fill(properties: &HashMap<String, Value>) -> Option<Color32> {
+    if let Some(Value::String(kind)) = properties.get("kind") {
+        match kind.as_str() {
+            "water" | "fountain" | "swimming_pool" | "basin" | "lake" | "ditch" | "ocean" => {
+                Some(WATER_COLOR)
+            }
+            "grass" | "garden" | "playground" | "zoo" | "park" | "forest" | "wood"
+            | "village_green" | "scrub" | "grassland" | "allotments" | "pitch" | "farmland"
+            | "dog_park" | "meadow" | "wetland" | "cemetery" | "golf_course" | "nature_reserve" => {
+                Some(Color32::from_rgb(18, 43, 28))
+            }
+            "building" | "building_part" | "pier" | "runway" => Some(Color32::from_rgb(50, 50, 50)),
+            "military" => Some(Color32::from_rgb(60, 0, 0)),
+            "sand" | "beach" => Some(Color32::from_rgb(150, 135, 0)),
+            "pedestrian" | "recreation_ground" | "railway" | "industrial" | "residential"
+            | "commercial" | "protected_area" | "school" | "platform" | "kindergarten"
+            | "cliff" | "university" | "hospital" | "college" | "aerodrome" | "earth" => None,
+            other => {
+                warn!("Unknown polygon kind: {other}");
+                Some(Color32::RED)
+            }
+        }
+    } else {
+        warn!("Polygon without kind: {properties:?}");
+        Some(Color32::RED)
+    }
+}
+
+fn line_stroke(properties: &HashMap<String, Value>) -> Option<Stroke> {
+    if let Some(Value::String(kind)) = properties.get("kind") {
+        match kind.as_str() {
+            "highway" | "aeroway" => Some(Stroke::new(15.0, ROAD_COLOR)),
+            "major_road" => Some(Stroke::new(12.0, ROAD_COLOR)),
+            "minor_road" => Some(Stroke::new(8.0, ROAD_COLOR)),
+            "rail" => Some(Stroke::new(3.0, ROAD_COLOR)),
+            "path" => Some(Stroke::new(3.0, Color32::from_rgb(94, 62, 32))),
+            "river" | "stream" | "drain" | "ditch" | "canal" => Some(Stroke::new(3.0, WATER_COLOR)),
+            "other" | "aerialway" | "cliff" => None,
+            other => {
+                warn!("Unknown line kind: {other}");
+                Some(Stroke::new(10.0, Color32::RED))
+            }
+        }
+    } else {
+        warn!("Line without kind: {properties:?}");
+        Some(Stroke::new(3.0, Color32::RED))
+    }
+}
+
+fn find_layer(data: &mvt_reader::Reader, name: &str) -> Result<usize, Error> {
+    let layer = data
+        .get_layer_metadata()?
+        .into_iter()
+        .find(|layer| layer.name == name);
+
+    let Some(layer) = layer else {
+        return Err(Error::LayerNotFound(
+            name.to_string(),
+            data.get_layer_names()?,
+        ));
+    };
+
+    if layer.extent != ONLY_SUPPORTED_EXTENT {
+        return Err(Error::UnsupportedLayerExtent(name.to_string()));
+    }
+
+    Ok(layer.layer_index)
 }
 
 /// Egui can only draw convex polygons, so we need to triangulate arbitrary ones.
-fn arbitrary_polygon(points: &[Pos2]) -> Vec<Shape> {
+fn arbitrary_polygon(points: &[Pos2], fill: Color32) -> Vec<Shape> {
     let mut shapes = Vec::new();
     let mut triangles = Vec::<usize>::new();
     let mut earcut = earcut::Earcut::new();
@@ -134,14 +208,7 @@ fn arbitrary_polygon(points: &[Pos2]) -> Vec<Shape> {
             continue;
         }
 
-        shapes.push(
-            PathShape::convex_polygon(
-                triangle.to_vec(),
-                Color32::WHITE.gamma_multiply(0.2),
-                PathStroke::NONE,
-            )
-            .into(),
-        );
+        shapes.push(PathShape::convex_polygon(triangle.to_vec(), fill, PathStroke::NONE).into());
     }
     shapes
 }

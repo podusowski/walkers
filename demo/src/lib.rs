@@ -11,7 +11,6 @@ use crate::tiles::Providers;
 
 pub struct MyApp {
     providers: Providers,
-    selected_provider: String,
     map_memory: MapMemory,
     click_watcher: plugins::ClickWatcher,
     zoom_with_ctrl: bool,
@@ -23,7 +22,6 @@ impl MyApp {
 
         Self {
             providers: providers(egui_ctx.to_owned()),
-            selected_provider: "OpenStreetMap".to_string(),
             map_memory: MapMemory::default(),
             click_watcher: Default::default(),
             zoom_with_ctrl: true,
@@ -40,7 +38,7 @@ impl eframe::App for MyApp {
             let tiles = self
                 .providers
                 .available
-                .get_mut(&self.selected_provider)
+                .get_mut(&self.providers.selected)
                 .unwrap();
             let attributions: Vec<_> = tiles
                 .iter()
