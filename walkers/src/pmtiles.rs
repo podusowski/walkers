@@ -15,6 +15,8 @@ enum CachedTexture {
     Invalid,
 }
 
+/// Provides tiles from a local PMTiles file.
+///
 /// <https://docs.protomaps.com/guide/getting-started>
 pub struct PmTiles {
     path: PathBuf,
