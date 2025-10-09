@@ -4,15 +4,15 @@ use std::collections::HashSet;
 
 #[cfg(feature = "vector_tiles")]
 use egui::Shape;
-use egui::{pos2, Color32, Context, Mesh, Rect, Vec2};
+use egui::{Color32, Context, Mesh, Rect, Vec2, pos2};
 use egui::{ColorImage, TextureHandle};
 use image::ImageError;
 
+use crate::Position;
 use crate::mercator::{project, tile_id, total_tiles};
 use crate::position::{Pixels, PixelsExt};
 use crate::sources::Attribution;
 use crate::zoom::Zoom;
-use crate::Position;
 
 /// Source of tiles to be put together to render the map.
 pub trait Tiles {

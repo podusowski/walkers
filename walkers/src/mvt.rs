@@ -3,9 +3,10 @@
 use std::collections::HashMap;
 
 use egui::{
+    Color32, Pos2, Shape, Stroke,
     emath::TSTransform,
     epaint::{PathShape, PathStroke},
-    pos2, Color32, Pos2, Shape, Stroke,
+    pos2,
 };
 use geo_types::Geometry;
 use log::warn;

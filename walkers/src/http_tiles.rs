@@ -1,14 +1,14 @@
 use std::sync::{Arc, Mutex};
 
 use egui::Context;
-use futures::channel::mpsc::{channel, Receiver, Sender, TrySendError};
+use futures::channel::mpsc::{Receiver, Sender, TrySendError, channel};
 use lru::LruCache;
 
-use crate::download::{download_continuously, HttpOptions};
+use crate::TileId;
+use crate::download::{HttpOptions, download_continuously};
 use crate::io::Runtime;
 use crate::sources::{Attribution, TileSource};
 use crate::tiles::interpolate_from_lower_zoom;
-use crate::TileId;
 use crate::{Texture, TextureWithUv, Tiles};
 
 /// Downloads the tiles via HTTP. It must persist between frames.
@@ -188,8 +188,8 @@ mod tests {
 
     use super::*;
     use hypermocker::{
-        hyper::header::{self, HeaderValue},
         Bytes, StatusCode,
+        hyper::header::{self, HeaderValue},
     };
     use std::time::Duration;
 
@@ -360,13 +360,15 @@ mod tests {
         }
 
         // Last download is NOT started, because we are at the limit of concurrent downloads.
-        assert!(tiles
-            .at(TileId {
-                x: 99,
-                y: 99,
-                zoom: 10
-            })
-            .is_none());
+        assert!(
+            tiles
+                .at(TileId {
+                    x: 99,
+                    y: 99,
+                    zoom: 10
+                })
+                .is_none()
+        );
 
         // Make sure it does not come.
         tokio::time::sleep(Duration::from_secs(1)).await;

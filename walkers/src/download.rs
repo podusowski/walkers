@@ -5,14 +5,14 @@ use std::{
 
 use egui::Context;
 use futures::{
-    future::{select, select_all, Either},
     SinkExt, StreamExt,
+    future::{Either, select, select_all},
 };
 use image::ImageError;
 use reqwest::header::USER_AGENT;
 use reqwest_middleware::ClientWithMiddleware;
 
-use crate::{http_tiles::HttpStats, io::http_client, sources::TileSource, tiles::Texture, TileId};
+use crate::{TileId, http_tiles::HttpStats, io::http_client, sources::TileSource, tiles::Texture};
 
 pub use reqwest::header::HeaderValue;
 

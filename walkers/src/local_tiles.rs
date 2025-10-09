@@ -1,5 +1,5 @@
 use crate::{
-    sources::Attribution, tiles::interpolate_from_lower_zoom, Texture, TextureWithUv, TileId, Tiles,
+    Texture, TextureWithUv, TileId, Tiles, sources::Attribution, tiles::interpolate_from_lower_zoom,
 };
 use log::trace;
 use lru::LruCache;
