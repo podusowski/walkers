@@ -11,7 +11,7 @@ resolver = "2"
 
 [workspace.package]
 version = "0.45.0"
-rust-version = "1.85" # Aligned to egui
+rust-version = "1.88" # Aligned to egui
 
 [workspace.dependencies]
 image = { version = "0.25", default-features = false }
