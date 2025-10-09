@@ -74,12 +74,11 @@ where
 
         if response.clicked() {
             // Toggle the visibility of the group when clicked.
-            let expand = ui.ctx().memory_mut(|m| {
+            ui.ctx().memory_mut(|m| {
                 let expand = m.data.get_temp::<bool>(id).unwrap_or(false);
                 m.data.insert_temp(id, !expand);
                 expand
-            });
-            expand
+            })
         } else {
             ui.ctx()
                 .memory(|m| m.data.get_temp::<bool>(id).unwrap_or(false))
