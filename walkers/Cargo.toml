@@ -7,7 +7,7 @@ keywords = ["gis", "geography", "gui"]
 categories = ["gui", "science::geo"]
 authors = ["Piotr Podusowski <podusowski@gmail.com>"]
 license = "MIT"
-edition = "2021"
+edition.workspace = true
 
 [dependencies]
 log.workspace = true

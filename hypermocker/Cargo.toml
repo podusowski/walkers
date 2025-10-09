@@ -1,6 +1,6 @@
 [package]
 name = "hypermocker"
-edition = "2021"
+edition.workspace = true
 version = "0.1.0"
 publish = false
 
