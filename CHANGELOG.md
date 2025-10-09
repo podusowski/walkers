@@ -9,6 +9,8 @@ All notable changes to this project will be documented in this file.
   at this point it should be considered more of a tech demo than a usable feature.
 * Removed `Image` plugin.
 * Fixed zooming on high refresh rates.
+* `egui` updated to 0.33.
+* MSRV set to 1.88.
 
 ## 0.45.0
 
