@@ -79,7 +79,7 @@ impl Server {
     /// Anticipate a HTTP request, but do not respond to it yet, nor wait for it to happen.
     pub async fn anticipate(&self, url: impl Into<String>) -> AnticipatedRequest {
         let url = url.into();
-        log::info!("Anticipating '{}'.", url);
+        log::info!("Anticipating '{url}'.");
         let (payload_tx, payload_rx) = oneshot::channel();
         let (request_tx, happened_rx) = oneshot::channel();
         if self
@@ -187,19 +187,15 @@ impl hyper::service::Service<hyper::Request<hyper::body::Incoming>> for Service 
 
                 match expectation.payload_rx.await {
                     Ok(payload) => {
-                        log::info!("Responding to '{}' with {:?}.", uri, payload);
+                        log::info!("Responding to '{uri}' with {payload:?}.");
                         Ok(payload)
                     }
                     Err(_) => {
                         log::error!(
-                            "AnticipatedRequest for '{}' was dropped before responding.",
-                            uri
+                            "AnticipatedRequest for '{uri}' was dropped before responding."
                         );
                         // TODO: This panic will be ignored by hyper/tokio stack.
-                        panic!(
-                            "AnticipatedRequest for '{}' was dropped before responding.",
-                            uri
-                        );
+                        panic!("AnticipatedRequest for '{uri}' was dropped before responding.");
                     }
                 }
             } else {
