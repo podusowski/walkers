@@ -955,7 +955,7 @@ checksum = "5c297a1c74b71ae29df00c3e22dd9534821d60eb9af5a0192823fa2acea70c2a"
 
 [[package]]
 name = "demo"
-version = "0.45.0"
+version = "0.46.0"
 dependencies = [
  "eframe",
  "egui",
@@ -966,7 +966,7 @@ dependencies = [
 
 [[package]]
 name = "demo_android"
-version = "0.45.0"
+version = "0.46.0"
 dependencies = [
  "android_logger",
  "demo",
@@ -977,7 +977,7 @@ dependencies = [
 
 [[package]]
 name = "demo_native"
-version = "0.45.0"
+version = "0.46.0"
 dependencies = [
  "demo",
  "eframe",
@@ -987,7 +987,7 @@ dependencies = [
 
 [[package]]
 name = "demo_web"
-version = "0.45.0"
+version = "0.46.0"
 dependencies = [
  "demo",
  "eframe",
@@ -4878,7 +4878,7 @@ dependencies = [
 
 [[package]]
 name = "walkers"
-version = "0.45.0"
+version = "0.46.0"
 dependencies = [
  "approx",
  "earcut",
