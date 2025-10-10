@@ -110,7 +110,7 @@ impl HttpTiles {
             tile_id,
             || -> Result<Option<Texture>, TrySendError<TileId>> {
                 self.request_tx.try_send(tile_id)?;
-                log::trace!("Requested tile: {:?}", tile_id);
+                log::trace!("Requested tile: {tile_id:?}");
                 Ok(None)
             },
         ) {
@@ -120,7 +120,7 @@ impl HttpTiles {
                 log::trace!("Request queue is full.");
             }
             Err(err) => {
-                panic!("Failed to send tile request for {:?}: {}", tile_id, err);
+                panic!("Failed to send tile request for {tile_id:?}: {err}");
             }
         }
     }
@@ -235,7 +235,7 @@ mod tests {
     }
 
     async fn assert_tile_to_become_available_eventually(tiles: &mut HttpTiles, tile_id: TileId) {
-        log::info!("Waiting for {:?} to become available.", tile_id);
+        log::info!("Waiting for {tile_id:?} to become available.");
         while tiles.at(tile_id).is_none() {
             // Need to yield to the runtime for things to move.
             tokio::time::sleep(Duration::from_millis(10)).await;
@@ -345,7 +345,7 @@ mod tests {
         let mut tiles = HttpTiles::with_options(source, http_options, Context::default());
 
         // First download is started immediately.
-        let mut first = server.anticipate(format!("/3/1/2.png")).await;
+        let mut first = server.anticipate("/3/1/2.png".to_string()).await;
         assert!(tiles.at(TILE_ID).is_none());
         first.expect().await;
 
