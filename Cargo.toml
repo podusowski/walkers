@@ -11,15 +11,15 @@ resolver = "2"
 
 [workspace.package]
 version = "0.45.0"
-rust-version = "1.85" # Aligned to egui
+rust-version = "1.88" # Aligned to egui
 
 [workspace.dependencies]
 image = { version = "0.25", default-features = false }
 log = "0.4"
-egui = "0.32"
-egui_extras = { version = "0.32", features = ["svg"] }
-eframe = "0.32"
-egui-winit = "0.32"
+egui = "0.33"
+egui_extras = { version = "0.33", features = ["svg"] }
+eframe = "0.33"
+egui-winit = "0.33"
 
 [patch.crates-io]
 #eframe = { git = "https://github.com/emilk/egui.git", branch = "main" }

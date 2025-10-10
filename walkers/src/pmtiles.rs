@@ -40,7 +40,7 @@ impl PmTiles {
             .get_or_insert(tile_id, || match load(&self.path, tile_id) {
                 Ok(texture) => CachedTexture::Valid(texture),
                 Err(err) => {
-                    log::warn!("Failed to load tile {:?}: {}", tile_id, err);
+                    log::warn!("Failed to load tile {tile_id:?}: {err}");
                     CachedTexture::Invalid
                 }
             })
