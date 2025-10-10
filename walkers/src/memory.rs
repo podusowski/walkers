@@ -1,4 +1,4 @@
-use crate::{center::Center, position::AdjustedPosition, zoom::Zoom, InvalidZoom, Position};
+use crate::{InvalidZoom, Position, center::Center, position::AdjustedPosition, zoom::Zoom};
 
 /// State of the map widget which must persist between frames.
 #[derive(Debug, Default, Clone)]

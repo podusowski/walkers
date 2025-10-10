@@ -1,14 +1,14 @@
 use std::sync::{Arc, Mutex};
 
 use egui::Context;
-use futures::channel::mpsc::{channel, Receiver, Sender, TrySendError};
+use futures::channel::mpsc::{Receiver, Sender, TrySendError, channel};
 use lru::LruCache;
 
-use crate::download::{download_continuously, HttpOptions};
+use crate::TileId;
+use crate::download::{HttpOptions, download_continuously};
 use crate::io::Runtime;
 use crate::sources::{Attribution, TileSource};
 use crate::tiles::interpolate_from_lower_zoom;
-use crate::TileId;
 use crate::{Texture, TextureWithUv, Tiles};
 
 /// Downloads the tiles via HTTP. It must persist between frames.
@@ -110,7 +110,7 @@ impl HttpTiles {
             tile_id,
             || -> Result<Option<Texture>, TrySendError<TileId>> {
                 self.request_tx.try_send(tile_id)?;
-                log::trace!("Requested tile: {:?}", tile_id);
+                log::trace!("Requested tile: {tile_id:?}");
                 Ok(None)
             },
         ) {
@@ -120,7 +120,7 @@ impl HttpTiles {
                 log::trace!("Request queue is full.");
             }
             Err(err) => {
-                panic!("Failed to send tile request for {:?}: {}", tile_id, err);
+                panic!("Failed to send tile request for {tile_id:?}: {err}");
             }
         }
     }
@@ -188,8 +188,8 @@ mod tests {
 
     use super::*;
     use hypermocker::{
-        hyper::header::{self, HeaderValue},
         Bytes, StatusCode,
+        hyper::header::{self, HeaderValue},
     };
     use std::time::Duration;
 
@@ -235,7 +235,7 @@ mod tests {
     }
 
     async fn assert_tile_to_become_available_eventually(tiles: &mut HttpTiles, tile_id: TileId) {
-        log::info!("Waiting for {:?} to become available.", tile_id);
+        log::info!("Waiting for {tile_id:?} to become available.");
         while tiles.at(tile_id).is_none() {
             // Need to yield to the runtime for things to move.
             tokio::time::sleep(Duration::from_millis(10)).await;
@@ -345,7 +345,7 @@ mod tests {
         let mut tiles = HttpTiles::with_options(source, http_options, Context::default());
 
         // First download is started immediately.
-        let mut first = server.anticipate(format!("/3/1/2.png")).await;
+        let mut first = server.anticipate("/3/1/2.png".to_string()).await;
         assert!(tiles.at(TILE_ID).is_none());
         first.expect().await;
 
@@ -360,13 +360,15 @@ mod tests {
         }
 
         // Last download is NOT started, because we are at the limit of concurrent downloads.
-        assert!(tiles
-            .at(TileId {
-                x: 99,
-                y: 99,
-                zoom: 10
-            })
-            .is_none());
+        assert!(
+            tiles
+                .at(TileId {
+                    x: 99,
+                    y: 99,
+                    zoom: 10
+                })
+                .is_none()
+        );
 
         // Make sure it does not come.
         tokio::time::sleep(Duration::from_secs(1)).await;

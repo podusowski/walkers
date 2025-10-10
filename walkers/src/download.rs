@@ -5,14 +5,14 @@ use std::{
 
 use egui::Context;
 use futures::{
-    future::{select, select_all, Either},
     SinkExt, StreamExt,
+    future::{Either, select, select_all},
 };
 use image::ImageError;
 use reqwest::header::USER_AGENT;
 use reqwest_middleware::ClientWithMiddleware;
 
-use crate::{http_tiles::HttpStats, io::http_client, sources::TileSource, tiles::Texture, TileId};
+use crate::{TileId, http_tiles::HttpStats, io::http_client, sources::TileSource, tiles::Texture};
 
 pub use reqwest::header::HeaderValue;
 
@@ -136,7 +136,7 @@ async fn download_and_decode(
     user_agent: Option<&HeaderValue>,
     egui_ctx: &Context,
 ) -> Download {
-    log::trace!("Downloading '{}'.", url);
+    log::trace!("Downloading '{url}'.");
     Download {
         tile_id,
         result: download_and_decode_impl(client, url, user_agent, egui_ctx).await,
@@ -185,7 +185,7 @@ async fn download_complete(
         Err(e) => {
             // It would probably be more consistent to push it to the caller, but it's not that
             // important right now.
-            log::warn!("{}", e);
+            log::warn!("{e}");
         }
     };
 
@@ -275,7 +275,7 @@ pub(crate) async fn download_continuously<S>(
             log::debug!("Tile download loop finished.");
         }
         Err(error) => {
-            log::error!("Tile download loop failed: {}.", error);
+            log::error!("Tile download loop failed: {error}.");
         }
     }
 }

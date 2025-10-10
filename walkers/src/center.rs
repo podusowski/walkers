@@ -1,4 +1,4 @@
-use crate::{position::AdjustedPosition, Position};
+use crate::{Position, position::AdjustedPosition};
 use egui::{DragPanButtons, PointerButton, Response, Vec2};
 
 /// Time constant of inertia stopping filter

@@ -1,6 +1,6 @@
 use super::places::{Group, Place};
 use crate::{Position, Projector};
-use egui::{vec2, Align2, Color32, FontId, Stroke, Ui};
+use egui::{Align2, Color32, FontId, Stroke, Ui, vec2};
 
 #[derive(Clone)]
 /// Type of the symbol of a [`LabeledSymbol`].

@@ -3,8 +3,8 @@ use egui::{
 };
 
 use crate::{
-    center::Center, position::AdjustedPosition, tiles::draw_tiles, MapMemory, Position, Projector,
-    Tiles,
+    MapMemory, Position, Projector, Tiles, center::Center, position::AdjustedPosition,
+    tiles::draw_tiles,
 };
 
 /// Plugins allow drawing custom shapes on the map. After implementing this trait for your type,

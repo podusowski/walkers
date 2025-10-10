@@ -1,9 +1,9 @@
 use egui::{Rect, Vec2};
 
 use crate::{
+    MapMemory, Position,
     mercator::{project, unproject},
     position::{Pixels, PixelsExt as _},
-    MapMemory, Position,
 };
 
 /// Projects geographical position into pixels on the viewport, suitable for [`egui::Painter`].

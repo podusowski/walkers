@@ -1,6 +1,6 @@
 //! Few common places in the city of Wrocław, used in the example app.
 
-use walkers::{lon_lat, Position};
+use walkers::{Position, lon_lat};
 
 /// Main train station of the city of Wrocław.
 /// https://en.wikipedia.org/wiki/Wroc%C5%82aw_G%C5%82%C3%B3wny_railway_station

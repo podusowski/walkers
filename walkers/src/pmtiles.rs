@@ -1,5 +1,5 @@
 use crate::{
-    sources::Attribution, tiles::interpolate_from_lower_zoom, Texture, TextureWithUv, TileId, Tiles,
+    Texture, TextureWithUv, TileId, Tiles, sources::Attribution, tiles::interpolate_from_lower_zoom,
 };
 use lru::LruCache;
 use pmtiles::{AsyncPmTilesReader, TileCoord};
@@ -40,7 +40,7 @@ impl PmTiles {
             .get_or_insert(tile_id, || match load(&self.path, tile_id) {
                 Ok(texture) => CachedTexture::Valid(texture),
                 Err(err) => {
-                    log::warn!("Failed to load tile {:?}: {}", tile_id, err);
+                    log::warn!("Failed to load tile {tile_id:?}: {err}");
                     CachedTexture::Invalid
                 }
             })

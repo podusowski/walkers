@@ -1,5 +1,5 @@
 #[cfg(target_os = "android")]
-#[no_mangle]
+#[unsafe(no_mangle)]
 fn android_main(
     app: egui_winit::winit::platform::android::activity::AndroidApp,
 ) -> Result<(), Box<dyn std::error::Error>> {

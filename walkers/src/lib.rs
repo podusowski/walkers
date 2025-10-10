@@ -27,7 +27,7 @@ pub use map::{Map, Plugin};
 pub use memory::MapMemory;
 #[cfg(feature = "vector_tiles")]
 pub use pmtiles::PmTiles;
-pub use position::{lat_lon, lon_lat, Position};
+pub use position::{Position, lat_lon, lon_lat};
 pub use projector::Projector;
 pub use tiles::{Texture, TextureWithUv, TileId, Tiles};
 pub use zoom::InvalidZoom;
