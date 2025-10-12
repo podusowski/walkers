@@ -244,6 +244,7 @@ pub(crate) fn interpolate_from_lower_zoom(tile_id: TileId, available_zoom: u8) -
     (zoomed_tile_id, uv)
 }
 
+#[cfg(any(feature = "vector_tiles", test))]
 /// Get the original rect which was clipped using the `uv`.
 fn full_rect_of_clipped_tile(rect: Rect, uv: Rect) -> Rect {
     let uv_width = uv.max.x - uv.min.x;
