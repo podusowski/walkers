@@ -2,6 +2,11 @@
 
 All notable changes to this project will be documented in this file.
 
+## Unreleased
+
+* `egui` updated to 0.33.
+* MSRV updated to 1.88.
+
 ## 0.46.0
 
 * New `LocalTiles` implementation for loading tiles from a local directory.
