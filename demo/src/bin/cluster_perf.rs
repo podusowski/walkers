@@ -5,6 +5,7 @@ fn main() {
 
 #[cfg(feature = "rstar-cluster")]
 mod app {
+    use std::rc::Rc;
     use std::sync::{Arc, Mutex};
     use std::time::{Duration, Instant};
 
@@ -104,14 +105,14 @@ mod app {
             let lon = rng.gen_range((center_lon - dlon)..(center_lon + dlon));
             let lat = rng.gen_range((center_lat - dlat)..(center_lat + dlat));
 
-            let mut style = LabeledSymbolStyle::default();
-            style.symbol_size = 5.0;
-
             out.push(LabeledSymbol {
                 position: lon_lat(lon, lat),
                 label: format!("POI #{:04}", i + 1),
                 symbol: Some(Symbol::Circle("•".to_string())),
-                style,
+                style: LabeledSymbolStyle {
+                    symbol_size: 5.0,
+                    ..LabeledSymbolStyle::default()
+                },
             });
         }
         out
@@ -124,7 +125,7 @@ mod app {
         tiles: Option<HttpTiles>,
         loaders_ready: bool,
         avg_frame_ms: RollingAvg<120>,
-        plugin: Option<Arc<GroupedPlacesTree<LabeledSymbol, DemoClusterGroup>>>,
+        plugin: Option<Rc<GroupedPlacesTree<LabeledSymbol, DemoClusterGroup>>>,
         stats: Arc<StatsCell>,
     }
 
@@ -173,12 +174,12 @@ mod app {
         }
 
         fn rebuild_plugin(&mut self) {
-            let plugin = GroupedPlacesTree::new(self.points.clone(), DemoClusterGroup)
-                .with_screen_radius_px(RADIUS_PX)
-                .viewport_only(true)
-                .include_offscreen_neighbors(true)
-                .with_max_group_size(None);
-            self.plugin = Some(Arc::new(plugin));
+        let plugin = GroupedPlacesTree::new(self.points.clone(), DemoClusterGroup)
+            .with_screen_radius_px(RADIUS_PX)
+            .viewport_only(true)
+            .include_offscreen_neighbors(true)
+            .with_max_group_size(None);
+        self.plugin = Some(Rc::new(plugin));
         }
     }
 
@@ -273,7 +274,7 @@ mod app {
     #[cfg(feature = "rstar-cluster")]
     #[derive(Clone)]
     struct StatsHandle {
-        inner: Arc<GroupedPlacesTree<LabeledSymbol, DemoClusterGroup>>,
+        inner: Rc<GroupedPlacesTree<LabeledSymbol, DemoClusterGroup>>,
         stats: Arc<StatsCell>,
     }
 
