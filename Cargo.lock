@@ -3372,9 +3372,9 @@ checksum = "7edddbd0b52d732b21ad9a5fab5c704c14cd949e5e9a1ec5929a24fded1b904c"
 
 [[package]]
 name = "pmtiles"
-version = "0.16.0"
+version = "0.17.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e1b66bf92795a1ed0845a4b271c88dd5e787514df655710859970306c47d0c56"
+checksum = "6690da57ce996aed4c7017f35bcae7f414eb95ae8fa0cc7e32874bb6f9679c19"
 dependencies = [
  "async-compression",
  "bytes",
