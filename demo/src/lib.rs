@@ -4,7 +4,7 @@ mod tiles;
 mod windows;
 
 use egui::{Button, CentralPanel, Context, DragPanButtons, Frame, OpenUrl, Rect, Vec2};
-use tiles::{providers, TilesKind};
+use tiles::{TilesKind, providers};
 use walkers::{Map, MapMemory};
 
 use crate::tiles::Providers;

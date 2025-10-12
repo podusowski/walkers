@@ -1,6 +1,6 @@
 use crate::MyApp;
 use egui::{Align2, ComboBox, Image, RichText, Ui, Window};
-use walkers::{sources::Attribution, MapMemory};
+use walkers::{MapMemory, sources::Attribution};
 
 pub fn acknowledge(ui: &Ui, attributions: Vec<Attribution>) {
     Window::new("Acknowledge")

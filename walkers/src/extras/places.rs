@@ -1,5 +1,5 @@
 use crate::{MapMemory, Plugin, Position, Projector};
-use egui::{vec2, Id, Rect, Response, Sense, Ui};
+use egui::{Id, Rect, Response, Sense, Ui, vec2};
 
 /// [`Plugin`] which shows places on the map. Place can be any type that implements the [`Place`]
 /// trait.
@@ -74,12 +74,11 @@ where
 
         if response.clicked() {
             // Toggle the visibility of the group when clicked.
-            let expand = ui.ctx().memory_mut(|m| {
+            ui.ctx().memory_mut(|m| {
                 let expand = m.data.get_temp::<bool>(id).unwrap_or(false);
                 m.data.insert_temp(id, !expand);
                 expand
-            });
-            expand
+            })
         } else {
             ui.ctx()
                 .memory(|m| m.data.get_temp::<bool>(id).unwrap_or(false))

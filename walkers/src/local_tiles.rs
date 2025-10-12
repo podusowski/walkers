@@ -1,5 +1,5 @@
 use crate::{
-    sources::Attribution, tiles::interpolate_from_lower_zoom, Texture, TextureWithUv, TileId, Tiles,
+    Texture, TextureWithUv, TileId, Tiles, sources::Attribution, tiles::interpolate_from_lower_zoom,
 };
 use log::trace;
 use lru::LruCache;
@@ -37,7 +37,7 @@ impl LocalTiles {
                 match load(&self.path, tile_id, &self.egui_ctx) {
                     Ok(texture) => CachedTexture::Valid(texture),
                     Err(err) => {
-                        trace!("Failed to load tile {:?}: {}", tile_id, err);
+                        trace!("Failed to load tile {tile_id:?}: {err}");
                         CachedTexture::Invalid
                     }
                 }
