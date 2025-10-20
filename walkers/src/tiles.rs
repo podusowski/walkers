@@ -4,15 +4,15 @@ use std::collections::HashSet;
 
 #[cfg(feature = "vector_tiles")]
 use egui::Shape;
-use egui::{pos2, Color32, Context, Mesh, Rect, Vec2};
+use egui::{Color32, Context, Mesh, Rect, Vec2, pos2};
 use egui::{ColorImage, TextureHandle};
 use image::ImageError;
 
+use crate::Position;
 use crate::mercator::{project, tile_id, total_tiles};
 use crate::position::{Pixels, PixelsExt};
 use crate::sources::Attribution;
 use crate::zoom::Zoom;
-use crate::Position;
 
 /// Source of tiles to be put together to render the map.
 pub trait Tiles {
@@ -244,6 +244,7 @@ pub(crate) fn interpolate_from_lower_zoom(tile_id: TileId, available_zoom: u8) -
     (zoomed_tile_id, uv)
 }
 
+#[cfg(any(feature = "vector_tiles", test))]
 /// Get the original rect which was clipped using the `uv`.
 fn full_rect_of_clipped_tile(rect: Rect, uv: Rect) -> Rect {
     let uv_width = uv.max.x - uv.min.x;

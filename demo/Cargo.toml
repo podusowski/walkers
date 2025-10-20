@@ -1,7 +1,7 @@
 [package]
 name = "demo"
 version.workspace = true
-edition = "2021"
+edition.workspace = true
 publish = false
 
 [dependencies]
@@ -10,14 +10,12 @@ eframe.workspace = true
 egui.workspace = true
 egui_extras.workspace = true
 rand = { version = "0.8", features = ["std_rng"] } # StdRng + SeedableRng
-
-# This is needed until https://github.com/emilk/egui/pull/7344 is released.
-wgpu = { version = "25", default-features = true }
+wgpu.workspace = true
 
 [features]
 default = []
 vector_tiles = ["walkers/vector_tiles"]
-rstar-cluster = ["walkers/rstar-cluster"] 
+rstar-cluster = ["walkers/rstar-cluster"]
 
 [target.'cfg(target_arch = "wasm32")'.dependencies]
 getrandom = { version = "0.2", features = ["js"] }

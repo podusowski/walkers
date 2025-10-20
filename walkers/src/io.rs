@@ -25,7 +25,9 @@ mod web {
 
     pub fn http_client(http_options: HttpOptions) -> ClientWithMiddleware {
         if http_options.cache.is_some() {
-            log::warn!("HTTP cache directory set, but ignored because, in WASM, caching is handled by the browser.");
+            log::warn!(
+                "HTTP cache directory set, but ignored because, in WASM, caching is handled by the browser."
+            );
         }
         ClientBuilder::new(reqwest::Client::new()).build()
     }
