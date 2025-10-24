@@ -1,6 +1,7 @@
 [workspace]
 members = [
     "walkers",
+    "walkers_extras",
     "demo",
     "demo_native",
     "demo_web",
