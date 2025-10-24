@@ -1,5 +1,5 @@
-use crate::{MapMemory, Plugin, Position, Projector};
 use egui::{Id, Rect, Response, Sense, Ui, vec2};
+use walkers::{MapMemory, Plugin, Position, Projector};
 
 /// [`Plugin`] which shows places on the map. Place can be any type that implements the [`Place`]
 /// trait.

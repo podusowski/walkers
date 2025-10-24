@@ -970,6 +970,7 @@ dependencies = [
  "getrandom 0.2.16",
  "rand 0.8.5",
  "walkers",
+ "walkers_extras",
  "wgpu",
 ]
 
@@ -4972,6 +4973,10 @@ dependencies = [
 [[package]]
 name = "walkers_extras"
 version = "0.47.0"
+dependencies = [
+ "egui",
+ "walkers",
+]
 
 [[package]]
 name = "want"

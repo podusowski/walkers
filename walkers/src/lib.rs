@@ -3,7 +3,6 @@
 
 mod center;
 mod download;
-pub mod extras;
 mod http_tiles;
 mod io;
 mod local_tiles;

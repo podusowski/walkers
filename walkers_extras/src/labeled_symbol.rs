@@ -1,6 +1,6 @@
 use super::places::{Group, Place};
-use crate::{Position, Projector};
 use egui::{Align2, Color32, FontId, Stroke, Ui, vec2};
+use walkers::{Position, Projector};
 
 #[derive(Clone)]
 /// Type of the symbol of a [`LabeledSymbol`].
@@ -31,7 +31,7 @@ impl Place for LabeledSymbol {
         self.position
     }
 
-    fn draw(&self, ui: &Ui, projector: &crate::Projector) {
+    fn draw(&self, ui: &Ui, projector: &Projector) {
         let screen_position = projector.project(self.position);
         let painter = ui.painter();
 
