@@ -5,6 +5,4 @@ mod places;
 pub use labeled_symbol::{
     LabeledSymbol, LabeledSymbolGroup, LabeledSymbolGroupStyle, LabeledSymbolStyle, Symbol,
 };
-pub use places::{Group, GroupedPlaces, Place, Places};
-pub use walkers::Texture;
-pub use places::GroupedPlacesTree;
+pub use places::{Group, GroupedPlaces, GroupedPlacesTree, Place, Places};
