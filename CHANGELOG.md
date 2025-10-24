@@ -2,6 +2,10 @@
 
 All notable changes to this project will be documented in this file.
 
+## Unreleased
+
+* `rstar` based `GroupedPlaces` implementation, which makes it considerably faster.
+
 ## 0.47.0
 
 * `egui` updated to 0.33.

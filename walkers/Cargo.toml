@@ -35,6 +35,8 @@ mvt-reader = { version = "2.1.0", optional = true }
 flate2 = { version = "1.1.4", optional = true }
 earcut = { version = "0.4.4", optional = true }
 
+rstar = { version = "0.12", optional = true }
+
 [target.'cfg(target_family = "wasm")'.dependencies]
 wasm-bindgen-futures = "0.4"
 
@@ -52,3 +54,4 @@ hypermocker = { path = "../hypermocker" }
 default = []
 serde = ["dep:serde", "geo-types/serde", "egui/serde"]
 vector_tiles = ["dep:pmtiles", "dep:mvt-reader", "dep:flate2", "dep:earcut"]
+rstar-cluster = ["dep:rstar"]

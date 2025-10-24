@@ -7,3 +7,6 @@ pub use labeled_symbol::{
     LabeledSymbol, LabeledSymbolGroup, LabeledSymbolGroupStyle, LabeledSymbolStyle, Symbol,
 };
 pub use places::{Group, GroupedPlaces, Place, Places};
+
+#[cfg(feature = "rstar-cluster")]
+pub use places::GroupedPlacesTree;
