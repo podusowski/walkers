@@ -1,5 +1,8 @@
 use egui::{Id, Rect, Response, Sense, Ui, vec2};
-use walkers::{MapMemory, Plugin, Position, Projector};
+use rstar::{PointDistance, RTree, RTreeObject};
+use std::cell::RefCell;
+use std::sync::Arc;
+use walkers::{MapMemory, Plugin, Position, Projector, lon_lat, mercator};
 
 /// [`Plugin`] which shows places on the map. Place can be any type that implements the [`Place`]
 /// trait.
@@ -190,13 +193,6 @@ mod tests {
     }
 }
 
-use std::cell::RefCell;
-use std::sync::Arc;
-
-use rstar::{PointDistance, RTree, RTreeObject};
-
-use walkers::{lon_lat, mercator};
-
 #[derive(Clone, Debug)]
 pub struct GroupedPlacesTreeSettings {
     pub screen_radius_px: Option<f32>,
@@ -205,6 +201,7 @@ pub struct GroupedPlacesTreeSettings {
     pub include_offscreen_neighbors: bool,
     pub max_group_size: Option<usize>,
 }
+
 impl Default for GroupedPlacesTreeSettings {
     fn default() -> Self {
         Self {
@@ -223,12 +220,15 @@ struct Pt {
     lon: f64,
     lat: f64,
 }
+
 impl RTreeObject for Pt {
     type Envelope = rstar::AABB<[f64; 2]>;
+
     fn envelope(&self) -> Self::Envelope {
         rstar::AABB::from_point([self.lon, self.lat])
     }
 }
+
 impl PointDistance for Pt {
     #[inline]
     fn distance_2(&self, p: &[f64; 2]) -> f64 {
@@ -286,22 +286,27 @@ impl<T: Place, G: Group> GroupedPlacesTree<T, G> {
         self.settings = s;
         self
     }
+
     pub fn with_screen_radius_px(mut self, px: f32) -> Self {
         self.settings.screen_radius_px = Some(px);
         self
     }
+
     pub fn with_geo_radius_deg(mut self, deg: f64) -> Self {
         self.settings.geo_radius_deg = deg;
         self
     }
+
     pub fn with_max_group_size(mut self, cap: Option<usize>) -> Self {
         self.settings.max_group_size = cap;
         self
     }
+
     pub fn viewport_only(mut self, on: bool) -> Self {
         self.settings.viewport_only = on;
         self
     }
+
     pub fn include_offscreen_neighbors(mut self, on: bool) -> Self {
         self.settings.include_offscreen_neighbors = on;
         self
