@@ -97,7 +97,13 @@ fn render_feature(feature: &Feature, shapes: &mut Vec<Shape>) {
         }
         Geometry::Polygon(_polygon) => todo!(),
         Geometry::MultiPoint(_multi_point) => {
-            // Not drawing points at the moment.
+            if let Some(Value::String(kind)) = properties.get("kind") {
+                match kind.as_str() {
+                    other => {
+                        warn!("Unknown point kind: {other}.");
+                    }
+                }
+            }
         }
         Geometry::MultiPolygon(multi_polygon) => {
             if let Some(fill) = polygon_fill(properties) {
