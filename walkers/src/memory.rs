@@ -6,6 +6,8 @@ use crate::{InvalidZoom, Position, center::Center, position::AdjustedPosition, z
 pub struct MapMemory {
     pub(crate) center_mode: Center,
     pub(crate) zoom: Zoom,
+    /// Rotation angle in radians (clockwise)
+    pub(crate) rotation: f32,
 }
 
 impl MapMemory {
@@ -51,5 +53,15 @@ impl MapMemory {
     /// Start following `my_position` given in [`crate::Map::new`].
     pub fn follow_my_position(&mut self) {
         self.center_mode = Center::MyPosition;
+    }
+
+    /// Set the map rotation angle in radians (clockwise)
+    pub fn set_rotation(&mut self, rotation: f32) {
+        self.rotation = rotation;
+    }
+
+    /// Get the map rotation angle in radians (clockwise)
+    pub fn rotation(&self) -> f32 {
+        self.rotation
     }
 }

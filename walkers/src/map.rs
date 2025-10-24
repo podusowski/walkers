@@ -3,8 +3,11 @@ use egui::{
 };
 
 use crate::{
-    MapMemory, Position, Projector, Tiles, center::Center, position::AdjustedPosition,
-    tiles::draw_tiles,
+    MapMemory, Position, Projector, Tiles,
+    center::Center,
+    mercator::project,
+    position::AdjustedPosition,
+    tiles::{TileDrawContext, draw_tiles},
 };
 
 /// Plugins allow drawing custom shapes on the map. After implementing this trait for your type,
@@ -208,13 +211,30 @@ impl<'a, 'b, 'c> Map<'a, 'b, 'c> {
 
         let map_center = self.position();
         let painter = ui.painter().with_clip_rect(rect);
+        let rotation = self.memory.rotation;
 
         if let Some(tiles) = self.tiles {
-            draw_tiles(&painter, map_center, zoom, tiles, 1.0);
+            let mut ctx = TileDrawContext {
+                painter: &painter,
+                map_center_projected_position: project(map_center, zoom.into()),
+                zoom,
+                tiles,
+                transparency: 1.0,
+                rotation,
+            };
+            draw_tiles(&mut ctx, map_center);
         }
 
         for layer in self.layers {
-            draw_tiles(&painter, map_center, zoom, layer.tiles, layer.transparency);
+            let mut ctx = TileDrawContext {
+                painter: &painter,
+                map_center_projected_position: project(map_center, zoom.into()),
+                zoom,
+                tiles: layer.tiles,
+                transparency: layer.transparency,
+                rotation,
+            };
+            draw_tiles(&mut ctx, map_center);
         }
 
         // Run plugins.
@@ -234,6 +254,17 @@ impl<'a, 'b, 'c> Map<'a, 'b, 'c> {
 impl Map<'_, '_, '_> {
     /// Handle user inputs and recalculate everything accordingly. Returns whether something changed.
     fn handle_gestures(&mut self, ui: &mut Ui, response: &Response) -> bool {
+        // Handle rotation with secondary mouse button
+        if response.dragged_by(PointerButton::Secondary) {
+            let drag_delta = response.drag_delta();
+
+            // Simple horizontal drag for rotation
+            const ROTATION_SPEED: f32 = 0.005;
+            let rotation_delta = -drag_delta.x * ROTATION_SPEED;
+
+            self.memory.rotation += rotation_delta;
+        }
+
         let zoom_delta = self.zoom_delta(ui, response);
 
         // Zooming and dragging need to be exclusive, otherwise the map will get dragged when
@@ -281,6 +312,7 @@ impl Map<'_, '_, '_> {
                 self.my_position,
                 self.options.pull_to_my_position_threshold,
                 self.options.drag_pan_buttons,
+                self.memory.rotation,
             )
         };
 
@@ -290,8 +322,18 @@ impl Map<'_, '_, '_> {
 
         if ui.ui_contains_pointer() && panning_enabled {
             // Panning by scrolling, e.g. two-finger drag on a touchpad:
-            let scroll_delta = ui.input(|i| i.smooth_scroll_delta);
+            let mut scroll_delta = ui.input(|i| i.smooth_scroll_delta);
             if scroll_delta != Vec2::ZERO {
+                // Rotate scroll delta to account for map rotation
+                let rotation = self.memory.rotation;
+                if rotation.abs() > 0.001 {
+                    let cos = rotation.cos();
+                    let sin = rotation.sin();
+                    scroll_delta = Vec2::new(
+                        scroll_delta.x * cos + scroll_delta.y * sin,
+                        -scroll_delta.x * sin + scroll_delta.y * cos,
+                    );
+                }
                 self.memory.center_mode = Center::Exact(
                     AdjustedPosition::new(self.position()).shift(scroll_delta, self.memory.zoom()),
                 );
