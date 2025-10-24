@@ -156,43 +156,6 @@ fn center(positions: &[Position]) -> Position {
     }
 }
 
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn calculating_center() {
-        assert_eq!(
-            center(&[
-                Position::new(0.0, 0.0),
-                Position::new(10.0, 10.0),
-                Position::new(20.0, 20.0),
-            ]),
-            Position::new(10.0, 10.0)
-        );
-
-        assert_eq!(
-            center(&[
-                Position::new(0.0, 0.0),
-                Position::new(10.0, 0.0),
-                Position::new(0.0, 10.0),
-                Position::new(10.0, 10.0),
-            ]),
-            Position::new(5.0, 5.0)
-        );
-
-        assert_eq!(
-            center(&[
-                Position::new(10.0, 10.0),
-                Position::new(-10.0, -10.0),
-                Position::new(-10.0, 10.0),
-                Position::new(10.0, -10.0),
-            ]),
-            Position::new(0.0, 0.0)
-        );
-    }
-}
-
 #[derive(Clone, Debug)]
 pub struct GroupedPlacesTreeSettings {
     pub screen_radius_px: Option<f32>,
@@ -517,16 +480,33 @@ impl<T: Place, G: Group> Plugin for GroupedPlacesTree<T, G> {
     }
 }
 
+#[inline]
+fn build_rtree<T: Place>(places: &[T]) -> RTree<Pt> {
+    let pts: Vec<Pt> = places
+        .iter()
+        .enumerate()
+        .map(|(idx, p)| {
+            let pos = p.position();
+            Pt {
+                idx,
+                lon: pos.x(),
+                lat: pos.y(),
+            }
+        })
+        .collect();
+    RTree::bulk_load(pts)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
     use egui::{Pos2, Rect, Vec2};
 
     #[derive(Clone)]
-    struct DummyPlace(crate::Position);
+    struct DummyPlace(Position);
 
     impl Place for DummyPlace {
-        fn position(&self) -> crate::Position {
+        fn position(&self) -> Position {
             self.0
         }
 
@@ -540,7 +520,7 @@ mod tests {
         fn draw<T: Place>(
             &self,
             _places: &[&T],
-            _position: crate::Position,
+            _position: Position,
             _projector: &Projector,
             _ui: &mut Ui,
         ) {
@@ -575,21 +555,36 @@ mod tests {
         assert_eq!(clusters_near, 2);
         assert_eq!(max_near, 1);
     }
-}
 
-#[inline]
-fn build_rtree<T: Place>(places: &[T]) -> RTree<Pt> {
-    let pts: Vec<Pt> = places
-        .iter()
-        .enumerate()
-        .map(|(idx, p)| {
-            let pos = p.position();
-            Pt {
-                idx,
-                lon: pos.x(),
-                lat: pos.y(),
-            }
-        })
-        .collect();
-    RTree::bulk_load(pts)
+    #[test]
+    fn calculating_center() {
+        assert_eq!(
+            center(&[
+                Position::new(0.0, 0.0),
+                Position::new(10.0, 10.0),
+                Position::new(20.0, 20.0),
+            ]),
+            Position::new(10.0, 10.0)
+        );
+
+        assert_eq!(
+            center(&[
+                Position::new(0.0, 0.0),
+                Position::new(10.0, 0.0),
+                Position::new(0.0, 10.0),
+                Position::new(10.0, 10.0),
+            ]),
+            Position::new(5.0, 5.0)
+        );
+
+        assert_eq!(
+            center(&[
+                Position::new(10.0, 10.0),
+                Position::new(-10.0, -10.0),
+                Position::new(-10.0, 10.0),
+                Position::new(10.0, -10.0),
+            ]),
+            Position::new(0.0, 0.0)
+        );
+    }
 }
