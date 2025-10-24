@@ -254,12 +254,11 @@ mod rtree_impl {
         let resp = ui.interact(rect, cluster_id, egui::Sense::click());
 
         if resp.clicked() {
-            let prev = ui.ctx().memory_mut(|m| {
+            ui.ctx().memory_mut(|m| {
                 let v = m.data.get_temp::<bool>(cluster_id).unwrap_or(false);
                 m.data.insert_temp(cluster_id, !v);
                 v
-            });
-            prev
+            })
         } else {
             ui.ctx()
                 .memory(|m| m.data.get_temp::<bool>(cluster_id).unwrap_or(false))

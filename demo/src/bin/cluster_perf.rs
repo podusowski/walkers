@@ -195,7 +195,7 @@ mod app {
                     ui.separator();
                     ui.label(format!("{:.1} ms/frame", self.avg_frame_ms.mean()));
                     ui.separator();
-                    ui.label(format!("POI: {}", POI_COUNT));
+                    ui.label(format!("POI: {POI_COUNT}"));
                     ui.separator();
                     ui.label(format!("Zoom: {:.1}", self.memory.zoom()));
                     if ui.button("Zoom +").clicked() {
