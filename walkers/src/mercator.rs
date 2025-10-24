@@ -58,7 +58,7 @@ pub(crate) fn tile_id(position: Position, mut zoom: u8, source_tile_size: u32) -
 }
 
 /// Project geographical position into a 2D plane using Mercator.
-pub(crate) fn project(position: Position, zoom: f64) -> Pixels {
+pub fn project(position: Position, zoom: f64) -> Pixels {
     let total_pixels = total_pixels(zoom);
     let (x, y) = mercator_normalized(position);
     Pixels::new(x * total_pixels, y * total_pixels)

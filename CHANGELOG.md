@@ -5,6 +5,7 @@ All notable changes to this project will be documented in this file.
 ## Unreleased
 
 * `rstar` based `GroupedPlaces` implementation, which makes it considerably faster.
+* `walkers_extras` is now a separate crate.
 
 ## 0.47.0
 

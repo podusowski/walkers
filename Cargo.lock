@@ -970,6 +970,7 @@ dependencies = [
  "getrandom 0.2.16",
  "rand 0.8.5",
  "walkers",
+ "walkers_extras",
  "wgpu",
 ]
 
@@ -4962,11 +4963,19 @@ dependencies = [
  "pmtiles",
  "reqwest",
  "reqwest-middleware",
- "rstar",
  "serde",
  "thiserror 2.0.17",
  "tokio",
  "wasm-bindgen-futures",
+]
+
+[[package]]
+name = "walkers_extras"
+version = "0.47.0"
+dependencies = [
+ "egui",
+ "rstar",
+ "walkers",
 ]
 
 [[package]]

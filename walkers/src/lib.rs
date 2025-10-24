@@ -3,13 +3,15 @@
 
 mod center;
 mod download;
-pub mod extras;
 mod http_tiles;
 mod io;
 mod local_tiles;
 mod map;
 mod memory;
-mod mercator;
+
+// TODO: I don't want it to be public.
+pub mod mercator;
+
 #[cfg(feature = "vector_tiles")]
 mod mvt;
 #[cfg(feature = "vector_tiles")]
