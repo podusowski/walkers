@@ -133,8 +133,8 @@ fn polygon_fill(properties: &HashMap<String, Value>) -> Option<Color32> {
                 None
             }
             "building" | "building_part" | "pier" | "runway" => Some(Color32::from_rgb(30, 30, 30)),
-            "military" => Some(Color32::from_rgb(60, 0, 0)),
-            "sand" | "beach" => Some(Color32::from_rgb(150, 135, 0)),
+            "military" => Some(Color32::from_rgb(46, 31, 31)),
+            "sand" | "beach" => Some(Color32::from_rgb(64, 64, 0)),
             "pedestrian" | "recreation_ground" | "railway" | "industrial" | "residential"
             | "commercial" | "protected_area" | "school" | "platform" | "kindergarten"
             | "cliff" | "university" | "hospital" | "college" | "aerodrome" | "earth" => None,
