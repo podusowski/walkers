@@ -199,7 +199,7 @@ mod rtree_impl {
     use rstar::{PointDistance, RTree, RTreeObject};
 
     use super::{Group, Place};
-    use crate::{lon_lat, mercator, MapMemory, Plugin, Projector};
+    use crate::{MapMemory, Plugin, Projector, lon_lat, mercator};
 
     #[derive(Clone, Debug)]
     pub struct GroupedPlacesTreeSettings {

@@ -1,6 +1,8 @@
 #[cfg(not(feature = "rstar-cluster"))]
 fn main() {
-    eprintln!("Enable the `rstar-cluster` feature to run this example: cargo run --features rstar-cluster --bin cluster_perf");
+    eprintln!(
+        "Enable the `rstar-cluster` feature to run this example: cargo run --features rstar-cluster --bin cluster_perf"
+    );
 }
 
 #[cfg(feature = "rstar-cluster")]
@@ -10,13 +12,13 @@ mod app {
     use std::time::{Duration, Instant};
 
     use egui::{self, Align2, Color32, Stroke};
-    use rand::{rngs::StdRng, Rng, SeedableRng};
+    use rand::{Rng, SeedableRng, rngs::StdRng};
 
     use walkers::extras::{
         Group, GroupedPlacesTree, LabeledSymbol, LabeledSymbolStyle, Place, Symbol,
     };
     use walkers::sources;
-    use walkers::{lon_lat, HttpOptions, HttpTiles, Map, MapMemory, Position, Projector};
+    use walkers::{HttpOptions, HttpTiles, Map, MapMemory, Position, Projector, lon_lat};
 
     const POI_COUNT: usize = 2_000;
     const HALF_WIDTH_M: f64 = 1_200.0;
