@@ -7,6 +7,4 @@ pub use labeled_symbol::{
 };
 pub use places::{Group, GroupedPlaces, Place, Places};
 pub use walkers::Texture;
-
-#[cfg(feature = "rstar-cluster")]
 pub use places::GroupedPlacesTree;

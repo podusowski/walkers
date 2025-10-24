@@ -4963,7 +4963,6 @@ dependencies = [
  "pmtiles",
  "reqwest",
  "reqwest-middleware",
- "rstar",
  "serde",
  "thiserror 2.0.17",
  "tokio",
@@ -4975,6 +4974,7 @@ name = "walkers_extras"
 version = "0.47.0"
 dependencies = [
  "egui",
+ "rstar",
  "walkers",
 ]
 

@@ -16,7 +16,6 @@ wgpu.workspace = true
 [features]
 default = []
 vector_tiles = ["walkers/vector_tiles"]
-rstar-cluster = ["walkers/rstar-cluster"]
 
 [target.'cfg(target_arch = "wasm32")'.dependencies]
 getrandom = { version = "0.2", features = ["js"] }

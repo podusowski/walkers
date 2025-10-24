@@ -7,3 +7,4 @@ edition.workspace = true
 [dependencies]
 walkers.workspace = true
 egui.workspace = true
+rstar = "0.12"
