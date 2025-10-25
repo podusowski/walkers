@@ -3,7 +3,7 @@
 use std::collections::HashMap;
 
 use egui::{
-    Color32, Pos2, Shape, Stroke,
+    Color32, FontId, Pos2, Shape, Stroke,
     emath::TSTransform,
     epaint::{PathShape, PathStroke},
     pos2,
@@ -99,9 +99,16 @@ fn render_feature(feature: &Feature, shapes: &mut Vec<Shape>, egui_ctx: &egui::C
         Geometry::MultiPoint(_multi_point) => {
             if let Some(Value::String(kind)) = properties.get("kind") {
                 match kind.as_str() {
-                    "neighborhood" => {
+                    "neighbourhood" => {
                         dbg!(properties);
-                        shapes.push(text(pos2(0.0, 0.0), egui_ctx));
+                        let name = if let Some(Value::String(name)) = properties.get("name") {
+                            name.clone()
+                        } else {
+                            "Unnamed".into()
+                        };
+                        for point in _multi_point.0.iter() {
+                            shapes.push(text(pos2(point.x(), point.y()), name.clone(), egui_ctx));
+                        }
                     }
                     other => {
                         warn!("Unknown point kind: {other} with properties: {properties:?}");
@@ -128,14 +135,14 @@ fn render_feature(feature: &Feature, shapes: &mut Vec<Shape>, egui_ctx: &egui::C
     }
 }
 
-fn text(pos: Pos2, ctx: &egui::Context) -> Shape {
+fn text(pos: Pos2, text: String, ctx: &egui::Context) -> Shape {
     ctx.fonts_mut(|fonts| {
         Shape::text(
             fonts,
             pos,
             egui::Align2::CENTER_CENTER,
-            "Placeholder",
-            egui::FontId::default(),
+            text,
+            FontId::proportional(120.0),
             Color32::WHITE,
         )
     })
