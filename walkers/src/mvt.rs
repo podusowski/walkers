@@ -96,7 +96,7 @@ fn render_feature(feature: &Feature, shapes: &mut Vec<Shape>, egui_ctx: &egui::C
             }
         }
         Geometry::Polygon(_polygon) => todo!(),
-        Geometry::MultiPoint(_multi_point) => {
+        Geometry::MultiPoint(multi_point) => {
             if let Some(Value::String(kind)) = properties.get("kind") {
                 match kind.as_str() {
                     "neighbourhood" => {
@@ -106,7 +106,7 @@ fn render_feature(feature: &Feature, shapes: &mut Vec<Shape>, egui_ctx: &egui::C
                         } else {
                             "Unnamed".into()
                         };
-                        for point in _multi_point.0.iter() {
+                        for point in multi_point.0.iter() {
                             shapes.push(text(pos2(point.x(), point.y()), name.clone(), egui_ctx));
                         }
                     }
