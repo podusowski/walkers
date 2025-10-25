@@ -20,6 +20,8 @@ pub enum Error {
     LayerNotFound(String, Vec<String>),
     #[error("Unsupported layer extent: {0}")]
     UnsupportedLayerExtent(String),
+    #[error("Unsupported feature kind with properties: {0:?}")]
+    UnsupportedFeatureKind(HashMap<String, Value>),
 }
 
 /// Currently this is the only supported extent.
@@ -40,7 +42,9 @@ pub fn render(data: &mvt_reader::Reader, egui_ctx: &egui::Context) -> Result<Vec
     for layer in known_layers {
         if let Ok(layer_index) = find_layer(data, layer) {
             for feature in data.get_features(layer_index)? {
-                render_feature(&feature, &mut shapes, egui_ctx);
+                if let Err(err) = render_feature(&feature, &mut shapes, egui_ctx) {
+                    warn!("{err}");
+                }
             }
         } else {
             warn!("Layer '{layer}' not found. Skipping.");
@@ -64,7 +68,11 @@ pub fn transformed(shapes: &[Shape], rect: egui::Rect) -> Vec<Shape> {
     result
 }
 
-fn render_feature(feature: &Feature, shapes: &mut Vec<Shape>, egui_ctx: &egui::Context) {
+fn render_feature(
+    feature: &Feature,
+    shapes: &mut Vec<Shape>,
+    egui_ctx: &egui::Context,
+) -> Result<(), Error> {
     let empty = HashMap::new();
     let properties = feature.properties.as_ref().unwrap_or(&empty);
     match &feature.geometry {
@@ -112,7 +120,7 @@ fn render_feature(feature: &Feature, shapes: &mut Vec<Shape>, egui_ctx: &egui::C
                         }
                     }
                     other => {
-                        warn!("Unknown point kind: {other} with properties: {properties:?}");
+                        return Err(Error::UnsupportedFeatureKind(properties.clone()));
                     }
                 }
             }
@@ -134,6 +142,7 @@ fn render_feature(feature: &Feature, shapes: &mut Vec<Shape>, egui_ctx: &egui::C
         Geometry::Rect(_rect) => todo!(),
         Geometry::Triangle(_triangle) => todo!(),
     }
+    Ok(())
 }
 
 fn text(pos: Pos2, text: String, ctx: &egui::Context) -> Shape {
