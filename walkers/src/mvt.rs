@@ -106,27 +106,19 @@ fn render_feature(
             }
         }
         Geometry::Polygon(_polygon) => todo!(),
-        Geometry::MultiPoint(multi_point) => {
-            if let Some(Value::String(kind)) = properties.get("kind") {
-                match kind.as_str() {
-                    "neighbourhood" => {
-                        dbg!(properties);
-                        if let Some(Value::String(name)) = properties.get("name") {
-                            for point in multi_point.0.iter() {
-                                shapes.push(text(
-                                    pos2(point.x(), point.y()),
-                                    name.clone(),
-                                    egui_ctx,
-                                ));
-                            }
-                        }
-                    }
-                    other => {
-                        return Err(Error::UnsupportedFeatureKind(properties.clone()));
+        Geometry::MultiPoint(multi_point) => match kind(properties)?.as_str() {
+            "neighbourhood" => {
+                dbg!(properties);
+                if let Some(Value::String(name)) = properties.get("name") {
+                    for point in multi_point.0.iter() {
+                        shapes.push(text(pos2(point.x(), point.y()), name.clone(), egui_ctx));
                     }
                 }
             }
-        }
+            _ => {
+                return Err(Error::UnsupportedFeatureKind(properties.clone()));
+            }
+        },
         Geometry::MultiPolygon(multi_polygon) => {
             if let Some(fill) = polygon_fill(properties)? {
                 for polygon in multi_polygon.iter() {
