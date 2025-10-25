@@ -20,8 +20,8 @@ pub enum Error {
     LayerNotFound(String, Vec<String>),
     #[error("Unsupported layer extent: {0}")]
     UnsupportedLayerExtent(String),
-    #[error("Unsupported feature kind with properties: {0:?}")]
-    UnsupportedFeatureKind(HashMap<String, Value>),
+    #[error("Unsupported {1:?} kind, properties: {0:?}")]
+    UnsupportedFeatureKind(HashMap<String, Value>, Geometry<f32>),
     #[error("Missing kind in properties: {0:?}")]
     FeatureWithoutKind(HashMap<String, Value>),
     #[error("Missing properties in feature")]
@@ -36,8 +36,8 @@ pub fn render(data: &mvt_reader::Reader, egui_ctx: &egui::Context) -> Result<Vec
     let mut shapes = Vec::new();
 
     let known_layers = [
-        "water",
         "earth",
+        "water",
         "landuse",
         "landcover",
         "buildings",
@@ -121,7 +121,10 @@ fn render_feature(
                 }
             }
             _ => {
-                return Err(Error::UnsupportedFeatureKind(properties.clone()));
+                return Err(Error::UnsupportedFeatureKind(
+                    properties.clone(),
+                    feature.geometry.clone(),
+                ));
             }
         },
         Geometry::MultiPolygon(multi_polygon) => {
