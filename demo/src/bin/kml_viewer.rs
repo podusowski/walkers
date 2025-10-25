@@ -75,7 +75,9 @@ impl Default for KmlViewerApp {
 }
 
 impl KmlViewerApp {
-    fn default_center() -> Position { lon_lat(17.0, 52.0) }
+    fn default_center() -> Position {
+        lon_lat(17.0, 52.0)
+    }
 
     fn ensure_tiles(&mut self, ctx: &egui::Context) {
         if !self.loaders_ready {
@@ -85,8 +87,8 @@ impl KmlViewerApp {
         if self.tiles.is_none() {
             // Default sober basemap without token: Carto Light (Positron). Otherwise Mapbox Light if token.
             // Final fallback: OSM standard.
-            let tiles = if let Ok(token) = std::env::var("MAPBOX_ACCESS_TOKEN")
-                .or_else(|_| std::env::var("MAPBOX_TOKEN"))
+            let tiles = if let Ok(token) =
+                std::env::var("MAPBOX_ACCESS_TOKEN").or_else(|_| std::env::var("MAPBOX_TOKEN"))
             {
                 let src = walkers::sources::Mapbox {
                     style: walkers::sources::MapboxStyle::Light,
@@ -113,7 +115,9 @@ impl KmlViewerApp {
                             logo_dark: None,
                         }
                     }
-                    fn max_zoom(&self) -> u8 { 20 }
+                    fn max_zoom(&self) -> u8 {
+                        20
+                    }
                 }
                 HttpTiles::with_options(CartoLight, HttpOptions::default(), ctx.clone())
             };
