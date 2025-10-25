@@ -26,7 +26,7 @@ pub enum Error {
 const ONLY_SUPPORTED_EXTENT: u32 = 4096;
 
 /// Render MVT data into a list of [`epaint::Shape`]s.
-pub fn render(data: &mvt_reader::Reader) -> Result<Vec<Shape>, Error> {
+pub fn render(data: &mvt_reader::Reader, egui_ctx: &egui::Context) -> Result<Vec<Shape>, Error> {
     let mut shapes = Vec::new();
 
     let known_layers = ["earth", "landuse", "water", "buildings", "roads", "places"];
@@ -40,7 +40,7 @@ pub fn render(data: &mvt_reader::Reader) -> Result<Vec<Shape>, Error> {
     for layer in known_layers {
         if let Ok(layer_index) = find_layer(data, layer) {
             for feature in data.get_features(layer_index)? {
-                render_feature(&feature, &mut shapes);
+                render_feature(&feature, &mut shapes, egui_ctx);
             }
         } else {
             warn!("Layer '{layer}' not found. Skipping.");
@@ -64,7 +64,7 @@ pub fn transformed(shapes: &[Shape], rect: egui::Rect) -> Vec<Shape> {
     result
 }
 
-fn render_feature(feature: &Feature, shapes: &mut Vec<Shape>) {
+fn render_feature(feature: &Feature, shapes: &mut Vec<Shape>, egui_ctx: &egui::Context) {
     let empty = HashMap::new();
     let properties = feature.properties.as_ref().unwrap_or(&empty);
     match &feature.geometry {
@@ -99,6 +99,10 @@ fn render_feature(feature: &Feature, shapes: &mut Vec<Shape>) {
         Geometry::MultiPoint(_multi_point) => {
             if let Some(Value::String(kind)) = properties.get("kind") {
                 match kind.as_str() {
+                    "neighborhood" => {
+                        dbg!(properties);
+                        shapes.push(text(pos2(0.0, 0.0), egui_ctx));
+                    }
                     other => {
                         warn!("Unknown point kind: {other} with properties: {properties:?}");
                     }
@@ -122,6 +126,19 @@ fn render_feature(feature: &Feature, shapes: &mut Vec<Shape>) {
         Geometry::Rect(_rect) => todo!(),
         Geometry::Triangle(_triangle) => todo!(),
     }
+}
+
+fn text(pos: Pos2, ctx: &egui::Context) -> Shape {
+    ctx.fonts_mut(|fonts| {
+        Shape::text(
+            fonts,
+            pos,
+            egui::Align2::CENTER_CENTER,
+            "Placeholder",
+            egui::FontId::default(),
+            Color32::WHITE,
+        )
+    })
 }
 
 const WATER_COLOR: Color32 = Color32::from_rgb(12, 39, 77);
