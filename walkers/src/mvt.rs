@@ -29,7 +29,7 @@ const ONLY_SUPPORTED_EXTENT: u32 = 4096;
 pub fn render(data: &mvt_reader::Reader) -> Result<Vec<Shape>, Error> {
     let mut shapes = Vec::new();
 
-    let known_layers = ["earth", "landuse", "water", "buildings", "roads"];
+    let known_layers = ["earth", "landuse", "water", "buildings", "roads", "places"];
 
     for layer in data.get_layer_names()? {
         if !known_layers.contains(&layer.as_str()) {
@@ -100,7 +100,7 @@ fn render_feature(feature: &Feature, shapes: &mut Vec<Shape>) {
             if let Some(Value::String(kind)) = properties.get("kind") {
                 match kind.as_str() {
                     other => {
-                        warn!("Unknown point kind: {other}.");
+                        warn!("Unknown point kind: {other} with properties: {properties:?}");
                     }
                 }
             }
