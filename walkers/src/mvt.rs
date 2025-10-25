@@ -142,8 +142,8 @@ fn text(pos: Pos2, text: String, ctx: &egui::Context) -> Shape {
             pos,
             egui::Align2::CENTER_CENTER,
             text,
-            FontId::proportional(120.0),
-            Color32::WHITE,
+            FontId::proportional(80.0),
+            Color32::from_gray(200),
         )
     })
 }
