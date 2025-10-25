@@ -23,7 +23,7 @@ impl Default for KmlViewerApp {
     fn default() -> Self {
         let mut memory = MapMemory::default();
         let _ = memory.set_zoom(5.0);
-        memory.center_at(lon_lat(17.0, 52.0)); // centre Pologne par défaut
+        memory.center_at(lon_lat(17.0, 52.0));
 
         let mut app = Self {
             memory,
@@ -35,13 +35,12 @@ impl Default for KmlViewerApp {
             summary: None,
         };
 
-        // Auto-charge Poland.kml si présent avec contour rouge vif
-        // Recherche dans des emplacements standards de test/asset
+        // Auto-load Poland.kml if present (standard asset/test locations)
         let candidates = [
             std::path::Path::new("demo/assets/Poland.kml"),
             std::path::Path::new("assets/Poland.kml"),
             std::path::Path::new("tests/data/Poland.kml"),
-            std::path::Path::new("Poland.kml"), // fallback racine
+            std::path::Path::new("Poland.kml"), // root fallback
         ];
         let default_path = candidates.iter().find(|p| p.exists()).cloned();
         if let Some(path) = default_path {
@@ -59,14 +58,14 @@ impl Default for KmlViewerApp {
                             app.memory.center_at(center);
                         }
                         if let Some(mut zoom) = approximate_zoom(&features) {
-                            // zoom out léger
+                            // slight zoom out
                             zoom = (zoom - 0.5).max(1.0);
                             let _ = app.memory.set_zoom(zoom);
                         }
                     }
                 }
                 Err(err) => {
-                    app.load_error = Some(format!("Impossible de lire Poland.kml: {err}"));
+                    app.load_error = Some(format!("Failed to read Poland.kml: {err}"));
                 }
             }
         }
@@ -84,8 +83,8 @@ impl KmlViewerApp {
             self.loaders_ready = true;
         }
         if self.tiles.is_none() {
-            // Fond sobre par défaut sans clé: Carto Light (Positron). Sinon Mapbox Light si token.
-            // Fallback final: OSM standard.
+            // Default sober basemap without token: Carto Light (Positron). Otherwise Mapbox Light if token.
+            // Final fallback: OSM standard.
             let tiles = if let Ok(token) = std::env::var("MAPBOX_ACCESS_TOKEN")
                 .or_else(|_| std::env::var("MAPBOX_TOKEN"))
             {
@@ -96,11 +95,11 @@ impl KmlViewerApp {
                 };
                 HttpTiles::with_options(src, HttpOptions::default(), ctx.clone())
             } else {
-                // Définition locale d'une source XYZ Carto Light
+                // Local definition of a Carto Light XYZ tile source
                 struct CartoLight;
                 impl walkers::sources::TileSource for CartoLight {
                     fn tile_url(&self, tile_id: walkers::TileId) -> String {
-                        // Utilise le sous-domaine 'a' pour simplifier
+                        // Use subdomain 'a' for simplicity
                         format!(
                             "https://cartodb-basemaps-a.global.ssl.fastly.net/light_all/{}/{}/{}.png",
                             tile_id.zoom, tile_id.x, tile_id.y
@@ -131,13 +130,13 @@ impl KmlViewerApp {
                 Err(err) => {
                     self.layer = None;
                     self.summary = None;
-                    self.load_error = Some(format!("Erreur KML: {err}"));
+                    self.load_error = Some(format!("KML error: {err}"));
                 }
             },
             Err(err) => {
                 self.layer = None;
                 self.summary = None;
-                self.load_error = Some(format!("Impossible de lire le fichier: {err}"));
+                self.load_error = Some(format!("Failed to read file: {err}"));
             }
         }
     }
@@ -223,7 +222,7 @@ fn summarize_features(features: &[KmlFeature]) -> String {
     }
 
     format!(
-        "Placemarks: {} | Points: {point_count} | Lignes: {line_count} | Polygones: {polygon_count}",
+        "Placemarks: {} | Points: {point_count} | Lines: {line_count} | Polygons: {polygon_count}",
         features.len()
     )
 }
@@ -388,7 +387,7 @@ fn approximate_zoom(features: &[KmlFeature]) -> Option<f64> {
 fn main() -> eframe::Result<()> {
     let options = eframe::NativeOptions::default();
     eframe::run_native(
-        "Walkers: Visualiseur KML",
+        "Walkers: KML Viewer",
         options,
         Box::new(|_| Ok(Box::<KmlViewerApp>::default())),
     )
