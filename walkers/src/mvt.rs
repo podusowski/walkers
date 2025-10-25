@@ -81,7 +81,7 @@ fn render_feature(
         Geometry::Point(_point) => todo!(),
         Geometry::Line(_line) => todo!(),
         Geometry::LineString(line_string) => {
-            if let Some(line_stroke) = line_stroke(properties) {
+            if let Some(line_stroke) = line_stroke(properties)? {
                 for segment in line_string.0.windows(2) {
                     shapes.push(Shape::line_segment(
                         [
@@ -94,7 +94,7 @@ fn render_feature(
             }
         }
         Geometry::MultiLineString(multi_line_string) => {
-            if let Some(stroke) = line_stroke(properties) {
+            if let Some(stroke) = line_stroke(properties)? {
                 for line_string in multi_line_string {
                     let points = line_string
                         .0
@@ -184,25 +184,20 @@ fn polygon_fill(properties: &HashMap<String, Value>) -> Result<Option<Color32>, 
     })
 }
 
-fn line_stroke(properties: &HashMap<String, Value>) -> Option<Stroke> {
-    if let Some(Value::String(kind)) = properties.get("kind") {
-        match kind.as_str() {
-            "highway" | "aeroway" => Some(Stroke::new(15.0, ROAD_COLOR)),
-            "major_road" => Some(Stroke::new(12.0, ROAD_COLOR)),
-            "minor_road" => Some(Stroke::new(9.0, ROAD_COLOR)),
-            "rail" => Some(Stroke::new(3.0, ROAD_COLOR)),
-            "path" => Some(Stroke::new(3.0, Color32::from_rgb(94, 62, 32))),
-            "river" | "stream" | "drain" | "ditch" | "canal" => Some(Stroke::new(3.0, WATER_COLOR)),
-            "other" | "aerialway" | "cliff" => None,
-            other => {
-                warn!("Unknown line kind: {other}");
-                Some(Stroke::new(10.0, Color32::RED))
-            }
+fn line_stroke(properties: &HashMap<String, Value>) -> Result<Option<Stroke>, Error> {
+    Ok(match kind(properties)?.as_str() {
+        "highway" | "aeroway" => Some(Stroke::new(15.0, ROAD_COLOR)),
+        "major_road" => Some(Stroke::new(12.0, ROAD_COLOR)),
+        "minor_road" => Some(Stroke::new(9.0, ROAD_COLOR)),
+        "rail" => Some(Stroke::new(3.0, ROAD_COLOR)),
+        "path" => Some(Stroke::new(3.0, Color32::from_rgb(94, 62, 32))),
+        "river" | "stream" | "drain" | "ditch" | "canal" => Some(Stroke::new(3.0, WATER_COLOR)),
+        "other" | "aerialway" | "cliff" => None,
+        other => {
+            warn!("Unknown line kind: {other}");
+            Some(Stroke::new(10.0, Color32::RED))
         }
-    } else {
-        warn!("Line without kind: {properties:?}");
-        Some(Stroke::new(3.0, Color32::RED))
-    }
+    })
 }
 
 fn find_layer(data: &mvt_reader::Reader, name: &str) -> Result<usize, Error> {
