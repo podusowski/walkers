@@ -56,6 +56,12 @@ impl KmlFeature {
     }
 }
 
+impl Default for KmlFeature {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 #[derive(Debug, Error)]
 pub enum KmlError {
     #[error("XML error: {0}")]
@@ -150,6 +156,7 @@ pub fn parse_kml(input: &str) -> Result<Vec<KmlFeature>, KmlError> {
     Ok(features)
 }
 
+#[allow(clippy::ptr_arg)]
 fn handle_start(
     name: &str,
     current_feature: &mut Option<KmlFeature>,
@@ -163,6 +170,7 @@ fn handle_start(
     }
 }
 
+#[allow(clippy::ptr_arg)]
 fn handle_end(
     name: &str,
     current_feature: &mut Option<KmlFeature>,
@@ -194,6 +202,7 @@ fn handle_end(
     Ok(())
 }
 
+#[allow(clippy::ptr_arg)]
 fn handle_text(
     stack: &[String],
     value: &str,
@@ -579,7 +588,7 @@ fn tessellate_polygon(
     }
 
     let mut mesh = Mesh::default();
-    mesh.indices.extend(buffers.indices.into_iter());
+    mesh.indices.extend(buffers.indices);
     mesh.vertices.reserve(buffers.vertices.len());
     for pos in buffers.vertices.into_iter() {
         mesh.vertices.push(Vertex {

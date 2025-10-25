@@ -1,4 +1,4 @@
-#![cfg(not(target_arch = "wasm32"))]
+#![cfg(all(not(target_arch = "wasm32"), not(target_os = "android")))]
 
 use std::fs;
 use std::path::PathBuf;
