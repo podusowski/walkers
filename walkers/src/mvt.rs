@@ -24,6 +24,8 @@ pub enum Error {
     UnsupportedFeatureKind(HashMap<String, Value>),
     #[error("Missing kind in properties: {0:?}")]
     FeatureWithoutKind(HashMap<String, Value>),
+    #[error("Missing properties in feature")]
+    FeatureWithoutProperties,
 }
 
 /// Currently this is the only supported extent.
@@ -75,8 +77,10 @@ fn render_feature(
     shapes: &mut Vec<Shape>,
     egui_ctx: &egui::Context,
 ) -> Result<(), Error> {
-    let empty = HashMap::new();
-    let properties = feature.properties.as_ref().unwrap_or(&empty);
+    let properties = feature
+        .properties
+        .as_ref()
+        .ok_or(Error::FeatureWithoutProperties)?;
     match &feature.geometry {
         Geometry::Point(_point) => todo!(),
         Geometry::Line(_line) => todo!(),
