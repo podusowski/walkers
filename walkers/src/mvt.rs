@@ -22,6 +22,8 @@ pub enum Error {
     UnsupportedLayerExtent(String),
     #[error("Unsupported feature kind with properties: {0:?}")]
     UnsupportedFeatureKind(HashMap<String, Value>),
+    #[error("Missing kind in properties: {0:?}")]
+    FeatureWithoutKind(HashMap<String, Value>),
 }
 
 /// Currently this is the only supported extent.
@@ -126,7 +128,7 @@ fn render_feature(
             }
         }
         Geometry::MultiPolygon(multi_polygon) => {
-            if let Some(fill) = polygon_fill(properties) {
+            if let Some(fill) = polygon_fill(properties)? {
                 for polygon in multi_polygon.iter() {
                     let points = polygon
                         .exterior()
@@ -161,32 +163,33 @@ fn text(pos: Pos2, text: String, ctx: &egui::Context) -> Shape {
 const WATER_COLOR: Color32 = Color32::from_rgb(12, 39, 77);
 const ROAD_COLOR: Color32 = Color32::from_rgb(80, 80, 80);
 
-fn polygon_fill(properties: &HashMap<String, Value>) -> Option<Color32> {
+fn kind(properties: &HashMap<String, Value>) -> Result<String, Error> {
     if let Some(Value::String(kind)) = properties.get("kind") {
-        match kind.as_str() {
-            "water" | "fountain" | "swimming_pool" | "basin" | "lake" | "ditch" | "ocean" => {
-                Some(WATER_COLOR)
-            }
-            "grass" | "garden" | "playground" | "zoo" | "park" | "forest" | "wood"
-            | "village_green" | "scrub" | "grassland" | "allotments" | "pitch" | "farmland"
-            | "dog_park" | "meadow" | "wetland" | "cemetery" | "golf_course" | "nature_reserve" => {
-                None
-            }
-            "building" | "building_part" | "pier" | "runway" => Some(Color32::from_rgb(30, 30, 30)),
-            "military" => Some(Color32::from_rgb(46, 31, 31)),
-            "sand" | "beach" => Some(Color32::from_rgb(64, 64, 0)),
-            "pedestrian" | "recreation_ground" | "railway" | "industrial" | "residential"
-            | "commercial" | "protected_area" | "school" | "platform" | "kindergarten"
-            | "cliff" | "university" | "hospital" | "college" | "aerodrome" | "earth" => None,
-            other => {
-                warn!("Unknown polygon kind: {other}");
-                Some(Color32::RED)
-            }
-        }
+        Ok(kind.clone())
     } else {
-        warn!("Polygon without kind: {properties:?}");
-        Some(Color32::RED)
+        Err(Error::FeatureWithoutKind(properties.clone()))
     }
+}
+
+fn polygon_fill(properties: &HashMap<String, Value>) -> Result<Option<Color32>, Error> {
+    Ok(match kind(properties)?.as_str() {
+        "water" | "fountain" | "swimming_pool" | "basin" | "lake" | "ditch" | "ocean" => {
+            Some(WATER_COLOR)
+        }
+        "grass" | "garden" | "playground" | "zoo" | "park" | "forest" | "wood"
+        | "village_green" | "scrub" | "grassland" | "allotments" | "pitch" | "farmland"
+        | "dog_park" | "meadow" | "wetland" | "cemetery" | "golf_course" | "nature_reserve" => None,
+        "building" | "building_part" | "pier" | "runway" => Some(Color32::from_rgb(30, 30, 30)),
+        "military" => Some(Color32::from_rgb(46, 31, 31)),
+        "sand" | "beach" => Some(Color32::from_rgb(64, 64, 0)),
+        "pedestrian" | "recreation_ground" | "railway" | "industrial" | "residential"
+        | "commercial" | "protected_area" | "school" | "platform" | "kindergarten" | "cliff"
+        | "university" | "hospital" | "college" | "aerodrome" | "earth" => None,
+        other => {
+            warn!("Unknown polygon kind: {other}");
+            Some(Color32::RED)
+        }
+    })
 }
 
 fn line_stroke(properties: &HashMap<String, Value>) -> Option<Stroke> {
