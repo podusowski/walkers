@@ -35,7 +35,15 @@ const ONLY_SUPPORTED_EXTENT: u32 = 4096;
 pub fn render(data: &mvt_reader::Reader, egui_ctx: &egui::Context) -> Result<Vec<Shape>, Error> {
     let mut shapes = Vec::new();
 
-    let known_layers = ["earth", "landuse", "water", "buildings", "roads", "places"];
+    let known_layers = [
+        "water",
+        "earth",
+        "landuse",
+        "landcover",
+        "buildings",
+        "roads",
+        "places",
+    ];
 
     for layer in data.get_layer_names()? {
         if !known_layers.contains(&layer.as_str()) {
@@ -171,7 +179,7 @@ fn polygon_fill(properties: &HashMap<String, Value>) -> Result<Option<Color32>, 
         "grass" | "garden" | "playground" | "zoo" | "park" | "forest" | "wood"
         | "village_green" | "scrub" | "grassland" | "allotments" | "pitch" | "dog_park"
         | "meadow" | "wetland" | "cemetery" | "golf_course" | "nature_reserve"
-        | "national_park" => Some(Color32::from_rgb(10, 20, 0)),
+        | "national_park" | "island" => Some(Color32::from_rgb(10, 20, 0)),
         "farmland" => Some(Color32::from_rgb(20, 25, 0)),
         "building" | "building_part" | "pier" | "runway" | "bare_rock" => {
             Some(Color32::from_rgb(30, 30, 30))
