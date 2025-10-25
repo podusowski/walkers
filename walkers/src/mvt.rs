@@ -101,13 +101,14 @@ fn render_feature(feature: &Feature, shapes: &mut Vec<Shape>, egui_ctx: &egui::C
                 match kind.as_str() {
                     "neighbourhood" => {
                         dbg!(properties);
-                        let name = if let Some(Value::String(name)) = properties.get("name") {
-                            name.clone()
-                        } else {
-                            "Unnamed".into()
-                        };
-                        for point in multi_point.0.iter() {
-                            shapes.push(text(pos2(point.x(), point.y()), name.clone(), egui_ctx));
+                        if let Some(Value::String(name)) = properties.get("name") {
+                            for point in multi_point.0.iter() {
+                                shapes.push(text(
+                                    pos2(point.x(), point.y()),
+                                    name.clone(),
+                                    egui_ctx,
+                                ));
+                            }
                         }
                     }
                     other => {
