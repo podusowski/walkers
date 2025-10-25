@@ -169,8 +169,11 @@ fn polygon_fill(properties: &HashMap<String, Value>) -> Result<Option<Color32>, 
             Some(WATER_COLOR)
         }
         "grass" | "garden" | "playground" | "zoo" | "park" | "forest" | "wood"
-        | "village_green" | "scrub" | "grassland" | "allotments" | "pitch" | "farmland"
-        | "dog_park" | "meadow" | "wetland" | "cemetery" | "golf_course" | "nature_reserve" => None,
+        | "village_green" | "scrub" | "grassland" | "allotments" | "pitch" | "dog_park"
+        | "meadow" | "wetland" | "cemetery" | "golf_course" | "nature_reserve" => {
+            Some(Color32::from_rgb(10, 20, 0))
+        }
+        "farmland" => Some(Color32::from_rgb(20, 25, 0)),
         "building" | "building_part" | "pier" | "runway" | "bare_rock" => {
             Some(Color32::from_rgb(30, 30, 30))
         }
