@@ -82,8 +82,6 @@ fn render_feature(
         .as_ref()
         .ok_or(Error::FeatureWithoutProperties)?;
     match &feature.geometry {
-        Geometry::Point(_point) => todo!(),
-        Geometry::Line(_line) => todo!(),
         Geometry::LineString(line_string) => {
             if let Some(stroke) = line_stroke(properties)? {
                 let points = line_string
@@ -106,7 +104,6 @@ fn render_feature(
                 }
             }
         }
-        Geometry::Polygon(_polygon) => todo!(),
         Geometry::MultiPoint(multi_point) => match kind(properties)?.as_str() {
             "neighbourhood" | "locality" => {
                 if let Some(Value::String(name)) = properties.get("name") {
@@ -132,6 +129,9 @@ fn render_feature(
                 }
             }
         }
+        Geometry::Point(_point) => todo!(),
+        Geometry::Line(_line) => todo!(),
+        Geometry::Polygon(_polygon) => todo!(),
         Geometry::GeometryCollection(_geometry_collection) => todo!(),
         Geometry::Rect(_rect) => todo!(),
         Geometry::Triangle(_triangle) => todo!(),
