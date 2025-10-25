@@ -81,16 +81,13 @@ fn render_feature(
         Geometry::Point(_point) => todo!(),
         Geometry::Line(_line) => todo!(),
         Geometry::LineString(line_string) => {
-            if let Some(line_stroke) = line_stroke(properties)? {
-                for segment in line_string.0.windows(2) {
-                    shapes.push(Shape::line_segment(
-                        [
-                            pos2(segment[0].x, segment[0].y),
-                            pos2(segment[1].x, segment[1].y),
-                        ],
-                        line_stroke,
-                    ));
-                }
+            if let Some(stroke) = line_stroke(properties)? {
+                let points = line_string
+                    .0
+                    .iter()
+                    .map(|p| pos2(p.x, p.y))
+                    .collect::<Vec<_>>();
+                shapes.push(Shape::line(points, stroke));
             }
         }
         Geometry::MultiLineString(multi_line_string) => {
