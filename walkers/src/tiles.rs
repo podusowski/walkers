@@ -107,9 +107,9 @@ impl Texture {
     }
 
     #[cfg(feature = "vector_tiles")]
-    pub fn from_mvt(data: &[u8]) -> Result<Self, mvt::Error> {
+    pub fn from_mvt(data: &[u8], egui_ctx: &Context) -> Result<Self, mvt::Error> {
         let reader = mvt_reader::Reader::new(data.to_vec())?;
-        let shapes = mvt::render(&reader)?;
+        let shapes = mvt::render(&reader, egui_ctx)?;
         Ok(Self::Vector(shapes))
     }
 

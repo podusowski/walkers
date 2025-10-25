@@ -6,6 +6,7 @@ All notable changes to this project will be documented in this file.
 
 * `rstar` based `GroupedPlaces` implementation, which makes it considerably faster.
 * `walkers_extras` is now a separate crate.
+* Further work on experimental vector tile rendering.
 
 ## 0.47.0
 
