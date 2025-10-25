@@ -136,7 +136,12 @@ fn render_feature(
                         .iter()
                         .map(|p| pos2(p.x, p.y))
                         .collect::<Vec<_>>();
-                    shapes.extend(arbitrary_polygon(&points, fill));
+                    let holes = polygon
+                        .interiors()
+                        .iter()
+                        .map(|hole| hole.0.iter().map(|p| pos2(p.x, p.y)).collect::<Vec<_>>())
+                        .collect::<Vec<_>>();
+                    shapes.extend(arbitrary_polygon(&points, &holes, fill));
                 }
             }
         }
@@ -236,17 +241,31 @@ fn find_layer(data: &mvt_reader::Reader, name: &str) -> Result<usize, Error> {
 }
 
 /// Egui can only draw convex polygons, so we need to triangulate arbitrary ones.
-fn arbitrary_polygon(points: &[Pos2], fill: Color32) -> Vec<Shape> {
-    let mut shapes = Vec::new();
+fn arbitrary_polygon(exterior: &[Pos2], holes: &[Vec<Pos2>], fill: Color32) -> Vec<Shape> {
     let mut triangles = Vec::<usize>::new();
-    let mut earcut = earcut::Earcut::new();
-    earcut.earcut(points.iter().map(|p| [p.x, p.y]), &[], &mut triangles);
 
+    // Prepare Earcut data by flattening exterior points...
+    let mut all_points = Vec::new();
+    all_points.extend(exterior.iter().map(|p| [p.x, p.y]));
+
+    // ...and adding hole points while recording their indices.
+    let mut hole_indices = Vec::new();
+    for hole in holes {
+        hole_indices.push(all_points.len());
+        all_points.extend(hole.iter().map(|p| [p.x, p.y]));
+    }
+
+    earcut::Earcut::new().earcut(all_points.to_vec(), &hole_indices, &mut triangles);
+
+    // Convert back to Pos2 for indexing
+    let all_pos2: Vec<Pos2> = all_points.iter().map(|p| pos2(p[0], p[1])).collect();
+
+    let mut shapes = Vec::new();
     for triangle_indices in triangles.chunks(3) {
         let triangle = [
-            points[triangle_indices[0]],
-            points[triangle_indices[1]],
-            points[triangle_indices[2]],
+            all_pos2[triangle_indices[0]],
+            all_pos2[triangle_indices[1]],
+            all_pos2[triangle_indices[2]],
         ];
 
         if triangle_area(triangle[0], triangle[1], triangle[2]) < 100.0 {
