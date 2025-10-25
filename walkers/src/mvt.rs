@@ -107,8 +107,7 @@ fn render_feature(
         }
         Geometry::Polygon(_polygon) => todo!(),
         Geometry::MultiPoint(multi_point) => match kind(properties)?.as_str() {
-            "neighbourhood" => {
-                dbg!(properties);
+            "neighbourhood" | "locality" => {
                 if let Some(Value::String(name)) = properties.get("name") {
                     for point in multi_point.0.iter() {
                         shapes.push(text(pos2(point.x(), point.y()), name.clone(), egui_ctx));
