@@ -47,10 +47,12 @@ impl Default for KmlViewerApp {
             match std::fs::read_to_string(path) {
                 Ok(content) => {
                     if let Ok(features) = parse_kml(&content) {
-                        let mut defaults = KmlVisualDefaults::default();
-                        defaults.polygon_fill_color = Color32::from_rgba_unmultiplied(0, 0, 0, 0);
-                        defaults.polygon_outline_color = Color32::from_rgb(0xFF, 0x00, 0x00);
-                        defaults.polygon_outline_width = 3.0;
+                        let defaults = KmlVisualDefaults {
+                            polygon_fill_color: Color32::from_rgba_unmultiplied(0, 0, 0, 0),
+                            polygon_outline_color: Color32::from_rgb(0xFF, 0x00, 0x00),
+                            polygon_outline_width: 3.0,
+                            ..KmlVisualDefaults::default()
+                        };
                         app.layer = Some(KmlLayer::new(features.clone()).with_defaults(defaults));
                         app.file_name = Some("Poland.kml".into());
                         app.summary = Some(summarize_features(&features));
