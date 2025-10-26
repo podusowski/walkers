@@ -35,8 +35,23 @@ impl Projector {
         );
 
         // From the two points above we can calculate the actual point on the screen.
-        self.clip_rect.center().to_vec2()
-            + (projected_position - map_center_projected_position).to_vec2()
+        let mut screen_pos = self.clip_rect.center().to_vec2()
+            + (projected_position - map_center_projected_position).to_vec2();
+
+        // Apply rotation around the center
+        let rotation = self.memory.rotation;
+        if rotation.abs() > 0.001 {
+            let center = self.clip_rect.center().to_vec2();
+            let cos = rotation.cos();
+            let sin = rotation.sin();
+            let translated = screen_pos - center;
+            screen_pos = Vec2::new(
+                translated.x * cos - translated.y * sin,
+                translated.x * sin + translated.y * cos,
+            ) + center;
+        }
+
+        screen_pos
     }
 
     /// Get coordinates from viewport's pixels position
@@ -44,12 +59,29 @@ impl Projector {
         let zoom: f64 = self.memory.zoom();
         let center = self.memory.center_mode.position(self.my_position);
 
+        // First, unrotate the position
+        let mut unrotated_position = position;
+        let rotation = self.memory.rotation;
+        if rotation.abs() > 0.001 {
+            let clip_center = self.clip_rect.center().to_vec2();
+            let cos = rotation.cos();
+            let sin = rotation.sin();
+            let translated = position - clip_center;
+            // Apply inverse rotation (negate the angle)
+            unrotated_position = Vec2::new(
+                translated.x * cos + translated.y * sin,
+                -translated.x * sin + translated.y * cos,
+            ) + clip_center;
+        }
+
         // Despite being in pixel space `map_center_projected_position` is sufficiently large
         // that we must do the arithmetic in f64 to avoid imprecision.
         let map_center_projected_position = project(center, zoom);
         let clip_center = self.clip_rect.center();
-        let x = map_center_projected_position.x() + (position.x as f64) - (clip_center.x as f64);
-        let y = map_center_projected_position.y() + (position.y as f64) - (clip_center.y as f64);
+        let x = map_center_projected_position.x() + (unrotated_position.x as f64)
+            - (clip_center.x as f64);
+        let y = map_center_projected_position.y() + (unrotated_position.y as f64)
+            - (clip_center.y as f64);
 
         unproject(Pixels::new(x, y), zoom)
     }

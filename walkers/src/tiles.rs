@@ -9,7 +9,7 @@ use egui::{ColorImage, TextureHandle};
 use image::ImageError;
 
 use crate::Position;
-use crate::mercator::{project, tile_id, total_tiles};
+use crate::mercator::{tile_id, total_tiles};
 use crate::position::{Pixels, PixelsExt};
 use crate::sources::Attribution;
 use crate::zoom::Zoom;
@@ -115,11 +115,70 @@ impl Texture {
 
     /// Draw the tile on the given `rect`. The `uv` parameter defines which part of the tile
     /// should be drawn on the `rect`.
-    fn draw(&self, painter: &egui::Painter, rect: Rect, uv: Rect, transparency: f32) {
+    fn draw(
+        &self,
+        painter: &egui::Painter,
+        rect: Rect,
+        uv: Rect,
+        transparency: f32,
+        rotation: f32,
+        center: egui::Pos2,
+    ) {
         match self {
             Texture::Raster(texture_handle) => {
                 let mut mesh = Mesh::with_texture(texture_handle.id());
-                mesh.add_rect_with_uv(rect, uv, Color32::WHITE.gamma_multiply(transparency));
+
+                if rotation.abs() > 0.001 {
+                    // Apply rotation to the mesh vertices
+                    let cos = rotation.cos();
+                    let sin = rotation.sin();
+                    let center_vec = center.to_vec2();
+
+                    // Get the four corners of the rect
+                    let corners = [
+                        rect.min,
+                        pos2(rect.max.x, rect.min.y),
+                        rect.max,
+                        pos2(rect.min.x, rect.max.y),
+                    ];
+
+                    // Rotate each corner around the center
+                    let rotated_corners: Vec<_> = corners
+                        .iter()
+                        .map(|&corner| {
+                            let translated = corner.to_vec2() - center_vec;
+                            let rotated = Vec2::new(
+                                translated.x * cos - translated.y * sin,
+                                translated.x * sin + translated.y * cos,
+                            );
+                            (rotated + center_vec).to_pos2()
+                        })
+                        .collect();
+
+                    // UV coordinates for the corners
+                    let uv_corners = [
+                        pos2(uv.min.x, uv.min.y),
+                        pos2(uv.max.x, uv.min.y),
+                        pos2(uv.max.x, uv.max.y),
+                        pos2(uv.min.x, uv.max.y),
+                    ];
+
+                    // Add the rotated quad to the mesh
+                    let color = Color32::WHITE.gamma_multiply(transparency);
+                    let idx = mesh.vertices.len() as u32;
+                    for i in 0..4 {
+                        mesh.vertices.push(egui::epaint::Vertex {
+                            pos: rotated_corners[i],
+                            uv: uv_corners[i],
+                            color,
+                        });
+                    }
+                    mesh.indices
+                        .extend_from_slice(&[idx, idx + 1, idx + 2, idx, idx + 2, idx + 3]);
+                } else {
+                    mesh.add_rect_with_uv(rect, uv, Color32::WHITE.gamma_multiply(transparency));
+                }
+
                 painter.add(egui::Shape::mesh(mesh));
             }
             #[cfg(feature = "vector_tiles")]
@@ -148,52 +207,81 @@ impl TextureWithUv {
     }
 }
 
-pub(crate) fn draw_tiles(
-    painter: &egui::Painter,
-    map_center: Position,
-    zoom: Zoom,
-    tiles: &mut dyn Tiles,
-    transparency: f32,
-) {
-    let mut meshes = Default::default();
-    flood_fill_tiles(
-        painter,
-        tile_id(map_center, zoom.round(), tiles.tile_size()),
-        project(map_center, zoom.into()),
-        zoom.into(),
-        tiles,
-        transparency,
-        &mut meshes,
-    );
+pub(crate) struct TileDrawContext<'a> {
+    pub painter: &'a egui::Painter,
+    pub map_center_projected_position: Pixels,
+    pub zoom: Zoom,
+    pub tiles: &'a mut dyn Tiles,
+    pub transparency: f32,
+    pub rotation: f32,
+}
+
+pub(crate) fn draw_tiles(ctx: &mut TileDrawContext, map_center: Position) {
+    let tile_size = ctx.tiles.tile_size();
+    let mut meshes = HashSet::default();
+    let initial_tile = tile_id(map_center, ctx.zoom.round(), tile_size);
+    flood_fill_tiles(ctx, initial_tile, &mut meshes);
 }
 
 /// Use simple [flood fill algorithm](https://en.wikipedia.org/wiki/Flood_fill) to draw tiles on the map.
-fn flood_fill_tiles(
-    painter: &egui::Painter,
-    tile_id: TileId,
-    map_center_projected_position: Pixels,
-    zoom: f64,
-    tiles: &mut dyn Tiles,
-    transparency: f32,
-    meshes: &mut HashSet<TileId>,
-) {
+fn flood_fill_tiles(ctx: &mut TileDrawContext, tile_id: TileId, meshes: &mut HashSet<TileId>) {
     // We need to make up the difference between integer and floating point zoom levels.
-    let corrected_tile_size = tiles.tile_size() as f64 * 2f64.powf(zoom - zoom.round());
+    let zoom_f64: f64 = ctx.zoom.into();
+    let corrected_tile_size = ctx.tiles.tile_size() as f64 * 2f64.powf(zoom_f64 - zoom_f64.round());
     let tile_projected = tile_id.project(corrected_tile_size);
-    let tile_screen_position = painter.clip_rect().center().to_vec2()
-        + (tile_projected - map_center_projected_position).to_vec2();
+    let tile_screen_position = ctx.painter.clip_rect().center().to_vec2()
+        + (tile_projected - ctx.map_center_projected_position).to_vec2();
 
-    if painter
-        .clip_rect()
-        .intersects(rect(tile_screen_position, corrected_tile_size))
-        && meshes.insert(tile_id)
-    {
-        if let Some(tile) = tiles.at(tile_id) {
+    // Check if the tile (when rotated) will intersect the viewport
+    let tile_rect = rect(tile_screen_position, corrected_tile_size);
+    let intersects = if ctx.rotation.abs() > 0.001 {
+        // Calculate the bounding box of the rotated tile
+        let center = ctx.painter.clip_rect().center();
+        let cos = ctx.rotation.cos();
+        let sin = ctx.rotation.sin();
+
+        // Get corners of the tile
+        let corners = [
+            tile_rect.min,
+            pos2(tile_rect.max.x, tile_rect.min.y),
+            tile_rect.max,
+            pos2(tile_rect.min.x, tile_rect.max.y),
+        ];
+
+        // Rotate corners and find bounding box
+        let mut min_x = f32::INFINITY;
+        let mut min_y = f32::INFINITY;
+        let mut max_x = f32::NEG_INFINITY;
+        let mut max_y = f32::NEG_INFINITY;
+
+        for corner in corners {
+            let offset = corner - center;
+            let rotated = Vec2::new(
+                offset.x * cos - offset.y * sin,
+                offset.x * sin + offset.y * cos,
+            );
+            let rotated_pos = center.to_vec2() + rotated;
+            min_x = min_x.min(rotated_pos.x);
+            min_y = min_y.min(rotated_pos.y);
+            max_x = max_x.max(rotated_pos.x);
+            max_y = max_y.max(rotated_pos.y);
+        }
+
+        let rotated_bounds = Rect::from_min_max(pos2(min_x, min_y), pos2(max_x, max_y));
+        ctx.painter.clip_rect().intersects(rotated_bounds)
+    } else {
+        ctx.painter.clip_rect().intersects(tile_rect)
+    };
+
+    if intersects && meshes.insert(tile_id) {
+        if let Some(tile) = ctx.tiles.at(tile_id) {
             tile.texture.draw(
-                painter,
+                ctx.painter,
                 rect(tile_screen_position, corrected_tile_size),
                 tile.uv,
-                transparency,
+                ctx.transparency,
+                ctx.rotation,
+                ctx.painter.clip_rect().center(),
             )
         }
 
@@ -206,15 +294,7 @@ fn flood_fill_tiles(
         .iter()
         .flatten()
         {
-            flood_fill_tiles(
-                painter,
-                *next_tile_id,
-                map_center_projected_position,
-                zoom,
-                tiles,
-                transparency,
-                meshes,
-            );
+            flood_fill_tiles(ctx, *next_tile_id, meshes);
         }
     }
 }

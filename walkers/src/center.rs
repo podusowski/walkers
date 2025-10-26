@@ -45,9 +45,10 @@ impl Center {
         my_position: Position,
         pull_to_my_position_threshold: f32,
         drag_pan_buttons: DragPanButtons,
+        rotation: f32,
     ) -> bool {
         if dragged_by(response, drag_pan_buttons) {
-            self.dragged_by(my_position, response);
+            self.dragged_by(my_position, response, rotation);
             true
         } else if response.drag_stopped() {
             self.drag_stopped(pull_to_my_position_threshold);
@@ -57,7 +58,7 @@ impl Center {
         }
     }
 
-    fn dragged_by(&mut self, my_position: Position, response: &Response) {
+    fn dragged_by(&mut self, my_position: Position, response: &Response, rotation: f32) {
         let from_detached = if let Center::Moving { from_detached, .. } = self {
             *from_detached
         } else {
@@ -65,11 +66,22 @@ impl Center {
             self.adjusted_position().is_some()
         };
 
+        // Rotate the drag delta to account for map rotation
+        let mut drag_delta = response.drag_delta();
+        if rotation.abs() > 0.001 {
+            let cos = rotation.cos();
+            let sin = rotation.sin();
+            drag_delta = Vec2::new(
+                drag_delta.x * cos + drag_delta.y * sin,
+                -drag_delta.x * sin + drag_delta.y * cos,
+            );
+        }
+
         *self = Center::Moving {
             position: self
                 .adjusted_position()
                 .unwrap_or(AdjustedPosition::new(my_position)),
-            direction: response.drag_delta(),
+            direction: drag_delta,
             from_detached,
         };
     }
