@@ -51,7 +51,7 @@ impl eframe::App for MyApp {
             // Various aspects of the map can be configured.
             map = map
                 .zoom_with_ctrl(self.zoom_with_ctrl)
-                .drag_pan_buttons(DragPanButtons::PRIMARY | DragPanButtons::SECONDARY);
+                .drag_pan_buttons(DragPanButtons::PRIMARY);
 
             // Optionally, plugins can be attached.
             map = map
