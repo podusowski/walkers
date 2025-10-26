@@ -35,14 +35,20 @@ impl Default for KmlViewerApp {
             summary: None,
         };
 
-        // Auto-load Poland.kml if present (standard asset/test locations)
-        let candidates = [
-            std::path::Path::new("demo/assets/Poland.kml"),
-            std::path::Path::new("assets/Poland.kml"),
-            std::path::Path::new("tests/data/Poland.kml"),
-            std::path::Path::new("Poland.kml"), // root fallback
-        ];
-        let default_path = candidates.iter().find(|p| p.exists()).cloned();
+        // Auto-load Poland.kml if present (single canonical location),
+        // or honor an explicit env var path if provided.
+        let env_kml = std::env::var("KML_FILE")
+            .or_else(|_| std::env::var("WALKERS_KML"))
+            .ok()
+            .and_then(|p| {
+                let pb = std::path::PathBuf::from(p);
+                if pb.exists() { Some(pb) } else { None }
+            });
+        let default_path = env_kml
+            .or_else(|| {
+                let p = std::path::PathBuf::from("demo/assets/Poland.kml");
+                if p.exists() { Some(p) } else { None }
+            });
         if let Some(path) = default_path {
             match std::fs::read_to_string(path) {
                 Ok(content) => {
