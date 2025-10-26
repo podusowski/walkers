@@ -44,11 +44,10 @@ impl Default for KmlViewerApp {
                 let pb = std::path::PathBuf::from(p);
                 if pb.exists() { Some(pb) } else { None }
             });
-        let default_path = env_kml
-            .or_else(|| {
-                let p = std::path::PathBuf::from("demo/assets/Poland.kml");
-                if p.exists() { Some(p) } else { None }
-            });
+        let default_path = env_kml.or_else(|| {
+            let p = std::path::PathBuf::from("demo/assets/Poland.kml");
+            if p.exists() { Some(p) } else { None }
+        });
         if let Some(path) = default_path {
             match std::fs::read_to_string(path) {
                 Ok(content) => {
