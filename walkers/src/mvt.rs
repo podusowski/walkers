@@ -34,7 +34,11 @@ const ONLY_SUPPORTED_EXTENT: u32 = 4096;
 #[derive(Debug, Clone)]
 pub enum ShapeOrText {
     Shape(Shape),
-    Text(Pos2, String),
+    Text {
+        position: Pos2,
+        text: String,
+        font_size: f32,
+    },
 }
 
 impl From<Shape> for ShapeOrText {
@@ -49,9 +53,9 @@ impl ShapeOrText {
             ShapeOrText::Shape(shape) => {
                 shape.transform(transform);
             }
-            ShapeOrText::Text(pos, _text) => {
-                *pos *= transform.scaling;
-                *pos += transform.translation;
+            ShapeOrText::Text { position, .. } => {
+                *position *= transform.scaling;
+                *position += transform.translation;
             }
         }
     }
@@ -139,8 +143,11 @@ fn feature_into_shape(feature: &Feature, shapes: &mut Vec<ShapeOrText>) -> Resul
             "neighbourhood" | "locality" => {
                 if let Some(Value::String(name)) = properties.get("name") {
                     for point in multi_point.0.iter() {
-                        //shapes.push(text(pos2(point.x(), point.y()), name.clone(), egui_ctx));
-                        shapes.push(ShapeOrText::Text(pos2(point.x(), point.y()), name.clone()));
+                        shapes.push(ShapeOrText::Text {
+                            position: pos2(point.x(), point.y()),
+                            text: name.clone(),
+                            font_size: 16.0,
+                        });
                     }
                 }
             }
