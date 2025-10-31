@@ -69,6 +69,7 @@ pub fn render(data: &mvt_reader::Reader) -> Result<Vec<ShapeOrText>, Error> {
         "buildings",
         "roads",
         "places",
+        "pois",
     ];
 
     for layer in data.get_layer_names()? {
