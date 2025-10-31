@@ -50,6 +50,7 @@ impl ShapeOrText {
                 shape.transform(transform);
             }
             ShapeOrText::Text(pos, _text) => {
+                *pos *= transform.scaling;
                 *pos += transform.translation;
             }
         }
