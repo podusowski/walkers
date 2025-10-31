@@ -54,7 +54,7 @@ pub fn render(data: &mvt_reader::Reader, egui_ctx: &egui::Context) -> Result<Vec
     for layer in known_layers {
         if let Ok(layer_index) = find_layer(data, layer) {
             for feature in data.get_features(layer_index)? {
-                if let Err(err) = render_feature(&feature, &mut shapes, egui_ctx) {
+                if let Err(err) = feature_into_shape(&feature, &mut shapes, egui_ctx) {
                     warn!("{err}");
                 }
             }
@@ -80,7 +80,7 @@ pub fn transformed(shapes: &[Shape], rect: egui::Rect) -> Vec<Shape> {
     result
 }
 
-fn render_feature(
+fn feature_into_shape(
     feature: &Feature,
     shapes: &mut Vec<Shape>,
     egui_ctx: &egui::Context,
