@@ -58,10 +58,7 @@ impl ShapeOrText {
 }
 
 /// Render MVT data into a list of [`epaint::Shape`]s.
-pub fn render(
-    data: &mvt_reader::Reader,
-    egui_ctx: &egui::Context,
-) -> Result<Vec<ShapeOrText>, Error> {
+pub fn render(data: &mvt_reader::Reader) -> Result<Vec<ShapeOrText>, Error> {
     let mut shapes = Vec::new();
 
     let known_layers = [

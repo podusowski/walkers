@@ -1,7 +1,6 @@
 use crate::{
     Texture, TextureWithUv, TileId, Tiles, sources::Attribution, tiles::interpolate_from_lower_zoom,
 };
-use egui::Context;
 use lru::LruCache;
 use pmtiles::{AsyncPmTilesReader, TileCoord};
 use std::{
@@ -22,11 +21,10 @@ enum CachedTexture {
 pub struct PmTiles {
     path: PathBuf,
     cache: LruCache<TileId, CachedTexture>,
-    egui_ctx: Context,
 }
 
 impl PmTiles {
-    pub fn new(path: impl AsRef<Path>, egui_ctx: Context) -> Self {
+    pub fn new(path: impl AsRef<Path>) -> Self {
         // Just arbitrary value which seemed right.
         #[allow(clippy::unwrap_used)]
         let cache_size = std::num::NonZeroUsize::new(256).unwrap();
@@ -34,19 +32,16 @@ impl PmTiles {
         Self {
             path: path.as_ref().into(),
             cache: LruCache::new(cache_size),
-            egui_ctx,
         }
     }
 
     fn load_and_cache(&mut self, tile_id: TileId) -> CachedTexture {
         self.cache
-            .get_or_insert(tile_id, || {
-                match load(&self.path, tile_id, &self.egui_ctx) {
-                    Ok(texture) => CachedTexture::Valid(texture),
-                    Err(err) => {
-                        log::warn!("Failed to load tile {tile_id:?}: {err}");
-                        CachedTexture::Invalid
-                    }
+            .get_or_insert(tile_id, || match load(&self.path, tile_id) {
+                Ok(texture) => CachedTexture::Valid(texture),
+                Err(err) => {
+                    log::warn!("Failed to load tile {tile_id:?}: {err}");
+                    CachedTexture::Invalid
                 }
             })
             .clone()
@@ -88,11 +83,7 @@ enum PmTilesError {
     Other(#[from] pmtiles::PmtError),
 }
 
-fn load(
-    path: &Path,
-    tile_id: TileId,
-    egui_ctx: &Context,
-) -> Result<Texture, Box<dyn std::error::Error>> {
+fn load(path: &Path, tile_id: TileId) -> Result<Texture, Box<dyn std::error::Error>> {
     // TODO: Yes, that's heavy.
     let bytes = tokio::runtime::Builder::new_current_thread()
         .enable_all()
@@ -106,7 +97,7 @@ fn load(
         })?;
 
     let decompressed = decompress(&bytes)?;
-    Ok(Texture::from_mvt(&decompressed, egui_ctx)?)
+    Ok(Texture::from_mvt(&decompressed)?)
 }
 
 /// Decompress the tile.
