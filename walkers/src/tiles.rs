@@ -151,8 +151,8 @@ impl Texture {
                 pos,
                 egui::Align2::CENTER_CENTER,
                 text,
-                FontId::proportional(12.0),
-                Color32::from_gray(200),
+                FontId::proportional(16.0),
+                Color32::WHITE.gamma_multiply(0.6),
             )
         })
     }
