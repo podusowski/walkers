@@ -2,10 +2,10 @@
 use crate::mvt::{self, ShapeOrText};
 use std::collections::HashSet;
 
-#[cfg(feature = "vector_tiles")]
-use egui::Shape;
-use egui::{Color32, Context, FontId, Mesh, Pos2, Rect, Vec2, pos2};
+use egui::{Color32, Context, Mesh, Rect, Vec2, pos2};
 use egui::{ColorImage, TextureHandle};
+#[cfg(feature = "vector_tiles")]
+use egui::{FontId, Pos2, Shape};
 use image::ImageError;
 
 use crate::Position;
@@ -144,6 +144,7 @@ impl Texture {
         }
     }
 
+    #[cfg(feature = "vector_tiles")]
     fn draw_text(&self, pos: Pos2, text: String, ctx: &Context) -> Shape {
         ctx.fonts_mut(|fonts| {
             Shape::text(
