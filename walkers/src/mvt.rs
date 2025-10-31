@@ -191,23 +191,23 @@ fn kind(properties: &HashMap<String, Value>) -> Result<String, Error> {
 }
 
 fn points(properties: &HashMap<String, Value>, points: &[Pos2]) -> Result<Vec<ShapeOrText>, Error> {
-    match kind(properties)?.as_str() {
-        "neighbourhood" | "locality" => {
-            if let Some(Value::String(name)) = properties.get("name") {
-                Ok(points
-                    .into_iter()
-                    .map(|point| ShapeOrText::Text {
-                        position: *point,
-                        text: name.clone(),
-                        font_size: 16.0,
-                    })
-                    .collect::<Vec<_>>())
-            } else {
-                // Without name, there is currently nothing to render.
-                Ok(Vec::new())
-            }
-        }
+    let font_size = match kind(properties)?.as_str() {
+        "neighbourhood" | "locality" => Ok(16.0),
         _ => Err(Error::UnsupportedFeatureKind(properties.clone())),
+    }?;
+
+    if let Some(Value::String(name)) = properties.get("name") {
+        Ok(points
+            .into_iter()
+            .map(|point| ShapeOrText::Text {
+                position: *point,
+                text: name.clone(),
+                font_size,
+            })
+            .collect::<Vec<_>>())
+    } else {
+        // Without name, there is currently nothing to render.
+        Ok(Vec::new())
     }
 }
 
