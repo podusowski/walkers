@@ -1,5 +1,5 @@
 #[cfg(feature = "vector_tiles")]
-use crate::mvt;
+use crate::mvt::{self, ShapeOrText};
 use std::collections::HashSet;
 
 #[cfg(feature = "vector_tiles")]
@@ -86,7 +86,7 @@ pub(crate) fn rect(screen_position: Vec2, tile_size: f64) -> Rect {
 pub enum Texture {
     Raster(TextureHandle),
     #[cfg(feature = "vector_tiles")]
-    Vector(Vec<Shape>),
+    Vector(Vec<ShapeOrText>),
 }
 
 impl Texture {
@@ -130,7 +130,14 @@ impl Texture {
                 // ...and then it can be clipped to the `rect`.
                 let painter = painter.with_clip_rect(rect);
 
-                painter.extend(mvt::transformed(shapes, full_rect));
+                painter.extend(
+                    mvt::transformed(shapes, full_rect)
+                        .into_iter()
+                        .map(|shape_or_text| match shape_or_text {
+                            ShapeOrText::Shape(shape) => shape,
+                            ShapeOrText::Text(pos2, _) => todo!(),
+                        }),
+                );
             }
         }
     }

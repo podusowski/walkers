@@ -31,8 +31,36 @@ pub enum Error {
 /// Currently this is the only supported extent.
 const ONLY_SUPPORTED_EXTENT: u32 = 4096;
 
+#[derive(Debug, Clone)]
+pub enum ShapeOrText {
+    Shape(Shape),
+    Text(Pos2, String),
+}
+
+impl From<Shape> for ShapeOrText {
+    fn from(shape: Shape) -> Self {
+        ShapeOrText::Shape(shape)
+    }
+}
+
+impl ShapeOrText {
+    pub fn transform(&mut self, transform: TSTransform) {
+        match self {
+            ShapeOrText::Shape(shape) => {
+                shape.transform(transform);
+            }
+            ShapeOrText::Text(pos, _text) => {
+                *pos += transform.translation;
+            }
+        }
+    }
+}
+
 /// Render MVT data into a list of [`epaint::Shape`]s.
-pub fn render(data: &mvt_reader::Reader, egui_ctx: &egui::Context) -> Result<Vec<Shape>, Error> {
+pub fn render(
+    data: &mvt_reader::Reader,
+    egui_ctx: &egui::Context,
+) -> Result<Vec<ShapeOrText>, Error> {
     let mut shapes = Vec::new();
 
     let known_layers = [
@@ -67,7 +95,7 @@ pub fn render(data: &mvt_reader::Reader, egui_ctx: &egui::Context) -> Result<Vec
 }
 
 /// Transform shapes from MVT space to screen space.
-pub fn transformed(shapes: &[Shape], rect: egui::Rect) -> Vec<Shape> {
+pub fn transformed(shapes: &[ShapeOrText], rect: egui::Rect) -> Vec<ShapeOrText> {
     let transform = TSTransform {
         scaling: rect.width() / ONLY_SUPPORTED_EXTENT as f32,
         translation: rect.min.to_vec2(),
@@ -82,7 +110,7 @@ pub fn transformed(shapes: &[Shape], rect: egui::Rect) -> Vec<Shape> {
 
 fn feature_into_shape(
     feature: &Feature,
-    shapes: &mut Vec<Shape>,
+    shapes: &mut Vec<ShapeOrText>,
     egui_ctx: &egui::Context,
 ) -> Result<(), Error> {
     let properties = feature
@@ -97,7 +125,7 @@ fn feature_into_shape(
                     .iter()
                     .map(|p| pos2(p.x, p.y))
                     .collect::<Vec<_>>();
-                shapes.push(Shape::line(points, stroke));
+                shapes.push(Shape::line(points, stroke).into());
             }
         }
         Geometry::MultiLineString(multi_line_string) => {
@@ -108,7 +136,7 @@ fn feature_into_shape(
                         .iter()
                         .map(|p| pos2(p.x, p.y))
                         .collect::<Vec<_>>();
-                    shapes.push(Shape::line(points, stroke));
+                    shapes.push(Shape::line(points, stroke).into());
                 }
             }
         }
@@ -116,7 +144,8 @@ fn feature_into_shape(
             "neighbourhood" | "locality" => {
                 if let Some(Value::String(name)) = properties.get("name") {
                     for point in multi_point.0.iter() {
-                        shapes.push(text(pos2(point.x(), point.y()), name.clone(), egui_ctx));
+                        //shapes.push(text(pos2(point.x(), point.y()), name.clone(), egui_ctx));
+                        shapes.push(ShapeOrText::Text(pos2(point.x(), point.y()), name.clone()));
                     }
                 }
             }
@@ -141,7 +170,11 @@ fn feature_into_shape(
                         .iter()
                         .map(|hole| hole.0.iter().map(|p| pos2(p.x, p.y)).collect::<Vec<_>>())
                         .collect::<Vec<_>>();
-                    shapes.extend(arbitrary_polygon(&points, &holes, fill));
+                    shapes.extend(
+                        arbitrary_polygon(&points, &holes, fill)
+                            .into_iter()
+                            .map(Into::into),
+                    );
                 }
             }
         }
