@@ -4,7 +4,7 @@ use std::collections::HashSet;
 
 #[cfg(feature = "vector_tiles")]
 use egui::Shape;
-use egui::{Color32, Context, Mesh, Rect, Vec2, pos2};
+use egui::{Color32, Context, FontId, Mesh, Pos2, Rect, Vec2, pos2};
 use egui::{ColorImage, TextureHandle};
 use image::ImageError;
 
@@ -130,16 +130,31 @@ impl Texture {
                 // ...and then it can be clipped to the `rect`.
                 let painter = painter.with_clip_rect(rect);
 
-                painter.extend(
-                    mvt::transformed(shapes, full_rect)
-                        .into_iter()
-                        .map(|shape_or_text| match shape_or_text {
-                            ShapeOrText::Shape(shape) => shape,
-                            ShapeOrText::Text(pos2, _) => todo!(),
-                        }),
-                );
+                // Need to collect it to avoid deadlock caused by `Painter::extend` and `fonts_mut`.
+                let shapes: Vec<_> = mvt::transformed(shapes, full_rect)
+                    .into_iter()
+                    .map(|shape_or_text| match shape_or_text {
+                        ShapeOrText::Shape(shape) => shape,
+                        ShapeOrText::Text(pos, text) => self.draw_text(pos, text, painter.ctx()),
+                    })
+                    .collect();
+
+                painter.extend(shapes);
             }
         }
+    }
+
+    fn draw_text(&self, pos: Pos2, text: String, ctx: &Context) -> Shape {
+        ctx.fonts_mut(|fonts| {
+            Shape::text(
+                fonts,
+                pos,
+                egui::Align2::CENTER_CENTER,
+                text,
+                FontId::proportional(12.0),
+                Color32::from_gray(200),
+            )
+        })
     }
 }
 
