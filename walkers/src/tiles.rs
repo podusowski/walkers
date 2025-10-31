@@ -1,11 +1,11 @@
 #[cfg(feature = "vector_tiles")]
-use crate::mvt;
+use crate::mvt::{self, ShapeOrText};
 use std::collections::HashSet;
 
-#[cfg(feature = "vector_tiles")]
-use egui::Shape;
 use egui::{Color32, Context, Mesh, Rect, Vec2, pos2};
 use egui::{ColorImage, TextureHandle};
+#[cfg(feature = "vector_tiles")]
+use egui::{FontId, Pos2, Shape};
 use image::ImageError;
 
 use crate::Position;
@@ -86,7 +86,7 @@ pub(crate) fn rect(screen_position: Vec2, tile_size: f64) -> Rect {
 pub enum Texture {
     Raster(TextureHandle),
     #[cfg(feature = "vector_tiles")]
-    Vector(Vec<Shape>),
+    Vector(Vec<ShapeOrText>),
 }
 
 impl Texture {
@@ -107,9 +107,9 @@ impl Texture {
     }
 
     #[cfg(feature = "vector_tiles")]
-    pub fn from_mvt(data: &[u8], egui_ctx: &Context) -> Result<Self, mvt::Error> {
+    pub fn from_mvt(data: &[u8]) -> Result<Self, mvt::Error> {
         let reader = mvt_reader::Reader::new(data.to_vec())?;
-        let shapes = mvt::render(&reader, egui_ctx)?;
+        let shapes = mvt::render(&reader)?;
         Ok(Self::Vector(shapes))
     }
 
@@ -130,9 +130,32 @@ impl Texture {
                 // ...and then it can be clipped to the `rect`.
                 let painter = painter.with_clip_rect(rect);
 
-                painter.extend(mvt::transformed(shapes, full_rect));
+                // Need to collect it to avoid deadlock caused by `Painter::extend` and `fonts_mut`.
+                let shapes: Vec<_> = mvt::transformed(shapes, full_rect)
+                    .into_iter()
+                    .map(|shape_or_text| match shape_or_text {
+                        ShapeOrText::Shape(shape) => shape,
+                        ShapeOrText::Text(pos, text) => self.draw_text(pos, text, painter.ctx()),
+                    })
+                    .collect();
+
+                painter.extend(shapes);
             }
         }
+    }
+
+    #[cfg(feature = "vector_tiles")]
+    fn draw_text(&self, pos: Pos2, text: String, ctx: &Context) -> Shape {
+        ctx.fonts_mut(|fonts| {
+            Shape::text(
+                fonts,
+                pos,
+                egui::Align2::CENTER_CENTER,
+                text,
+                FontId::proportional(16.0),
+                Color32::WHITE.gamma_multiply(0.6),
+            )
+        })
     }
 }
 

@@ -116,10 +116,9 @@ pub(crate) fn providers(egui_ctx: Context) -> Providers {
 
         for path in pmtiles {
             let name = path.file_stem().unwrap().to_string_lossy().to_string();
-            providers.available.insert(
-                name.clone(),
-                vec![TilesKind::PmTiles(PmTiles::new(path, egui_ctx.to_owned()))],
-            );
+            providers
+                .available
+                .insert(name.clone(), vec![TilesKind::PmTiles(PmTiles::new(path))]);
             providers.selected = name;
         }
     }

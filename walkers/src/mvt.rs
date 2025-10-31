@@ -3,7 +3,7 @@
 use std::collections::HashMap;
 
 use egui::{
-    Color32, FontId, Pos2, Shape, Stroke,
+    Color32, Pos2, Shape, Stroke,
     emath::TSTransform,
     epaint::{PathShape, PathStroke},
     pos2,
@@ -31,8 +31,34 @@ pub enum Error {
 /// Currently this is the only supported extent.
 const ONLY_SUPPORTED_EXTENT: u32 = 4096;
 
+#[derive(Debug, Clone)]
+pub enum ShapeOrText {
+    Shape(Shape),
+    Text(Pos2, String),
+}
+
+impl From<Shape> for ShapeOrText {
+    fn from(shape: Shape) -> Self {
+        ShapeOrText::Shape(shape)
+    }
+}
+
+impl ShapeOrText {
+    pub fn transform(&mut self, transform: TSTransform) {
+        match self {
+            ShapeOrText::Shape(shape) => {
+                shape.transform(transform);
+            }
+            ShapeOrText::Text(pos, _text) => {
+                *pos *= transform.scaling;
+                *pos += transform.translation;
+            }
+        }
+    }
+}
+
 /// Render MVT data into a list of [`epaint::Shape`]s.
-pub fn render(data: &mvt_reader::Reader, egui_ctx: &egui::Context) -> Result<Vec<Shape>, Error> {
+pub fn render(data: &mvt_reader::Reader) -> Result<Vec<ShapeOrText>, Error> {
     let mut shapes = Vec::new();
 
     let known_layers = [
@@ -54,7 +80,7 @@ pub fn render(data: &mvt_reader::Reader, egui_ctx: &egui::Context) -> Result<Vec
     for layer in known_layers {
         if let Ok(layer_index) = find_layer(data, layer) {
             for feature in data.get_features(layer_index)? {
-                if let Err(err) = render_feature(&feature, &mut shapes, egui_ctx) {
+                if let Err(err) = feature_into_shape(&feature, &mut shapes) {
                     warn!("{err}");
                 }
             }
@@ -67,7 +93,7 @@ pub fn render(data: &mvt_reader::Reader, egui_ctx: &egui::Context) -> Result<Vec
 }
 
 /// Transform shapes from MVT space to screen space.
-pub fn transformed(shapes: &[Shape], rect: egui::Rect) -> Vec<Shape> {
+pub fn transformed(shapes: &[ShapeOrText], rect: egui::Rect) -> Vec<ShapeOrText> {
     let transform = TSTransform {
         scaling: rect.width() / ONLY_SUPPORTED_EXTENT as f32,
         translation: rect.min.to_vec2(),
@@ -80,11 +106,7 @@ pub fn transformed(shapes: &[Shape], rect: egui::Rect) -> Vec<Shape> {
     result
 }
 
-fn render_feature(
-    feature: &Feature,
-    shapes: &mut Vec<Shape>,
-    egui_ctx: &egui::Context,
-) -> Result<(), Error> {
+fn feature_into_shape(feature: &Feature, shapes: &mut Vec<ShapeOrText>) -> Result<(), Error> {
     let properties = feature
         .properties
         .as_ref()
@@ -97,7 +119,7 @@ fn render_feature(
                     .iter()
                     .map(|p| pos2(p.x, p.y))
                     .collect::<Vec<_>>();
-                shapes.push(Shape::line(points, stroke));
+                shapes.push(Shape::line(points, stroke).into());
             }
         }
         Geometry::MultiLineString(multi_line_string) => {
@@ -108,7 +130,7 @@ fn render_feature(
                         .iter()
                         .map(|p| pos2(p.x, p.y))
                         .collect::<Vec<_>>();
-                    shapes.push(Shape::line(points, stroke));
+                    shapes.push(Shape::line(points, stroke).into());
                 }
             }
         }
@@ -116,7 +138,8 @@ fn render_feature(
             "neighbourhood" | "locality" => {
                 if let Some(Value::String(name)) = properties.get("name") {
                     for point in multi_point.0.iter() {
-                        shapes.push(text(pos2(point.x(), point.y()), name.clone(), egui_ctx));
+                        //shapes.push(text(pos2(point.x(), point.y()), name.clone(), egui_ctx));
+                        shapes.push(ShapeOrText::Text(pos2(point.x(), point.y()), name.clone()));
                     }
                 }
             }
@@ -141,7 +164,11 @@ fn render_feature(
                         .iter()
                         .map(|hole| hole.0.iter().map(|p| pos2(p.x, p.y)).collect::<Vec<_>>())
                         .collect::<Vec<_>>();
-                    shapes.extend(arbitrary_polygon(&points, &holes, fill));
+                    shapes.extend(
+                        arbitrary_polygon(&points, &holes, fill)
+                            .into_iter()
+                            .map(Into::into),
+                    );
                 }
             }
         }
@@ -153,19 +180,6 @@ fn render_feature(
         Geometry::Triangle(_triangle) => todo!(),
     }
     Ok(())
-}
-
-fn text(pos: Pos2, text: String, ctx: &egui::Context) -> Shape {
-    ctx.fonts_mut(|fonts| {
-        Shape::text(
-            fonts,
-            pos,
-            egui::Align2::CENTER_CENTER,
-            text,
-            FontId::proportional(80.0),
-            Color32::from_gray(200),
-        )
-    })
 }
 
 const WATER_COLOR: Color32 = Color32::from_rgb(12, 39, 77);
