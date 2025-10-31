@@ -193,7 +193,7 @@ fn kind(properties: &HashMap<String, Value>) -> Result<String, Error> {
 fn points(properties: &HashMap<String, Value>, points: &[Pos2]) -> Result<Vec<ShapeOrText>, Error> {
     let font_size = match kind(properties)?.as_str() {
         "neighbourhood" | "locality" => Ok(16.0),
-        "peak" => Ok(10.0),
+        "peak" | "water" => Ok(10.0),
         _ => Err(Error::UnsupportedFeatureKind(properties.clone())),
     }?;
 
