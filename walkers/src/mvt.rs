@@ -224,7 +224,7 @@ fn line_stroke(properties: &HashMap<String, Value>) -> Result<Option<Stroke>, Er
         "major_road" => Some(Stroke::new(12.0, ROAD_COLOR)),
         "minor_road" => Some(Stroke::new(9.0, ROAD_COLOR)),
         "rail" => Some(Stroke::new(3.0, ROAD_COLOR)),
-        "path" => Some(Stroke::new(3.0, Color32::from_rgb(94, 62, 32))),
+        "path" => Some(Stroke::new(3.0, Color32::from_rgb(60, 40, 0))),
         "river" | "stream" | "drain" | "ditch" | "canal" => Some(Stroke::new(3.0, WATER_COLOR)),
         "other" | "aerialway" | "cliff" => None,
         other => {
