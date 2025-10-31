@@ -67,8 +67,8 @@ pub fn render(data: &mvt_reader::Reader) -> Result<Vec<ShapeOrText>, Error> {
 
     let known_layers = [
         "earth",
-        "water",
         "landuse",
+        "water",
         "landcover",
         "buildings",
         "roads",
