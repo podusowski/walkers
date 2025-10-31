@@ -20,8 +20,8 @@ pub enum Error {
     LayerNotFound(String, Vec<String>),
     #[error("Unsupported layer extent: {0}")]
     UnsupportedLayerExtent(String),
-    #[error("Unsupported {1:?} kind, properties: {0:?}")]
-    UnsupportedFeatureKind(HashMap<String, Value>, Geometry<f32>),
+    #[error("Unsupported kind: {0:?}")]
+    UnsupportedFeatureKind(HashMap<String, Value>),
     #[error("Missing kind in properties: {0:?}")]
     FeatureWithoutKind(HashMap<String, Value>),
     #[error("Missing properties in feature")]
@@ -139,25 +139,14 @@ fn feature_into_shape(feature: &Feature, shapes: &mut Vec<ShapeOrText>) -> Resul
                 }
             }
         }
-        Geometry::MultiPoint(multi_point) => match kind(properties)?.as_str() {
-            "neighbourhood" | "locality" => {
-                if let Some(Value::String(name)) = properties.get("name") {
-                    for point in multi_point.0.iter() {
-                        shapes.push(ShapeOrText::Text {
-                            position: pos2(point.x(), point.y()),
-                            text: name.clone(),
-                            font_size: 16.0,
-                        });
-                    }
-                }
-            }
-            _ => {
-                return Err(Error::UnsupportedFeatureKind(
-                    properties.clone(),
-                    feature.geometry.clone(),
-                ));
-            }
-        },
+        Geometry::MultiPoint(multi_point) => shapes.extend(points(
+            properties,
+            &multi_point
+                .0
+                .iter()
+                .map(|p| pos2(p.x(), p.y()))
+                .collect::<Vec<_>>(),
+        )?),
         Geometry::MultiPolygon(multi_polygon) => {
             if let Some(fill) = polygon_fill(properties)? {
                 for polygon in multi_polygon.iter() {
@@ -198,6 +187,27 @@ fn kind(properties: &HashMap<String, Value>) -> Result<String, Error> {
         Ok(kind.clone())
     } else {
         Err(Error::FeatureWithoutKind(properties.clone()))
+    }
+}
+
+fn points(properties: &HashMap<String, Value>, points: &[Pos2]) -> Result<Vec<ShapeOrText>, Error> {
+    match kind(properties)?.as_str() {
+        "neighbourhood" | "locality" => {
+            if let Some(Value::String(name)) = properties.get("name") {
+                Ok(points
+                    .into_iter()
+                    .map(|point| ShapeOrText::Text {
+                        position: *point,
+                        text: name.clone(),
+                        font_size: 16.0,
+                    })
+                    .collect::<Vec<_>>())
+            } else {
+                // Without name, there is currently nothing to render.
+                Ok(Vec::new())
+            }
+        }
+        _ => Err(Error::UnsupportedFeatureKind(properties.clone())),
     }
 }
 
