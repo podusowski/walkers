@@ -3,7 +3,7 @@
 use std::collections::HashMap;
 
 use egui::{
-    Color32, FontId, Pos2, Shape, Stroke,
+    Color32, Pos2, Shape, Stroke,
     emath::TSTransform,
     epaint::{PathShape, PathStroke},
     pos2,
@@ -83,7 +83,7 @@ pub fn render(
     for layer in known_layers {
         if let Ok(layer_index) = find_layer(data, layer) {
             for feature in data.get_features(layer_index)? {
-                if let Err(err) = feature_into_shape(&feature, &mut shapes, egui_ctx) {
+                if let Err(err) = feature_into_shape(&feature, &mut shapes) {
                     warn!("{err}");
                 }
             }
@@ -109,11 +109,7 @@ pub fn transformed(shapes: &[ShapeOrText], rect: egui::Rect) -> Vec<ShapeOrText>
     result
 }
 
-fn feature_into_shape(
-    feature: &Feature,
-    shapes: &mut Vec<ShapeOrText>,
-    egui_ctx: &egui::Context,
-) -> Result<(), Error> {
+fn feature_into_shape(feature: &Feature, shapes: &mut Vec<ShapeOrText>) -> Result<(), Error> {
     let properties = feature
         .properties
         .as_ref()
@@ -187,19 +183,6 @@ fn feature_into_shape(
         Geometry::Triangle(_triangle) => todo!(),
     }
     Ok(())
-}
-
-fn text(pos: Pos2, text: String, ctx: &egui::Context) -> Shape {
-    ctx.fonts_mut(|fonts| {
-        Shape::text(
-            fonts,
-            pos,
-            egui::Align2::CENTER_CENTER,
-            text,
-            FontId::proportional(80.0),
-            Color32::from_gray(200),
-        )
-    })
 }
 
 const WATER_COLOR: Color32 = Color32::from_rgb(12, 39, 77);
