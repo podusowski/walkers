@@ -225,7 +225,7 @@ fn polygon_fill(properties: &HashMap<String, Value>) -> Result<Option<Color32>, 
         "building" | "building_part" | "pier" | "runway" | "bare_rock" => {
             Some(Color32::from_rgb(30, 30, 30))
         }
-        "military" => Some(Color32::from_rgb(46, 31, 31)),
+        "military" => Some(Color32::from_rgb(40, 0, 0)),
         "sand" | "beach" => Some(Color32::from_rgb(64, 64, 0)),
         "pedestrian" | "recreation_ground" | "railway" | "industrial" | "residential"
         | "commercial" | "protected_area" | "school" | "platform" | "kindergarten" | "cliff"
