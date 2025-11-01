@@ -199,7 +199,7 @@ fn points(properties: &HashMap<String, Value>, points: &[Pos2]) -> Result<Vec<Sh
 
     if let Some(Value::String(name)) = properties.get("name") {
         Ok(points
-            .into_iter()
+            .iter()
             .map(|point| ShapeOrText::Text {
                 position: *point,
                 text: name.clone(),
