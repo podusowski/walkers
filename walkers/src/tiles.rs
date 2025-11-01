@@ -135,7 +135,11 @@ impl Texture {
                     .into_iter()
                     .map(|shape_or_text| match shape_or_text {
                         ShapeOrText::Shape(shape) => shape,
-                        ShapeOrText::Text(pos, text) => self.draw_text(pos, text, painter.ctx()),
+                        ShapeOrText::Text {
+                            position,
+                            text,
+                            font_size,
+                        } => self.draw_text(position, text, font_size, painter.ctx()),
                     })
                     .collect();
 
@@ -145,14 +149,14 @@ impl Texture {
     }
 
     #[cfg(feature = "vector_tiles")]
-    fn draw_text(&self, pos: Pos2, text: String, ctx: &Context) -> Shape {
+    fn draw_text(&self, pos: Pos2, text: String, font_size: f32, ctx: &Context) -> Shape {
         ctx.fonts_mut(|fonts| {
             Shape::text(
                 fonts,
                 pos,
                 egui::Align2::CENTER_CENTER,
                 text,
-                FontId::proportional(16.0),
+                FontId::proportional(font_size),
                 Color32::WHITE.gamma_multiply(0.6),
             )
         })

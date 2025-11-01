@@ -20,8 +20,8 @@ pub enum Error {
     LayerNotFound(String, Vec<String>),
     #[error("Unsupported layer extent: {0}")]
     UnsupportedLayerExtent(String),
-    #[error("Unsupported {1:?} kind, properties: {0:?}")]
-    UnsupportedFeatureKind(HashMap<String, Value>, Geometry<f32>),
+    #[error("Unsupported kind: {0:?}")]
+    UnsupportedFeatureKind(HashMap<String, Value>),
     #[error("Missing kind in properties: {0:?}")]
     FeatureWithoutKind(HashMap<String, Value>),
     #[error("Missing properties in feature")]
@@ -34,7 +34,11 @@ const ONLY_SUPPORTED_EXTENT: u32 = 4096;
 #[derive(Debug, Clone)]
 pub enum ShapeOrText {
     Shape(Shape),
-    Text(Pos2, String),
+    Text {
+        position: Pos2,
+        text: String,
+        font_size: f32,
+    },
 }
 
 impl From<Shape> for ShapeOrText {
@@ -49,9 +53,9 @@ impl ShapeOrText {
             ShapeOrText::Shape(shape) => {
                 shape.transform(transform);
             }
-            ShapeOrText::Text(pos, _text) => {
-                *pos *= transform.scaling;
-                *pos += transform.translation;
+            ShapeOrText::Text { position, .. } => {
+                *position *= transform.scaling;
+                *position += transform.translation;
             }
         }
     }
@@ -63,12 +67,13 @@ pub fn render(data: &mvt_reader::Reader) -> Result<Vec<ShapeOrText>, Error> {
 
     let known_layers = [
         "earth",
-        "water",
         "landuse",
+        "water",
         "landcover",
         "buildings",
         "roads",
         "places",
+        "pois",
     ];
 
     for layer in data.get_layer_names()? {
@@ -134,22 +139,14 @@ fn feature_into_shape(feature: &Feature, shapes: &mut Vec<ShapeOrText>) -> Resul
                 }
             }
         }
-        Geometry::MultiPoint(multi_point) => match kind(properties)?.as_str() {
-            "neighbourhood" | "locality" => {
-                if let Some(Value::String(name)) = properties.get("name") {
-                    for point in multi_point.0.iter() {
-                        //shapes.push(text(pos2(point.x(), point.y()), name.clone(), egui_ctx));
-                        shapes.push(ShapeOrText::Text(pos2(point.x(), point.y()), name.clone()));
-                    }
-                }
-            }
-            _ => {
-                return Err(Error::UnsupportedFeatureKind(
-                    properties.clone(),
-                    feature.geometry.clone(),
-                ));
-            }
-        },
+        Geometry::MultiPoint(multi_point) => shapes.extend(points(
+            properties,
+            &multi_point
+                .0
+                .iter()
+                .map(|p| pos2(p.x(), p.y()))
+                .collect::<Vec<_>>(),
+        )?),
         Geometry::MultiPolygon(multi_polygon) => {
             if let Some(fill) = polygon_fill(properties)? {
                 for polygon in multi_polygon.iter() {
@@ -193,6 +190,29 @@ fn kind(properties: &HashMap<String, Value>) -> Result<String, Error> {
     }
 }
 
+fn points(properties: &HashMap<String, Value>, points: &[Pos2]) -> Result<Vec<ShapeOrText>, Error> {
+    let font_size = match kind(properties)?.as_str() {
+        "neighbourhood" | "locality" => Ok(16.0),
+        "peak" | "water" | "forest" | "park" | "national_park" | "protected_area" | "military"
+        | "hospital" | "bus_station" | "train_station" | "aerodrome" => Ok(10.0),
+        _ => Err(Error::UnsupportedFeatureKind(properties.clone())),
+    }?;
+
+    if let Some(Value::String(name)) = properties.get("name") {
+        Ok(points
+            .iter()
+            .map(|point| ShapeOrText::Text {
+                position: *point,
+                text: name.clone(),
+                font_size,
+            })
+            .collect::<Vec<_>>())
+    } else {
+        // Without name, there is currently nothing to render.
+        Ok(Vec::new())
+    }
+}
+
 fn polygon_fill(properties: &HashMap<String, Value>) -> Result<Option<Color32>, Error> {
     Ok(match kind(properties)?.as_str() {
         "water" | "fountain" | "swimming_pool" | "basin" | "lake" | "ditch" | "ocean" => {
@@ -206,7 +226,7 @@ fn polygon_fill(properties: &HashMap<String, Value>) -> Result<Option<Color32>, 
         "building" | "building_part" | "pier" | "runway" | "bare_rock" => {
             Some(Color32::from_rgb(30, 30, 30))
         }
-        "military" => Some(Color32::from_rgb(46, 31, 31)),
+        "military" => Some(Color32::from_rgb(40, 0, 0)),
         "sand" | "beach" => Some(Color32::from_rgb(64, 64, 0)),
         "pedestrian" | "recreation_ground" | "railway" | "industrial" | "residential"
         | "commercial" | "protected_area" | "school" | "platform" | "kindergarten" | "cliff"
