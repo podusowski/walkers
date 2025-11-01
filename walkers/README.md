@@ -11,7 +11,8 @@ It compiles to native applications as well as WASM. See the **[online demo here]
 ![Screenshot](https://raw.githubusercontent.com/podusowski/walkers/main/screenshot.png)
 
 It supports [OpenStreetMap](https://www.openstreetmap.org), [mapbox](https://www.mapbox.com/), 
-and compatible tile servers.
+and compatible tile servers. There is also experimental support for off-line vector tiles using
+the [PMTiles](https://protomaps.com/pmtiles/) format.
 
 Before deploying your application, please get yourself familiar with the
 [OpenStreetMap usage policy](https://operations.osmfoundation.org/policies/tiles/), 
