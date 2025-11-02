@@ -94,8 +94,8 @@ fn generate_poi(rng: &mut StdRng, center: Position) -> Vec<LabeledSymbol> {
 
     let mut out = Vec::with_capacity(POI_COUNT);
     for i in 0..POI_COUNT {
-        let lon = rng.gen_range((center_lon - dlon)..(center_lon + dlon));
-        let lat = rng.gen_range((center_lat - dlat)..(center_lat + dlat));
+        let lon = rng.random_range((center_lon - dlon)..(center_lon + dlon));
+        let lat = rng.random_range((center_lat - dlat)..(center_lat + dlat));
 
         out.push(LabeledSymbol {
             position: lon_lat(lon, lat),
@@ -125,7 +125,7 @@ impl Default for ClusterApp {
     fn default() -> Self {
         let mut app = Self {
             memory: MapMemory::default(),
-            rng: StdRng::from_entropy(),
+            rng: StdRng::from_os_rng(),
             points: Vec::new(),
             tiles: None,
             loaders_ready: false,

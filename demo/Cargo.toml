@@ -10,7 +10,7 @@ walkers_extras.workspace = true
 eframe.workspace = true
 egui.workspace = true
 egui_extras.workspace = true
-rand = { version = "0.8", features = ["std_rng"] } # StdRng + SeedableRng
+rand = { version = "0.9", features = ["std_rng"] } # StdRng + SeedableRng
 wgpu.workspace = true
 
 [features]
@@ -18,4 +18,4 @@ default = []
 vector_tiles = ["walkers/vector_tiles"]
 
 [target.'cfg(target_arch = "wasm32")'.dependencies]
-getrandom = { version = "0.2", features = ["js"] }
+getrandom = { version = "0.3", features = ["wasm_js"] }
