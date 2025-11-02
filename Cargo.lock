@@ -943,7 +943,7 @@ dependencies = [
  "eframe",
  "egui",
  "egui_extras",
- "getrandom 0.2.16",
+ "getrandom 0.3.4",
  "rand 0.9.2",
  "walkers",
  "walkers_extras",
