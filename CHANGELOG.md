@@ -5,6 +5,7 @@ All notable changes to this project will be documented in this file.
 ## Unreleased
 
 * More improvements to experimental vector tile rendering.
+* `Map::show` now receives the `egui::Response` just like plugins do.
 
 ## 0.48.0
 
