@@ -331,7 +331,9 @@ fn tessellate_polygon(
     }
 
     let mut builder = Path::builder();
+
     add_ring_to_path(&mut builder, exterior);
+
     for hole in holes {
         if hole.len() >= 3 {
             add_ring_to_path(&mut builder, hole);
