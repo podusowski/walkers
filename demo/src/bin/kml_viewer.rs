@@ -22,7 +22,6 @@ impl KmlViewerApp {
     fn new(ctx: &egui::Context) -> Self {
         let mut memory = MapMemory::default();
         let _ = memory.set_zoom(5.0);
-        memory.center_at(lon_lat(17.0, 52.0));
 
         let mut app = Self {
             memory,
@@ -150,8 +149,7 @@ impl App for KmlViewerApp {
         });
 
         egui::CentralPanel::default().show(ctx, |ui| {
-            let center = self.memory.detached().unwrap_or_else(Self::default_center);
-            let mut map = Map::new(None, &mut self.memory, center);
+            let mut map = Map::new(None, &mut self.memory, Self::default_center());
 
             if let Some(tiles) = self.tiles.as_mut() {
                 map = map.with_layer(tiles, 1.0);
