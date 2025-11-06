@@ -11,7 +11,7 @@ use walkers_extras::{KmlFeature, KmlGeometry, KmlLayer, KmlVisualDefaults, parse
 
 struct KmlViewerApp {
     memory: MapMemory,
-    tiles: Option<HttpTiles>,
+    tiles: HttpTiles,
     layer: Option<KmlLayer>,
     file_name: Option<String>,
     load_error: Option<String>,
@@ -25,7 +25,7 @@ impl KmlViewerApp {
 
         let mut app = Self {
             memory,
-            tiles: Some(tiles(ctx)),
+            tiles: tiles(ctx),
             layer: None,
             file_name: None,
             load_error: None,
@@ -150,10 +150,8 @@ impl App for KmlViewerApp {
 
         egui::CentralPanel::default().show(ctx, |ui| {
             let mut map = Map::new(None, &mut self.memory, Self::default_center());
+            map = map.with_layer(&mut self.tiles, 1.0);
 
-            if let Some(tiles) = self.tiles.as_mut() {
-                map = map.with_layer(tiles, 1.0);
-            }
             if let Some(layer) = self.layer.clone() {
                 map = map.with_plugin(layer);
             }
