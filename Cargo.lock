@@ -1126,15 +1126,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "d8b14ccef22fc6f5a8f4d7d768562a182c04ce9a3b3157b91390b52ddfdf1a76"
 
 [[package]]
-name = "earcut"
-version = "0.4.4"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d565e947a723df9f069393f8c3e723cf386ff9a052443339235ae2a4d9ffee3f"
-dependencies = [
- "num-traits",
-]
-
-[[package]]
 name = "ecolor"
 version = "0.33.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -5093,7 +5084,6 @@ name = "walkers"
 version = "0.48.0"
 dependencies = [
  "approx",
- "earcut",
  "eframe",
  "egui",
  "egui_extras",
