@@ -282,44 +282,6 @@ fn find_layer(data: &mvt_reader::Reader, name: &str) -> Result<usize, Error> {
     Ok(layer.layer_index)
 }
 
-/// Egui can only draw convex polygons, so we need to triangulate arbitrary ones.
-fn arbitrary_polygon(exterior: &[Pos2], holes: &[Vec<Pos2>], fill: Color32) -> Vec<Shape> {
-    let mut triangles = Vec::<usize>::new();
-
-    // Prepare Earcut data by flattening exterior points...
-    let mut all_points = Vec::new();
-    all_points.extend(exterior.iter().map(|p| [p.x, p.y]));
-
-    // ...and adding hole points while recording their indices.
-    let mut hole_indices = Vec::new();
-    for hole in holes {
-        hole_indices.push(all_points.len());
-        all_points.extend(hole.iter().map(|p| [p.x, p.y]));
-    }
-
-    earcut::Earcut::new().earcut(all_points.to_vec(), &hole_indices, &mut triangles);
-
-    // Convert back to Pos2 for indexing
-    let all_pos2: Vec<Pos2> = all_points.iter().map(|p| pos2(p[0], p[1])).collect();
-
-    let mut shapes = Vec::new();
-    for triangle_indices in triangles.chunks(3) {
-        let triangle = [
-            all_pos2[triangle_indices[0]],
-            all_pos2[triangle_indices[1]],
-            all_pos2[triangle_indices[2]],
-        ];
-
-        if triangle_area(triangle[0], triangle[1], triangle[2]) < 100.0 {
-            // Too small to render without artifacts.
-            continue;
-        }
-
-        shapes.push(PathShape::convex_polygon(triangle.to_vec(), fill, PathStroke::NONE).into());
-    }
-    shapes
-}
-
 fn tessellate_polygon(exterior: &[Pos2], holes: &[Vec<Pos2>], fill_color: Color32) -> Option<Mesh> {
     let mut builder = Path::builder();
     add_ring_to_path(&mut builder, exterior).ok()?;
@@ -365,8 +327,4 @@ fn add_ring_to_path(builder: &mut lyon_path::path::Builder, ring: &[Pos2]) -> Re
     }
     builder.close();
     Ok(())
-}
-
-fn triangle_area(a: Pos2, b: Pos2, c: Pos2) -> f32 {
-    ((a.x * (b.y - c.y) + b.x * (c.y - a.y) + c.x * (a.y - b.y)) / 2.0).abs()
 }
