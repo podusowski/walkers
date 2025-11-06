@@ -206,7 +206,7 @@ impl eframe::App for ClusterApp {
             };
 
             let t0 = Instant::now();
-            let map_response = map.with_plugin(stats_handle).show(ui, |_, _, _| {});
+            let map_response = map.with_plugin(stats_handle).show(ui, |_, _, _, _| {});
             let dt_ms = t0.elapsed().as_secs_f64() * 1_000.0;
             self.avg_frame_ms.push_ms(dt_ms);
 

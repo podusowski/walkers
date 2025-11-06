@@ -198,7 +198,7 @@ impl App for KmlViewerApp {
                 map = map.with_plugin(layer);
             }
 
-            map.show(ui, |_, _, _| {});
+            ui.add(map);
         });
     }
 }
