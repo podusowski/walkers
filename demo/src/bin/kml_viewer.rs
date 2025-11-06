@@ -26,7 +26,7 @@ impl KmlViewerApp {
 
         let mut app = Self {
             memory,
-            tiles: None,
+            tiles: Some(tiles(ctx)),
             layer: None,
             file_name: None,
             load_error: None,
@@ -74,8 +74,6 @@ impl KmlViewerApp {
                 }
             }
         }
-
-        app.tiles = Some(tiles(ctx));
 
         app
     }
