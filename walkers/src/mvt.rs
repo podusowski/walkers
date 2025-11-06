@@ -339,7 +339,7 @@ fn tessellate_polygon(exterior: &[Pos2], holes: &[Vec<Pos2>], fill_color: Color3
     let mut tessellator = FillTessellator::new();
     let mut buffers: VertexBuffers<Pos2, u32> = VertexBuffers::new();
 
-    if tessellator
+    tessellator
         .tessellate_path(
             path.as_slice(),
             &FillOptions::default(),
@@ -348,10 +348,7 @@ fn tessellate_polygon(exterior: &[Pos2], holes: &[Vec<Pos2>], fill_color: Color3
                 Pos2::new(pos.x, pos.y)
             }),
         )
-        .is_err()
-    {
-        return None;
-    }
+        .ok()?;
 
     let mut mesh = Mesh::default();
     mesh.indices.extend(buffers.indices);
