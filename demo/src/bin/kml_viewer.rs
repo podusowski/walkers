@@ -12,15 +12,14 @@ use walkers_extras::{KmlFeature, KmlGeometry, KmlLayer, KmlVisualDefaults, parse
 struct KmlViewerApp {
     memory: MapMemory,
     tiles: Option<HttpTiles>,
-    loaders_ready: bool,
     layer: Option<KmlLayer>,
     file_name: Option<String>,
     load_error: Option<String>,
     summary: Option<String>,
 }
 
-impl Default for KmlViewerApp {
-    fn default() -> Self {
+impl KmlViewerApp {
+    fn new(ctx: &egui::Context) -> Self {
         let mut memory = MapMemory::default();
         let _ = memory.set_zoom(5.0);
         memory.center_at(lon_lat(17.0, 52.0));
@@ -28,7 +27,6 @@ impl Default for KmlViewerApp {
         let mut app = Self {
             memory,
             tiles: None,
-            loaders_ready: false,
             layer: None,
             file_name: None,
             load_error: None,
@@ -77,59 +75,49 @@ impl Default for KmlViewerApp {
             }
         }
 
-        app
-    }
-}
-
-impl KmlViewerApp {
-    fn default_center() -> Position {
-        lon_lat(17.0, 52.0)
-    }
-
-    fn ensure_tiles(&mut self, ctx: &egui::Context) {
-        if !self.loaders_ready {
-            egui_extras::install_image_loaders(ctx);
-            self.loaders_ready = true;
-        }
-        if self.tiles.is_none() {
-            // Default sober basemap without token: Carto Light (Positron). Otherwise Mapbox Light if token.
-            // Final fallback: OSM standard.
-            let tiles = if let Ok(token) =
-                std::env::var("MAPBOX_ACCESS_TOKEN").or_else(|_| std::env::var("MAPBOX_TOKEN"))
-            {
-                let src = walkers::sources::Mapbox {
-                    style: walkers::sources::MapboxStyle::Light,
-                    high_resolution: true,
-                    access_token: token,
-                };
-                HttpTiles::with_options(src, HttpOptions::default(), ctx.clone())
-            } else {
-                // Local definition of a Carto Light XYZ tile source
-                struct CartoLight;
-                impl walkers::sources::TileSource for CartoLight {
-                    fn tile_url(&self, tile_id: walkers::TileId) -> String {
-                        // Use subdomain 'a' for simplicity
-                        format!(
-                            "https://cartodb-basemaps-a.global.ssl.fastly.net/light_all/{}/{}/{}.png",
-                            tile_id.zoom, tile_id.x, tile_id.y
-                        )
-                    }
-                    fn attribution(&self) -> walkers::sources::Attribution {
-                        walkers::sources::Attribution {
-                            text: "© OpenStreetMap © CARTO",
-                            url: "https://carto.com/attributions",
-                            logo_light: None,
-                            logo_dark: None,
-                        }
-                    }
-                    fn max_zoom(&self) -> u8 {
-                        20
+        // Default sober basemap without token: Carto Light (Positron). Otherwise Mapbox Light if token.
+        // Final fallback: OSM standard.
+        let tiles = if let Ok(token) =
+            std::env::var("MAPBOX_ACCESS_TOKEN").or_else(|_| std::env::var("MAPBOX_TOKEN"))
+        {
+            let src = walkers::sources::Mapbox {
+                style: walkers::sources::MapboxStyle::Light,
+                high_resolution: true,
+                access_token: token,
+            };
+            HttpTiles::with_options(src, HttpOptions::default(), ctx.clone())
+        } else {
+            // Local definition of a Carto Light XYZ tile source
+            struct CartoLight;
+            impl walkers::sources::TileSource for CartoLight {
+                fn tile_url(&self, tile_id: walkers::TileId) -> String {
+                    // Use subdomain 'a' for simplicity
+                    format!(
+                        "https://cartodb-basemaps-a.global.ssl.fastly.net/light_all/{}/{}/{}.png",
+                        tile_id.zoom, tile_id.x, tile_id.y
+                    )
+                }
+                fn attribution(&self) -> walkers::sources::Attribution {
+                    walkers::sources::Attribution {
+                        text: "© OpenStreetMap © CARTO",
+                        url: "https://carto.com/attributions",
+                        logo_light: None,
+                        logo_dark: None,
                     }
                 }
-                HttpTiles::with_options(CartoLight, HttpOptions::default(), ctx.clone())
-            };
-            self.tiles = Some(tiles);
-        }
+                fn max_zoom(&self) -> u8 {
+                    20
+                }
+            }
+            HttpTiles::with_options(CartoLight, HttpOptions::default(), ctx.clone())
+        };
+        app.tiles = Some(tiles);
+
+        app
+    }
+
+    fn default_center() -> Position {
+        lon_lat(17.0, 52.0)
     }
 
     fn load_kml_from_path(&mut self, path: PathBuf) {
@@ -178,8 +166,6 @@ impl KmlViewerApp {
 
 impl App for KmlViewerApp {
     fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
-        self.ensure_tiles(ctx);
-
         egui::TopBottomPanel::top("kml_controls").show(ctx, |ui| {
             ui.horizontal(|ui| {
                 if ui.button("Open a KML file…").clicked() {
@@ -400,6 +386,6 @@ fn main() -> eframe::Result<()> {
     eframe::run_native(
         "Walkers: KML Viewer",
         options,
-        Box::new(|_| Ok(Box::<KmlViewerApp>::default())),
+        Box::new(|cc| Ok(Box::new(KmlViewerApp::new(&cc.egui_ctx)))),
     )
 }
