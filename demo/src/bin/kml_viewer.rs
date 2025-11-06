@@ -12,7 +12,6 @@ use walkers_extras::{KmlFeature, KmlGeometry, KmlLayer, KmlVisualDefaults, parse
 struct KmlViewerApp {
     memory: MapMemory,
     tiles: Option<HttpTiles>,
-    loaders_ready: bool,
     layer: Option<KmlLayer>,
     file_name: Option<String>,
     load_error: Option<String>,
@@ -28,7 +27,6 @@ impl Default for KmlViewerApp {
         let mut app = Self {
             memory,
             tiles: None,
-            loaders_ready: false,
             layer: None,
             file_name: None,
             load_error: None,
@@ -87,10 +85,6 @@ impl KmlViewerApp {
     }
 
     fn ensure_tiles(&mut self, ctx: &egui::Context) {
-        if !self.loaders_ready {
-            egui_extras::install_image_loaders(ctx);
-            self.loaders_ready = true;
-        }
         if self.tiles.is_none() {
             // Default sober basemap without token: Carto Light (Positron). Otherwise Mapbox Light if token.
             // Final fallback: OSM standard.
