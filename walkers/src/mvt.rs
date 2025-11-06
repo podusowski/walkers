@@ -321,18 +321,10 @@ fn arbitrary_polygon(exterior: &[Pos2], holes: &[Vec<Pos2>], fill: Color32) -> V
 }
 
 fn tessellate_polygon(exterior: &[Pos2], holes: &[Vec<Pos2>], fill_color: Color32) -> Option<Mesh> {
-    if exterior.len() < 3 {
-        return None;
-    }
-
     let mut builder = Path::builder();
-
-    add_ring_to_path(&mut builder, exterior);
-
+    add_ring_to_path(&mut builder, exterior).ok()?;
     for hole in holes {
-        if hole.len() >= 3 {
-            add_ring_to_path(&mut builder, hole);
-        }
+        add_ring_to_path(&mut builder, hole).ok()?;
     }
 
     let path = builder.build();
@@ -363,15 +355,16 @@ fn tessellate_polygon(exterior: &[Pos2], holes: &[Vec<Pos2>], fill_color: Color3
     Some(mesh)
 }
 
-fn add_ring_to_path(builder: &mut lyon_path::path::Builder, ring: &[Pos2]) {
-    if ring.is_empty() {
-        return;
+fn add_ring_to_path(builder: &mut lyon_path::path::Builder, ring: &[Pos2]) -> Result<(), ()> {
+    if ring.len() < 3 {
+        return Err(());
     }
     builder.begin(point(ring[0].x, ring[0].y));
     for p in &ring[1..] {
         builder.line_to(point(p.x, p.y));
     }
     builder.close();
+    Ok(())
 }
 
 fn triangle_area(a: Pos2, b: Pos2, c: Pos2) -> f32 {
