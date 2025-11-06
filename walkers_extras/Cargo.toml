@@ -14,3 +14,7 @@ license = "MIT"
 walkers.workspace = true
 egui.workspace = true
 rstar = "0.12"
+quick-xml = "0.37"
+thiserror = "1"
+lyon_tessellation = "1.0"
+lyon_path = "1.0"

@@ -6,6 +6,7 @@ All notable changes to this project will be documented in this file.
 
 * More improvements to experimental vector tile rendering.
 * `Map::show` now receives the `egui::Response` just like plugins do.
+* KML support in `walkers_extras`. See `kml_viewer` for details.
 
 ## 0.48.0
 
