@@ -94,8 +94,8 @@ fn generate_poi(rng: &mut StdRng, center: Position) -> Vec<LabeledSymbol> {
 
     let mut out = Vec::with_capacity(POI_COUNT);
     for i in 0..POI_COUNT {
-        let lon = rng.gen_range((center_lon - dlon)..(center_lon + dlon));
-        let lat = rng.gen_range((center_lat - dlat)..(center_lat + dlat));
+        let lon = rng.random_range((center_lon - dlon)..(center_lon + dlon));
+        let lat = rng.random_range((center_lat - dlat)..(center_lat + dlat));
 
         out.push(LabeledSymbol {
             position: lon_lat(lon, lat),
@@ -115,20 +115,22 @@ struct ClusterApp {
     rng: StdRng,
     points: Vec<LabeledSymbol>,
     tiles: Option<HttpTiles>,
-    loaders_ready: bool,
     avg_frame_ms: RollingAvg<120>,
     plugin: Option<Rc<GroupedPlacesTree<LabeledSymbol, DemoClusterGroup>>>,
     stats: Arc<StatsCell>,
 }
 
-impl Default for ClusterApp {
-    fn default() -> Self {
+impl ClusterApp {
+    fn new(ctx: &egui::Context) -> Self {
         let mut app = Self {
             memory: MapMemory::default(),
-            rng: StdRng::from_entropy(),
+            rng: StdRng::from_os_rng(),
             points: Vec::new(),
-            tiles: None,
-            loaders_ready: false,
+            tiles: Some(HttpTiles::with_options(
+                sources::OpenStreetMap,
+                HttpOptions::default(),
+                ctx.clone(),
+            )),
             avg_frame_ms: RollingAvg::default(),
             plugin: None,
             stats: Arc::new(StatsCell::default()),
@@ -136,26 +138,9 @@ impl Default for ClusterApp {
         app.regenerate_points();
         app
     }
-}
 
-impl ClusterApp {
     fn map_center() -> Position {
         lon_lat(17.03664, 51.09916)
-    }
-
-    fn ensure_loaders(&mut self, ctx: &egui::Context) {
-        if !self.loaders_ready {
-            egui_extras::install_image_loaders(ctx);
-            self.loaders_ready = true;
-        }
-        if self.tiles.is_none() {
-            let tiles = HttpTiles::with_options(
-                sources::OpenStreetMap,
-                HttpOptions::default(),
-                ctx.clone(),
-            );
-            self.tiles = Some(tiles);
-        }
     }
 
     fn regenerate_points(&mut self) {
@@ -177,8 +162,6 @@ impl ClusterApp {
 
 impl eframe::App for ClusterApp {
     fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
-        self.ensure_loaders(ctx);
-
         egui::TopBottomPanel::top("controls").show(ctx, |ui| {
             ui.horizontal(|ui| {
                 ui.heading("R-tree clustering");
@@ -342,6 +325,6 @@ fn main() -> eframe::Result<()> {
     eframe::run_native(
         "Walkers perf: R-tree clustering",
         options,
-        Box::new(|_cc| Ok(Box::<ClusterApp>::default())),
+        Box::new(|cc| Ok(Box::new(ClusterApp::new(&cc.egui_ctx)))),
     )
 }

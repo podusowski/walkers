@@ -11,13 +11,13 @@ members = [
 resolver = "2"
 
 [workspace.package]
-version = "0.47.0"
+version = "0.48.0"
 rust-version = "1.88" # Aligned to egui
 edition = "2024"
 
 [workspace.dependencies]
-walkers = { version = "0.47.0", path = "walkers" }
-walkers_extras = { version = "0.47.0", path = "walkers_extras" }
+walkers = { version = "0.48.0", path = "walkers" }
+walkers_extras = { version = "0.48.0", path = "walkers_extras" }
 eframe = "0.33"
 egui = "0.33"
 egui_extras = { version = "0.33", features = ["svg"] }
