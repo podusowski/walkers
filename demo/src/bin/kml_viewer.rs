@@ -75,43 +75,7 @@ impl KmlViewerApp {
             }
         }
 
-        // Default sober basemap without token: Carto Light (Positron). Otherwise Mapbox Light if token.
-        // Final fallback: OSM standard.
-        let tiles = if let Ok(token) =
-            std::env::var("MAPBOX_ACCESS_TOKEN").or_else(|_| std::env::var("MAPBOX_TOKEN"))
-        {
-            let src = walkers::sources::Mapbox {
-                style: walkers::sources::MapboxStyle::Light,
-                high_resolution: true,
-                access_token: token,
-            };
-            HttpTiles::with_options(src, HttpOptions::default(), ctx.clone())
-        } else {
-            // Local definition of a Carto Light XYZ tile source
-            struct CartoLight;
-            impl walkers::sources::TileSource for CartoLight {
-                fn tile_url(&self, tile_id: walkers::TileId) -> String {
-                    // Use subdomain 'a' for simplicity
-                    format!(
-                        "https://cartodb-basemaps-a.global.ssl.fastly.net/light_all/{}/{}/{}.png",
-                        tile_id.zoom, tile_id.x, tile_id.y
-                    )
-                }
-                fn attribution(&self) -> walkers::sources::Attribution {
-                    walkers::sources::Attribution {
-                        text: "© OpenStreetMap © CARTO",
-                        url: "https://carto.com/attributions",
-                        logo_light: None,
-                        logo_dark: None,
-                    }
-                }
-                fn max_zoom(&self) -> u8 {
-                    20
-                }
-            }
-            HttpTiles::with_options(CartoLight, HttpOptions::default(), ctx.clone())
-        };
-        app.tiles = Some(tiles);
+        app.tiles = Some(tiles(ctx));
 
         app
     }
@@ -379,6 +343,43 @@ fn approximate_zoom(features: &[KmlFeature]) -> Option<f64> {
     };
 
     Some(zoom)
+}
+
+fn tiles(ctx: &egui::Context) -> HttpTiles {
+    if let Ok(token) =
+        std::env::var("MAPBOX_ACCESS_TOKEN").or_else(|_| std::env::var("MAPBOX_TOKEN"))
+    {
+        let src = walkers::sources::Mapbox {
+            style: walkers::sources::MapboxStyle::Light,
+            high_resolution: true,
+            access_token: token,
+        };
+        HttpTiles::with_options(src, HttpOptions::default(), ctx.clone())
+    } else {
+        // Local definition of a Carto Light XYZ tile source
+        struct CartoLight;
+        impl walkers::sources::TileSource for CartoLight {
+            fn tile_url(&self, tile_id: walkers::TileId) -> String {
+                // Use subdomain 'a' for simplicity
+                format!(
+                    "https://cartodb-basemaps-a.global.ssl.fastly.net/light_all/{}/{}/{}.png",
+                    tile_id.zoom, tile_id.x, tile_id.y
+                )
+            }
+            fn attribution(&self) -> walkers::sources::Attribution {
+                walkers::sources::Attribution {
+                    text: "© OpenStreetMap © CARTO",
+                    url: "https://carto.com/attributions",
+                    logo_light: None,
+                    logo_dark: None,
+                }
+            }
+            fn max_zoom(&self) -> u8 {
+                20
+            }
+        }
+        HttpTiles::with_options(CartoLight, HttpOptions::default(), ctx.clone())
+    }
 }
 
 fn main() -> eframe::Result<()> {
