@@ -5106,6 +5106,8 @@ dependencies = [
  "image",
  "log",
  "lru",
+ "lyon_path",
+ "lyon_tessellation",
  "mvt-reader",
  "pmtiles",
  "reqwest",

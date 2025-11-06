@@ -3,13 +3,15 @@
 use std::collections::HashMap;
 
 use egui::{
-    Color32, Pos2, Shape, Stroke,
+    Color32, Mesh, Pos2, Shape, Stroke,
     emath::TSTransform,
-    epaint::{PathShape, PathStroke},
+    epaint::{PathShape, PathStroke, Vertex},
     pos2,
 };
 use geo_types::Geometry;
 use log::warn;
+use lyon_path::{FillRule, Path, geom::point};
+use lyon_tessellation::{BuffersBuilder, FillOptions, FillTessellator, FillVertex, VertexBuffers};
 use mvt_reader::feature::{Feature, Value};
 
 #[derive(thiserror::Error, Debug)]
@@ -44,6 +46,12 @@ pub enum ShapeOrText {
 impl From<Shape> for ShapeOrText {
     fn from(shape: Shape) -> Self {
         ShapeOrText::Shape(shape)
+    }
+}
+
+impl From<Mesh> for ShapeOrText {
+    fn from(mesh: Mesh) -> Self {
+        ShapeOrText::Shape(Shape::Mesh(mesh.into()))
     }
 }
 
@@ -162,7 +170,7 @@ fn feature_into_shape(feature: &Feature, shapes: &mut Vec<ShapeOrText>) -> Resul
                         .map(|hole| hole.0.iter().map(|p| pos2(p.x, p.y)).collect::<Vec<_>>())
                         .collect::<Vec<_>>();
                     shapes.extend(
-                        arbitrary_polygon(&points, &holes, fill)
+                        tessellate_polygon(&points, &holes, fill, 0.5)
                             .into_iter()
                             .map(Into::into),
                     );
@@ -310,6 +318,69 @@ fn arbitrary_polygon(exterior: &[Pos2], holes: &[Vec<Pos2>], fill: Color32) -> V
         shapes.push(PathShape::convex_polygon(triangle.to_vec(), fill, PathStroke::NONE).into());
     }
     shapes
+}
+
+fn tessellate_polygon(
+    exterior: &[Pos2],
+    holes: &[Vec<Pos2>],
+    fill_color: Color32,
+    tolerance: f32,
+) -> Option<Mesh> {
+    if exterior.len() < 3 {
+        return None;
+    }
+
+    let mut builder = Path::builder();
+    add_ring_to_path(&mut builder, exterior);
+    for hole in holes {
+        if hole.len() >= 3 {
+            add_ring_to_path(&mut builder, hole);
+        }
+    }
+
+    let path = builder.build();
+    let mut tessellator = FillTessellator::new();
+    let mut buffers: VertexBuffers<Pos2, u32> = VertexBuffers::new();
+    let mut options = FillOptions::default();
+    options.tolerance = tolerance.max(0.01);
+    options.fill_rule = FillRule::EvenOdd;
+
+    if tessellator
+        .tessellate_path(
+            path.as_slice(),
+            &options,
+            &mut BuffersBuilder::new(&mut buffers, |vertex: FillVertex| {
+                let pos = vertex.position();
+                Pos2::new(pos.x, pos.y)
+            }),
+        )
+        .is_err()
+    {
+        return None;
+    }
+
+    let mut mesh = Mesh::default();
+    mesh.indices.extend(buffers.indices);
+    mesh.vertices.reserve(buffers.vertices.len());
+    for pos in buffers.vertices.into_iter() {
+        mesh.vertices.push(Vertex {
+            pos,
+            uv: egui::epaint::WHITE_UV,
+            color: fill_color,
+        });
+    }
+    Some(mesh)
+}
+
+fn add_ring_to_path(builder: &mut lyon_path::path::Builder, ring: &[Pos2]) {
+    if ring.is_empty() {
+        return;
+    }
+    builder.begin(point(ring[0].x, ring[0].y));
+    for p in &ring[1..] {
+        builder.line_to(point(p.x, p.y));
+    }
+    builder.close();
 }
 
 fn triangle_area(a: Pos2, b: Pos2, c: Pos2) -> f32 {
