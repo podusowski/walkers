@@ -10,7 +10,7 @@ use egui::{
 };
 use geo_types::Geometry;
 use log::warn;
-use lyon_path::{FillRule, Path, geom::point};
+use lyon_path::{Path, geom::point};
 use lyon_tessellation::{BuffersBuilder, FillOptions, FillTessellator, FillVertex, VertexBuffers};
 use mvt_reader::feature::{Feature, Value};
 
@@ -170,7 +170,7 @@ fn feature_into_shape(feature: &Feature, shapes: &mut Vec<ShapeOrText>) -> Resul
                         .map(|hole| hole.0.iter().map(|p| pos2(p.x, p.y)).collect::<Vec<_>>())
                         .collect::<Vec<_>>();
                     shapes.extend(
-                        tessellate_polygon(&points, &holes, fill, 0.5)
+                        tessellate_polygon(&points, &holes, fill)
                             .into_iter()
                             .map(Into::into),
                     );
@@ -320,12 +320,7 @@ fn arbitrary_polygon(exterior: &[Pos2], holes: &[Vec<Pos2>], fill: Color32) -> V
     shapes
 }
 
-fn tessellate_polygon(
-    exterior: &[Pos2],
-    holes: &[Vec<Pos2>],
-    fill_color: Color32,
-    tolerance: f32,
-) -> Option<Mesh> {
+fn tessellate_polygon(exterior: &[Pos2], holes: &[Vec<Pos2>], fill_color: Color32) -> Option<Mesh> {
     if exterior.len() < 3 {
         return None;
     }
@@ -343,14 +338,11 @@ fn tessellate_polygon(
     let path = builder.build();
     let mut tessellator = FillTessellator::new();
     let mut buffers: VertexBuffers<Pos2, u32> = VertexBuffers::new();
-    let mut options = FillOptions::default();
-    options.tolerance = tolerance.max(0.01);
-    options.fill_rule = FillRule::EvenOdd;
 
     if tessellator
         .tessellate_path(
             path.as_slice(),
-            &options,
+            &FillOptions::default(),
             &mut BuffersBuilder::new(&mut buffers, |vertex: FillVertex| {
                 let pos = vertex.position();
                 Pos2::new(pos.x, pos.y)
