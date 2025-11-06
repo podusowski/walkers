@@ -2,12 +2,7 @@
 
 use std::collections::HashMap;
 
-use egui::{
-    Color32, Mesh, Pos2, Shape, Stroke,
-    emath::TSTransform,
-    epaint::{PathShape, PathStroke, Vertex},
-    pos2,
-};
+use egui::{Color32, Mesh, Pos2, Shape, Stroke, emath::TSTransform, epaint::Vertex, pos2};
 use geo_types::Geometry;
 use log::warn;
 use lyon_path::{Path, geom::point};
