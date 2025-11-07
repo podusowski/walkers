@@ -304,13 +304,11 @@ fn tessellate_polygon(
         });
     }
 
-    let path = builder.build();
-    let mut tessellator = FillTessellator::new();
     let mut buffers: VertexBuffers<Vertex, u32> = VertexBuffers::new();
 
-    tessellator
+    FillTessellator::new()
         .tessellate_path(
-            path.as_slice(),
+            &builder.build(),
             &FillOptions::default(),
             &mut BuffersBuilder::new(&mut buffers, |vertex: FillVertex| {
                 let pos = vertex.position();
