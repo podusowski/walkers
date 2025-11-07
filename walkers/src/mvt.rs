@@ -10,7 +10,10 @@ use egui::{
 };
 use geo_types::Geometry;
 use log::warn;
-use lyon_path::{Path, Polygon, geom::point};
+use lyon_path::{
+    Path, Polygon,
+    geom::{Point, point},
+};
 use lyon_tessellation::{BuffersBuilder, FillOptions, FillTessellator, FillVertex, VertexBuffers};
 use mvt_reader::feature::{Feature, Value};
 
@@ -286,13 +289,13 @@ fn tessellate_polygon(exterior: &[Pos2], holes: &[Vec<Pos2>], fill_color: Color3
     let mut builder = Path::builder();
 
     builder.add_polygon(Polygon {
-        points: &exterior.iter().map(|p| point(p.x, p.y)).collect::<Vec<_>>(),
+        points: &lyon_points(exterior),
         closed: true,
     });
 
     for hole in holes {
         builder.add_polygon(Polygon {
-            points: &hole.iter().map(|p| point(p.x, p.y)).collect::<Vec<_>>(),
+            points: &lyon_points(hole),
             closed: true,
         });
     }
@@ -325,4 +328,8 @@ fn tessellate_polygon(exterior: &[Pos2], holes: &[Vec<Pos2>], fill_color: Color3
             .collect(),
         ..Default::default()
     })
+}
+
+fn lyon_points(points: &[Pos2]) -> Vec<Point<f32>> {
+    points.iter().map(|p| point(p.x, p.y)).collect()
 }
