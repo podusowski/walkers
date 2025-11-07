@@ -167,13 +167,13 @@ fn feature_into_shape(feature: &Feature, shapes: &mut Vec<ShapeOrText>) -> Resul
                         .iter()
                         .map(|p| pos2(p.x, p.y))
                         .collect::<Vec<_>>();
-                    let holes = polygon
+                    let interiors = polygon
                         .interiors()
                         .iter()
                         .map(|hole| hole.0.iter().map(|p| pos2(p.x, p.y)).collect::<Vec<_>>())
                         .collect::<Vec<_>>();
                     shapes.extend(
-                        tessellate_polygon(&points, &holes, fill)
+                        tessellate_polygon(&points, &interiors, fill)
                             .into_iter()
                             .map(Into::into),
                     );
@@ -285,7 +285,11 @@ fn find_layer(data: &mvt_reader::Reader, name: &str) -> Result<usize, Error> {
     Ok(layer.layer_index)
 }
 
-fn tessellate_polygon(exterior: &[Pos2], holes: &[Vec<Pos2>], fill_color: Color32) -> Option<Mesh> {
+fn tessellate_polygon(
+    exterior: &[Pos2],
+    interiors: &[Vec<Pos2>],
+    fill_color: Color32,
+) -> Option<Mesh> {
     let mut builder = Path::builder();
 
     builder.add_polygon(Polygon {
@@ -293,9 +297,9 @@ fn tessellate_polygon(exterior: &[Pos2], holes: &[Vec<Pos2>], fill_color: Color3
         closed: true,
     });
 
-    for hole in holes {
+    for interior in interiors {
         builder.add_polygon(Polygon {
-            points: &lyon_points(hole),
+            points: &lyon_points(interior),
             closed: true,
         });
     }
