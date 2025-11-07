@@ -10,7 +10,7 @@ use egui::{
 };
 use geo_types::Geometry;
 use log::warn;
-use lyon_path::{Path, geom::point};
+use lyon_path::{Path, Polygon, geom::point};
 use lyon_tessellation::{BuffersBuilder, FillOptions, FillTessellator, FillVertex, VertexBuffers};
 use mvt_reader::feature::{Feature, Value};
 
@@ -284,9 +284,17 @@ fn find_layer(data: &mvt_reader::Reader, name: &str) -> Result<usize, Error> {
 
 fn tessellate_polygon(exterior: &[Pos2], holes: &[Vec<Pos2>], fill_color: Color32) -> Option<Mesh> {
     let mut builder = Path::builder();
-    add_ring_to_path(&mut builder, exterior).ok()?;
+
+    builder.add_polygon(Polygon {
+        points: &exterior.iter().map(|p| point(p.x, p.y)).collect::<Vec<_>>(),
+        closed: true,
+    });
+
     for hole in holes {
-        add_ring_to_path(&mut builder, hole).ok()?;
+        builder.add_polygon(Polygon {
+            points: &hole.iter().map(|p| point(p.x, p.y)).collect::<Vec<_>>(),
+            closed: true,
+        });
     }
 
     let path = builder.build();
@@ -317,16 +325,4 @@ fn tessellate_polygon(exterior: &[Pos2], holes: &[Vec<Pos2>], fill_color: Color3
             .collect(),
         ..Default::default()
     })
-}
-
-fn add_ring_to_path(builder: &mut lyon_path::path::Builder, ring: &[Pos2]) -> Result<(), ()> {
-    if ring.len() < 3 {
-        return Err(());
-    }
-    builder.begin(point(ring[0].x, ring[0].y));
-    for p in &ring[1..] {
-        builder.line_to(point(p.x, p.y));
-    }
-    builder.close();
-    Ok(())
 }
