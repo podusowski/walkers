@@ -3,13 +3,20 @@
 use std::collections::HashMap;
 
 use egui::{
-    Color32, Pos2, Shape, Stroke,
+    Color32, Mesh, Pos2, Shape, Stroke,
     emath::TSTransform,
-    epaint::{PathShape, PathStroke},
+    epaint::{Vertex, WHITE_UV},
     pos2,
 };
 use geo_types::Geometry;
 use log::warn;
+use lyon_path::{
+    Path, Polygon,
+    geom::{Point, point},
+};
+use lyon_tessellation::{
+    BuffersBuilder, FillOptions, FillTessellator, FillVertex, TessellationError, VertexBuffers,
+};
 use mvt_reader::feature::{Feature, Value};
 
 #[derive(thiserror::Error, Debug)]
@@ -26,6 +33,8 @@ pub enum Error {
     FeatureWithoutKind(HashMap<String, Value>),
     #[error("Missing properties in feature")]
     FeatureWithoutProperties,
+    #[error(transparent)]
+    Tessellation(#[from] TessellationError),
 }
 
 /// Currently this is the only supported extent.
@@ -44,6 +53,12 @@ pub enum ShapeOrText {
 impl From<Shape> for ShapeOrText {
     fn from(shape: Shape) -> Self {
         ShapeOrText::Shape(shape)
+    }
+}
+
+impl From<Mesh> for ShapeOrText {
+    fn from(mesh: Mesh) -> Self {
+        ShapeOrText::Shape(Shape::Mesh(mesh.into()))
     }
 }
 
@@ -156,16 +171,12 @@ fn feature_into_shape(feature: &Feature, shapes: &mut Vec<ShapeOrText>) -> Resul
                         .iter()
                         .map(|p| pos2(p.x, p.y))
                         .collect::<Vec<_>>();
-                    let holes = polygon
+                    let interiors = polygon
                         .interiors()
                         .iter()
                         .map(|hole| hole.0.iter().map(|p| pos2(p.x, p.y)).collect::<Vec<_>>())
                         .collect::<Vec<_>>();
-                    shapes.extend(
-                        arbitrary_polygon(&points, &holes, fill)
-                            .into_iter()
-                            .map(Into::into),
-                    );
+                    shapes.push(tessellate_polygon(&points, &interiors, fill)?.into());
                 }
             }
         }
@@ -274,44 +285,48 @@ fn find_layer(data: &mvt_reader::Reader, name: &str) -> Result<usize, Error> {
     Ok(layer.layer_index)
 }
 
-/// Egui can only draw convex polygons, so we need to triangulate arbitrary ones.
-fn arbitrary_polygon(exterior: &[Pos2], holes: &[Vec<Pos2>], fill: Color32) -> Vec<Shape> {
-    let mut triangles = Vec::<usize>::new();
+/// Egui cannot tessellate complex polygons, so we use lyon for that.
+fn tessellate_polygon(
+    exterior: &[Pos2],
+    interiors: &[Vec<Pos2>],
+    fill_color: Color32,
+) -> Result<Mesh, TessellationError> {
+    let mut builder = Path::builder();
 
-    // Prepare Earcut data by flattening exterior points...
-    let mut all_points = Vec::new();
-    all_points.extend(exterior.iter().map(|p| [p.x, p.y]));
+    builder.add_polygon(Polygon {
+        points: &lyon_points(exterior),
+        closed: true,
+    });
 
-    // ...and adding hole points while recording their indices.
-    let mut hole_indices = Vec::new();
-    for hole in holes {
-        hole_indices.push(all_points.len());
-        all_points.extend(hole.iter().map(|p| [p.x, p.y]));
+    for interior in interiors {
+        builder.add_polygon(Polygon {
+            points: &lyon_points(interior),
+            closed: true,
+        });
     }
 
-    earcut::Earcut::new().earcut(all_points.to_vec(), &hole_indices, &mut triangles);
+    let mut buffers: VertexBuffers<Vertex, u32> = VertexBuffers::new();
 
-    // Convert back to Pos2 for indexing
-    let all_pos2: Vec<Pos2> = all_points.iter().map(|p| pos2(p[0], p[1])).collect();
+    FillTessellator::new().tessellate_path(
+        &builder.build(),
+        &FillOptions::default(),
+        &mut BuffersBuilder::new(&mut buffers, |vertex: FillVertex| {
+            let pos = vertex.position();
+            Vertex {
+                pos: pos2(pos.x, pos.y),
+                uv: WHITE_UV,
+                color: fill_color,
+            }
+        }),
+    )?;
 
-    let mut shapes = Vec::new();
-    for triangle_indices in triangles.chunks(3) {
-        let triangle = [
-            all_pos2[triangle_indices[0]],
-            all_pos2[triangle_indices[1]],
-            all_pos2[triangle_indices[2]],
-        ];
-
-        if triangle_area(triangle[0], triangle[1], triangle[2]) < 100.0 {
-            // Too small to render without artifacts.
-            continue;
-        }
-
-        shapes.push(PathShape::convex_polygon(triangle.to_vec(), fill, PathStroke::NONE).into());
-    }
-    shapes
+    Ok(Mesh {
+        indices: buffers.indices,
+        vertices: buffers.vertices,
+        ..Default::default()
+    })
 }
 
-fn triangle_area(a: Pos2, b: Pos2, c: Pos2) -> f32 {
-    ((a.x * (b.y - c.y) + b.x * (c.y - a.y) + c.x * (a.y - b.y)) / 2.0).abs()
+fn lyon_points(points: &[Pos2]) -> Vec<Point<f32>> {
+    points.iter().map(|p| point(p.x, p.y)).collect()
 }
