@@ -205,8 +205,9 @@ fn points(properties: &HashMap<String, Value>, points: &[Pos2]) -> Result<Vec<Sh
     let font_size = match kind(properties)?.as_str() {
         "country" => Ok(32.0),
         "neighbourhood" | "locality" => Ok(16.0),
-        "peak" | "water" | "forest" | "park" | "national_park" | "protected_area" | "military"
-        | "hospital" | "bus_station" | "train_station" | "aerodrome" => Ok(10.0),
+        "peak" | "water" | "forest" | "park" | "national_park" | "protected_area"
+        | "nature_reserve" | "military" | "hospital" | "bus_station" | "train_station"
+        | "aerodrome" => Ok(10.0),
         _ => Err(Error::UnsupportedFeatureKind(properties.clone())),
     }?;
 
@@ -261,8 +262,8 @@ fn line_stroke(properties: &HashMap<String, Value>) -> Result<Option<Stroke>, Er
         "river" | "stream" | "drain" | "ditch" | "canal" => Some(Stroke::new(3.0, WATER_COLOR)),
         "ferry" => Some(Stroke::new(3.0, Color32::from_rgb(15, 51, 102))),
         "other" | "aerialway" | "cliff" => None,
-        other => {
-            warn!("Unknown line kind: {other}");
+        _ => {
+            warn!("Unknown line kind: {properties:?}");
             Some(Stroke::new(10.0, Color32::RED))
         }
     })
