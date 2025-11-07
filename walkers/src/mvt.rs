@@ -304,18 +304,19 @@ fn tessellate_polygon(exterior: &[Pos2], holes: &[Vec<Pos2>], fill_color: Color3
         )
         .ok()?;
 
-    let mut mesh = Mesh::default();
-    mesh.indices.extend(buffers.indices);
-    mesh.vertices = buffers
-        .vertices
-        .into_iter()
-        .map(|pos| Vertex {
-            pos,
-            uv: WHITE_UV,
-            color: fill_color,
-        })
-        .collect();
-    Some(mesh)
+    Some(Mesh {
+        indices: buffers.indices,
+        vertices: buffers
+            .vertices
+            .into_iter()
+            .map(|pos| Vertex {
+                pos,
+                uv: WHITE_UV,
+                color: fill_color,
+            })
+            .collect(),
+        ..Default::default()
+    })
 }
 
 fn add_ring_to_path(builder: &mut lyon_path::path::Builder, ring: &[Pos2]) -> Result<(), ()> {
