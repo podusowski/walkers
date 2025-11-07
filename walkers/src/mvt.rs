@@ -302,7 +302,7 @@ fn tessellate_polygon(exterior: &[Pos2], holes: &[Vec<Pos2>], fill_color: Color3
 
     let path = builder.build();
     let mut tessellator = FillTessellator::new();
-    let mut buffers: VertexBuffers<Pos2, u32> = VertexBuffers::new();
+    let mut buffers: VertexBuffers<Vertex, u32> = VertexBuffers::new();
 
     tessellator
         .tessellate_path(
@@ -310,22 +310,18 @@ fn tessellate_polygon(exterior: &[Pos2], holes: &[Vec<Pos2>], fill_color: Color3
             &FillOptions::default(),
             &mut BuffersBuilder::new(&mut buffers, |vertex: FillVertex| {
                 let pos = vertex.position();
-                Pos2::new(pos.x, pos.y)
+                Vertex {
+                    pos: pos2(pos.x, pos.y),
+                    uv: WHITE_UV,
+                    color: fill_color,
+                }
             }),
         )
         .ok()?;
 
     Some(Mesh {
         indices: buffers.indices,
-        vertices: buffers
-            .vertices
-            .into_iter()
-            .map(|pos| Vertex {
-                pos,
-                uv: WHITE_UV,
-                color: fill_color,
-            })
-            .collect(),
+        vertices: buffers.vertices,
         ..Default::default()
     })
 }
