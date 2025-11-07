@@ -14,7 +14,9 @@ use lyon_path::{
     Path, Polygon,
     geom::{Point, point},
 };
-use lyon_tessellation::{BuffersBuilder, FillOptions, FillTessellator, FillVertex, VertexBuffers};
+use lyon_tessellation::{
+    BuffersBuilder, FillOptions, FillTessellator, FillVertex, TessellationError, VertexBuffers,
+};
 use mvt_reader::feature::{Feature, Value};
 
 #[derive(thiserror::Error, Debug)]
@@ -31,6 +33,8 @@ pub enum Error {
     FeatureWithoutKind(HashMap<String, Value>),
     #[error("Missing properties in feature")]
     FeatureWithoutProperties,
+    #[error(transparent)]
+    Tessellation(#[from] TessellationError),
 }
 
 /// Currently this is the only supported extent.
@@ -172,11 +176,7 @@ fn feature_into_shape(feature: &Feature, shapes: &mut Vec<ShapeOrText>) -> Resul
                         .iter()
                         .map(|hole| hole.0.iter().map(|p| pos2(p.x, p.y)).collect::<Vec<_>>())
                         .collect::<Vec<_>>();
-                    shapes.extend(
-                        tessellate_polygon(&points, &interiors, fill)
-                            .into_iter()
-                            .map(Into::into),
-                    );
+                    shapes.push(tessellate_polygon(&points, &interiors, fill)?.into());
                 }
             }
         }
@@ -289,7 +289,7 @@ fn tessellate_polygon(
     exterior: &[Pos2],
     interiors: &[Vec<Pos2>],
     fill_color: Color32,
-) -> Option<Mesh> {
+) -> Result<Mesh, TessellationError> {
     let mut builder = Path::builder();
 
     builder.add_polygon(Polygon {
@@ -306,22 +306,20 @@ fn tessellate_polygon(
 
     let mut buffers: VertexBuffers<Vertex, u32> = VertexBuffers::new();
 
-    FillTessellator::new()
-        .tessellate_path(
-            &builder.build(),
-            &FillOptions::default(),
-            &mut BuffersBuilder::new(&mut buffers, |vertex: FillVertex| {
-                let pos = vertex.position();
-                Vertex {
-                    pos: pos2(pos.x, pos.y),
-                    uv: WHITE_UV,
-                    color: fill_color,
-                }
-            }),
-        )
-        .ok()?;
+    FillTessellator::new().tessellate_path(
+        &builder.build(),
+        &FillOptions::default(),
+        &mut BuffersBuilder::new(&mut buffers, |vertex: FillVertex| {
+            let pos = vertex.position();
+            Vertex {
+                pos: pos2(pos.x, pos.y),
+                uv: WHITE_UV,
+                color: fill_color,
+            }
+        }),
+    )?;
 
-    Some(Mesh {
+    Ok(Mesh {
         indices: buffers.indices,
         vertices: buffers.vertices,
         ..Default::default()
