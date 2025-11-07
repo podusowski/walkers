@@ -241,7 +241,8 @@ fn polygon_fill(properties: &HashMap<String, Value>) -> Result<Option<Color32>, 
         "sand" | "beach" => Some(Color32::from_rgb(64, 64, 0)),
         "pedestrian" | "recreation_ground" | "railway" | "industrial" | "residential"
         | "commercial" | "protected_area" | "school" | "platform" | "kindergarten" | "cliff"
-        | "university" | "hospital" | "college" | "aerodrome" | "earth" => None,
+        | "university" | "hospital" | "college" | "aerodrome" | "airfield" | "earth"
+        | "urban_area" | "other" => None,
         other => {
             warn!("Unknown polygon kind: {other}");
             Some(Color32::RED)
