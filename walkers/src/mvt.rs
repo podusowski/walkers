@@ -2,7 +2,12 @@
 
 use std::collections::HashMap;
 
-use egui::{Color32, Mesh, Pos2, Shape, Stroke, emath::TSTransform, epaint::Vertex, pos2};
+use egui::{
+    Color32, Mesh, Pos2, Shape, Stroke,
+    emath::TSTransform,
+    epaint::{Vertex, WHITE_UV},
+    pos2,
+};
 use geo_types::Geometry;
 use log::warn;
 use lyon_path::{Path, geom::point};
@@ -301,14 +306,15 @@ fn tessellate_polygon(exterior: &[Pos2], holes: &[Vec<Pos2>], fill_color: Color3
 
     let mut mesh = Mesh::default();
     mesh.indices.extend(buffers.indices);
-    mesh.vertices.reserve(buffers.vertices.len());
-    for pos in buffers.vertices.into_iter() {
-        mesh.vertices.push(Vertex {
+    mesh.vertices = buffers
+        .vertices
+        .into_iter()
+        .map(|pos| Vertex {
             pos,
-            uv: egui::epaint::WHITE_UV,
+            uv: WHITE_UV,
             color: fill_color,
-        });
-    }
+        })
+        .collect();
     Some(mesh)
 }
 
