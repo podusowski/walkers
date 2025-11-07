@@ -257,6 +257,7 @@ fn line_stroke(properties: &HashMap<String, Value>) -> Result<Option<Stroke>, Er
         "rail" => Some(Stroke::new(3.0, ROAD_COLOR)),
         "path" => Some(Stroke::new(3.0, Color32::from_rgb(60, 40, 0))),
         "river" | "stream" | "drain" | "ditch" | "canal" => Some(Stroke::new(3.0, WATER_COLOR)),
+        "ferry" => Some(Stroke::new(3.0, Color32::from_rgb(15, 51, 102))),
         "other" | "aerialway" | "cliff" => None,
         other => {
             warn!("Unknown line kind: {other}");
