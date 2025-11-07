@@ -203,6 +203,7 @@ fn kind(properties: &HashMap<String, Value>) -> Result<String, Error> {
 
 fn points(properties: &HashMap<String, Value>, points: &[Pos2]) -> Result<Vec<ShapeOrText>, Error> {
     let font_size = match kind(properties)?.as_str() {
+        "country" => Ok(32.0),
         "neighbourhood" | "locality" => Ok(16.0),
         "peak" | "water" | "forest" | "park" | "national_park" | "protected_area" | "military"
         | "hospital" | "bus_station" | "train_station" | "aerodrome" => Ok(10.0),
