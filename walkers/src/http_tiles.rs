@@ -1,12 +1,10 @@
 use std::sync::{Arc, Mutex};
 
 use egui::Context;
-use futures::channel::mpsc::{Receiver, Sender, TrySendError, channel};
-use lru::LruCache;
+use futures::channel::mpsc::TrySendError;
 
 use crate::TileId;
-use crate::download::{HttpOptions, download_continuously};
-use crate::io::Runtime;
+use crate::download::HttpOptions;
 use crate::loader::Loader;
 use crate::sources::{Attribution, TileSource};
 use crate::tiles::interpolate_from_lower_zoom;
