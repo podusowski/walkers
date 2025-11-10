@@ -12,6 +12,10 @@ mod memory;
 // TODO: I don't want it to be public.
 pub mod mercator;
 
+// TODO: That too.
+#[cfg(feature = "vector_tiles")]
+pub use mvt::tessellate_polygon;
+
 #[cfg(feature = "vector_tiles")]
 mod mvt;
 #[cfg(feature = "vector_tiles")]
