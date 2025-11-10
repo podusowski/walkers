@@ -13,13 +13,13 @@ use crate::{
 
 pub struct Loader {
     /// Tiles to be downloaded by the IO thread.
-    request_tx: Sender<TileId>,
+    pub request_tx: Sender<TileId>,
 
     /// Tiles that got downloaded and should be put in the cache.
-    tile_rx: Receiver<(TileId, Texture)>,
+    pub tile_rx: Receiver<(TileId, Texture)>,
 
-    cache: LruCache<TileId, Option<Texture>>,
-    http_stats: Arc<Mutex<HttpStats>>,
+    pub cache: LruCache<TileId, Option<Texture>>,
+    pub http_stats: Arc<Mutex<HttpStats>>,
 
     #[allow(dead_code)] // Significant Drop
     runtime: Runtime,
