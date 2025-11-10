@@ -1,5 +1,3 @@
-use std::sync::{Arc, Mutex};
-
 use egui::Context;
 use futures::channel::mpsc::TrySendError;
 
