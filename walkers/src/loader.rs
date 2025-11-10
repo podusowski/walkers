@@ -1,6 +1,17 @@
+use std::sync::{Arc, Mutex};
+
+use egui::Context;
+use futures::channel::mpsc::{Receiver, Sender, channel};
+use lru::LruCache;
+
+use crate::{
+    HttpOptions, HttpStats, Texture, TileId, download::download_continuously, io::Runtime,
+    sources::TileSource,
+};
+
 /// Asynchronously load tiles from different local and remote sources.
 
-struct Loader {
+pub struct Loader {
     /// Tiles to be downloaded by the IO thread.
     request_tx: Sender<TileId>,
 
@@ -27,9 +38,6 @@ impl Loader {
 
         let (request_tx, request_rx) = channel(channel_size);
         let (tile_tx, tile_rx) = channel(channel_size);
-        let attribution = source.attribution();
-        let tile_size = source.tile_size();
-        let max_zoom = source.max_zoom();
 
         // This will run concurrently in a loop, handing downloads and talk with us via channels.
         let runtime = Runtime::new(download_continuously(
