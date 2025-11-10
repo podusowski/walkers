@@ -124,8 +124,7 @@ impl<T> From<std::sync::PoisonError<T>> for Error {
 }
 
 struct Download {
-    tile_id: TileId,
-    result: Result<Texture, Error>,
+    result: Result<(TileId, Texture), Error>,
 }
 
 /// Download and decode the tile.
@@ -138,8 +137,9 @@ async fn download_and_decode(
 ) -> Download {
     log::trace!("Downloading '{url}'.");
     Download {
-        tile_id,
-        result: download_and_decode_impl(client, url, user_agent, egui_ctx).await,
+        result: download_and_decode_impl(client, url, user_agent, egui_ctx)
+            .await
+            .map(|tile| (tile_id, tile)),
     }
 }
 
@@ -175,11 +175,8 @@ async fn download_complete(
     download: Download,
 ) -> Result<(), Error> {
     match download.result {
-        Ok(tile) => {
-            tile_tx
-                .send((download.tile_id, tile))
-                .await
-                .map_err(Error::from)?;
+        Ok((tile_id, tile)) => {
+            tile_tx.send((tile_id, tile)).await.map_err(Error::from)?;
             egui_ctx.request_repaint();
         }
         Err(e) => {
