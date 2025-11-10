@@ -22,4 +22,4 @@ getrandom = { version = "0.3", features = ["wasm_js"] }
 
 # Native desktop only (exclude wasm and android)
 [target.'cfg(all(not(target_arch = "wasm32"), not(target_os = "android")))'.dependencies]
-rfd = "0.14"
+rfd = "0.15"
