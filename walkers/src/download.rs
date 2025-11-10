@@ -86,10 +86,10 @@ impl MaxParallelDownloads {
 #[derive(Debug, thiserror::Error)]
 enum Error {
     #[error(transparent)]
-    HttpMiddleware(reqwest_middleware::Error),
+    HttpMiddleware(#[from] reqwest_middleware::Error),
 
     #[error(transparent)]
-    Http(reqwest::Error),
+    Http(#[from] reqwest::Error),
 
     #[error(transparent)]
     Image(ImageError),
@@ -149,17 +149,10 @@ async fn download_and_decode_impl(
         image_request = image_request.header(USER_AGENT, user_agent);
     }
 
-    let image = image_request.send().await.map_err(Error::HttpMiddleware)?;
-
+    let image = image_request.send().await?;
     log::trace!("Downloaded '{}': {:?}.", url, image.status());
 
-    let image = image
-        .error_for_status()
-        .map_err(Error::Http)?
-        .bytes()
-        .await
-        .map_err(Error::Http)?;
-
+    let image = image.error_for_status()?.bytes().await?;
     Texture::new(&image, egui_ctx).map_err(Error::Image)
 }
 
