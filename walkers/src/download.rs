@@ -211,8 +211,7 @@ where
             downloads.push(Box::pin(download));
         } else if downloads.len() < max_parallel_downloads {
             // New downloads might be requested or ongoing downloads might be completed.
-            let download = select_all(downloads.drain(..));
-            match select(request_rx.next(), download).await {
+            match select(request_rx.next(), select_all(downloads.drain(..))).await {
                 // New download was requested.
                 Either::Left((request, remaining_downloads)) => {
                     let tile_id = request.ok_or(Error::RequestChannelBroken)?;
