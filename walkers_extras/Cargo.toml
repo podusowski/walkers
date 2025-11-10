@@ -11,7 +11,7 @@ authors = ["Piotr Podusowski <podusowski@gmail.com>"]
 license = "MIT"
 
 [dependencies]
-walkers.workspace = true
+walkers = { workspace = true, features = ["vector_tiles"] }
 egui.workspace = true
 thiserror.workspace = true
 rstar = "0.12"
