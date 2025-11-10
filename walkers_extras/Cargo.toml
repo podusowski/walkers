@@ -13,6 +13,6 @@ license = "MIT"
 [dependencies]
 walkers.workspace = true
 egui.workspace = true
+thiserror.workspace = true
 rstar = "0.12"
 quick-xml = "0.37"
-thiserror = "1"
