@@ -123,9 +123,7 @@ impl<T> From<std::sync::PoisonError<T>> for Error {
     }
 }
 
-struct Download {
-    result: Result<(TileId, Texture), Error>,
-}
+type DownloadResult = Result<(TileId, Texture), Error>;
 
 /// Download and decode the tile.
 async fn download_and_decode(
@@ -134,13 +132,11 @@ async fn download_and_decode(
     url: String,
     user_agent: Option<&HeaderValue>,
     egui_ctx: &Context,
-) -> Download {
+) -> DownloadResult {
     log::trace!("Downloading '{url}'.");
-    Download {
-        result: download_and_decode_impl(client, url, user_agent, egui_ctx)
-            .await
-            .map(|tile| (tile_id, tile)),
-    }
+    download_and_decode_impl(client, url, user_agent, egui_ctx)
+        .await
+        .map(|tile| (tile_id, tile))
 }
 
 async fn download_and_decode_impl(
@@ -172,9 +168,9 @@ async fn download_and_decode_impl(
 async fn download_complete(
     mut tile_tx: futures::channel::mpsc::Sender<(TileId, Texture)>,
     egui_ctx: Context,
-    download: Download,
+    result: DownloadResult,
 ) -> Result<(), Error> {
-    match download.result {
+    match result {
         Ok((tile_id, tile)) => {
             tile_tx.send((tile_id, tile)).await.map_err(Error::from)?;
             egui_ctx.request_repaint();
