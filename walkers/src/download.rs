@@ -9,7 +9,6 @@ use futures::{
     future::{Either, select, select_all},
 };
 use image::ImageError;
-use reqwest::header::USER_AGENT;
 use reqwest_middleware::ClientWithMiddleware;
 
 use crate::{TileId, http_tiles::HttpStats, io::http_client, sources::TileSource, tiles::Texture};
@@ -141,8 +140,7 @@ async fn download_and_decode_impl(
     url: String,
     egui_ctx: &Context,
 ) -> Result<Texture, Error> {
-    let mut image_request = client.get(&url);
-    let image = image_request.send().await?;
+    let image = client.get(&url).send().await?;
     log::trace!("Downloaded '{}': {:?}.", url, image.status());
 
     let image = image.error_for_status()?.bytes().await?;
