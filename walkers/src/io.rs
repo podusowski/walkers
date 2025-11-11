@@ -30,13 +30,13 @@ mod web {
                 "HTTP cache directory set, but ignored because, in WASM, caching is handled by the browser."
             );
         }
-        Ok(ClientBuilder::new(reqwest_client(&http_options)?).build())
+        Ok(ClientBuilder::new(bare_client(&http_options)?).build())
     }
 }
 
 #[cfg(not(target_arch = "wasm32"))]
 mod native {
-    use super::{HttpOptions, reqwest_client};
+    use super::{HttpOptions, bare_client};
     use http_cache_reqwest::{CACacheManager, Cache, CacheMode, HttpCache, HttpCacheOptions};
     use reqwest_middleware::{ClientBuilder, ClientWithMiddleware};
 
@@ -86,7 +86,7 @@ mod native {
     }
 
     pub fn http_client(http_options: HttpOptions) -> Result<ClientWithMiddleware, reqwest::Error> {
-        let builder = ClientBuilder::new(reqwest_client(&http_options)?);
+        let builder = ClientBuilder::new(bare_client(&http_options)?);
 
         let client = if let Some(cache) = http_options.cache {
             builder.with(Cache(HttpCache {
@@ -106,7 +106,7 @@ mod native {
     }
 }
 
-fn reqwest_client(http_options: &HttpOptions) -> Result<reqwest::Client, reqwest::Error> {
+fn bare_client(http_options: &HttpOptions) -> Result<reqwest::Client, reqwest::Error> {
     let mut builder = reqwest::Client::builder();
 
     if let Some(user_agent) = &http_options.user_agent {
