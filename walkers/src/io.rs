@@ -24,7 +24,7 @@ mod web {
         }
     }
 
-    pub fn http_client(http_options: HttpOptions) -> Result<ClientWithMiddleware, reqwest::Error> {
+    pub fn http_client(http_options: &HttpOptions) -> Result<ClientWithMiddleware, reqwest::Error> {
         if http_options.cache.is_some() {
             log::warn!(
                 "HTTP cache directory set, but ignored because, in WASM, caching is handled by the browser."
@@ -85,14 +85,14 @@ mod native {
         }
     }
 
-    pub fn http_client(http_options: HttpOptions) -> Result<ClientWithMiddleware, reqwest::Error> {
+    pub fn http_client(http_options: &HttpOptions) -> Result<ClientWithMiddleware, reqwest::Error> {
         let builder = ClientBuilder::new(bare_client(&http_options)?);
 
-        let client = if let Some(cache) = http_options.cache {
+        let client = if let Some(cache) = &http_options.cache {
             builder.with(Cache(HttpCache {
                 mode: CacheMode::Default,
                 manager: CACacheManager {
-                    path: cache,
+                    path: cache.clone(),
                     remove_opts: Default::default(),
                 },
                 options: HttpCacheOptions::default(),

@@ -84,7 +84,7 @@ impl MaxParallelDownloads {
 }
 
 #[derive(Debug, thiserror::Error)]
-enum Error {
+pub enum Error {
     #[error(transparent)]
     HttpMiddleware(#[from] reqwest_middleware::Error),
 
@@ -165,6 +165,7 @@ async fn download_complete(
 
 async fn download_continuously_impl(
     fetch: impl Fetch,
+    stats: Arc<Mutex<HttpStats>>,
     mut request_rx: futures::channel::mpsc::Receiver<TileId>,
     tile_tx: futures::channel::mpsc::Sender<(TileId, Texture)>,
     egui_ctx: Context,
@@ -199,17 +200,22 @@ async fn download_continuously_impl(
             download_complete(tile_tx.to_owned(), egui_ctx.to_owned(), result).await?;
             downloads = remaining_downloads;
         }
+
+        // Update stats.
+        let mut stats = stats.lock()?;
+        stats.in_progress = downloads.len();
     }
 }
 
 /// Continuously download tiles requested via request channel.
 pub(crate) async fn download_continuously(
     fetch: impl Fetch,
+    stats: Arc<Mutex<HttpStats>>,
     request_rx: futures::channel::mpsc::Receiver<TileId>,
     tile_tx: futures::channel::mpsc::Sender<(TileId, Texture)>,
     egui_ctx: Context,
 ) {
-    match download_continuously_impl(fetch, request_rx, tile_tx, egui_ctx).await {
+    match download_continuously_impl(fetch, stats, request_rx, tile_tx, egui_ctx).await {
         Ok(()) | Err(Error::TileChannelClosed) | Err(Error::RequestChannelBroken) => {
             log::debug!("Tile download loop finished.");
         }
@@ -230,7 +236,6 @@ where
 {
     pub source: S,
     pub http_options: HttpOptions,
-    pub http_stats: Arc<Mutex<HttpStats>>,
     pub client: ClientWithMiddleware,
 }
 
@@ -238,16 +243,11 @@ impl<S> HttpFetch<S>
 where
     S: TileSource + Send + 'static,
 {
-    pub fn new(
-        source: S,
-        http_options: HttpOptions,
-        http_stats: Arc<Mutex<HttpStats>>,
-    ) -> Result<Self, Error> {
-        let client = http_client(http_options)?;
+    pub fn new(source: S, http_options: HttpOptions) -> Result<Self, Error> {
+        let client = http_client(&http_options)?;
         Ok(Self {
             source,
             http_options,
-            http_stats,
             client,
         })
     }

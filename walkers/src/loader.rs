@@ -41,10 +41,16 @@ impl Loader {
         let (request_tx, request_rx) = channel(channel_size);
         let (tile_tx, tile_rx) = channel(channel_size);
 
-        let fetch = HttpFetch::new(source, http_options, http_stats).unwrap();
+        let fetch = HttpFetch::new(source, http_options).unwrap();
 
         // This will run concurrently in a loop, handing downloads and talk with us via channels.
-        let runtime = Runtime::new(download_continuously(fetch, request_rx, tile_tx, egui_ctx));
+        let runtime = Runtime::new(download_continuously(
+            fetch,
+            http_stats.clone(),
+            request_rx,
+            tile_tx,
+            egui_ctx,
+        ));
 
         // Just arbitrary value which seemed right.
         #[allow(clippy::unwrap_used)]
