@@ -9,7 +9,7 @@ pub(crate) use web::*;
 
 #[cfg(target_arch = "wasm32")]
 mod web {
-    use crate::HttpOptions;
+    use super::{HttpOptions, reqwest_client};
     use reqwest_middleware::{ClientBuilder, ClientWithMiddleware};
 
     pub struct Runtime;
@@ -24,19 +24,19 @@ mod web {
         }
     }
 
-    pub fn http_client(http_options: HttpOptions) -> ClientWithMiddleware {
+    pub fn http_client(http_options: HttpOptions) -> Result<ClientWithMiddleware, reqwest::Error> {
         if http_options.cache.is_some() {
             log::warn!(
                 "HTTP cache directory set, but ignored because, in WASM, caching is handled by the browser."
             );
         }
-        ClientBuilder::new(reqwest_client(http_options)).build()
+        Ok(ClientBuilder::new(reqwest_client(&http_options)?).build())
     }
 }
 
 #[cfg(not(target_arch = "wasm32"))]
 mod native {
-    use crate::{HttpOptions, io::reqwest_client};
+    use super::{HttpOptions, reqwest_client};
     use http_cache_reqwest::{CACacheManager, Cache, CacheMode, HttpCache, HttpCacheOptions};
     use reqwest_middleware::{ClientBuilder, ClientWithMiddleware};
 
