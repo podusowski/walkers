@@ -21,7 +21,7 @@ pub struct Loader {
     pub tile_rx: Receiver<(TileId, Texture)>,
 
     pub cache: LruCache<TileId, Option<Texture>>,
-    pub http_stats: Arc<Mutex<HttpStats>>,
+    pub stats: Arc<Mutex<HttpStats>>,
 
     #[allow(dead_code)] // Significant Drop
     runtime: Runtime,
@@ -33,7 +33,7 @@ impl Loader {
     where
         S: TileSource + Sync + Send + 'static,
     {
-        let http_stats = Arc::new(Mutex::new(HttpStats { in_progress: 0 }));
+        let stats = Arc::new(Mutex::new(HttpStats { in_progress: 0 }));
 
         // This ensures that newer requests are prioritized.
         let channel_size = http_options.max_parallel_downloads.0;
@@ -46,7 +46,7 @@ impl Loader {
         // This will run concurrently in a loop, handing downloads and talk with us via channels.
         let runtime = Runtime::new(download_continuously(
             fetch,
-            http_stats.clone(),
+            stats.clone(),
             request_rx,
             tile_tx,
             egui_ctx,
@@ -58,7 +58,7 @@ impl Loader {
 
         Self {
             cache: LruCache::new(cache_size),
-            http_stats,
+            stats,
             request_tx,
             tile_rx,
             runtime,

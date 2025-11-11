@@ -43,7 +43,7 @@ impl HttpTiles {
     }
 
     pub fn stats(&self) -> HttpStats {
-        if let Ok(http_stats) = self.loader.http_stats.lock() {
+        if let Ok(http_stats) = self.loader.stats.lock() {
             http_stats.clone()
         } else {
             // I really do not want this to return a Result.
