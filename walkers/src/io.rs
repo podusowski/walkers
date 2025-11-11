@@ -1,4 +1,5 @@
 //! Managed thread for an IO runtime. Concrete implementation depends on the target.
+use crate::HttpOptions;
 
 #[cfg(not(target_arch = "wasm32"))]
 pub(crate) use native::*;
@@ -29,13 +30,13 @@ mod web {
                 "HTTP cache directory set, but ignored because, in WASM, caching is handled by the browser."
             );
         }
-        ClientBuilder::new(reqwest::Client::new()).build()
+        ClientBuilder::new(reqwest_client(http_options)).build()
     }
 }
 
 #[cfg(not(target_arch = "wasm32"))]
 mod native {
-    use crate::HttpOptions;
+    use crate::{HttpOptions, io::reqwest_client};
     use http_cache_reqwest::{CACacheManager, Cache, CacheMode, HttpCache, HttpCacheOptions};
     use reqwest_middleware::{ClientBuilder, ClientWithMiddleware};
 
@@ -84,10 +85,10 @@ mod native {
         }
     }
 
-    pub fn http_client(http_options: HttpOptions) -> ClientWithMiddleware {
-        let builder = ClientBuilder::new(reqwest::Client::new());
+    pub fn http_client(http_options: HttpOptions) -> Result<ClientWithMiddleware, reqwest::Error> {
+        let builder = ClientBuilder::new(reqwest_client(&http_options)?);
 
-        if let Some(cache) = http_options.cache {
+        let client = if let Some(cache) = http_options.cache {
             builder.with(Cache(HttpCache {
                 mode: CacheMode::Default,
                 manager: CACacheManager {
@@ -99,6 +100,18 @@ mod native {
         } else {
             builder
         }
-        .build()
+        .build();
+
+        Ok(client)
     }
+}
+
+fn reqwest_client(http_options: &HttpOptions) -> Result<reqwest::Client, reqwest::Error> {
+    let mut builder = reqwest::Client::builder();
+
+    if let Some(user_agent) = &http_options.user_agent {
+        builder = builder.user_agent(user_agent);
+    }
+
+    builder.build()
 }

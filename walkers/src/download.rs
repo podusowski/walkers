@@ -191,7 +191,7 @@ where
     let max_parallel_downloads = http_options.max_parallel_downloads.0;
 
     // Keep outside the loop to reuse it as much as possible.
-    let client = http_client(http_options);
+    let client = http_client(http_options)?;
     let mut downloads = Vec::new();
 
     loop {
