@@ -1,6 +1,8 @@
 use crate::{
-    Texture, TextureWithUv, TileId, Tiles, sources::Attribution, tiles::interpolate_from_lower_zoom,
+    Texture, TextureWithUv, TileId, Tiles, download::Fetch, sources::Attribution,
+    tiles::interpolate_from_lower_zoom,
 };
+use bytes::Bytes;
 use lru::LruCache;
 use pmtiles::{AsyncPmTilesReader, TileCoord};
 use std::{
@@ -80,7 +82,42 @@ enum PmTilesError {
     #[error("Tile not found")]
     TileNotFound,
     #[error(transparent)]
+    Decompression(#[from] io::Error),
+    #[error(transparent)]
     Other(#[from] pmtiles::PmtError),
+}
+
+struct PmTilesFetch {
+    path: PathBuf,
+}
+
+impl PmTilesFetch {
+    async fn new(path: &Path) -> Self {
+        Self {
+            path: path.to_owned(),
+        }
+    }
+}
+
+impl Fetch for PmTilesFetch {
+    type Error = PmTilesError;
+
+    async fn fetch(&self, tile_id: TileId) -> Result<Bytes, Self::Error> {
+        let reader = AsyncPmTilesReader::new_with_path(self.path.to_owned()).await?;
+        let bytes = reader
+            .get_tile(TileCoord::new(tile_id.zoom, tile_id.x, tile_id.y)?)
+            .await?
+            .ok_or(PmTilesError::TileNotFound)?;
+
+        Ok(decompress(&bytes)?.into())
+    }
+
+    fn max_concurrency(&self) -> usize {
+        // Just an arbitrary value. Probably should be aligned to the number of CPU cores as most
+        // of the vector tile loading work is CPU-bound. Number of threads for Tokio runtime should
+        // follow this value as well.
+        6
+    }
 }
 
 fn load(path: &Path, tile_id: TileId) -> Result<Texture, Box<dyn std::error::Error>> {

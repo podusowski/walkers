@@ -105,6 +105,9 @@ pub enum Error {
 
     #[error("Poison error.")]
     Poisoned,
+
+    #[error("Fetch error: {0}")]
+    Fetch(String),
 }
 
 impl From<futures::channel::mpsc::SendError> for Error {
@@ -139,7 +142,10 @@ async fn download_and_decode_impl(
     tile_id: TileId,
     egui_ctx: &Context,
 ) -> Result<Texture, Error> {
-    let image = fetch.fetch(tile_id).await?;
+    let image = fetch
+        .fetch(tile_id)
+        .await
+        .map_err(|e| Error::Fetch(e.to_string()))?;
     Texture::new(&image, egui_ctx).map_err(Error::Image)
 }
 
@@ -225,8 +231,18 @@ pub(crate) async fn download_continuously(
     }
 }
 
+#[derive(Debug, thiserror::Error)]
+pub enum HttpFetchError {
+    #[error(transparent)]
+    HttpMiddleware(#[from] reqwest_middleware::Error),
+    #[error(transparent)]
+    Http(#[from] reqwest::Error),
+}
+
 pub trait Fetch {
-    async fn fetch(&self, tile_id: TileId) -> Result<Bytes, Error>;
+    type Error: std::error::Error;
+
+    async fn fetch(&self, tile_id: TileId) -> Result<Bytes, Self::Error>;
     fn max_concurrency(&self) -> usize;
 }
 
@@ -257,7 +273,9 @@ impl<S> Fetch for HttpFetch<S>
 where
     S: TileSource + Send + 'static,
 {
-    async fn fetch(&self, tile_id: TileId) -> Result<Bytes, Error> {
+    type Error = HttpFetchError;
+
+    async fn fetch(&self, tile_id: TileId) -> Result<Bytes, Self::Error> {
         let url = self.source.tile_url(tile_id);
         log::trace!("Downloading '{url}'.");
         let image = self.client.get(&url).send().await?;
