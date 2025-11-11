@@ -20,7 +20,7 @@ impl HttpTiles {
     /// Construct new [`Tiles`] with default [`HttpOptions`].
     pub fn new<S>(source: S, egui_ctx: Context) -> Self
     where
-        S: TileSource + Send + 'static,
+        S: TileSource + Sync + Send + 'static,
     {
         Self::with_options(source, HttpOptions::default(), egui_ctx)
     }
@@ -28,7 +28,7 @@ impl HttpTiles {
     /// Construct new [`Tiles`] with supplied [`HttpOptions`].
     pub fn with_options<S>(source: S, http_options: HttpOptions, egui_ctx: Context) -> Self
     where
-        S: TileSource + Send + 'static,
+        S: TileSource + Sync + Send + 'static,
     {
         let attribution = source.attribution();
         let tile_size = source.tile_size();
