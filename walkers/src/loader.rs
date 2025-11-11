@@ -1,12 +1,12 @@
 use std::sync::{Arc, Mutex};
 
 use egui::Context;
-use futures::channel::mpsc::{Receiver, Sender, channel};
+use futures::channel::mpsc::{Receiver, Sender, TrySendError, channel};
 use lru::LruCache;
 
 use crate::{
     HttpOptions, HttpStats, Texture, TileId,
-    download::{HttpFetch, download_continuously},
+    download::{Fetch, HttpFetch, download_continuously},
     io::Runtime,
     sources::TileSource,
 };
@@ -35,13 +35,13 @@ impl Loader {
     {
         let stats = Arc::new(Mutex::new(HttpStats { in_progress: 0 }));
 
+        let fetch = HttpFetch::new(source, http_options).unwrap();
+
         // This ensures that newer requests are prioritized.
-        let channel_size = http_options.max_parallel_downloads.0;
+        let channel_size = fetch.max_concurrency();
 
         let (request_tx, request_rx) = channel(channel_size);
         let (tile_tx, tile_rx) = channel(channel_size);
-
-        let fetch = HttpFetch::new(source, http_options).unwrap();
 
         // This will run concurrently in a loop, handing downloads and talk with us via channels.
         let runtime = Runtime::new(download_continuously(
@@ -62,6 +62,41 @@ impl Loader {
             request_tx,
             tile_rx,
             runtime,
+        }
+    }
+
+    pub fn put_single_downloaded_tile_in_cache(&mut self) {
+        // This is called every frame, so take just one at the time.
+        match self.tile_rx.try_next() {
+            Ok(Some((tile_id, tile))) => {
+                self.cache.put(tile_id, Some(tile));
+            }
+            Err(_) => {
+                // Just ignore. It means that no new tile was downloaded.
+            }
+            Ok(None) => {
+                log::error!("IO thread is dead")
+            }
+        }
+    }
+
+    pub fn make_sure_is_downloaded(&mut self, tile_id: TileId) {
+        match self.cache.try_get_or_insert(
+            tile_id,
+            || -> Result<Option<Texture>, TrySendError<TileId>> {
+                self.request_tx.try_send(tile_id)?;
+                log::trace!("Requested tile: {tile_id:?}");
+                Ok(None)
+            },
+        ) {
+            Ok(_) => {}
+            Err(err) if err.is_full() => {
+                // Trying to download too many tiles at once.
+                log::trace!("Request queue is full.");
+            }
+            Err(err) => {
+                panic!("Failed to send tile request for {tile_id:?}: {err}");
+            }
         }
     }
 }
