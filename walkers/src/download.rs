@@ -128,11 +128,10 @@ async fn download_and_decode(
     client: &ClientWithMiddleware,
     tile_id: TileId,
     url: String,
-    user_agent: Option<&HeaderValue>,
     egui_ctx: &Context,
 ) -> Result<(TileId, Texture), Error> {
     log::trace!("Downloading '{url}'.");
-    download_and_decode_impl(client, url, user_agent, egui_ctx)
+    download_and_decode_impl(client, url, egui_ctx)
         .await
         .map(|tile| (tile_id, tile))
 }
@@ -140,15 +139,9 @@ async fn download_and_decode(
 async fn download_and_decode_impl(
     client: &ClientWithMiddleware,
     url: String,
-    user_agent: Option<&HeaderValue>,
     egui_ctx: &Context,
 ) -> Result<Texture, Error> {
     let mut image_request = client.get(&url);
-
-    if let Some(user_agent) = user_agent {
-        image_request = image_request.header(USER_AGENT, user_agent);
-    }
-
     let image = image_request.send().await?;
     log::trace!("Downloaded '{}': {:?}.", url, image.status());
 
@@ -187,7 +180,6 @@ async fn download_continuously_impl<S>(
 where
     S: TileSource + Send + 'static,
 {
-    let user_agent = http_options.user_agent.clone();
     let max_parallel_downloads = http_options.max_parallel_downloads.0;
 
     // Keep outside the loop to reuse it as much as possible.
@@ -199,8 +191,7 @@ where
             // Only new downloads might be requested.
             let tile_id = request_rx.next().await.ok_or(Error::RequestChannelBroken)?;
             let url = source.tile_url(tile_id);
-            let download =
-                download_and_decode(&client, tile_id, url, user_agent.as_ref(), &egui_ctx);
+            let download = download_and_decode(&client, tile_id, url, &egui_ctx);
             downloads.push(Box::pin(download));
         } else if downloads.len() < max_parallel_downloads {
             // New downloads might be requested or ongoing downloads might be completed.
@@ -209,8 +200,7 @@ where
                 Either::Left((request, remaining_downloads)) => {
                     let tile_id = request.ok_or(Error::RequestChannelBroken)?;
                     let url = source.tile_url(tile_id);
-                    let download =
-                        download_and_decode(&client, tile_id, url, user_agent.as_ref(), &egui_ctx);
+                    let download = download_and_decode(&client, tile_id, url, &egui_ctx);
                     downloads = remaining_downloads.into_inner();
                     downloads.push(Box::pin(download));
                 }
