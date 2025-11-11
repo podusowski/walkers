@@ -5,10 +5,10 @@ mod center;
 mod download;
 mod http_tiles;
 mod io;
+mod loader;
 mod local_tiles;
 mod map;
 mod memory;
-mod loader;
 
 // TODO: I don't want it to be public.
 pub mod mercator;
