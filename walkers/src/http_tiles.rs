@@ -51,41 +51,6 @@ impl HttpTiles {
         }
     }
 
-    fn put_single_downloaded_tile_in_cache(&mut self) {
-        // This is called every frame, so take just one at the time.
-        match self.loader.tile_rx.try_next() {
-            Ok(Some((tile_id, tile))) => {
-                self.loader.cache.put(tile_id, Some(tile));
-            }
-            Err(_) => {
-                // Just ignore. It means that no new tile was downloaded.
-            }
-            Ok(None) => {
-                log::error!("IO thread is dead")
-            }
-        }
-    }
-
-    fn make_sure_is_downloaded(&mut self, tile_id: TileId) {
-        match self.loader.cache.try_get_or_insert(
-            tile_id,
-            || -> Result<Option<Texture>, TrySendError<TileId>> {
-                self.loader.request_tx.try_send(tile_id)?;
-                log::trace!("Requested tile: {tile_id:?}");
-                Ok(None)
-            },
-        ) {
-            Ok(_) => {}
-            Err(err) if err.is_full() => {
-                // Trying to download too many tiles at once.
-                log::trace!("Request queue is full.");
-            }
-            Err(err) => {
-                panic!("Failed to send tile request for {tile_id:?}: {err}");
-            }
-        }
-    }
-
     /// Get at tile, or interpolate it from lower zoom levels. This function does not start any
     /// downloads.
     fn get_from_cache_or_interpolate(&mut self, tile_id: TileId) -> Option<TextureWithUv> {
@@ -122,7 +87,7 @@ impl Tiles for HttpTiles {
 
     /// Return a tile if already in cache, schedule a download otherwise.
     fn at(&mut self, tile_id: TileId) -> Option<TextureWithUv> {
-        self.put_single_downloaded_tile_in_cache();
+        self.loader.put_single_downloaded_tile_in_cache();
 
         if !tile_id.valid() {
             return None;
@@ -134,7 +99,7 @@ impl Tiles for HttpTiles {
             tile_id
         };
 
-        self.make_sure_is_downloaded(tile_id_to_download);
+        self.loader.make_sure_is_downloaded(tile_id_to_download);
         self.get_from_cache_or_interpolate(tile_id)
     }
 
