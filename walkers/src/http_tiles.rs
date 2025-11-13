@@ -1,5 +1,4 @@
 use egui::Context;
-use futures::channel::mpsc::TrySendError;
 
 use crate::TileId;
 use crate::download::HttpOptions;
@@ -36,7 +35,7 @@ impl HttpTiles {
 
         Self {
             attribution,
-            loader: Loader::with_options(source, http_options, egui_ctx),
+            loader: Loader::new(source, http_options, egui_ctx),
             tile_size,
             max_zoom,
         }
