@@ -1,7 +1,7 @@
 use egui::Context;
 
 use crate::TileId;
-use crate::download::HttpOptions;
+use crate::download::{HttpFetch, HttpOptions};
 use crate::loader::Loader;
 use crate::sources::{Attribution, TileSource};
 use crate::tiles::interpolate_from_lower_zoom;
@@ -27,15 +27,16 @@ impl HttpTiles {
     /// Construct new [`Tiles`] with supplied [`HttpOptions`].
     pub fn with_options<S>(source: S, http_options: HttpOptions, egui_ctx: Context) -> Self
     where
-        S: TileSource + Sync + Send + 'static,
+        S: TileSource + Sync + Send +  'static,
     {
         let attribution = source.attribution();
         let tile_size = source.tile_size();
         let max_zoom = source.max_zoom();
+        let fetch = HttpFetch::new(source, http_options).unwrap();
 
         Self {
             attribution,
-            loader: Loader::new(source, http_options, egui_ctx),
+            loader: Loader::new(fetch,   egui_ctx),
             tile_size,
             max_zoom,
         }

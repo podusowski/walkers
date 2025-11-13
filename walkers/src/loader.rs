@@ -29,13 +29,11 @@ pub struct Loader {
 
 impl Loader {
     /// Construct new [`Tiles`] with supplied [`HttpOptions`].
-    pub fn new<S>(source: S, http_options: HttpOptions, egui_ctx: Context) -> Self
+    pub fn new<S>(fetch: HttpFetch<S>,  egui_ctx: Context) -> Self
     where
         S: TileSource + Sync + Send + 'static,
     {
         let stats = Arc::new(Mutex::new(HttpStats { in_progress: 0 }));
-
-        let fetch = HttpFetch::new(source, http_options).unwrap();
 
         // This ensures that newer requests are prioritized.
         let channel_size = fetch.max_concurrency();
