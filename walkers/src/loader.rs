@@ -29,7 +29,7 @@ pub struct Loader {
 
 impl Loader {
     /// Construct new [`Tiles`] with supplied [`HttpOptions`].
-    pub fn new<S>(fetch: HttpFetch<S>,  egui_ctx: Context) -> Self
+    pub fn new<S>(fetch: HttpFetch<S>, egui_ctx: Context) -> Self
     where
         S: TileSource + Sync + Send + 'static,
     {
