@@ -246,7 +246,6 @@ pub enum HttpFetchError {
 pub trait Fetch {
     type Error: std::error::Error + Sync + Send;
 
-    // wasm no send
     #[cfg(target_arch = "wasm32")]
     fn fetch(&self, tile_id: TileId) -> impl Future<Output = Result<Bytes, Self::Error>>;
 
