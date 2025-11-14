@@ -24,13 +24,13 @@ mod web {
         }
     }
 
-    pub fn http_client(http_options: &HttpOptions) -> Result<ClientWithMiddleware, reqwest::Error> {
+    pub fn http_client(http_options: &HttpOptions) -> ClientWithMiddleware {
         if http_options.cache.is_some() {
             log::warn!(
                 "HTTP cache directory set, but ignored because, in WASM, caching is handled by the browser."
             );
         }
-        Ok(ClientBuilder::new(bare_client(http_options)).build())
+        ClientBuilder::new(bare_client(http_options)).build()
     }
 }
 
