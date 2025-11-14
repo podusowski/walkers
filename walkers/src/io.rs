@@ -9,7 +9,7 @@ pub(crate) use web::*;
 
 #[cfg(target_arch = "wasm32")]
 mod web {
-    use super::{HttpOptions, reqwest_client};
+    use super::{HttpOptions, bare_client};
     use reqwest_middleware::{ClientBuilder, ClientWithMiddleware};
 
     pub struct Runtime;

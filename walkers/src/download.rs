@@ -11,7 +11,13 @@ use futures::{
 };
 use reqwest_middleware::ClientWithMiddleware;
 
-use crate::{TileId, http_tiles::HttpStats, io::http_client, sources::TileSource, tiles::{Texture, TileError}};
+use crate::{
+    TileId,
+    http_tiles::HttpStats,
+    io::http_client,
+    sources::TileSource,
+    tiles::{Texture, TileError},
+};
 
 pub use reqwest::header::HeaderValue;
 
@@ -241,10 +247,12 @@ pub enum HttpFetchError {
 pub trait Fetch {
     type Error: std::error::Error + Sync + Send + 'static;
 
-    fn fetch(
-        &self,
-        tile_id: TileId,
-    ) -> impl std::future::Future<Output = Result<Bytes, Self::Error>> + std::marker::Send;
+    // wasm no send
+    #[cfg(target_arch = "wasm32")]
+    fn fetch(&self, tile_id: TileId) -> impl Future<Output = Result<Bytes, Self::Error>>;
+
+    #[cfg(not(target_arch = "wasm32"))]
+    fn fetch(&self, tile_id: TileId) -> impl Future<Output = Result<Bytes, Self::Error>> + Send;
 
     fn max_concurrency(&self) -> usize;
 }
