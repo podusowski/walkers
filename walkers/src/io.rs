@@ -86,7 +86,7 @@ mod native {
     }
 
     pub fn http_client(http_options: &HttpOptions) -> Result<ClientWithMiddleware, reqwest::Error> {
-        let builder = ClientBuilder::new(bare_client(&http_options)?);
+        let builder = ClientBuilder::new(bare_client(http_options)?);
 
         let client = if let Some(cache) = &http_options.cache {
             builder.with(Cache(HttpCache {
