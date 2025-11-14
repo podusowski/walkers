@@ -9,6 +9,7 @@ All notable changes to this project will be documented in this file.
   that raster and mvt are supported in both PmTiles and HTTP tile sources.
 * `Texture::from_color_image` is no longer public.
 * `Texture` is renamed to `Tile`.
+* `TextureWithUv` is renamed to `TilePiece`.
 
 ## 0.49.0
 

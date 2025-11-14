@@ -93,7 +93,7 @@ impl TileId {
 
 /// Source of tiles to be put together to render the map.
 pub trait Tiles {
-    fn at(&mut self, tile_id: TileId) -> Option<TextureWithUv>;
+    fn at(&mut self, tile_id: TileId) -> Option<TilePiece>;
     fn attribution(&self) -> Attribution;
     fn tile_size(&self) -> u32;
 }
@@ -197,13 +197,13 @@ impl Tile {
     }
 }
 
-/// Texture with UV coordinates.
-pub struct TextureWithUv {
+/// Clipped piece of a tile.
+pub struct TilePiece {
     pub texture: Tile,
     pub uv: Rect,
 }
 
-impl TextureWithUv {
+impl TilePiece {
     pub fn new(texture: Tile, uv: Rect) -> Self {
         Self { texture, uv }
     }

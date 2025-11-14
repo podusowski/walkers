@@ -1,5 +1,5 @@
 use crate::{
-    TextureWithUv, TileId, Tiles, download::Fetch, loader::Loader, sources::Attribution,
+    TilePiece, TileId, Tiles, download::Fetch, loader::Loader, sources::Attribution,
     tiles::interpolate_from_lower_zoom,
 };
 use bytes::Bytes;
@@ -26,14 +26,14 @@ impl PmTiles {
 
     /// Get at tile, or interpolate it from lower zoom levels. This function does not start any
     /// downloads.
-    fn get_from_cache_or_interpolate(&mut self, tile_id: TileId) -> Option<TextureWithUv> {
+    fn get_from_cache_or_interpolate(&mut self, tile_id: TileId) -> Option<TilePiece> {
         let mut zoom_candidate = tile_id.zoom;
 
         loop {
             let (zoomed_tile_id, uv) = interpolate_from_lower_zoom(tile_id, zoom_candidate);
 
             if let Some(Some(texture)) = self.loader.cache.get(&zoomed_tile_id) {
-                break Some(TextureWithUv {
+                break Some(TilePiece {
                     texture: texture.clone(),
                     uv,
                 });
@@ -46,7 +46,7 @@ impl PmTiles {
 }
 
 impl Tiles for PmTiles {
-    fn at(&mut self, tile_id: TileId) -> Option<TextureWithUv> {
+    fn at(&mut self, tile_id: TileId) -> Option<TilePiece> {
         self.loader.put_single_downloaded_tile_in_cache();
 
         if !tile_id.valid() {

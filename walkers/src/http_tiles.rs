@@ -5,7 +5,7 @@ use crate::download::{HttpFetch, HttpOptions};
 use crate::loader::Loader;
 use crate::sources::{Attribution, TileSource};
 use crate::tiles::interpolate_from_lower_zoom;
-use crate::{TextureWithUv, Tiles};
+use crate::{TilePiece, Tiles};
 
 /// Downloads the tiles via HTTP. It must persist between frames.
 pub struct HttpTiles {
@@ -53,14 +53,14 @@ impl HttpTiles {
 
     /// Get at tile, or interpolate it from lower zoom levels. This function does not start any
     /// downloads.
-    fn get_from_cache_or_interpolate(&mut self, tile_id: TileId) -> Option<TextureWithUv> {
+    fn get_from_cache_or_interpolate(&mut self, tile_id: TileId) -> Option<TilePiece> {
         let mut zoom_candidate = tile_id.zoom;
 
         loop {
             let (zoomed_tile_id, uv) = interpolate_from_lower_zoom(tile_id, zoom_candidate);
 
             if let Some(Some(texture)) = self.loader.cache.get(&zoomed_tile_id) {
-                break Some(TextureWithUv {
+                break Some(TilePiece {
                     texture: texture.clone(),
                     uv,
                 });
@@ -86,7 +86,7 @@ impl Tiles for HttpTiles {
     }
 
     /// Return a tile if already in cache, schedule a download otherwise.
-    fn at(&mut self, tile_id: TileId) -> Option<TextureWithUv> {
+    fn at(&mut self, tile_id: TileId) -> Option<TilePiece> {
         self.loader.put_single_downloaded_tile_in_cache();
 
         if !tile_id.valid() {
