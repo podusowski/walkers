@@ -14,13 +14,13 @@ use thiserror::Error;
 ///
 /// <https://docs.protomaps.com/guide/getting-started>
 pub struct PmTiles {
-    loader: TilesIo,
+    tiles_io: TilesIo,
 }
 
 impl PmTiles {
     pub fn new(path: impl AsRef<Path>) -> Self {
         Self {
-            loader: TilesIo::new(PmTilesFetch::new(path.as_ref()), egui::Context::default()),
+            tiles_io: TilesIo::new(PmTilesFetch::new(path.as_ref()), egui::Context::default()),
         }
     }
 
@@ -32,7 +32,7 @@ impl PmTiles {
         loop {
             let (zoomed_tile_id, uv) = interpolate_from_lower_zoom(tile_id, zoom_candidate);
 
-            if let Some(Some(texture)) = self.loader.cache.get(&zoomed_tile_id) {
+            if let Some(Some(texture)) = self.tiles_io.cache.get(&zoomed_tile_id) {
                 break Some(TilePiece {
                     texture: texture.clone(),
                     uv,
@@ -47,7 +47,7 @@ impl PmTiles {
 
 impl Tiles for PmTiles {
     fn at(&mut self, tile_id: TileId) -> Option<TilePiece> {
-        self.loader.put_single_downloaded_tile_in_cache();
+        self.tiles_io.put_single_downloaded_tile_in_cache();
 
         if !tile_id.valid() {
             return None;
@@ -59,7 +59,7 @@ impl Tiles for PmTiles {
             tile_id
         };
 
-        self.loader.make_sure_is_downloaded(tile_id_to_download);
+        self.tiles_io.make_sure_is_downloaded(tile_id_to_download);
         self.get_from_cache_or_interpolate(tile_id)
     }
 

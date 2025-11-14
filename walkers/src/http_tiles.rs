@@ -10,7 +10,7 @@ use crate::{TilePiece, Tiles};
 /// Downloads the tiles via HTTP. It must persist between frames.
 pub struct HttpTiles {
     attribution: Attribution,
-    loader: TilesIo,
+    tiles_io: TilesIo,
     tile_size: u32,
     max_zoom: u8,
 }
@@ -36,14 +36,14 @@ impl HttpTiles {
 
         Self {
             attribution,
-            loader: TilesIo::new(fetch, egui_ctx),
+            tiles_io: TilesIo::new(fetch, egui_ctx),
             tile_size,
             max_zoom,
         }
     }
 
     pub fn stats(&self) -> HttpStats {
-        if let Ok(http_stats) = self.loader.stats.lock() {
+        if let Ok(http_stats) = self.tiles_io.stats.lock() {
             http_stats.clone()
         } else {
             // I really do not want this to return a Result.
@@ -59,7 +59,7 @@ impl HttpTiles {
         loop {
             let (zoomed_tile_id, uv) = interpolate_from_lower_zoom(tile_id, zoom_candidate);
 
-            if let Some(Some(texture)) = self.loader.cache.get(&zoomed_tile_id) {
+            if let Some(Some(texture)) = self.tiles_io.cache.get(&zoomed_tile_id) {
                 break Some(TilePiece {
                     texture: texture.clone(),
                     uv,
@@ -87,7 +87,7 @@ impl Tiles for HttpTiles {
 
     /// Return a tile if already in cache, schedule a download otherwise.
     fn at(&mut self, tile_id: TileId) -> Option<TilePiece> {
-        self.loader.put_single_downloaded_tile_in_cache();
+        self.tiles_io.put_single_downloaded_tile_in_cache();
 
         if !tile_id.valid() {
             return None;
@@ -99,7 +99,7 @@ impl Tiles for HttpTiles {
             tile_id
         };
 
-        self.loader.make_sure_is_downloaded(tile_id_to_download);
+        self.tiles_io.make_sure_is_downloaded(tile_id_to_download);
         self.get_from_cache_or_interpolate(tile_id)
     }
 
