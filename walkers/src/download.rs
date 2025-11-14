@@ -9,7 +9,6 @@ use futures::{
     SinkExt, StreamExt,
     future::{Either, select, select_all},
 };
-use image::ImageError;
 use reqwest_middleware::ClientWithMiddleware;
 
 use crate::{TileId, http_tiles::HttpStats, io::http_client, sources::TileSource, tiles::{Texture, TileError}};
@@ -90,9 +89,6 @@ pub enum Error {
 
     #[error(transparent)]
     Http(#[from] reqwest::Error),
-
-    #[error(transparent)]
-    Image(ImageError),
 
     #[error(transparent)]
     Tile(#[from] TileError),
