@@ -103,6 +103,7 @@ impl Fetch for PmTilesFetch {
     type Error = PmTilesError;
 
     async fn fetch(&self, tile_id: TileId) -> Result<Bytes, Self::Error> {
+        // TODO: Avoid reopening the file every time.
         let reader = AsyncPmTilesReader::new_with_path(self.path.to_owned()).await?;
         let bytes = reader
             .get_tile(TileCoord::new(tile_id.zoom, tile_id.x, tile_id.y)?)
