@@ -29,10 +29,7 @@ pub struct Loader {
 
 impl Loader {
     /// Construct new [`Tiles`] with supplied [`HttpOptions`].
-    pub fn new<S>(fetch: HttpFetch<S>, egui_ctx: Context) -> Self
-    where
-        S: TileSource + Sync + Send + 'static,
-    {
+    pub fn new(fetch: impl Fetch + Send + Sync + 'static, egui_ctx: Context) -> Self {
         let stats = Arc::new(Mutex::new(HttpStats { in_progress: 0 }));
 
         // This ensures that newer requests are prioritized.

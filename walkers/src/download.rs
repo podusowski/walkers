@@ -240,9 +240,13 @@ pub enum HttpFetchError {
 }
 
 pub trait Fetch {
-    type Error: std::error::Error;
+    type Error: std::error::Error + Sync + Send + 'static;
 
-    async fn fetch(&self, tile_id: TileId) -> Result<Bytes, Self::Error>;
+    fn fetch(
+        &self,
+        tile_id: TileId,
+    ) -> impl std::future::Future<Output = Result<Bytes, Self::Error>> + std::marker::Send;
+
     fn max_concurrency(&self) -> usize;
 }
 
@@ -257,7 +261,7 @@ where
 
 impl<S> HttpFetch<S>
 where
-    S: TileSource + Send + 'static,
+    S: TileSource + Sync + Send,
 {
     pub fn new(source: S, http_options: HttpOptions) -> Result<Self, Error> {
         let client = http_client(&http_options)?;
@@ -271,7 +275,7 @@ where
 
 impl<S> Fetch for HttpFetch<S>
 where
-    S: TileSource + Send + 'static,
+    S: TileSource + Sync + Send,
 {
     type Error = HttpFetchError;
 
