@@ -7,6 +7,7 @@ All notable changes to this project will be documented in this file.
 * Another round of improvements to experimental vector tile rendering.
 * If raster image cannot be decoded, Walkers will try to interpret it as a vector tile. This means
   that raster and mvt are supported in both PmTiles and HTTP tile sources.
+* `Texture::from_color_image` is no longer public.
 * `Texture` is renamed to `Tile`.
 
 ## 0.49.0

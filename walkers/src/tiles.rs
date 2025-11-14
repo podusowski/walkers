@@ -135,16 +135,16 @@ impl Tile {
         }
     }
 
-    /// Load the texture from egui's [`ColorImage`].
-    pub fn from_color_image(color_image: ColorImage, ctx: &Context) -> Self {
-        Self::Raster(ctx.load_texture("image", color_image, Default::default()))
-    }
-
     #[cfg(feature = "vector_tiles")]
     pub fn from_mvt(data: &[u8]) -> Result<Self, mvt::Error> {
         let reader = mvt_reader::Reader::new(data.to_vec())?;
         let shapes = mvt::render(&reader)?;
         Ok(Self::Vector(shapes))
+    }
+
+    /// Load the texture from egui's [`ColorImage`].
+    fn from_color_image(color_image: ColorImage, ctx: &Context) -> Self {
+        Self::Raster(ctx.load_texture("image", color_image, Default::default()))
     }
 
     /// Draw the tile on the given `rect`. The `uv` parameter defines which part of the tile
