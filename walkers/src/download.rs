@@ -14,7 +14,7 @@ use reqwest_middleware::ClientWithMiddleware;
 use crate::{
     TileId,
     http_tiles::HttpStats,
-    io::http_client,
+    io::runtime::http_client,
     sources::TileSource,
     tiles::{Tile, TileError},
 };
