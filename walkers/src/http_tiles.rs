@@ -2,7 +2,7 @@ use egui::Context;
 
 use crate::TileId;
 use crate::download::{HttpFetch, HttpOptions};
-use crate::loader::TilesIo;
+use crate::io::tiles_io::TilesIo;
 use crate::sources::{Attribution, TileSource};
 use crate::tiles::interpolate_from_lower_zoom;
 use crate::{TilePiece, Tiles};

@@ -5,7 +5,6 @@ mod center;
 mod download;
 mod http_tiles;
 mod io;
-mod loader;
 mod local_tiles;
 mod map;
 mod memory;
