@@ -12,8 +12,7 @@ use futures::{
 use reqwest_middleware::ClientWithMiddleware;
 
 use crate::{
-    TileId,
-    http_tiles::Stats,
+    Stats, TileId,
     io::runtime::http_client,
     sources::TileSource,
     tiles::{Tile, TileError},

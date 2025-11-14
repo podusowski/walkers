@@ -5,7 +5,7 @@ use futures::channel::mpsc::{Receiver, Sender, TrySendError, channel};
 use lru::LruCache;
 
 use crate::{
-    Stats, Tile, TileId,
+    Tile, TileId,
     download::{Fetch, download_continuously},
     io::runtime::Runtime,
 };
@@ -100,4 +100,10 @@ impl TilesIo {
             Stats::default()
         }
     }
+}
+
+#[derive(Clone, Default)]
+pub struct Stats {
+    /// Number of tiles that are currently being downloaded.
+    pub in_progress: usize,
 }

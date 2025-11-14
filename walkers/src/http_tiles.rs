@@ -1,10 +1,10 @@
 use egui::Context;
 
-use crate::TileId;
 use crate::download::{HttpFetch, HttpOptions};
 use crate::io::tiles_io::TilesIo;
 use crate::sources::{Attribution, TileSource};
 use crate::tiles::interpolate_from_lower_zoom;
+use crate::{Stats, TileId};
 use crate::{TilePiece, Tiles};
 
 /// Downloads the tiles via HTTP. It must persist between frames.
@@ -64,12 +64,6 @@ impl HttpTiles {
             zoom_candidate = zoom_candidate.checked_sub(1)?;
         }
     }
-}
-
-#[derive(Clone, Default)]
-pub struct Stats {
-    /// Number of tiles that are currently being downloaded.
-    pub in_progress: usize,
 }
 
 impl Tiles for HttpTiles {
