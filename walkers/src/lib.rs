@@ -23,7 +23,7 @@ mod tiles;
 mod zoom;
 
 pub use download::{HeaderValue, HttpOptions, MaxParallelDownloads};
-pub use http_tiles::{HttpStats, HttpTiles};
+pub use http_tiles::{Stats, HttpTiles};
 pub use local_tiles::LocalTiles;
 pub use map::{Map, Plugin};
 pub use memory::MapMemory;

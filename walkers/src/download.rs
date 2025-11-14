@@ -13,7 +13,7 @@ use reqwest_middleware::ClientWithMiddleware;
 
 use crate::{
     TileId,
-    http_tiles::HttpStats,
+    http_tiles::Stats,
     io::runtime::http_client,
     sources::TileSource,
     tiles::{Tile, TileError},
@@ -176,7 +176,7 @@ async fn download_complete(
 
 async fn download_continuously_impl(
     fetch: impl Fetch,
-    stats: Arc<Mutex<HttpStats>>,
+    stats: Arc<Mutex<Stats>>,
     mut request_rx: futures::channel::mpsc::Receiver<TileId>,
     tile_tx: futures::channel::mpsc::Sender<(TileId, Tile)>,
     egui_ctx: Context,
@@ -221,7 +221,7 @@ async fn download_continuously_impl(
 /// Continuously download tiles requested via request channel.
 pub(crate) async fn download_continuously(
     fetch: impl Fetch,
-    stats: Arc<Mutex<HttpStats>>,
+    stats: Arc<Mutex<Stats>>,
     request_rx: futures::channel::mpsc::Receiver<TileId>,
     tile_tx: futures::channel::mpsc::Sender<(TileId, Tile)>,
     egui_ctx: Context,

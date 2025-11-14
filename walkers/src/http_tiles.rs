@@ -41,12 +41,12 @@ impl HttpTiles {
         }
     }
 
-    pub fn stats(&self) -> HttpStats {
+    pub fn stats(&self) -> Stats {
         if let Ok(http_stats) = self.tiles_io.stats.lock() {
             http_stats.clone()
         } else {
             // I really do not want this to return a Result.
-            HttpStats::default()
+            Stats::default()
         }
     }
 
@@ -72,7 +72,7 @@ impl HttpTiles {
 }
 
 #[derive(Clone, Default)]
-pub struct HttpStats {
+pub struct Stats {
     /// Number of tiles that are currently being downloaded.
     pub in_progress: usize,
 }

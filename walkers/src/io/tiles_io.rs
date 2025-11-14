@@ -5,7 +5,7 @@ use futures::channel::mpsc::{Receiver, Sender, TrySendError, channel};
 use lru::LruCache;
 
 use crate::{
-    HttpStats, Tile, TileId,
+    Stats, Tile, TileId,
     download::{Fetch, download_continuously},
     io::runtime::Runtime,
 };
@@ -19,7 +19,7 @@ pub struct TilesIo {
     tile_rx: Receiver<(TileId, Tile)>,
 
     pub cache: LruCache<TileId, Option<Tile>>,
-    pub stats: Arc<Mutex<HttpStats>>,
+    pub stats: Arc<Mutex<Stats>>,
 
     #[allow(dead_code)] // Significant Drop
     runtime: Runtime,
@@ -27,7 +27,7 @@ pub struct TilesIo {
 
 impl TilesIo {
     pub fn new(fetch: impl Fetch + Send + Sync + 'static, egui_ctx: Context) -> Self {
-        let stats = Arc::new(Mutex::new(HttpStats { in_progress: 0 }));
+        let stats = Arc::new(Mutex::new(Stats { in_progress: 0 }));
 
         // This ensures that newer requests are prioritized.
         let channel_size = fetch.max_concurrency();
