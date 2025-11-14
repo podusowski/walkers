@@ -13,10 +13,10 @@ use crate::{
 /// Asynchronously load and cache tiles from different local and remote sources.
 pub struct TilesIo {
     /// Tiles to be fetched by the IO thread.
-    pub request_tx: Sender<TileId>,
+    request_tx: Sender<TileId>,
 
     /// Tiles that got fetched and should be put in the cache.
-    pub tile_rx: Receiver<(TileId, Tile)>,
+    tile_rx: Receiver<(TileId, Tile)>,
 
     pub cache: LruCache<TileId, Option<Tile>>,
     pub stats: Arc<Mutex<HttpStats>>,
