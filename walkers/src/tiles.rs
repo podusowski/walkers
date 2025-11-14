@@ -101,13 +101,20 @@ pub enum TileError {
     #[cfg(feature = "vector_tiles")]
     #[error(transparent)]
     Mvt(#[from] mvt::Error),
+
+    #[error("Tile data is empty.")]
+    Empty,
 }
 
 impl Texture {
     pub fn new(image: &[u8], ctx: &Context) -> Result<Self, TileError> {
-        let reader = ImageReader::new(std::io::Cursor::new(image)).with_guessed_format()?;
+        if image.is_empty() {
+            return Err(TileError::Empty);
+        }
 
+        let reader = ImageReader::new(std::io::Cursor::new(image)).with_guessed_format()?;
         if reader.format().is_some() {
+            log::debug!("Decoding tile as raster image.");
             let image = reader.decode()?.to_rgba8();
             let pixels = image.as_flat_samples();
             let image = ColorImage::from_rgba_unmultiplied(
@@ -119,6 +126,7 @@ impl Texture {
         } else {
             #[cfg(feature = "vector_tiles")]
             {
+                log::debug!("Trying to decode tile as MVT vector tile.");
                 Ok(Self::from_mvt(image)?)
             }
             #[cfg(not(feature = "vector_tiles"))]
