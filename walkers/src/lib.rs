@@ -31,5 +31,5 @@ pub use memory::MapMemory;
 pub use pmtiles::PmTiles;
 pub use position::{Position, lat_lon, lon_lat};
 pub use projector::Projector;
-pub use tiles::{Tile, TilePiece, TileId, Tiles};
+pub use tiles::{Tile, TileId, TilePiece, Tiles};
 pub use zoom::InvalidZoom;
