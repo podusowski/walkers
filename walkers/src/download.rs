@@ -245,7 +245,7 @@ pub enum HttpFetchError {
 }
 
 pub trait Fetch {
-    type Error: std::error::Error + Sync + Send + 'static;
+    type Error: std::error::Error + Sync + Send;
 
     // wasm no send
     #[cfg(target_arch = "wasm32")]
@@ -261,9 +261,9 @@ pub struct HttpFetch<S>
 where
     S: TileSource + Send + 'static,
 {
-    pub source: S,
+    source: S,
     max_concurrency: usize,
-    pub client: ClientWithMiddleware,
+    client: ClientWithMiddleware,
 }
 
 impl<S> HttpFetch<S>
