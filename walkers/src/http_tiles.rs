@@ -1,6 +1,9 @@
+use bytes::Bytes;
 use egui::Context;
+use reqwest_middleware::ClientWithMiddleware;
 
-use crate::download::{HttpFetch, HttpOptions};
+use crate::download::{Fetch, HttpOptions};
+use crate::io::runtime::http_client;
 use crate::io::tiles_io::TilesIo;
 use crate::sources::{Attribution, TileSource};
 use crate::tiles::interpolate_from_lower_zoom;
@@ -93,6 +96,55 @@ impl Tiles for HttpTiles {
 
     fn tile_size(&self) -> u32 {
         self.tile_size
+    }
+}
+
+#[derive(Debug, thiserror::Error)]
+pub enum HttpFetchError {
+    #[error(transparent)]
+    HttpMiddleware(#[from] reqwest_middleware::Error),
+    #[error(transparent)]
+    Http(#[from] reqwest::Error),
+}
+
+pub struct HttpFetch<S>
+where
+    S: TileSource + Send + 'static,
+{
+    source: S,
+    max_concurrency: usize,
+    client: ClientWithMiddleware,
+}
+
+impl<S> HttpFetch<S>
+where
+    S: TileSource + Sync + Send,
+{
+    pub fn new(source: S, http_options: HttpOptions) -> Self {
+        Self {
+            source,
+            max_concurrency: http_options.max_parallel_downloads.0,
+            client: http_client(&http_options),
+        }
+    }
+}
+
+impl<S> Fetch for HttpFetch<S>
+where
+    S: TileSource + Sync + Send,
+{
+    type Error = HttpFetchError;
+
+    async fn fetch(&self, tile_id: TileId) -> Result<Bytes, Self::Error> {
+        let url = self.source.tile_url(tile_id);
+        log::trace!("Downloading '{url}'.");
+        let image = self.client.get(&url).send().await?;
+        log::trace!("Downloaded '{}': {:?}.", url, image.status());
+        Ok(image.error_for_status()?.bytes().await?)
+    }
+
+    fn max_concurrency(&self) -> usize {
+        self.max_concurrency
     }
 }
 
