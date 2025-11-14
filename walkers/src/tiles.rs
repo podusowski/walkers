@@ -99,13 +99,13 @@ pub trait Tiles {
 }
 
 #[derive(Clone)]
-pub enum Texture {
+pub enum Tile {
     Raster(TextureHandle),
     #[cfg(feature = "vector_tiles")]
     Vector(Vec<ShapeOrText>),
 }
 
-impl Texture {
+impl Tile {
     pub fn new(image: &[u8], ctx: &Context) -> Result<Self, TileError> {
         if image.is_empty() {
             return Err(TileError::Empty);
@@ -151,13 +151,13 @@ impl Texture {
     /// should be drawn on the `rect`.
     fn draw(&self, painter: &egui::Painter, rect: Rect, uv: Rect, transparency: f32) {
         match self {
-            Texture::Raster(texture_handle) => {
+            Tile::Raster(texture_handle) => {
                 let mut mesh = Mesh::with_texture(texture_handle.id());
                 mesh.add_rect_with_uv(rect, uv, Color32::WHITE.gamma_multiply(transparency));
                 painter.add(egui::Shape::mesh(mesh));
             }
             #[cfg(feature = "vector_tiles")]
-            Texture::Vector(shapes) => {
+            Tile::Vector(shapes) => {
                 // Renderer needs to work on the full tile, before it was clipped with `uv`...
                 let full_rect = full_rect_of_clipped_tile(rect, uv);
 
@@ -199,12 +199,12 @@ impl Texture {
 
 /// Texture with UV coordinates.
 pub struct TextureWithUv {
-    pub texture: Texture,
+    pub texture: Tile,
     pub uv: Rect,
 }
 
 impl TextureWithUv {
-    pub fn new(texture: Texture, uv: Rect) -> Self {
+    pub fn new(texture: Tile, uv: Rect) -> Self {
         Self { texture, uv }
     }
 }

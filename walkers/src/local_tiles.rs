@@ -1,5 +1,5 @@
 use crate::{
-    Texture, TextureWithUv, TileId, Tiles, sources::Attribution, tiles::interpolate_from_lower_zoom,
+    Tile, TextureWithUv, TileId, Tiles, sources::Attribution, tiles::interpolate_from_lower_zoom,
 };
 use log::trace;
 use lru::LruCache;
@@ -7,7 +7,7 @@ use std::path::{Path, PathBuf};
 
 #[derive(Clone)]
 enum CachedTexture {
-    Valid(Texture),
+    Valid(Tile),
     Invalid,
 }
 
@@ -75,7 +75,7 @@ fn load(
     tiles_dir: &Path,
     tile_id: TileId,
     egui_ctx: &egui::Context,
-) -> Result<Texture, Box<dyn std::error::Error>> {
+) -> Result<Tile, Box<dyn std::error::Error>> {
     let path = PathBuf::from_iter(&[
         tiles_dir.to_owned(),
         tile_id.zoom.to_string().into(),
@@ -83,5 +83,5 @@ fn load(
         format!("{}.png", tile_id.y).into(),
     ]);
     let bytes = std::fs::read(path)?;
-    Ok(Texture::new(&bytes, egui_ctx)?)
+    Ok(Tile::new(&bytes, egui_ctx)?)
 }

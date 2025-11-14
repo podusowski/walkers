@@ -5,7 +5,7 @@ use futures::channel::mpsc::{Receiver, Sender, TrySendError, channel};
 use lru::LruCache;
 
 use crate::{
-    HttpStats, Texture, TileId,
+    HttpStats, Tile, TileId,
     download::{Fetch, download_continuously},
     io::Runtime,
 };
@@ -16,9 +16,9 @@ pub struct Loader {
     pub request_tx: Sender<TileId>,
 
     /// Tiles that got fetched and should be put in the cache.
-    pub tile_rx: Receiver<(TileId, Texture)>,
+    pub tile_rx: Receiver<(TileId, Tile)>,
 
-    pub cache: LruCache<TileId, Option<Texture>>,
+    pub cache: LruCache<TileId, Option<Tile>>,
     pub stats: Arc<Mutex<HttpStats>>,
 
     #[allow(dead_code)] // Significant Drop
@@ -75,7 +75,7 @@ impl Loader {
     pub fn make_sure_is_downloaded(&mut self, tile_id: TileId) {
         match self.cache.try_get_or_insert(
             tile_id,
-            || -> Result<Option<Texture>, TrySendError<TileId>> {
+            || -> Result<Option<Tile>, TrySendError<TileId>> {
                 self.request_tx.try_send(tile_id)?;
                 log::trace!("Requested tile: {tile_id:?}");
                 Ok(None)

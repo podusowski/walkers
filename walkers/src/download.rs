@@ -16,7 +16,7 @@ use crate::{
     http_tiles::HttpStats,
     io::http_client,
     sources::TileSource,
-    tiles::{Texture, TileError},
+    tiles::{Tile, TileError},
 };
 
 pub use reqwest::header::HeaderValue;
@@ -136,7 +136,7 @@ async fn download_and_decode(
     fetch: &impl Fetch,
     tile_id: TileId,
     egui_ctx: &Context,
-) -> Result<(TileId, Texture), Error> {
+) -> Result<(TileId, Tile), Error> {
     download_and_decode_impl(fetch, tile_id, egui_ctx)
         .await
         .map(|tile| (tile_id, tile))
@@ -146,18 +146,18 @@ async fn download_and_decode_impl(
     fetch: &impl Fetch,
     tile_id: TileId,
     egui_ctx: &Context,
-) -> Result<Texture, Error> {
+) -> Result<Tile, Error> {
     let image = fetch
         .fetch(tile_id)
         .await
         .map_err(|e| Error::Fetch(e.to_string()))?;
-    Ok(Texture::new(&image, egui_ctx)?)
+    Ok(Tile::new(&image, egui_ctx)?)
 }
 
 async fn download_complete(
-    mut tile_tx: futures::channel::mpsc::Sender<(TileId, Texture)>,
+    mut tile_tx: futures::channel::mpsc::Sender<(TileId, Tile)>,
     egui_ctx: Context,
-    result: Result<(TileId, Texture), Error>,
+    result: Result<(TileId, Tile), Error>,
 ) -> Result<(), Error> {
     match result {
         Ok((tile_id, tile)) => {
@@ -178,7 +178,7 @@ async fn download_continuously_impl(
     fetch: impl Fetch,
     stats: Arc<Mutex<HttpStats>>,
     mut request_rx: futures::channel::mpsc::Receiver<TileId>,
-    tile_tx: futures::channel::mpsc::Sender<(TileId, Texture)>,
+    tile_tx: futures::channel::mpsc::Sender<(TileId, Tile)>,
     egui_ctx: Context,
 ) -> Result<(), Error> {
     let mut downloads = Vec::new();
@@ -223,7 +223,7 @@ pub(crate) async fn download_continuously(
     fetch: impl Fetch,
     stats: Arc<Mutex<HttpStats>>,
     request_rx: futures::channel::mpsc::Receiver<TileId>,
-    tile_tx: futures::channel::mpsc::Sender<(TileId, Texture)>,
+    tile_tx: futures::channel::mpsc::Sender<(TileId, Tile)>,
     egui_ctx: Context,
 ) {
     match download_continuously_impl(fetch, stats, request_rx, tile_tx, egui_ctx).await {
