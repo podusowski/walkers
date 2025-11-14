@@ -1,4 +1,5 @@
 //! Managed thread for an IO runtime. Concrete implementation depends on the target.
+use crate::HttpOptions;
 
 #[cfg(not(target_arch = "wasm32"))]
 pub(crate) use native::*;
@@ -8,7 +9,7 @@ pub(crate) use web::*;
 
 #[cfg(target_arch = "wasm32")]
 mod web {
-    use crate::HttpOptions;
+    use super::{HttpOptions, bare_client};
     use reqwest_middleware::{ClientBuilder, ClientWithMiddleware};
 
     pub struct Runtime;
@@ -23,19 +24,19 @@ mod web {
         }
     }
 
-    pub fn http_client(http_options: HttpOptions) -> ClientWithMiddleware {
+    pub fn http_client(http_options: &HttpOptions) -> ClientWithMiddleware {
         if http_options.cache.is_some() {
             log::warn!(
                 "HTTP cache directory set, but ignored because, in WASM, caching is handled by the browser."
             );
         }
-        ClientBuilder::new(reqwest::Client::new()).build()
+        ClientBuilder::new(bare_client(http_options)).build()
     }
 }
 
 #[cfg(not(target_arch = "wasm32"))]
 mod native {
-    use crate::HttpOptions;
+    use super::{HttpOptions, bare_client};
     use http_cache_reqwest::{CACacheManager, Cache, CacheMode, HttpCache, HttpCacheOptions};
     use reqwest_middleware::{ClientBuilder, ClientWithMiddleware};
 
@@ -84,14 +85,14 @@ mod native {
         }
     }
 
-    pub fn http_client(http_options: HttpOptions) -> ClientWithMiddleware {
-        let builder = ClientBuilder::new(reqwest::Client::new());
+    pub fn http_client(http_options: &HttpOptions) -> ClientWithMiddleware {
+        let builder = ClientBuilder::new(bare_client(http_options));
 
-        if let Some(cache) = http_options.cache {
+        if let Some(cache) = &http_options.cache {
             builder.with(Cache(HttpCache {
                 mode: CacheMode::Default,
                 manager: CACacheManager {
-                    path: cache,
+                    path: cache.clone(),
                     remove_opts: Default::default(),
                 },
                 options: HttpCacheOptions::default(),
@@ -101,4 +102,16 @@ mod native {
         }
         .build()
     }
+}
+
+fn bare_client(http_options: &HttpOptions) -> reqwest::Client {
+    let mut builder = reqwest::Client::builder();
+
+    if let Some(user_agent) = &http_options.user_agent {
+        builder = builder.user_agent(user_agent);
+    }
+
+    builder
+        .build()
+        .expect("could not initialize reqwest client")
 }

@@ -6,7 +6,8 @@ use egui::{Color32, Context, Mesh, Rect, Vec2, pos2};
 use egui::{ColorImage, TextureHandle};
 #[cfg(feature = "vector_tiles")]
 use egui::{FontId, Pos2, Shape};
-use image::ImageError;
+use image::{ImageError, ImageReader};
+use thiserror::Error;
 
 use crate::Position;
 use crate::mercator::{project, tile_id, total_tiles};
@@ -89,16 +90,53 @@ pub enum Texture {
     Vector(Vec<ShapeOrText>),
 }
 
-impl Texture {
-    pub fn new(image: &[u8], ctx: &Context) -> Result<Self, ImageError> {
-        let image = image::load_from_memory(image)?.to_rgba8();
-        let pixels = image.as_flat_samples();
-        let image = ColorImage::from_rgba_unmultiplied(
-            [image.width() as _, image.height() as _],
-            pixels.as_slice(),
-        );
+#[derive(Error, Debug)]
+pub enum TileError {
+    #[error(transparent)]
+    Io(#[from] std::io::Error),
 
-        Ok(Self::from_color_image(image, ctx))
+    #[error(transparent)]
+    Image(#[from] ImageError),
+
+    #[cfg(feature = "vector_tiles")]
+    #[error(transparent)]
+    Mvt(#[from] mvt::Error),
+
+    #[error("Tile data is empty.")]
+    Empty,
+
+    #[error("Unrecognized image format.")]
+    UnrecognizedFormat,
+}
+
+impl Texture {
+    pub fn new(image: &[u8], ctx: &Context) -> Result<Self, TileError> {
+        if image.is_empty() {
+            return Err(TileError::Empty);
+        }
+
+        let reader = ImageReader::new(std::io::Cursor::new(image)).with_guessed_format()?;
+        if reader.format().is_some() {
+            log::debug!("Decoding tile as raster image.");
+            let image = reader.decode()?.to_rgba8();
+            let pixels = image.as_flat_samples();
+            let image = ColorImage::from_rgba_unmultiplied(
+                [image.width() as _, image.height() as _],
+                pixels.as_slice(),
+            );
+
+            Ok(Self::from_color_image(image, ctx))
+        } else {
+            #[cfg(feature = "vector_tiles")]
+            {
+                log::debug!("Trying to decode tile as MVT vector tile.");
+                Ok(Self::from_mvt(image)?)
+            }
+            #[cfg(not(feature = "vector_tiles"))]
+            {
+                Err(TileError::UnrecognizedFormat)
+            }
+        }
     }
 
     /// Load the texture from egui's [`ColorImage`].

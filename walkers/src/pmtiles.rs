@@ -1,7 +1,8 @@
 use crate::{
-    Texture, TextureWithUv, TileId, Tiles, sources::Attribution, tiles::interpolate_from_lower_zoom,
+    TextureWithUv, TileId, Tiles, download::Fetch, loader::Loader, sources::Attribution,
+    tiles::interpolate_from_lower_zoom,
 };
-use lru::LruCache;
+use bytes::Bytes;
 use pmtiles::{AsyncPmTilesReader, TileCoord};
 use std::{
     io::{self, Read as _},
@@ -9,54 +10,57 @@ use std::{
 };
 use thiserror::Error;
 
-#[derive(Clone)]
-enum CachedTexture {
-    Valid(Texture),
-    Invalid,
-}
-
 /// Provides tiles from a local PMTiles file.
 ///
 /// <https://docs.protomaps.com/guide/getting-started>
 pub struct PmTiles {
-    path: PathBuf,
-    cache: LruCache<TileId, CachedTexture>,
+    loader: Loader,
 }
 
 impl PmTiles {
     pub fn new(path: impl AsRef<Path>) -> Self {
-        // Just arbitrary value which seemed right.
-        #[allow(clippy::unwrap_used)]
-        let cache_size = std::num::NonZeroUsize::new(256).unwrap();
-
         Self {
-            path: path.as_ref().into(),
-            cache: LruCache::new(cache_size),
+            loader: Loader::new(PmTilesFetch::new(path.as_ref()), egui::Context::default()),
         }
     }
 
-    fn load_and_cache(&mut self, tile_id: TileId) -> CachedTexture {
-        self.cache
-            .get_or_insert(tile_id, || match load(&self.path, tile_id) {
-                Ok(texture) => CachedTexture::Valid(texture),
-                Err(err) => {
-                    log::warn!("Failed to load tile {tile_id:?}: {err}");
-                    CachedTexture::Invalid
-                }
-            })
-            .clone()
+    /// Get at tile, or interpolate it from lower zoom levels. This function does not start any
+    /// downloads.
+    fn get_from_cache_or_interpolate(&mut self, tile_id: TileId) -> Option<TextureWithUv> {
+        let mut zoom_candidate = tile_id.zoom;
+
+        loop {
+            let (zoomed_tile_id, uv) = interpolate_from_lower_zoom(tile_id, zoom_candidate);
+
+            if let Some(Some(texture)) = self.loader.cache.get(&zoomed_tile_id) {
+                break Some(TextureWithUv {
+                    texture: texture.clone(),
+                    uv,
+                });
+            }
+
+            // Keep zooming out until we find a donor or there is no more zoom levels.
+            zoom_candidate = zoom_candidate.checked_sub(1)?;
+        }
     }
 }
 
 impl Tiles for PmTiles {
     fn at(&mut self, tile_id: TileId) -> Option<TextureWithUv> {
-        (0..=tile_id.zoom).rev().find_map(|zoom_candidate| {
-            let (donor_tile_id, uv) = interpolate_from_lower_zoom(tile_id, zoom_candidate);
-            match self.load_and_cache(donor_tile_id) {
-                CachedTexture::Valid(texture) => Some(TextureWithUv::new(texture.clone(), uv)),
-                CachedTexture::Invalid => None,
-            }
-        })
+        self.loader.put_single_downloaded_tile_in_cache();
+
+        if !tile_id.valid() {
+            return None;
+        }
+
+        let tile_id_to_download = if tile_id.zoom > 16 {
+            interpolate_from_lower_zoom(tile_id, 16).0
+        } else {
+            tile_id
+        };
+
+        self.loader.make_sure_is_downloaded(tile_id_to_download);
+        self.get_from_cache_or_interpolate(tile_id)
     }
 
     fn attribution(&self) -> Attribution {
@@ -80,24 +84,43 @@ enum PmTilesError {
     #[error("Tile not found")]
     TileNotFound,
     #[error(transparent)]
+    Decompression(#[from] io::Error),
+    #[error(transparent)]
     Other(#[from] pmtiles::PmtError),
 }
 
-fn load(path: &Path, tile_id: TileId) -> Result<Texture, Box<dyn std::error::Error>> {
-    // TODO: Yes, that's heavy.
-    let bytes = tokio::runtime::Builder::new_current_thread()
-        .enable_all()
-        .build()?
-        .block_on(async {
-            let reader = AsyncPmTilesReader::new_with_path(path).await?;
-            reader
-                .get_tile(TileCoord::new(tile_id.zoom, tile_id.x, tile_id.y)?)
-                .await?
-                .ok_or(PmTilesError::TileNotFound)
-        })?;
+struct PmTilesFetch {
+    path: PathBuf,
+}
 
-    let decompressed = decompress(&bytes)?;
-    Ok(Texture::from_mvt(&decompressed)?)
+impl PmTilesFetch {
+    fn new(path: &Path) -> Self {
+        Self {
+            path: path.to_owned(),
+        }
+    }
+}
+
+impl Fetch for PmTilesFetch {
+    type Error = PmTilesError;
+
+    async fn fetch(&self, tile_id: TileId) -> Result<Bytes, Self::Error> {
+        // TODO: Avoid reopening the file every time.
+        let reader = AsyncPmTilesReader::new_with_path(self.path.to_owned()).await?;
+        let bytes = reader
+            .get_tile(TileCoord::new(tile_id.zoom, tile_id.x, tile_id.y)?)
+            .await?
+            .ok_or(PmTilesError::TileNotFound)?;
+
+        Ok(decompress(&bytes)?.into())
+    }
+
+    fn max_concurrency(&self) -> usize {
+        // Just an arbitrary value. Probably should be aligned to the number of CPU cores as most
+        // of the vector tile loading work is CPU-bound. Number of threads for Tokio runtime should
+        // follow this value as well.
+        6
+    }
 }
 
 /// Decompress the tile.

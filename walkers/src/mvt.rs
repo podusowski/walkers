@@ -21,8 +21,8 @@ use mvt_reader::feature::{Feature, Value};
 
 #[derive(thiserror::Error, Debug)]
 pub enum Error {
-    #[error(transparent)]
-    Mvt(#[from] mvt_reader::error::ParserError),
+    #[error("Decoding MVT failed: {0}.")]
+    Mvt(String),
     #[error("Layer not found: {0}. Available layers: {1:?}")]
     LayerNotFound(String, Vec<String>),
     #[error("Unsupported layer extent: {0}")]
@@ -35,6 +35,13 @@ pub enum Error {
     FeatureWithoutProperties,
     #[error(transparent)]
     Tessellation(#[from] TessellationError),
+}
+
+/// Custom conversion because mvt_reader::error::Error is not Send.
+impl From<mvt_reader::error::ParserError> for Error {
+    fn from(err: mvt_reader::error::ParserError) -> Self {
+        Error::Mvt(err.to_string())
+    }
 }
 
 /// Currently this is the only supported extent.

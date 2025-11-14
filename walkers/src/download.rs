@@ -3,16 +3,21 @@ use std::{
     sync::{Arc, Mutex},
 };
 
+use bytes::Bytes;
 use egui::Context;
 use futures::{
     SinkExt, StreamExt,
     future::{Either, select, select_all},
 };
-use image::ImageError;
-use reqwest::header::USER_AGENT;
 use reqwest_middleware::ClientWithMiddleware;
 
-use crate::{TileId, http_tiles::HttpStats, io::http_client, sources::TileSource, tiles::Texture};
+use crate::{
+    TileId,
+    http_tiles::HttpStats,
+    io::http_client,
+    sources::TileSource,
+    tiles::{Texture, TileError},
+};
 
 pub use reqwest::header::HeaderValue;
 
@@ -84,15 +89,15 @@ impl MaxParallelDownloads {
 }
 
 #[derive(Debug, thiserror::Error)]
-enum Error {
+pub enum Error {
     #[error(transparent)]
-    HttpMiddleware(reqwest_middleware::Error),
+    HttpMiddleware(#[from] reqwest_middleware::Error),
 
     #[error(transparent)]
-    Http(reqwest::Error),
+    Http(#[from] reqwest::Error),
 
     #[error(transparent)]
-    Image(ImageError),
+    Tile(#[from] TileError),
 
     #[error("Tile request channel from the main thread was broken.")]
     RequestChannelBroken,
@@ -105,6 +110,9 @@ enum Error {
 
     #[error("Poison error.")]
     Poisoned,
+
+    #[error("Fetch error: {0}")]
+    Fetch(String),
 }
 
 impl From<futures::channel::mpsc::SendError> for Error {
@@ -123,63 +131,37 @@ impl<T> From<std::sync::PoisonError<T>> for Error {
     }
 }
 
-struct Download {
-    tile_id: TileId,
-    result: Result<Texture, Error>,
-}
-
 /// Download and decode the tile.
 async fn download_and_decode(
-    client: &ClientWithMiddleware,
+    fetch: &impl Fetch,
     tile_id: TileId,
-    url: String,
-    user_agent: Option<&HeaderValue>,
     egui_ctx: &Context,
-) -> Download {
-    log::trace!("Downloading '{url}'.");
-    Download {
-        tile_id,
-        result: download_and_decode_impl(client, url, user_agent, egui_ctx).await,
-    }
+) -> Result<(TileId, Texture), Error> {
+    download_and_decode_impl(fetch, tile_id, egui_ctx)
+        .await
+        .map(|tile| (tile_id, tile))
 }
 
 async fn download_and_decode_impl(
-    client: &ClientWithMiddleware,
-    url: String,
-    user_agent: Option<&HeaderValue>,
+    fetch: &impl Fetch,
+    tile_id: TileId,
     egui_ctx: &Context,
 ) -> Result<Texture, Error> {
-    let mut image_request = client.get(&url);
-
-    if let Some(user_agent) = user_agent {
-        image_request = image_request.header(USER_AGENT, user_agent);
-    }
-
-    let image = image_request.send().await.map_err(Error::HttpMiddleware)?;
-
-    log::trace!("Downloaded '{}': {:?}.", url, image.status());
-
-    let image = image
-        .error_for_status()
-        .map_err(Error::Http)?
-        .bytes()
+    let image = fetch
+        .fetch(tile_id)
         .await
-        .map_err(Error::Http)?;
-
-    Texture::new(&image, egui_ctx).map_err(Error::Image)
+        .map_err(|e| Error::Fetch(e.to_string()))?;
+    Ok(Texture::new(&image, egui_ctx)?)
 }
 
 async fn download_complete(
     mut tile_tx: futures::channel::mpsc::Sender<(TileId, Texture)>,
     egui_ctx: Context,
-    download: Download,
+    result: Result<(TileId, Texture), Error>,
 ) -> Result<(), Error> {
-    match download.result {
-        Ok(tile) => {
-            tile_tx
-                .send((download.tile_id, tile))
-                .await
-                .map_err(Error::from)?;
+    match result {
+        Ok((tile_id, tile)) => {
+            tile_tx.send((tile_id, tile)).await.map_err(Error::from)?;
             egui_ctx.request_repaint();
         }
         Err(e) => {
@@ -192,42 +174,28 @@ async fn download_complete(
     Ok(())
 }
 
-async fn download_continuously_impl<S>(
-    source: S,
-    http_options: HttpOptions,
-    http_stats: Arc<Mutex<HttpStats>>,
+async fn download_continuously_impl(
+    fetch: impl Fetch,
+    stats: Arc<Mutex<HttpStats>>,
     mut request_rx: futures::channel::mpsc::Receiver<TileId>,
     tile_tx: futures::channel::mpsc::Sender<(TileId, Texture)>,
     egui_ctx: Context,
-) -> Result<(), Error>
-where
-    S: TileSource + Send + 'static,
-{
-    let user_agent = http_options.user_agent.clone();
-    let max_parallel_downloads = http_options.max_parallel_downloads.0;
-
-    // Keep outside the loop to reuse it as much as possible.
-    let client = http_client(http_options);
+) -> Result<(), Error> {
     let mut downloads = Vec::new();
 
     loop {
         if downloads.is_empty() {
             // Only new downloads might be requested.
             let tile_id = request_rx.next().await.ok_or(Error::RequestChannelBroken)?;
-            let url = source.tile_url(tile_id);
-            let download =
-                download_and_decode(&client, tile_id, url, user_agent.as_ref(), &egui_ctx);
+            let download = download_and_decode(&fetch, tile_id, &egui_ctx);
             downloads.push(Box::pin(download));
-        } else if downloads.len() < max_parallel_downloads {
+        } else if downloads.len() < fetch.max_concurrency() {
             // New downloads might be requested or ongoing downloads might be completed.
-            let download = select_all(downloads.drain(..));
-            match select(request_rx.next(), download).await {
+            match select(request_rx.next(), select_all(downloads.drain(..))).await {
                 // New download was requested.
                 Either::Left((request, remaining_downloads)) => {
                     let tile_id = request.ok_or(Error::RequestChannelBroken)?;
-                    let url = source.tile_url(tile_id);
-                    let download =
-                        download_and_decode(&client, tile_id, url, user_agent.as_ref(), &egui_ctx);
+                    let download = download_and_decode(&fetch, tile_id, &egui_ctx);
                     downloads = remaining_downloads.into_inner();
                     downloads.push(Box::pin(download));
                 }
@@ -244,38 +212,88 @@ where
             downloads = remaining_downloads;
         }
 
-        // Update HTTP stats.
-        let mut stats = http_stats.lock()?;
+        // Update stats.
+        let mut stats = stats.lock()?;
         stats.in_progress = downloads.len();
     }
 }
 
 /// Continuously download tiles requested via request channel.
-pub(crate) async fn download_continuously<S>(
-    source: S,
-    http_options: HttpOptions,
-    http_stats: Arc<Mutex<HttpStats>>,
+pub(crate) async fn download_continuously(
+    fetch: impl Fetch,
+    stats: Arc<Mutex<HttpStats>>,
     request_rx: futures::channel::mpsc::Receiver<TileId>,
     tile_tx: futures::channel::mpsc::Sender<(TileId, Texture)>,
     egui_ctx: Context,
-) where
-    S: TileSource + Send + 'static,
-{
-    match download_continuously_impl(
-        source,
-        http_options,
-        http_stats,
-        request_rx,
-        tile_tx,
-        egui_ctx,
-    )
-    .await
-    {
+) {
+    match download_continuously_impl(fetch, stats, request_rx, tile_tx, egui_ctx).await {
         Ok(()) | Err(Error::TileChannelClosed) | Err(Error::RequestChannelBroken) => {
             log::debug!("Tile download loop finished.");
         }
         Err(error) => {
             log::error!("Tile download loop failed: {error}.");
         }
+    }
+}
+
+#[derive(Debug, thiserror::Error)]
+pub enum HttpFetchError {
+    #[error(transparent)]
+    HttpMiddleware(#[from] reqwest_middleware::Error),
+    #[error(transparent)]
+    Http(#[from] reqwest::Error),
+}
+
+pub trait Fetch {
+    type Error: std::error::Error + Sync + Send;
+
+    // wasm no send
+    #[cfg(target_arch = "wasm32")]
+    fn fetch(&self, tile_id: TileId) -> impl Future<Output = Result<Bytes, Self::Error>>;
+
+    #[cfg(not(target_arch = "wasm32"))]
+    fn fetch(&self, tile_id: TileId) -> impl Future<Output = Result<Bytes, Self::Error>> + Send;
+
+    fn max_concurrency(&self) -> usize;
+}
+
+pub struct HttpFetch<S>
+where
+    S: TileSource + Send + 'static,
+{
+    source: S,
+    max_concurrency: usize,
+    client: ClientWithMiddleware,
+}
+
+impl<S> HttpFetch<S>
+where
+    S: TileSource + Sync + Send,
+{
+    pub fn new(source: S, http_options: HttpOptions) -> Self {
+        Self {
+            source,
+            max_concurrency: http_options.max_parallel_downloads.0,
+            client: http_client(&http_options),
+        }
+    }
+}
+
+impl<S> Fetch for HttpFetch<S>
+where
+    S: TileSource + Sync + Send,
+{
+    type Error = HttpFetchError;
+
+    async fn fetch(&self, tile_id: TileId) -> Result<Bytes, Self::Error> {
+        let url = self.source.tile_url(tile_id);
+        log::trace!("Downloading '{url}'.");
+        let image = self.client.get(&url).send().await?;
+        log::trace!("Downloaded '{}': {:?}.", url, image.status());
+        Ok(image.error_for_status()?.bytes().await?)
+    }
+
+    fn max_concurrency(&self) -> usize {
+        self.max_concurrency
     }
 }

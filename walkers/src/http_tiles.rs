@@ -1,31 +1,16 @@
-use std::sync::{Arc, Mutex};
-
 use egui::Context;
-use futures::channel::mpsc::{Receiver, Sender, TrySendError, channel};
-use lru::LruCache;
 
 use crate::TileId;
-use crate::download::{HttpOptions, download_continuously};
-use crate::io::Runtime;
+use crate::download::{HttpFetch, HttpOptions};
+use crate::loader::Loader;
 use crate::sources::{Attribution, TileSource};
 use crate::tiles::interpolate_from_lower_zoom;
-use crate::{Texture, TextureWithUv, Tiles};
+use crate::{TextureWithUv, Tiles};
 
 /// Downloads the tiles via HTTP. It must persist between frames.
 pub struct HttpTiles {
     attribution: Attribution,
-    cache: LruCache<TileId, Option<Texture>>,
-    http_stats: Arc<Mutex<HttpStats>>,
-
-    /// Tiles to be downloaded by the IO thread.
-    request_tx: Sender<TileId>,
-
-    /// Tiles that got downloaded and should be put in the cache.
-    tile_rx: Receiver<(TileId, Texture)>,
-
-    #[allow(dead_code)] // Significant Drop
-    runtime: Runtime,
-
+    loader: Loader,
     tile_size: u32,
     max_zoom: u8,
 }
@@ -34,7 +19,7 @@ impl HttpTiles {
     /// Construct new [`Tiles`] with default [`HttpOptions`].
     pub fn new<S>(source: S, egui_ctx: Context) -> Self
     where
-        S: TileSource + Send + 'static,
+        S: TileSource + Sync + Send + 'static,
     {
         Self::with_options(source, HttpOptions::default(), egui_ctx)
     }
@@ -42,86 +27,27 @@ impl HttpTiles {
     /// Construct new [`Tiles`] with supplied [`HttpOptions`].
     pub fn with_options<S>(source: S, http_options: HttpOptions, egui_ctx: Context) -> Self
     where
-        S: TileSource + Send + 'static,
+        S: TileSource + Sync + Send + 'static,
     {
-        let http_stats = Arc::new(Mutex::new(HttpStats { in_progress: 0 }));
-
-        // This ensures that newer requests are prioritized.
-        let channel_size = http_options.max_parallel_downloads.0;
-
-        let (request_tx, request_rx) = channel(channel_size);
-        let (tile_tx, tile_rx) = channel(channel_size);
         let attribution = source.attribution();
         let tile_size = source.tile_size();
         let max_zoom = source.max_zoom();
-
-        // This will run concurrently in a loop, handing downloads and talk with us via channels.
-        let runtime = Runtime::new(download_continuously(
-            source,
-            http_options,
-            http_stats.clone(),
-            request_rx,
-            tile_tx,
-            egui_ctx,
-        ));
-
-        // Just arbitrary value which seemed right.
-        #[allow(clippy::unwrap_used)]
-        let cache_size = std::num::NonZeroUsize::new(256).unwrap();
+        let fetch = HttpFetch::new(source, http_options);
 
         Self {
             attribution,
-            cache: LruCache::new(cache_size),
-            http_stats,
-            request_tx,
-            tile_rx,
-            runtime,
+            loader: Loader::new(fetch, egui_ctx),
             tile_size,
             max_zoom,
         }
     }
 
     pub fn stats(&self) -> HttpStats {
-        if let Ok(http_stats) = self.http_stats.lock() {
+        if let Ok(http_stats) = self.loader.stats.lock() {
             http_stats.clone()
         } else {
             // I really do not want this to return a Result.
             HttpStats::default()
-        }
-    }
-
-    fn put_single_downloaded_tile_in_cache(&mut self) {
-        // This is called every frame, so take just one at the time.
-        match self.tile_rx.try_next() {
-            Ok(Some((tile_id, tile))) => {
-                self.cache.put(tile_id, Some(tile));
-            }
-            Err(_) => {
-                // Just ignore. It means that no new tile was downloaded.
-            }
-            Ok(None) => {
-                log::error!("IO thread is dead")
-            }
-        }
-    }
-
-    fn make_sure_is_downloaded(&mut self, tile_id: TileId) {
-        match self.cache.try_get_or_insert(
-            tile_id,
-            || -> Result<Option<Texture>, TrySendError<TileId>> {
-                self.request_tx.try_send(tile_id)?;
-                log::trace!("Requested tile: {tile_id:?}");
-                Ok(None)
-            },
-        ) {
-            Ok(_) => {}
-            Err(err) if err.is_full() => {
-                // Trying to download too many tiles at once.
-                log::trace!("Request queue is full.");
-            }
-            Err(err) => {
-                panic!("Failed to send tile request for {tile_id:?}: {err}");
-            }
         }
     }
 
@@ -133,7 +59,7 @@ impl HttpTiles {
         loop {
             let (zoomed_tile_id, uv) = interpolate_from_lower_zoom(tile_id, zoom_candidate);
 
-            if let Some(Some(texture)) = self.cache.get(&zoomed_tile_id) {
+            if let Some(Some(texture)) = self.loader.cache.get(&zoomed_tile_id) {
                 break Some(TextureWithUv {
                     texture: texture.clone(),
                     uv,
@@ -161,7 +87,7 @@ impl Tiles for HttpTiles {
 
     /// Return a tile if already in cache, schedule a download otherwise.
     fn at(&mut self, tile_id: TileId) -> Option<TextureWithUv> {
-        self.put_single_downloaded_tile_in_cache();
+        self.loader.put_single_downloaded_tile_in_cache();
 
         if !tile_id.valid() {
             return None;
@@ -173,7 +99,7 @@ impl Tiles for HttpTiles {
             tile_id
         };
 
-        self.make_sure_is_downloaded(tile_id_to_download);
+        self.loader.make_sure_is_downloaded(tile_id_to_download);
         self.get_from_cache_or_interpolate(tile_id)
     }
 
