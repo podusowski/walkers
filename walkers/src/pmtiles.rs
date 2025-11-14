@@ -1,5 +1,5 @@
 use crate::{
-    TilePiece, TileId, Tiles, download::Fetch, loader::Loader, sources::Attribution,
+    TilePiece, TileId, Tiles, download::Fetch, loader::TilesIo, sources::Attribution,
     tiles::interpolate_from_lower_zoom,
 };
 use bytes::Bytes;
@@ -14,13 +14,13 @@ use thiserror::Error;
 ///
 /// <https://docs.protomaps.com/guide/getting-started>
 pub struct PmTiles {
-    loader: Loader,
+    loader: TilesIo,
 }
 
 impl PmTiles {
     pub fn new(path: impl AsRef<Path>) -> Self {
         Self {
-            loader: Loader::new(PmTilesFetch::new(path.as_ref()), egui::Context::default()),
+            loader: TilesIo::new(PmTilesFetch::new(path.as_ref()), egui::Context::default()),
         }
     }
 

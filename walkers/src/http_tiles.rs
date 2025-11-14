@@ -2,7 +2,7 @@ use egui::Context;
 
 use crate::TileId;
 use crate::download::{HttpFetch, HttpOptions};
-use crate::loader::Loader;
+use crate::loader::TilesIo;
 use crate::sources::{Attribution, TileSource};
 use crate::tiles::interpolate_from_lower_zoom;
 use crate::{TilePiece, Tiles};
@@ -10,7 +10,7 @@ use crate::{TilePiece, Tiles};
 /// Downloads the tiles via HTTP. It must persist between frames.
 pub struct HttpTiles {
     attribution: Attribution,
-    loader: Loader,
+    loader: TilesIo,
     tile_size: u32,
     max_zoom: u8,
 }
@@ -36,7 +36,7 @@ impl HttpTiles {
 
         Self {
             attribution,
-            loader: Loader::new(fetch, egui_ctx),
+            loader: TilesIo::new(fetch, egui_ctx),
             tile_size,
             max_zoom,
         }

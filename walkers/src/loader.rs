@@ -11,7 +11,7 @@ use crate::{
 };
 
 /// Asynchronously load and cache tiles from different local and remote sources.
-pub struct Loader {
+pub struct TilesIo {
     /// Tiles to be fetched by the IO thread.
     pub request_tx: Sender<TileId>,
 
@@ -25,7 +25,7 @@ pub struct Loader {
     runtime: Runtime,
 }
 
-impl Loader {
+impl TilesIo {
     pub fn new(fetch: impl Fetch + Send + Sync + 'static, egui_ctx: Context) -> Self {
         let stats = Arc::new(Mutex::new(HttpStats { in_progress: 0 }));
 
