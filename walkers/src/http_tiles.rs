@@ -32,11 +32,10 @@ impl HttpTiles {
         let attribution = source.attribution();
         let tile_size = source.tile_size();
         let max_zoom = source.max_zoom();
-        let fetch = HttpFetch::new(source, http_options);
 
         Self {
             attribution,
-            tiles_io: TilesIo::new(fetch, egui_ctx),
+            tiles_io: TilesIo::new(HttpFetch::new(source, http_options), egui_ctx),
             tile_size,
             max_zoom,
         }
