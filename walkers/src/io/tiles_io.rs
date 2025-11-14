@@ -91,4 +91,13 @@ impl TilesIo {
             }
         }
     }
+
+    pub fn stats(&self) -> Stats {
+        if let Ok(stats) = self.stats.lock() {
+            stats.clone()
+        } else {
+            // I really do not want this to return a Result.
+            Stats::default()
+        }
+    }
 }

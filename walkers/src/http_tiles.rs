@@ -42,12 +42,7 @@ impl HttpTiles {
     }
 
     pub fn stats(&self) -> Stats {
-        if let Ok(http_stats) = self.tiles_io.stats.lock() {
-            http_stats.clone()
-        } else {
-            // I really do not want this to return a Result.
-            Stats::default()
-        }
+        self.tiles_io.stats()
     }
 
     /// Get at tile, or interpolate it from lower zoom levels. This function does not start any
