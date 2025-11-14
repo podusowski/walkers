@@ -12,7 +12,7 @@ use futures::{
 use image::ImageError;
 use reqwest_middleware::ClientWithMiddleware;
 
-use crate::{TileId, http_tiles::HttpStats, io::http_client, sources::TileSource, tiles::Texture};
+use crate::{TileId, http_tiles::HttpStats, io::http_client, sources::TileSource, tiles::{Texture, TileError}};
 
 pub use reqwest::header::HeaderValue;
 
@@ -94,6 +94,9 @@ pub enum Error {
     #[error(transparent)]
     Image(ImageError),
 
+    #[error(transparent)]
+    Tile(#[from] TileError),
+
     #[error("Tile request channel from the main thread was broken.")]
     RequestChannelBroken,
 
@@ -146,7 +149,7 @@ async fn download_and_decode_impl(
         .fetch(tile_id)
         .await
         .map_err(|e| Error::Fetch(e.to_string()))?;
-    Texture::new(&image, egui_ctx).map_err(Error::Image)
+    Ok(Texture::new(&image, egui_ctx)?)
 }
 
 async fn download_complete(
