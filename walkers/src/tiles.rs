@@ -104,6 +104,9 @@ pub enum TileError {
 
     #[error("Tile data is empty.")]
     Empty,
+
+    #[error("Unrecognized image format.")]
+    UnrecognizedFormat,
 }
 
 impl Texture {
@@ -131,9 +134,7 @@ impl Texture {
             }
             #[cfg(not(feature = "vector_tiles"))]
             {
-                Err(ImageError::Decoding(
-                    "Unknown image format and vector tiles are disabled.".to_string(),
-                ))
+                Err(TileError::UnrecognizedFormat)
             }
         }
     }
