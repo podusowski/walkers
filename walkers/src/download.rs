@@ -262,7 +262,7 @@ where
     S: TileSource + Send + 'static,
 {
     pub source: S,
-    pub http_options: HttpOptions,
+    max_concurrency: usize,
     pub client: ClientWithMiddleware,
 }
 
@@ -270,13 +270,12 @@ impl<S> HttpFetch<S>
 where
     S: TileSource + Sync + Send,
 {
-    pub fn new(source: S, http_options: HttpOptions) -> Result<Self, Error> {
-        let client = http_client(&http_options)?;
-        Ok(Self {
+    pub fn new(source: S, http_options: HttpOptions) -> Self {
+        Self {
             source,
-            http_options,
-            client,
-        })
+            max_concurrency: http_options.max_parallel_downloads.0,
+            client: http_client(&http_options),
+        }
     }
 }
 
@@ -295,6 +294,6 @@ where
     }
 
     fn max_concurrency(&self) -> usize {
-        self.http_options.max_parallel_downloads.0
+        self.max_concurrency
     }
 }

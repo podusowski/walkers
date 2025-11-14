@@ -32,7 +32,7 @@ impl HttpTiles {
         let attribution = source.attribution();
         let tile_size = source.tile_size();
         let max_zoom = source.max_zoom();
-        let fetch = HttpFetch::new(source, http_options).unwrap();
+        let fetch = HttpFetch::new(source, http_options);
 
         Self {
             attribution,
