@@ -5,7 +5,7 @@ use crate::download::{HttpFetch, HttpOptions};
 use crate::loader::Loader;
 use crate::sources::{Attribution, TileSource};
 use crate::tiles::interpolate_from_lower_zoom;
-use crate::{Texture, TextureWithUv, Tiles};
+use crate::{TextureWithUv, Tiles};
 
 /// Downloads the tiles via HTTP. It must persist between frames.
 pub struct HttpTiles {
@@ -27,7 +27,7 @@ impl HttpTiles {
     /// Construct new [`Tiles`] with supplied [`HttpOptions`].
     pub fn with_options<S>(source: S, http_options: HttpOptions, egui_ctx: Context) -> Self
     where
-        S: TileSource + Sync + Send +  'static,
+        S: TileSource + Sync + Send + 'static,
     {
         let attribution = source.attribution();
         let tile_size = source.tile_size();
@@ -36,7 +36,7 @@ impl HttpTiles {
 
         Self {
             attribution,
-            loader: Loader::new(fetch,   egui_ctx),
+            loader: Loader::new(fetch, egui_ctx),
             tile_size,
             max_zoom,
         }

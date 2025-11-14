@@ -5,19 +5,18 @@ use futures::channel::mpsc::{Receiver, Sender, TrySendError, channel};
 use lru::LruCache;
 
 use crate::{
-    HttpOptions, HttpStats, Texture, TileId,
+    HttpStats, Texture, TileId,
     download::{Fetch, HttpFetch, download_continuously},
     io::Runtime,
     sources::TileSource,
 };
 
-/// Asynchronously load tiles from different local and remote sources.
-
+/// Asynchronously load and cache tiles from different local and remote sources.
 pub struct Loader {
-    /// Tiles to be downloaded by the IO thread.
+    /// Tiles to be fetched by the IO thread.
     pub request_tx: Sender<TileId>,
 
-    /// Tiles that got downloaded and should be put in the cache.
+    /// Tiles that got fetched and should be put in the cache.
     pub tile_rx: Receiver<(TileId, Texture)>,
 
     pub cache: LruCache<TileId, Option<Texture>>,
@@ -28,7 +27,6 @@ pub struct Loader {
 }
 
 impl Loader {
-    /// Construct new [`Tiles`] with supplied [`HttpOptions`].
     pub fn new(fetch: impl Fetch + Send + Sync + 'static, egui_ctx: Context) -> Self {
         let stats = Arc::new(Mutex::new(HttpStats { in_progress: 0 }));
 
