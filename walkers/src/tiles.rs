@@ -15,11 +15,23 @@ use crate::position::{Pixels, PixelsExt};
 use crate::sources::Attribution;
 use crate::zoom::Zoom;
 
-/// Source of tiles to be put together to render the map.
-pub trait Tiles {
-    fn at(&mut self, tile_id: TileId) -> Option<TextureWithUv>;
-    fn attribution(&self) -> Attribution;
-    fn tile_size(&self) -> u32;
+#[derive(Error, Debug)]
+pub enum TileError {
+    #[error(transparent)]
+    Io(#[from] std::io::Error),
+
+    #[error(transparent)]
+    Image(#[from] ImageError),
+
+    #[cfg(feature = "vector_tiles")]
+    #[error(transparent)]
+    Mvt(#[from] mvt::Error),
+
+    #[error("Tile data is empty.")]
+    Empty,
+
+    #[error("Unrecognized image format.")]
+    UnrecognizedFormat,
 }
 
 /// Identifies the tile in the tile grid.
@@ -79,8 +91,11 @@ impl TileId {
     }
 }
 
-pub(crate) fn rect(screen_position: Vec2, tile_size: f64) -> Rect {
-    Rect::from_min_size(screen_position.to_pos2(), Vec2::splat(tile_size as f32))
+/// Source of tiles to be put together to render the map.
+pub trait Tiles {
+    fn at(&mut self, tile_id: TileId) -> Option<TextureWithUv>;
+    fn attribution(&self) -> Attribution;
+    fn tile_size(&self) -> u32;
 }
 
 #[derive(Clone)]
@@ -88,25 +103,6 @@ pub enum Texture {
     Raster(TextureHandle),
     #[cfg(feature = "vector_tiles")]
     Vector(Vec<ShapeOrText>),
-}
-
-#[derive(Error, Debug)]
-pub enum TileError {
-    #[error(transparent)]
-    Io(#[from] std::io::Error),
-
-    #[error(transparent)]
-    Image(#[from] ImageError),
-
-    #[cfg(feature = "vector_tiles")]
-    #[error(transparent)]
-    Mvt(#[from] mvt::Error),
-
-    #[error("Tile data is empty.")]
-    Empty,
-
-    #[error("Unrecognized image format.")]
-    UnrecognizedFormat,
 }
 
 impl Texture {
@@ -325,6 +321,10 @@ fn full_rect_of_clipped_tile(rect: Rect, uv: Rect) -> Rect {
         pos2(full_min_x, full_min_y),
         pos2(full_min_x + full_width, full_min_y + full_height),
     )
+}
+
+pub(crate) fn rect(screen_position: Vec2, tile_size: f64) -> Rect {
+    Rect::from_min_size(screen_position.to_pos2(), Vec2::splat(tile_size as f32))
 }
 
 #[cfg(test)]
