@@ -78,7 +78,7 @@ impl Tiles for HttpTiles {
 
     /// Return a tile if already in cache, schedule a download otherwise.
     fn at(&mut self, tile_id: TileId) -> Option<TilePiece> {
-        self.tiles_io.put_single_downloaded_tile_in_cache();
+        self.tiles_io.put_single_fetched_tile_in_cache();
 
         if !tile_id.valid() {
             return None;
@@ -90,7 +90,7 @@ impl Tiles for HttpTiles {
             tile_id
         };
 
-        self.tiles_io.make_sure_is_downloaded(tile_id_to_download);
+        self.tiles_io.make_sure_is_fetched(tile_id_to_download);
         self.get_from_cache_or_interpolate(tile_id)
     }
 

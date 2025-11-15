@@ -56,7 +56,8 @@ impl TilesIo {
         }
     }
 
-    pub fn put_single_downloaded_tile_in_cache(&mut self) {
+    /// Takes a single fetched tile from the IO thread and puts it in the cache.
+    pub fn put_single_fetched_tile_in_cache(&mut self) {
         // This is called every frame, so take just one at the time.
         match self.tile_rx.try_next() {
             Ok(Some((tile_id, tile))) => {
@@ -71,7 +72,8 @@ impl TilesIo {
         }
     }
 
-    pub fn make_sure_is_downloaded(&mut self, tile_id: TileId) {
+    /// Request a tile to be fetched, but only if it is not already being fetched.
+    pub fn make_sure_is_fetched(&mut self, tile_id: TileId) {
         match self.cache.try_get_or_insert(
             tile_id,
             || -> Result<Option<Tile>, TrySendError<TileId>> {
