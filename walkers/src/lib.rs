@@ -23,7 +23,7 @@ mod zoom;
 
 pub use http_tiles::HttpTiles;
 pub use io::tiles_io::Stats;
-pub use io::{HeaderValue, HttpOptions, MaxParallelDownloads};
+pub use io::{HeaderValue, MaxParallelDownloads, http::HttpOptions};
 pub use local_tiles::LocalTiles;
 pub use map::{Map, Plugin};
 pub use memory::MapMemory;

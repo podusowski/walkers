@@ -2,13 +2,13 @@ use bytes::Bytes;
 use egui::Context;
 use reqwest_middleware::ClientWithMiddleware;
 
-use crate::io::{Fetch, HttpOptions};
+use crate::io::Fetch;
 use crate::io::runtime::http_client;
 use crate::io::tiles_io::TilesIo;
 use crate::sources::{Attribution, TileSource};
 use crate::tiles::interpolate_from_lower_zoom;
+use crate::{HttpOptions, TilePiece, Tiles};
 use crate::{Stats, TileId};
-use crate::{TilePiece, Tiles};
 
 /// Downloads the tiles via HTTP. It must persist between frames.
 pub struct HttpTiles {
