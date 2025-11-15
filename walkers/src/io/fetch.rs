@@ -177,28 +177,28 @@ async fn fetch_continuously_impl(
 
     loop {
         if outstanding.is_empty() {
-            // Only new downloads might be requested.
+            // Only new fetches might be requested.
             let tile_id = request_rx.next().await.ok_or(Error::RequestChannelBroken)?;
             let f = fetch_and_decode(&fetch, tile_id, &egui_ctx);
             outstanding.push(Box::pin(f));
         } else if outstanding.len() < fetch.max_concurrency() {
-            // New downloads might be requested or ongoing downloads might be completed.
+            // New fetches might be requested or ongoing fetches might be completed.
             match select(request_rx.next(), select_all(outstanding.drain(..))).await {
-                // New download was requested.
+                // New fetch was requested.
                 Either::Left((request, remaining)) => {
                     let tile_id = request.ok_or(Error::RequestChannelBroken)?;
                     let f = fetch_and_decode(&fetch, tile_id, &egui_ctx);
                     outstanding = remaining.into_inner();
                     outstanding.push(Box::pin(f));
                 }
-                // Ongoing download was completed.
+                // Ongoing fetch was completed.
                 Either::Right(((result, _, remaining), _)) => {
                     fetch_complete(tile_tx.to_owned(), egui_ctx.to_owned(), result).await?;
                     outstanding = remaining;
                 }
             }
         } else {
-            // Only ongoing downloads might be completed.
+            // Only ongoing fetches might be completed.
             let (result, _, remaining) = select_all(outstanding.drain(..)).await;
             fetch_complete(tile_tx.to_owned(), egui_ctx.to_owned(), result).await?;
             outstanding = remaining;
