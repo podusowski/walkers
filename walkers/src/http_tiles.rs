@@ -150,7 +150,7 @@ where
 
 #[cfg(test)]
 mod tests {
-    use crate::download::MaxParallelDownloads;
+    use crate::MaxParallelDownloads;
 
     use super::*;
     use hypermocker::{
