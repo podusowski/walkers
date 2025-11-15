@@ -136,6 +136,7 @@ async fn fetch_and_decode(
     Ok(Tile::new(&image, egui_ctx).map(|tile| (tile_id, tile))?)
 }
 
+/// Deliver the fetched tile to the main thread.
 async fn fetch_complete(
     mut tile_tx: Sender<(TileId, Tile)>,
     egui_ctx: Context,
