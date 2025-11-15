@@ -1,5 +1,5 @@
 use crate::{
-    Texture, TextureWithUv, TileId, Tiles, sources::Attribution, tiles::interpolate_from_lower_zoom,
+    Tile, TileId, TilePiece, Tiles, sources::Attribution, tiles::interpolate_from_lower_zoom,
 };
 use log::trace;
 use lru::LruCache;
@@ -7,7 +7,7 @@ use std::path::{Path, PathBuf};
 
 #[derive(Clone)]
 enum CachedTexture {
-    Valid(Texture),
+    Valid(Tile),
     Invalid,
 }
 
@@ -47,11 +47,11 @@ impl LocalTiles {
 }
 
 impl Tiles for LocalTiles {
-    fn at(&mut self, tile_id: TileId) -> Option<TextureWithUv> {
+    fn at(&mut self, tile_id: TileId) -> Option<TilePiece> {
         (0..=tile_id.zoom).rev().find_map(|zoom_candidate| {
             let (donor_tile_id, uv) = interpolate_from_lower_zoom(tile_id, zoom_candidate);
             match self.load_and_cache(donor_tile_id) {
-                CachedTexture::Valid(texture) => Some(TextureWithUv::new(texture.clone(), uv)),
+                CachedTexture::Valid(texture) => Some(TilePiece::new(texture.clone(), uv)),
                 CachedTexture::Invalid => None,
             }
         })
@@ -75,7 +75,7 @@ fn load(
     tiles_dir: &Path,
     tile_id: TileId,
     egui_ctx: &egui::Context,
-) -> Result<Texture, Box<dyn std::error::Error>> {
+) -> Result<Tile, Box<dyn std::error::Error>> {
     let path = PathBuf::from_iter(&[
         tiles_dir.to_owned(),
         tile_id.zoom.to_string().into(),
@@ -83,5 +83,5 @@ fn load(
         format!("{}.png", tile_id.y).into(),
     ]);
     let bytes = std::fs::read(path)?;
-    Ok(Texture::new(&bytes, egui_ctx)?)
+    Ok(Tile::new(&bytes, egui_ctx)?)
 }

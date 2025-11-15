@@ -1,8 +1,9 @@
 use crate::{
-    TextureWithUv, TileId, Tiles, download::Fetch, loader::Loader, sources::Attribution,
+    TileId, TilePiece, Tiles, io::Fetch, io::tiles_io::TilesIo, sources::Attribution,
     tiles::interpolate_from_lower_zoom,
 };
 use bytes::Bytes;
+use egui::Context;
 use pmtiles::{AsyncPmTilesReader, TileCoord};
 use std::{
     io::{self, Read as _},
@@ -14,26 +15,26 @@ use thiserror::Error;
 ///
 /// <https://docs.protomaps.com/guide/getting-started>
 pub struct PmTiles {
-    loader: Loader,
+    tiles_io: TilesIo,
 }
 
 impl PmTiles {
-    pub fn new(path: impl AsRef<Path>) -> Self {
+    pub fn new(path: impl AsRef<Path>, egui_ctx: Context) -> Self {
         Self {
-            loader: Loader::new(PmTilesFetch::new(path.as_ref()), egui::Context::default()),
+            tiles_io: TilesIo::new(PmTilesFetch::new(path.as_ref()), egui_ctx),
         }
     }
 
     /// Get at tile, or interpolate it from lower zoom levels. This function does not start any
     /// downloads.
-    fn get_from_cache_or_interpolate(&mut self, tile_id: TileId) -> Option<TextureWithUv> {
+    fn get_from_cache_or_interpolate(&mut self, tile_id: TileId) -> Option<TilePiece> {
         let mut zoom_candidate = tile_id.zoom;
 
         loop {
             let (zoomed_tile_id, uv) = interpolate_from_lower_zoom(tile_id, zoom_candidate);
 
-            if let Some(Some(texture)) = self.loader.cache.get(&zoomed_tile_id) {
-                break Some(TextureWithUv {
+            if let Some(Some(texture)) = self.tiles_io.cache.get(&zoomed_tile_id) {
+                break Some(TilePiece {
                     texture: texture.clone(),
                     uv,
                 });
@@ -46,8 +47,8 @@ impl PmTiles {
 }
 
 impl Tiles for PmTiles {
-    fn at(&mut self, tile_id: TileId) -> Option<TextureWithUv> {
-        self.loader.put_single_downloaded_tile_in_cache();
+    fn at(&mut self, tile_id: TileId) -> Option<TilePiece> {
+        self.tiles_io.put_single_fetched_tile_in_cache();
 
         if !tile_id.valid() {
             return None;
@@ -59,7 +60,7 @@ impl Tiles for PmTiles {
             tile_id
         };
 
-        self.loader.make_sure_is_downloaded(tile_id_to_download);
+        self.tiles_io.make_sure_is_fetched(tile_id_to_download);
         self.get_from_cache_or_interpolate(tile_id)
     }
 

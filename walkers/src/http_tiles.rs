@@ -1,16 +1,19 @@
+use bytes::Bytes;
 use egui::Context;
+use reqwest_middleware::ClientWithMiddleware;
 
-use crate::TileId;
-use crate::download::{HttpFetch, HttpOptions};
-use crate::loader::Loader;
+use crate::io::Fetch;
+use crate::io::runtime::http_client;
+use crate::io::tiles_io::TilesIo;
 use crate::sources::{Attribution, TileSource};
 use crate::tiles::interpolate_from_lower_zoom;
-use crate::{TextureWithUv, Tiles};
+use crate::{HttpOptions, TilePiece, Tiles};
+use crate::{Stats, TileId};
 
 /// Downloads the tiles via HTTP. It must persist between frames.
 pub struct HttpTiles {
     attribution: Attribution,
-    loader: Loader,
+    tiles_io: TilesIo,
     tile_size: u32,
     max_zoom: u8,
 }
@@ -32,35 +35,29 @@ impl HttpTiles {
         let attribution = source.attribution();
         let tile_size = source.tile_size();
         let max_zoom = source.max_zoom();
-        let fetch = HttpFetch::new(source, http_options);
 
         Self {
             attribution,
-            loader: Loader::new(fetch, egui_ctx),
+            tiles_io: TilesIo::new(HttpFetch::new(source, http_options), egui_ctx),
             tile_size,
             max_zoom,
         }
     }
 
-    pub fn stats(&self) -> HttpStats {
-        if let Ok(http_stats) = self.loader.stats.lock() {
-            http_stats.clone()
-        } else {
-            // I really do not want this to return a Result.
-            HttpStats::default()
-        }
+    pub fn stats(&self) -> Stats {
+        self.tiles_io.stats()
     }
 
     /// Get at tile, or interpolate it from lower zoom levels. This function does not start any
     /// downloads.
-    fn get_from_cache_or_interpolate(&mut self, tile_id: TileId) -> Option<TextureWithUv> {
+    fn get_from_cache_or_interpolate(&mut self, tile_id: TileId) -> Option<TilePiece> {
         let mut zoom_candidate = tile_id.zoom;
 
         loop {
             let (zoomed_tile_id, uv) = interpolate_from_lower_zoom(tile_id, zoom_candidate);
 
-            if let Some(Some(texture)) = self.loader.cache.get(&zoomed_tile_id) {
-                break Some(TextureWithUv {
+            if let Some(Some(texture)) = self.tiles_io.cache.get(&zoomed_tile_id) {
+                break Some(TilePiece {
                     texture: texture.clone(),
                     uv,
                 });
@@ -72,12 +69,6 @@ impl HttpTiles {
     }
 }
 
-#[derive(Clone, Default)]
-pub struct HttpStats {
-    /// Number of tiles that are currently being downloaded.
-    pub in_progress: usize,
-}
-
 impl Tiles for HttpTiles {
     /// Attribution of the source this tile cache pulls images from. Typically,
     /// this should be displayed somewhere on the top of the map widget.
@@ -86,8 +77,8 @@ impl Tiles for HttpTiles {
     }
 
     /// Return a tile if already in cache, schedule a download otherwise.
-    fn at(&mut self, tile_id: TileId) -> Option<TextureWithUv> {
-        self.loader.put_single_downloaded_tile_in_cache();
+    fn at(&mut self, tile_id: TileId) -> Option<TilePiece> {
+        self.tiles_io.put_single_fetched_tile_in_cache();
 
         if !tile_id.valid() {
             return None;
@@ -99,7 +90,7 @@ impl Tiles for HttpTiles {
             tile_id
         };
 
-        self.loader.make_sure_is_downloaded(tile_id_to_download);
+        self.tiles_io.make_sure_is_fetched(tile_id_to_download);
         self.get_from_cache_or_interpolate(tile_id)
     }
 
@@ -108,9 +99,58 @@ impl Tiles for HttpTiles {
     }
 }
 
+#[derive(Debug, thiserror::Error)]
+pub enum HttpFetchError {
+    #[error(transparent)]
+    HttpMiddleware(#[from] reqwest_middleware::Error),
+    #[error(transparent)]
+    Http(#[from] reqwest::Error),
+}
+
+pub struct HttpFetch<S>
+where
+    S: TileSource + Send + 'static,
+{
+    source: S,
+    max_concurrency: usize,
+    client: ClientWithMiddleware,
+}
+
+impl<S> HttpFetch<S>
+where
+    S: TileSource + Sync + Send,
+{
+    pub fn new(source: S, http_options: HttpOptions) -> Self {
+        Self {
+            source,
+            max_concurrency: http_options.max_parallel_downloads.0,
+            client: http_client(&http_options),
+        }
+    }
+}
+
+impl<S> Fetch for HttpFetch<S>
+where
+    S: TileSource + Sync + Send,
+{
+    type Error = HttpFetchError;
+
+    async fn fetch(&self, tile_id: TileId) -> Result<Bytes, Self::Error> {
+        let url = self.source.tile_url(tile_id);
+        log::trace!("Downloading '{url}'.");
+        let image = self.client.get(&url).send().await?;
+        log::trace!("Downloaded '{}': {:?}.", url, image.status());
+        Ok(image.error_for_status()?.bytes().await?)
+    }
+
+    fn max_concurrency(&self) -> usize {
+        self.max_concurrency
+    }
+}
+
 #[cfg(test)]
 mod tests {
-    use crate::download::MaxParallelDownloads;
+    use crate::MaxParallelDownloads;
 
     use super::*;
     use hypermocker::{

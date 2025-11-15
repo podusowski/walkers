@@ -5,29 +5,28 @@ use futures::channel::mpsc::{Receiver, Sender, TrySendError, channel};
 use lru::LruCache;
 
 use crate::{
-    HttpStats, Texture, TileId,
-    download::{Fetch, download_continuously},
-    io::Runtime,
+    Tile, TileId,
+    io::{Fetch, fetch::fetch_continuously, runtime::Runtime},
 };
 
 /// Asynchronously load and cache tiles from different local and remote sources.
-pub struct Loader {
+pub struct TilesIo {
     /// Tiles to be fetched by the IO thread.
-    pub request_tx: Sender<TileId>,
+    request_tx: Sender<TileId>,
 
     /// Tiles that got fetched and should be put in the cache.
-    pub tile_rx: Receiver<(TileId, Texture)>,
+    tile_rx: Receiver<(TileId, Tile)>,
 
-    pub cache: LruCache<TileId, Option<Texture>>,
-    pub stats: Arc<Mutex<HttpStats>>,
+    pub cache: LruCache<TileId, Option<Tile>>,
+    pub stats: Arc<Mutex<Stats>>,
 
     #[allow(dead_code)] // Significant Drop
     runtime: Runtime,
 }
 
-impl Loader {
+impl TilesIo {
     pub fn new(fetch: impl Fetch + Send + Sync + 'static, egui_ctx: Context) -> Self {
-        let stats = Arc::new(Mutex::new(HttpStats { in_progress: 0 }));
+        let stats = Arc::new(Mutex::new(Stats { in_progress: 0 }));
 
         // This ensures that newer requests are prioritized.
         let channel_size = fetch.max_concurrency();
@@ -36,7 +35,7 @@ impl Loader {
         let (tile_tx, tile_rx) = channel(channel_size);
 
         // This will run concurrently in a loop, handing downloads and talk with us via channels.
-        let runtime = Runtime::new(download_continuously(
+        let runtime = Runtime::new(fetch_continuously(
             fetch,
             stats.clone(),
             request_rx,
@@ -57,7 +56,8 @@ impl Loader {
         }
     }
 
-    pub fn put_single_downloaded_tile_in_cache(&mut self) {
+    /// Takes a single fetched tile from the IO thread and puts it in the cache.
+    pub fn put_single_fetched_tile_in_cache(&mut self) {
         // This is called every frame, so take just one at the time.
         match self.tile_rx.try_next() {
             Ok(Some((tile_id, tile))) => {
@@ -72,10 +72,11 @@ impl Loader {
         }
     }
 
-    pub fn make_sure_is_downloaded(&mut self, tile_id: TileId) {
+    /// Request a tile to be fetched, but only if it is not already being fetched.
+    pub fn make_sure_is_fetched(&mut self, tile_id: TileId) {
         match self.cache.try_get_or_insert(
             tile_id,
-            || -> Result<Option<Texture>, TrySendError<TileId>> {
+            || -> Result<Option<Tile>, TrySendError<TileId>> {
                 self.request_tx.try_send(tile_id)?;
                 log::trace!("Requested tile: {tile_id:?}");
                 Ok(None)
@@ -91,4 +92,19 @@ impl Loader {
             }
         }
     }
+
+    pub fn stats(&self) -> Stats {
+        if let Ok(stats) = self.stats.lock() {
+            stats.clone()
+        } else {
+            // I really do not want this to return a Result.
+            Stats::default()
+        }
+    }
+}
+
+#[derive(Clone, Default)]
+pub struct Stats {
+    /// Number of tiles that are currently being downloaded.
+    pub in_progress: usize,
 }

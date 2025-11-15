@@ -26,7 +26,7 @@ pub fn acknowledge(ui: &Ui, attributions: Vec<Attribution>) {
 pub fn controls(
     app: &mut MyApp,
     ui: &Ui,
-    http_stats: Vec<walkers::HttpStats>,
+    http_stats: Vec<walkers::Stats>,
     frame: &mut eframe::Frame,
 ) {
     Window::new("Controls")
