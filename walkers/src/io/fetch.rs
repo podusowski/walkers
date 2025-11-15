@@ -1,9 +1,7 @@
-/// Asynchronous fetching loop.
-use std::{
-    path::PathBuf,
-    sync::{Arc, Mutex},
+use crate::{
+    Stats, TileId,
+    tiles::{Tile, TileError},
 };
-
 use bytes::Bytes;
 use egui::Context;
 use futures::{
@@ -11,11 +9,8 @@ use futures::{
     channel::mpsc::{Receiver, Sender},
     future::{Either, select, select_all},
 };
-
-use crate::{
-    Stats, TileId,
-    tiles::{Tile, TileError},
-};
+/// Asynchronous fetching loop.
+use std::sync::{Arc, Mutex};
 
 #[derive(Debug, thiserror::Error)]
 pub enum Error {

@@ -4,4 +4,4 @@ pub mod runtime;
 pub mod tiles_io;
 
 pub use fetch::Fetch;
-pub use http::{HeaderValue, HttpOptions, MaxParallelDownloads};
+pub use http::{HeaderValue, MaxParallelDownloads};
