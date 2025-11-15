@@ -3,6 +3,7 @@ use crate::{
     tiles::interpolate_from_lower_zoom,
 };
 use bytes::Bytes;
+use egui::Context;
 use pmtiles::{AsyncPmTilesReader, TileCoord};
 use std::{
     io::{self, Read as _},
@@ -18,9 +19,9 @@ pub struct PmTiles {
 }
 
 impl PmTiles {
-    pub fn new(path: impl AsRef<Path>) -> Self {
+    pub fn new(path: impl AsRef<Path>, egui_ctx: Context) -> Self {
         Self {
-            tiles_io: TilesIo::new(PmTilesFetch::new(path.as_ref()), egui::Context::default()),
+            tiles_io: TilesIo::new(PmTilesFetch::new(path.as_ref()), egui_ctx),
         }
     }
 
