@@ -129,21 +129,11 @@ async fn fetch_and_decode(
     tile_id: TileId,
     egui_ctx: &Context,
 ) -> Result<(TileId, Tile), Error> {
-    fetch_and_decode_impl(fetch, tile_id, egui_ctx)
-        .await
-        .map(|tile| (tile_id, tile))
-}
-
-async fn fetch_and_decode_impl(
-    fetch: &impl Fetch,
-    tile_id: TileId,
-    egui_ctx: &Context,
-) -> Result<Tile, Error> {
     let image = fetch
         .fetch(tile_id)
         .await
         .map_err(|e| Error::Fetch(e.to_string()))?;
-    Ok(Tile::new(&image, egui_ctx)?)
+    Ok(Tile::new(&image, egui_ctx).map(|tile| (tile_id, tile))?)
 }
 
 async fn fetch_complete(
