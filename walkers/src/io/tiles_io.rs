@@ -6,7 +6,7 @@ use lru::LruCache;
 
 use crate::{
     Tile, TileId,
-    io::{Fetch, fetch::download_continuously, runtime::Runtime},
+    io::{Fetch, fetch::fetch_continuously, runtime::Runtime},
 };
 
 /// Asynchronously load and cache tiles from different local and remote sources.
@@ -35,7 +35,7 @@ impl TilesIo {
         let (tile_tx, tile_rx) = channel(channel_size);
 
         // This will run concurrently in a loop, handing downloads and talk with us via channels.
-        let runtime = Runtime::new(download_continuously(
+        let runtime = Runtime::new(fetch_continuously(
             fetch,
             stats.clone(),
             request_rx,

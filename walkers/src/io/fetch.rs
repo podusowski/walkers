@@ -1,3 +1,4 @@
+/// Asynchronous fetching loop.
 use std::{
     path::PathBuf,
     sync::{Arc, Mutex},
@@ -128,17 +129,17 @@ impl<T> From<std::sync::PoisonError<T>> for Error {
 }
 
 /// Download and decode the tile.
-async fn download_and_decode(
+async fn fetch_and_decode(
     fetch: &impl Fetch,
     tile_id: TileId,
     egui_ctx: &Context,
 ) -> Result<(TileId, Tile), Error> {
-    download_and_decode_impl(fetch, tile_id, egui_ctx)
+    fetch_and_decode_impl(fetch, tile_id, egui_ctx)
         .await
         .map(|tile| (tile_id, tile))
 }
 
-async fn download_and_decode_impl(
+async fn fetch_and_decode_impl(
     fetch: &impl Fetch,
     tile_id: TileId,
     egui_ctx: &Context,
@@ -150,7 +151,7 @@ async fn download_and_decode_impl(
     Ok(Tile::new(&image, egui_ctx)?)
 }
 
-async fn download_complete(
+async fn fetch_complete(
     mut tile_tx: futures::channel::mpsc::Sender<(TileId, Tile)>,
     egui_ctx: Context,
     result: Result<(TileId, Tile), Error>,
@@ -170,7 +171,7 @@ async fn download_complete(
     Ok(())
 }
 
-async fn download_continuously_impl(
+async fn fetch_continuously_impl(
     fetch: impl Fetch,
     stats: Arc<Mutex<Stats>>,
     mut request_rx: futures::channel::mpsc::Receiver<TileId>,
@@ -183,7 +184,7 @@ async fn download_continuously_impl(
         if downloads.is_empty() {
             // Only new downloads might be requested.
             let tile_id = request_rx.next().await.ok_or(Error::RequestChannelBroken)?;
-            let download = download_and_decode(&fetch, tile_id, &egui_ctx);
+            let download = fetch_and_decode(&fetch, tile_id, &egui_ctx);
             downloads.push(Box::pin(download));
         } else if downloads.len() < fetch.max_concurrency() {
             // New downloads might be requested or ongoing downloads might be completed.
@@ -191,20 +192,20 @@ async fn download_continuously_impl(
                 // New download was requested.
                 Either::Left((request, remaining_downloads)) => {
                     let tile_id = request.ok_or(Error::RequestChannelBroken)?;
-                    let download = download_and_decode(&fetch, tile_id, &egui_ctx);
+                    let download = fetch_and_decode(&fetch, tile_id, &egui_ctx);
                     downloads = remaining_downloads.into_inner();
                     downloads.push(Box::pin(download));
                 }
                 // Ongoing download was completed.
                 Either::Right(((result, _, remaining_downloads), _)) => {
-                    download_complete(tile_tx.to_owned(), egui_ctx.to_owned(), result).await?;
+                    fetch_complete(tile_tx.to_owned(), egui_ctx.to_owned(), result).await?;
                     downloads = remaining_downloads;
                 }
             }
         } else {
             // Only ongoing downloads might be completed.
             let (result, _, remaining_downloads) = select_all(downloads.drain(..)).await;
-            download_complete(tile_tx.to_owned(), egui_ctx.to_owned(), result).await?;
+            fetch_complete(tile_tx.to_owned(), egui_ctx.to_owned(), result).await?;
             downloads = remaining_downloads;
         }
 
@@ -214,20 +215,20 @@ async fn download_continuously_impl(
     }
 }
 
-/// Continuously download tiles requested via request channel.
-pub(crate) async fn download_continuously(
+/// Continuously fetch tiles requested via request channel.
+pub(crate) async fn fetch_continuously(
     fetch: impl Fetch,
     stats: Arc<Mutex<Stats>>,
     request_rx: futures::channel::mpsc::Receiver<TileId>,
     tile_tx: futures::channel::mpsc::Sender<(TileId, Tile)>,
     egui_ctx: Context,
 ) {
-    match download_continuously_impl(fetch, stats, request_rx, tile_tx, egui_ctx).await {
+    match fetch_continuously_impl(fetch, stats, request_rx, tile_tx, egui_ctx).await {
         Ok(()) | Err(Error::TileChannelClosed) | Err(Error::RequestChannelBroken) => {
-            log::debug!("Tile download loop finished.");
+            log::debug!("Tile fetch loop finished.");
         }
         Err(error) => {
-            log::error!("Tile download loop failed: {error}.");
+            log::error!("Tile fetch loop failed: {error}.");
         }
     }
 }
