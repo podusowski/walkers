@@ -8,6 +8,7 @@ use bytes::Bytes;
 use egui::Context;
 use futures::{
     SinkExt, StreamExt,
+    channel::mpsc::{Receiver, Sender},
     future::{Either, select, select_all},
 };
 
@@ -146,7 +147,7 @@ async fn fetch_and_decode_impl(
 }
 
 async fn fetch_complete(
-    mut tile_tx: futures::channel::mpsc::Sender<(TileId, Tile)>,
+    mut tile_tx: Sender<(TileId, Tile)>,
     egui_ctx: Context,
     result: Result<(TileId, Tile), Error>,
 ) -> Result<(), Error> {
@@ -168,8 +169,8 @@ async fn fetch_complete(
 async fn fetch_continuously_impl(
     fetch: impl Fetch,
     stats: Arc<Mutex<Stats>>,
-    mut request_rx: futures::channel::mpsc::Receiver<TileId>,
-    tile_tx: futures::channel::mpsc::Sender<(TileId, Tile)>,
+    mut request_rx: Receiver<TileId>,
+    tile_tx: Sender<(TileId, Tile)>,
     egui_ctx: Context,
 ) -> Result<(), Error> {
     let mut downloads = Vec::new();
