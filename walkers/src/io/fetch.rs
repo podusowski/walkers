@@ -205,8 +205,8 @@ async fn fetch_continuously_impl(
 pub(crate) async fn fetch_continuously(
     fetch: impl Fetch,
     stats: Arc<Mutex<Stats>>,
-    request_rx: futures::channel::mpsc::Receiver<TileId>,
-    tile_tx: futures::channel::mpsc::Sender<(TileId, Tile)>,
+    request_rx: Receiver<TileId>,
+    tile_tx: Sender<(TileId, Tile)>,
     egui_ctx: Context,
 ) {
     match fetch_continuously_impl(fetch, stats, request_rx, tile_tx, egui_ctx).await {
