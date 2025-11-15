@@ -144,7 +144,7 @@ async fn fetch_complete(
 ) -> Result<(), Error> {
     match result {
         Ok((tile_id, tile)) => {
-            tile_tx.send((tile_id, tile)).await.map_err(Error::from)?;
+            tile_tx.send((tile_id, tile)).await?;
             egui_ctx.request_repaint();
         }
         Err(e) => {
