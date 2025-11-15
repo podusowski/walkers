@@ -5114,11 +5114,9 @@ name = "walkers_extras"
 version = "0.49.0"
 dependencies = [
  "egui",
- "lyon_path",
- "lyon_tessellation",
  "quick-xml 0.37.5",
  "rstar",
- "thiserror 1.0.69",
+ "thiserror 2.0.17",
  "walkers",
 ]
 

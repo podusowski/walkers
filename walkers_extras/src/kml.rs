@@ -1,11 +1,6 @@
 use std::sync::Arc;
 
-use egui::epaint::{Mesh, Vertex};
 use egui::{self, Color32, Pos2, Response, Shape, Stroke, Ui};
-use lyon_path::Path;
-use lyon_tessellation::{
-    BuffersBuilder, FillOptions, FillRule, FillTessellator, FillVertex, VertexBuffers, math::point,
-};
 use quick_xml::Reader;
 use quick_xml::events::{BytesStart, Event};
 use thiserror::Error;
@@ -515,12 +510,7 @@ fn draw_polygon(
     }
 
     if let Some(fill_color) = fill_color {
-        if let Some(mesh) = tessellate_polygon(
-            &exterior_screen,
-            &hole_points,
-            fill_color,
-            defaults.fill_tolerance,
-        ) {
+        if let Ok(mesh) = walkers::tessellate_polygon(&exterior_screen, &hole_points, fill_color) {
             painter.add(Shape::mesh(mesh));
         }
     }
@@ -546,69 +536,6 @@ fn ring_to_screen_points(ring: &[Position], projector: &Projector) -> Option<Vec
         points.push(projector.project(*position).to_pos2());
     }
     if points.len() < 3 { None } else { Some(points) }
-}
-
-fn tessellate_polygon(
-    exterior: &[Pos2],
-    holes: &[Vec<Pos2>],
-    fill_color: Color32,
-    tolerance: f32,
-) -> Option<Mesh> {
-    if exterior.len() < 3 {
-        return None;
-    }
-
-    let mut builder = Path::builder();
-    add_ring_to_path(&mut builder, exterior);
-    for hole in holes {
-        if hole.len() >= 3 {
-            add_ring_to_path(&mut builder, hole);
-        }
-    }
-
-    let path = builder.build();
-    let mut tessellator = FillTessellator::new();
-    let mut buffers: VertexBuffers<Pos2, u32> = VertexBuffers::new();
-    let mut options = FillOptions::default();
-    options.tolerance = tolerance.max(0.01);
-    options.fill_rule = FillRule::EvenOdd;
-
-    if tessellator
-        .tessellate_path(
-            path.as_slice(),
-            &options,
-            &mut BuffersBuilder::new(&mut buffers, |vertex: FillVertex| {
-                let pos = vertex.position();
-                Pos2::new(pos.x, pos.y)
-            }),
-        )
-        .is_err()
-    {
-        return None;
-    }
-
-    let mut mesh = Mesh::default();
-    mesh.indices.extend(buffers.indices);
-    mesh.vertices.reserve(buffers.vertices.len());
-    for pos in buffers.vertices.into_iter() {
-        mesh.vertices.push(Vertex {
-            pos,
-            uv: egui::epaint::WHITE_UV,
-            color: fill_color,
-        });
-    }
-    Some(mesh)
-}
-
-fn add_ring_to_path(builder: &mut lyon_path::path::Builder, ring: &[Pos2]) {
-    if ring.is_empty() {
-        return;
-    }
-    builder.begin(point(ring[0].x, ring[0].y));
-    for p in &ring[1..] {
-        builder.line_to(point(p.x, p.y));
-    }
-    builder.close();
 }
 
 #[cfg(test)]

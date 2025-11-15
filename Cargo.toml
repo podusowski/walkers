@@ -25,6 +25,7 @@ egui-winit = "0.33"
 image = { version = "0.25", default-features = false }
 log = "0.4"
 wgpu = { version = "27.0.1", default-features = true }
+thiserror = "2"
 
 [patch.crates-io]
 #eframe = { git = "https://github.com/emilk/egui.git", branch = "main" }

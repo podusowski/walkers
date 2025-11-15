@@ -14,7 +14,7 @@ log.workspace = true
 egui.workspace = true
 egui_extras.workspace = true
 lru = "0.16"
-thiserror = "2"
+thiserror.workspace = true
 image = { version = "0.25", default-features = false, features = [
     "jpeg",
     "png",
