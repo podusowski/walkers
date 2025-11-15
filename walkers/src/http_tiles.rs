@@ -2,7 +2,7 @@ use bytes::Bytes;
 use egui::Context;
 use reqwest_middleware::ClientWithMiddleware;
 
-use crate::download::{Fetch, HttpOptions};
+use crate::io::{Fetch, HttpOptions};
 use crate::io::runtime::http_client;
 use crate::io::tiles_io::TilesIo;
 use crate::sources::{Attribution, TileSource};

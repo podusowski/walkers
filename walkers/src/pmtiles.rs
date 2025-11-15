@@ -1,5 +1,5 @@
 use crate::{
-    TileId, TilePiece, Tiles, download::Fetch, io::tiles_io::TilesIo, sources::Attribution,
+    TileId, TilePiece, Tiles, io::Fetch, io::tiles_io::TilesIo, sources::Attribution,
     tiles::interpolate_from_lower_zoom,
 };
 use bytes::Bytes;

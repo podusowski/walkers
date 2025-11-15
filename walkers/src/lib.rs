@@ -2,7 +2,6 @@
 #![deny(clippy::unwrap_used, rustdoc::broken_intra_doc_links)]
 
 mod center;
-mod download;
 mod http_tiles;
 mod io;
 mod local_tiles;
@@ -22,9 +21,9 @@ pub mod sources;
 mod tiles;
 mod zoom;
 
-pub use download::{HeaderValue, HttpOptions, MaxParallelDownloads};
 pub use http_tiles::HttpTiles;
 pub use io::tiles_io::Stats;
+pub use io::{HeaderValue, HttpOptions, MaxParallelDownloads};
 pub use local_tiles::LocalTiles;
 pub use map::{Map, Plugin};
 pub use memory::MapMemory;
