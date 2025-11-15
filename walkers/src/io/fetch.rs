@@ -173,40 +173,40 @@ async fn fetch_continuously_impl(
     tile_tx: Sender<(TileId, Tile)>,
     egui_ctx: Context,
 ) -> Result<(), Error> {
-    let mut downloads = Vec::new();
+    let mut outstanding = Vec::new();
 
     loop {
-        if downloads.is_empty() {
+        if outstanding.is_empty() {
             // Only new downloads might be requested.
             let tile_id = request_rx.next().await.ok_or(Error::RequestChannelBroken)?;
-            let download = fetch_and_decode(&fetch, tile_id, &egui_ctx);
-            downloads.push(Box::pin(download));
-        } else if downloads.len() < fetch.max_concurrency() {
+            let f = fetch_and_decode(&fetch, tile_id, &egui_ctx);
+            outstanding.push(Box::pin(f));
+        } else if outstanding.len() < fetch.max_concurrency() {
             // New downloads might be requested or ongoing downloads might be completed.
-            match select(request_rx.next(), select_all(downloads.drain(..))).await {
+            match select(request_rx.next(), select_all(outstanding.drain(..))).await {
                 // New download was requested.
-                Either::Left((request, remaining_downloads)) => {
+                Either::Left((request, remaining)) => {
                     let tile_id = request.ok_or(Error::RequestChannelBroken)?;
-                    let download = fetch_and_decode(&fetch, tile_id, &egui_ctx);
-                    downloads = remaining_downloads.into_inner();
-                    downloads.push(Box::pin(download));
+                    let f = fetch_and_decode(&fetch, tile_id, &egui_ctx);
+                    outstanding = remaining.into_inner();
+                    outstanding.push(Box::pin(f));
                 }
                 // Ongoing download was completed.
-                Either::Right(((result, _, remaining_downloads), _)) => {
+                Either::Right(((result, _, remaining), _)) => {
                     fetch_complete(tile_tx.to_owned(), egui_ctx.to_owned(), result).await?;
-                    downloads = remaining_downloads;
+                    outstanding = remaining;
                 }
             }
         } else {
             // Only ongoing downloads might be completed.
-            let (result, _, remaining_downloads) = select_all(downloads.drain(..)).await;
+            let (result, _, remaining) = select_all(outstanding.drain(..)).await;
             fetch_complete(tile_tx.to_owned(), egui_ctx.to_owned(), result).await?;
-            downloads = remaining_downloads;
+            outstanding = remaining;
         }
 
         // Update stats.
         let mut stats = stats.lock()?;
-        stats.in_progress = downloads.len();
+        stats.in_progress = outstanding.len();
     }
 }
 
