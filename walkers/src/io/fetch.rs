@@ -87,15 +87,6 @@ impl MaxParallelDownloads {
 
 #[derive(Debug, thiserror::Error)]
 pub enum Error {
-    #[error(transparent)]
-    HttpMiddleware(#[from] reqwest_middleware::Error),
-
-    #[error(transparent)]
-    Http(#[from] reqwest::Error),
-
-    #[error(transparent)]
-    Tile(#[from] TileError),
-
     #[error("Tile request channel from the main thread was broken.")]
     RequestChannelBroken,
 
@@ -105,11 +96,14 @@ pub enum Error {
     #[error("Tile channel to the main thread was full.")]
     TileChannelFull,
 
-    #[error("Poison error.")]
-    Poisoned,
-
     #[error("Fetch error: {0}")]
     Fetch(String),
+
+    #[error(transparent)]
+    Tile(#[from] TileError),
+
+    #[error("Poison error.")]
+    Poisoned,
 }
 
 impl From<futures::channel::mpsc::SendError> for Error {
