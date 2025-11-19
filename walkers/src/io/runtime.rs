@@ -1,6 +1,4 @@
 //! Managed thread for an IO runtime. Concrete implementation depends on the target.
-use crate::HttpOptions;
-
 #[cfg(not(target_arch = "wasm32"))]
 pub(crate) use native::*;
 
@@ -26,9 +24,6 @@ mod web {
 
 #[cfg(not(target_arch = "wasm32"))]
 mod native {
-    use http_cache_reqwest::{CACacheManager, Cache, CacheMode, HttpCache, HttpCacheOptions};
-    use reqwest_middleware::{ClientBuilder, ClientWithMiddleware};
-
     pub struct Runtime {
         join_handle: Option<std::thread::JoinHandle<()>>,
         quit_tx: tokio::sync::mpsc::UnboundedSender<()>,
