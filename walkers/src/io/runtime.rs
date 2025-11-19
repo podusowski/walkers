@@ -7,8 +7,6 @@ pub(crate) use web::*;
 
 #[cfg(target_arch = "wasm32")]
 mod web {
-    use reqwest_middleware::{ClientBuilder, ClientWithMiddleware};
-
     pub struct Runtime;
 
     impl Runtime {

@@ -103,6 +103,7 @@ mod native {
 #[cfg(target_arch = "wasm32")]
 mod web {
     use super::{HttpOptions, bare_client};
+    use reqwest_middleware::{ClientBuilder, ClientWithMiddleware};
 
     pub fn http_client(http_options: &HttpOptions) -> ClientWithMiddleware {
         if http_options.cache.is_some() {
