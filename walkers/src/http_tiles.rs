@@ -3,7 +3,7 @@ use egui::Context;
 use reqwest_middleware::ClientWithMiddleware;
 
 use crate::io::Fetch;
-use crate::io::runtime::http_client;
+use crate::io::http::http_client;
 use crate::io::tiles_io::TilesIo;
 use crate::sources::{Attribution, TileSource};
 use crate::tiles::interpolate_from_lower_zoom;
