@@ -84,7 +84,8 @@ impl ShapeOrText {
 }
 
 /// Render MVT data into a list of [`epaint::Shape`]s.
-pub fn render(data: &mvt_reader::Reader) -> Result<Vec<ShapeOrText>, Error> {
+pub fn render(data: &[u8]) -> Result<Vec<ShapeOrText>, Error> {
+    let data = mvt_reader::Reader::new(data.to_vec())?;
     let mut shapes = Vec::new();
 
     let known_layers = [
@@ -105,7 +106,7 @@ pub fn render(data: &mvt_reader::Reader) -> Result<Vec<ShapeOrText>, Error> {
     }
 
     for layer in known_layers {
-        if let Ok(layer_index) = find_layer(data, layer) {
+        if let Ok(layer_index) = find_layer(&data, layer) {
             for feature in data.get_features(layer_index)? {
                 if let Err(err) = feature_into_shape(&feature, &mut shapes) {
                     warn!("{err}");
