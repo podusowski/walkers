@@ -137,8 +137,7 @@ impl Tile {
 
     #[cfg(feature = "vector_tiles")]
     pub fn from_mvt(data: &[u8]) -> Result<Self, TileError> {
-        let shapes = mvt::render(&data)?;
-        Ok(Self::Vector(shapes))
+        Ok(Self::Vector(mvt::render(&data)?))
     }
 
     /// Load the texture from egui's [`ColorImage`].
