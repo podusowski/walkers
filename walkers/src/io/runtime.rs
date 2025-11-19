@@ -15,7 +15,7 @@ mod web {
             F: std::future::Future<Output = ()> + 'static,
         {
             wasm_bindgen_futures::spawn_local(f);
-            Self {}
+            Self
         }
     }
 }
