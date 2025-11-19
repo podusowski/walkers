@@ -1,6 +1,4 @@
 //! Managed thread for an IO runtime. Concrete implementation depends on the target.
-use crate::HttpOptions;
-
 #[cfg(not(target_arch = "wasm32"))]
 pub(crate) use native::*;
 
@@ -9,9 +7,6 @@ pub(crate) use web::*;
 
 #[cfg(target_arch = "wasm32")]
 mod web {
-    use super::{HttpOptions, bare_client};
-    use reqwest_middleware::{ClientBuilder, ClientWithMiddleware};
-
     pub struct Runtime;
 
     impl Runtime {
@@ -20,26 +15,13 @@ mod web {
             F: std::future::Future<Output = ()> + 'static,
         {
             wasm_bindgen_futures::spawn_local(f);
-            Self {}
+            Self
         }
-    }
-
-    pub fn http_client(http_options: &HttpOptions) -> ClientWithMiddleware {
-        if http_options.cache.is_some() {
-            log::warn!(
-                "HTTP cache directory set, but ignored because, in WASM, caching is handled by the browser."
-            );
-        }
-        ClientBuilder::new(bare_client(http_options)).build()
     }
 }
 
 #[cfg(not(target_arch = "wasm32"))]
 mod native {
-    use super::{HttpOptions, bare_client};
-    use http_cache_reqwest::{CACacheManager, Cache, CacheMode, HttpCache, HttpCacheOptions};
-    use reqwest_middleware::{ClientBuilder, ClientWithMiddleware};
-
     pub struct Runtime {
         join_handle: Option<std::thread::JoinHandle<()>>,
         quit_tx: tokio::sync::mpsc::UnboundedSender<()>,
@@ -84,34 +66,4 @@ mod native {
             log::debug!("Tokio thread is down.");
         }
     }
-
-    pub fn http_client(http_options: &HttpOptions) -> ClientWithMiddleware {
-        let builder = ClientBuilder::new(bare_client(http_options));
-
-        if let Some(cache) = &http_options.cache {
-            builder.with(Cache(HttpCache {
-                mode: CacheMode::Default,
-                manager: CACacheManager {
-                    path: cache.clone(),
-                    remove_opts: Default::default(),
-                },
-                options: HttpCacheOptions::default(),
-            }))
-        } else {
-            builder
-        }
-        .build()
-    }
-}
-
-fn bare_client(http_options: &HttpOptions) -> reqwest::Client {
-    let mut builder = reqwest::Client::builder();
-
-    if let Some(user_agent) = &http_options.user_agent {
-        builder = builder.user_agent(user_agent);
-    }
-
-    builder
-        .build()
-        .expect("could not initialize reqwest client")
 }
