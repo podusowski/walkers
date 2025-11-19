@@ -136,10 +136,8 @@ impl Tile {
     }
 
     #[cfg(feature = "vector_tiles")]
-    pub fn from_mvt(data: &[u8]) -> Result<Self, mvt::Error> {
-        let reader = mvt_reader::Reader::new(data.to_vec())?;
-        let shapes = mvt::render(&reader)?;
-        Ok(Self::Vector(shapes))
+    pub fn from_mvt(data: &[u8]) -> Result<Self, TileError> {
+        Ok(Self::Vector(mvt::render(data)?))
     }
 
     /// Load the texture from egui's [`ColorImage`].
