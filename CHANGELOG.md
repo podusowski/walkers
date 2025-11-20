@@ -2,7 +2,7 @@
 
 All notable changes to this project will be documented in this file.
 
-## Unreleased
+## 0.50.0
 
 * Another round of improvements to experimental vector tile rendering.
 * If raster image cannot be decoded, Walkers will try to interpret it as a vector tile. This means
