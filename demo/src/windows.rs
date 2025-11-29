@@ -46,7 +46,7 @@ pub fn controls(
                     }
                 });
 
-            #[cfg(feature = "vector_tiles")]
+            #[cfg(feature = "pmtiles")]
             if !app.providers.have_some_pmtiles {
                 ui.label("No .pmtiles files found in the current directory. Go to");
                 ui.hyperlink("https://docs.protomaps.com/guide/getting-started");
