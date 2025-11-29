@@ -11,7 +11,7 @@ mod memory;
 // TODO: I don't want it to be public.
 pub mod mercator;
 
-#[cfg(feature = "vector_tiles")]
+#[cfg(feature = "mvt")]
 mod mvt;
 #[cfg(feature = "vector_tiles")]
 mod pmtiles;

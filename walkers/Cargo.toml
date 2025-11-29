@@ -25,10 +25,10 @@ reqwest = { version = "0.12", default-features = false, features = [
 ] }
 bytes = "1"
 futures = "0.3.31"
-serde = { version = "1", features = ["derive"], optional = true }
 reqwest-middleware = "0.4.2"
 
-# Vector tiles
+# Optional dependencies
+serde = { version = "1", features = ["derive"], optional = true }
 pmtiles = { version = "0.18.0", default-features = false, features = [
     "mmap-async-tokio",
 ], optional = true }
@@ -53,10 +53,5 @@ hypermocker = { path = "../hypermocker" }
 [features]
 default = []
 serde = ["dep:serde", "geo-types/serde", "egui/serde"]
-vector_tiles = [
-    "dep:pmtiles",
-    "dep:mvt-reader",
-    "dep:flate2",
-    "dep:lyon_tessellation",
-    "dep:lyon_path",
-]
+mvt = ["dep:mvt-reader", "dep:lyon_tessellation", "dep:lyon_path"]
+pmtiles = ["dep:pmtiles", "dep:flate2"]
