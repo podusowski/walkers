@@ -7,6 +7,7 @@ mod io;
 mod local_tiles;
 mod map;
 mod memory;
+mod style;
 
 // TODO: I don't want it to be public.
 pub mod mercator;
