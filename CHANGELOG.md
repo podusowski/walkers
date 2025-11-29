@@ -2,6 +2,10 @@
 
 All notable changes to this project will be documented in this file.
 
+## Unreleased
+
+* `vector_tiles` Cargo feature is now split into `mvt` and `pmtiles`.
+
 ## 0.50.0
 
 * Another round of improvements to experimental vector tile rendering.
