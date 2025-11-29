@@ -1,19 +1,26 @@
 /// Style for rendering vector maps. Loosely (very) based on MapLibre's style specification.
 #[derive(serde::Deserialize)]
 struct Style {
-    layers: Vec<StyleLayer>,
+    layers: Vec<Layer>,
 }
 
 #[derive(serde::Deserialize)]
-struct StyleLayer {
-    source_layer: String,
-    filter: Vec<String>,
+struct Layer {
+    source_layer: Option<String>,
+    filter: Option<Vec<serde_json::Value>>,
     paint: Paint,
 }
 
 #[derive(serde::Deserialize)]
 struct Paint {
-    fill_color: color::DynamicColor,
+    fill_color: Option<Vec<serde_json::Value>>,
+}
+
+#[derive(serde::Deserialize)]
+#[serde(untagged)]
+enum StringOrVec {
+    Str(String),
+    Vec(Vec<StringOrVec>),
 }
 
 mod tests {
