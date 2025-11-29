@@ -1,14 +1,14 @@
 use std::{collections::BTreeMap, path::PathBuf};
 
 use egui::Context;
-#[cfg(feature = "vector_tiles")]
+#[cfg(feature = "pmtiles")]
 use walkers::PmTiles;
 use walkers::{HttpOptions, HttpTiles, LocalTiles, Tiles};
 
 pub(crate) enum TilesKind {
     Http(HttpTiles),
     Local(LocalTiles),
-    #[cfg(feature = "vector_tiles")]
+    #[cfg(feature = "pmtiles")]
     PmTiles(PmTiles),
 }
 
@@ -17,7 +17,7 @@ impl AsMut<dyn Tiles> for TilesKind {
         match self {
             TilesKind::Http(tiles) => tiles,
             TilesKind::Local(tiles) => tiles,
-            #[cfg(feature = "vector_tiles")]
+            #[cfg(feature = "pmtiles")]
             TilesKind::PmTiles(tiles) => tiles,
         }
     }
@@ -28,7 +28,7 @@ impl AsRef<dyn Tiles> for TilesKind {
         match self {
             TilesKind::Http(tiles) => tiles,
             TilesKind::Local(tiles) => tiles,
-            #[cfg(feature = "vector_tiles")]
+            #[cfg(feature = "pmtiles")]
             TilesKind::PmTiles(tiles) => tiles,
         }
     }
@@ -50,7 +50,7 @@ fn http_options() -> HttpOptions {
 pub struct Providers {
     pub available: BTreeMap<String, Vec<TilesKind>>,
     pub selected: String,
-    #[cfg(feature = "vector_tiles")]
+    #[cfg(feature = "pmtiles")]
     pub have_some_pmtiles: bool,
 }
 
@@ -109,7 +109,7 @@ pub(crate) fn providers(egui_ctx: Context) -> Providers {
         ))],
     );
 
-    #[cfg(feature = "vector_tiles")]
+    #[cfg(feature = "pmtiles")]
     {
         let pmtiles = find_pmtiles_files();
         providers.have_some_pmtiles = !pmtiles.is_empty();
@@ -159,7 +159,7 @@ pub(crate) fn providers(egui_ctx: Context) -> Providers {
     providers
 }
 
-#[cfg(feature = "vector_tiles")]
+#[cfg(feature = "pmtiles")]
 fn find_pmtiles_files() -> Vec<PathBuf> {
     let Ok(dir) = std::fs::read_dir(".") else {
         return Vec::new();

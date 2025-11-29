@@ -1,10 +1,10 @@
-#[cfg(feature = "vector_tiles")]
+#[cfg(feature = "mvt")]
 use crate::mvt::{self, ShapeOrText};
 use std::collections::HashSet;
 
 use egui::{Color32, Context, Mesh, Rect, Vec2, pos2};
 use egui::{ColorImage, TextureHandle};
-#[cfg(feature = "vector_tiles")]
+#[cfg(feature = "mvt")]
 use egui::{FontId, Pos2, Shape};
 use image::{ImageError, ImageReader};
 use thiserror::Error;
@@ -23,7 +23,7 @@ pub enum TileError {
     #[error(transparent)]
     Image(#[from] ImageError),
 
-    #[cfg(feature = "vector_tiles")]
+    #[cfg(feature = "mvt")]
     #[error(transparent)]
     Mvt(#[from] mvt::Error),
 
@@ -101,11 +101,13 @@ pub trait Tiles {
 #[derive(Clone)]
 pub enum Tile {
     Raster(TextureHandle),
-    #[cfg(feature = "vector_tiles")]
+    #[cfg(feature = "mvt")]
     Vector(Vec<ShapeOrText>),
 }
 
 impl Tile {
+    /// Create a tile from raw image data. The data can be either raster image (PNG, JPEG, etc.)
+    /// or vector tile (MVT) if the `mvt` feature is enabled.
     pub fn new(image: &[u8], ctx: &Context) -> Result<Self, TileError> {
         if image.is_empty() {
             return Err(TileError::Empty);
@@ -123,19 +125,19 @@ impl Tile {
 
             Ok(Self::from_color_image(image, ctx))
         } else {
-            #[cfg(feature = "vector_tiles")]
+            #[cfg(feature = "mvt")]
             {
                 log::debug!("Trying to decode tile as MVT vector tile.");
                 Ok(Self::from_mvt(image)?)
             }
-            #[cfg(not(feature = "vector_tiles"))]
+            #[cfg(not(feature = "mvt"))]
             {
                 Err(TileError::UnrecognizedFormat)
             }
         }
     }
 
-    #[cfg(feature = "vector_tiles")]
+    #[cfg(feature = "mvt")]
     pub fn from_mvt(data: &[u8]) -> Result<Self, TileError> {
         Ok(Self::Vector(mvt::render(data)?))
     }
@@ -154,7 +156,7 @@ impl Tile {
                 mesh.add_rect_with_uv(rect, uv, Color32::WHITE.gamma_multiply(transparency));
                 painter.add(egui::Shape::mesh(mesh));
             }
-            #[cfg(feature = "vector_tiles")]
+            #[cfg(feature = "mvt")]
             Tile::Vector(shapes) => {
                 // Renderer needs to work on the full tile, before it was clipped with `uv`...
                 let full_rect = full_rect_of_clipped_tile(rect, uv);
@@ -180,7 +182,7 @@ impl Tile {
         }
     }
 
-    #[cfg(feature = "vector_tiles")]
+    #[cfg(feature = "mvt")]
     fn draw_text(&self, pos: Pos2, text: String, font_size: f32, ctx: &Context) -> Shape {
         ctx.fonts_mut(|fonts| {
             Shape::text(
@@ -303,7 +305,7 @@ pub(crate) fn interpolate_from_lower_zoom(tile_id: TileId, available_zoom: u8) -
     (zoomed_tile_id, uv)
 }
 
-#[cfg(any(feature = "vector_tiles", test))]
+#[cfg(any(feature = "mvt", test))]
 /// Get the original rect which was clipped using the `uv`.
 fn full_rect_of_clipped_tile(rect: Rect, uv: Rect) -> Rect {
     let uv_width = uv.max.x - uv.min.x;

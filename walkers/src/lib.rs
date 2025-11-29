@@ -11,9 +11,9 @@ mod memory;
 // TODO: I don't want it to be public.
 pub mod mercator;
 
-#[cfg(feature = "vector_tiles")]
+#[cfg(feature = "mvt")]
 mod mvt;
-#[cfg(feature = "vector_tiles")]
+#[cfg(feature = "pmtiles")]
 mod pmtiles;
 mod position;
 mod projector;
@@ -27,7 +27,7 @@ pub use io::{HeaderValue, MaxParallelDownloads, http::HttpOptions};
 pub use local_tiles::LocalTiles;
 pub use map::{Map, Plugin};
 pub use memory::MapMemory;
-#[cfg(feature = "vector_tiles")]
+#[cfg(feature = "pmtiles")]
 pub use pmtiles::PmTiles;
 pub use position::{Position, lat_lon, lon_lat};
 pub use projector::Projector;
