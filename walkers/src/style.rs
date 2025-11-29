@@ -28,13 +28,6 @@ struct Paint {
     fill_color: Option<Vec<serde_json::Value>>,
 }
 
-#[derive(serde::Deserialize)]
-#[serde(untagged)]
-enum StringOrVec {
-    Str(String),
-    Vec(Vec<StringOrVec>),
-}
-
 mod tests {
     use std::env;
 
