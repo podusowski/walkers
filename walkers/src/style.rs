@@ -5,21 +5,17 @@ struct Style {
 }
 
 #[derive(serde::Deserialize)]
-#[serde(tag = "type")]
+#[serde(tag = "type", rename_all = "kebab-case")]
 enum Layer {
-    #[serde(rename = "background")]
-    Background {},
-    #[serde(rename = "fill")]
+    Background,
+    #[serde(rename_all = "kebab-case")]
     Fill {
         id: String,
-        #[serde(rename = "source-layer")]
         source_layer: String,
         filter: Option<Vec<serde_json::Value>>,
         paint: Paint,
     },
-    #[serde(rename = "line")]
     Line,
-    #[serde(rename = "symbol")]
     Symbol,
 }
 
