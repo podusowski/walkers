@@ -19,6 +19,8 @@ use lyon_tessellation::{
 };
 use mvt_reader::feature::{Feature, Value};
 
+use crate::style::Style;
+
 #[derive(thiserror::Error, Debug)]
 pub enum Error {
     #[error("Decoding MVT failed: {0}.")]
@@ -84,7 +86,7 @@ impl ShapeOrText {
 }
 
 /// Render MVT data into a list of [`epaint::Shape`]s.
-pub fn render(data: &[u8]) -> Result<Vec<ShapeOrText>, Error> {
+pub fn render(data: &[u8], style: &Style) -> Result<Vec<ShapeOrText>, Error> {
     let data = mvt_reader::Reader::new(data.to_vec())?;
     let mut shapes = Vec::new();
 

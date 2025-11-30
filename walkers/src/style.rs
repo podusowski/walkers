@@ -1,6 +1,6 @@
 /// Style for rendering vector maps. Loosely (very) based on MapLibre's style specification.
-#[derive(serde::Deserialize)]
-struct Style {
+#[derive(serde::Deserialize, Default)]
+pub struct Style {
     layers: Vec<Layer>,
 }
 
@@ -25,8 +25,6 @@ struct Paint {
 }
 
 mod tests {
-    use std::env;
-
     use super::*;
 
     #[test]

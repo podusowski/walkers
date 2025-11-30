@@ -1,15 +1,19 @@
 #[cfg(feature = "mvt")]
-use crate::mvt::{self, ShapeOrText};
-use std::collections::HashSet;
+use crate::{
+    mvt::{self, ShapeOrText},
+    style::Style,
+};
 
 use egui::{Color32, Context, Mesh, Rect, Vec2, pos2};
 use egui::{ColorImage, TextureHandle};
 #[cfg(feature = "mvt")]
 use egui::{FontId, Pos2, Shape};
 use image::{ImageError, ImageReader};
+use std::collections::HashSet;
 use thiserror::Error;
 
 use crate::Position;
+use crate::io::TileFactory;
 use crate::mercator::{project, tile_id, total_tiles};
 use crate::position::{Pixels, PixelsExt};
 use crate::sources::Attribution;
@@ -108,7 +112,7 @@ pub enum Tile {
 impl Tile {
     /// Create a tile from raw image data. The data can be either raster image (PNG, JPEG, etc.)
     /// or vector tile (MVT) if the `mvt` feature is enabled.
-    pub fn new(image: &[u8], ctx: &Context) -> Result<Self, TileError> {
+    pub fn new(image: &[u8], style: &Style, ctx: &Context) -> Result<Self, TileError> {
         if image.is_empty() {
             return Err(TileError::Empty);
         }
@@ -128,7 +132,7 @@ impl Tile {
             #[cfg(feature = "mvt")]
             {
                 log::debug!("Trying to decode tile as MVT vector tile.");
-                Ok(Self::from_mvt(image)?)
+                Ok(Self::from_mvt(image, style)?)
             }
             #[cfg(not(feature = "mvt"))]
             {
@@ -138,8 +142,8 @@ impl Tile {
     }
 
     #[cfg(feature = "mvt")]
-    pub fn from_mvt(data: &[u8]) -> Result<Self, TileError> {
-        Ok(Self::Vector(mvt::render(data)?))
+    pub fn from_mvt(data: &[u8], style: &Style) -> Result<Self, TileError> {
+        Ok(Self::Vector(mvt::render(data, style)?))
     }
 
     /// Load the texture from egui's [`ColorImage`].
@@ -325,6 +329,23 @@ fn full_rect_of_clipped_tile(rect: Rect, uv: Rect) -> Rect {
 
 pub(crate) fn rect(screen_position: Vec2, tile_size: f64) -> Rect {
     Rect::from_min_size(screen_position.to_pos2(), Vec2::splat(tile_size as f32))
+}
+
+pub struct EguiTileFactory {
+    egui_ctx: Context,
+    style: Style,
+}
+
+impl EguiTileFactory {
+    pub fn new(egui_ctx: Context, style: Style) -> Self {
+        Self { egui_ctx, style }
+    }
+}
+
+impl TileFactory for EguiTileFactory {
+    fn create_tile(&self, data: &bytes::Bytes) -> Result<Tile, TileError> {
+        Tile::new(data, &self.style, &self.egui_ctx)
+    }
 }
 
 #[cfg(test)]

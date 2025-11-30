@@ -6,7 +6,8 @@ use crate::io::Fetch;
 use crate::io::http::http_client;
 use crate::io::tiles_io::TilesIo;
 use crate::sources::{Attribution, TileSource};
-use crate::tiles::interpolate_from_lower_zoom;
+use crate::style::Style;
+use crate::tiles::{EguiTileFactory, interpolate_from_lower_zoom};
 use crate::{HttpOptions, TilePiece, Tiles};
 use crate::{Stats, TileId};
 
@@ -38,7 +39,11 @@ impl HttpTiles {
 
         Self {
             attribution,
-            tiles_io: TilesIo::new(HttpFetch::new(source, http_options), egui_ctx),
+            tiles_io: TilesIo::new(
+                HttpFetch::new(source, http_options),
+                EguiTileFactory::new(egui_ctx.clone(), Style::default()),
+                egui_ctx,
+            ),
             tile_size,
             max_zoom,
         }
