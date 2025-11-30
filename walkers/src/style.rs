@@ -41,6 +41,7 @@ pub struct Paint {
 pub struct Filter(Vec<Value>);
 
 impl Filter {
+    /// Match this filter against feature properties.
     pub fn matches(&self, properties: &HashMap<String, MvtValue>) -> bool {
         let (function, args) = self.0.split_first().unwrap();
         match function {
