@@ -17,7 +17,7 @@ impl Default for Style {
     }
 }
 
-#[derive(serde::Deserialize)]
+#[derive(serde::Deserialize, Debug)]
 #[serde(tag = "type", rename_all = "kebab-case")]
 pub enum Layer {
     Background,
@@ -32,12 +32,12 @@ pub enum Layer {
     Symbol,
 }
 
-#[derive(serde::Deserialize)]
+#[derive(serde::Deserialize, Debug)]
 pub struct Paint {
     pub fill_color: Option<Vec<Value>>,
 }
 
-#[derive(serde::Deserialize)]
+#[derive(serde::Deserialize, Debug)]
 pub struct Filter(Vec<Value>);
 
 impl Filter {

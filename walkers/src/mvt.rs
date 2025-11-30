@@ -114,8 +114,8 @@ pub fn render(data: &[u8], style: &Style) -> Result<Vec<ShapeOrText>, Error> {
                     }
                 }
             }
-            _ => {
-                warn!("Unsupported layer type in style.");
+            layer => {
+                log::warn!("Unsupported layer type in style: {layer:?}");
                 continue;
             }
         }
