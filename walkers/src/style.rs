@@ -40,6 +40,8 @@ pub enum Layer {
 #[serde(rename_all = "kebab-case")]
 pub struct Paint {
     pub fill_color: Option<Color>,
+    /// https://maplibre.org/maplibre-style-spec/layers/#fill-opacity
+    pub fill_opacity: Option<Opacity>,
 }
 
 #[derive(Deserialize, Debug)]
@@ -62,6 +64,9 @@ impl Color {
         Color32::from_rgba_premultiplied(r, g, b, a)
     }
 }
+
+#[derive(Deserialize, Debug)]
+pub struct Opacity(Value);
 
 #[derive(Deserialize, Debug)]
 pub struct Filter(Value);
