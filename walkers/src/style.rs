@@ -86,7 +86,7 @@ mod tests {
     }
 
     #[test]
-    fn test_filter_matching() {
+    fn test_eq_filter_matching() {
         let park = HashMap::from([(
             "type".to_string(),
             mvt_reader::feature::Value::String("park".to_string()),
@@ -105,5 +105,28 @@ mod tests {
 
         assert!(filter.matches(&park));
         assert!(!filter.matches(&forest));
+    }
+
+    #[test]
+    fn test_in_filter() {
+        let park = HashMap::from([(
+            "type".to_string(),
+            mvt_reader::feature::Value::String("park".to_string()),
+        )]);
+
+        let road = HashMap::from([(
+            "type".to_string(),
+            mvt_reader::feature::Value::String("road".to_string()),
+        )]);
+
+        let filter = Filter(vec![
+            serde_json::Value::String("in".to_string()),
+            serde_json::Value::String("type".to_string()),
+            serde_json::Value::String("park".to_string()),
+            serde_json::Value::String("forest".to_string()),
+        ]);
+
+        assert!(filter.matches(&park));
+        assert!(!filter.matches(&road));
     }
 }
