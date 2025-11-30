@@ -1,5 +1,8 @@
 use std::collections::HashMap;
 
+use mvt_reader::feature::Value as MvtValue;
+use serde_json::Value;
+
 /// Style for rendering vector maps. Loosely (very) based on MapLibre's style specification.
 #[derive(serde::Deserialize)]
 pub struct Style {
@@ -31,28 +34,23 @@ pub enum Layer {
 
 #[derive(serde::Deserialize)]
 pub struct Paint {
-    pub fill_color: Option<Vec<serde_json::Value>>,
+    pub fill_color: Option<Vec<Value>>,
 }
 
 #[derive(serde::Deserialize)]
-pub struct Filter(Vec<serde_json::Value>);
+pub struct Filter(Vec<Value>);
 
 impl Filter {
-    pub fn matches(&self, properties: &HashMap<String, mvt_reader::feature::Value>) -> bool {
+    pub fn matches(&self, properties: &HashMap<String, MvtValue>) -> bool {
         let (function, args) = self.0.split_first().unwrap();
         match function {
-            serde_json::Value::String(op) if op == "==" => {
+            Value::String(op) if op == "==" => {
                 let (key, arg) = split_two_element_slice(args).unwrap();
 
                 // key must be a string
-                let serde_json::Value::String(key) = key else {
-                    todo!()
-                };
+                let Value::String(key) = key else { todo!() };
 
-                properties.get(key)
-                    == Some(&mvt_reader::feature::Value::String(
-                        arg.as_str().unwrap().to_string(),
-                    ))
+                properties.get(key) == Some(&MvtValue::String(arg.as_str().unwrap().to_string()))
             }
             f => todo!("{f:?}"),
         }
@@ -87,20 +85,13 @@ mod tests {
 
     #[test]
     fn test_eq_filter_matching() {
-        let park = HashMap::from([(
-            "type".to_string(),
-            mvt_reader::feature::Value::String("park".to_string()),
-        )]);
-
-        let forest = HashMap::from([(
-            "type".to_string(),
-            mvt_reader::feature::Value::String("forest".to_string()),
-        )]);
+        let park = HashMap::from([("type".to_string(), MvtValue::String("park".to_string()))]);
+        let forest = HashMap::from([("type".to_string(), MvtValue::String("forest".to_string()))]);
 
         let filter = Filter(vec![
-            serde_json::Value::String("==".to_string()),
-            serde_json::Value::String("type".to_string()),
-            serde_json::Value::String("park".to_string()),
+            Value::String("==".to_string()),
+            Value::String("type".to_string()),
+            Value::String("park".to_string()),
         ]);
 
         assert!(filter.matches(&park));
@@ -109,21 +100,14 @@ mod tests {
 
     #[test]
     fn test_in_filter() {
-        let park = HashMap::from([(
-            "type".to_string(),
-            mvt_reader::feature::Value::String("park".to_string()),
-        )]);
-
-        let road = HashMap::from([(
-            "type".to_string(),
-            mvt_reader::feature::Value::String("road".to_string()),
-        )]);
+        let park = HashMap::from([("type".to_string(), MvtValue::String("park".to_string()))]);
+        let road = HashMap::from([("type".to_string(), MvtValue::String("road".to_string()))]);
 
         let filter = Filter(vec![
-            serde_json::Value::String("in".to_string()),
-            serde_json::Value::String("type".to_string()),
-            serde_json::Value::String("park".to_string()),
-            serde_json::Value::String("forest".to_string()),
+            Value::String("in".to_string()),
+            Value::String("type".to_string()),
+            Value::String("park".to_string()),
+            Value::String("forest".to_string()),
         ]);
 
         assert!(filter.matches(&park));
