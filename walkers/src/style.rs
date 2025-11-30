@@ -194,6 +194,14 @@ fn evaluate(value: &Value, properties: &HashMap<String, MvtValue>) -> Value {
                     }
                     Value::Bool(false)
                 }
+                "any" => {
+                    for arg in arguments {
+                        if let Value::Bool(true) = evaluate(arg, properties) {
+                            return Value::Bool(true);
+                        }
+                    }
+                    Value::Bool(false)
+                }
                 operator => {
                     warn!("Unsupported operator: {}", operator);
                     Value::Null
@@ -349,6 +357,21 @@ mod tests {
 
         assert_eq!(
             evaluate(&json!(["in", 4, 1, 2, 3,]), &properties),
+            json!(false)
+        );
+    }
+
+    #[test]
+    fn test_any_operator() {
+        let properties = HashMap::new();
+
+        assert_eq!(
+            evaluate(&json!(["any", true, false]), &properties),
+            json!(true)
+        );
+
+        assert_eq!(
+            evaluate(&json!(["any", false, false]), &properties),
             json!(false)
         );
     }
