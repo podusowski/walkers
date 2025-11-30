@@ -47,7 +47,7 @@ pub struct Color(Value);
 
 impl Color {
     pub fn evaluate(&self, properties: &HashMap<String, MvtValue>) -> Color32 {
-        let value = evaluate(&self.0, properties, false);
+        let value = evaluate(&self.0, properties, false).unwrap();
 
         let Value::String(color) = &value else {
             warn!(
@@ -70,7 +70,7 @@ impl Filter {
     /// Match this filter against feature properties.
     pub fn matches(&self, properties: &HashMap<String, MvtValue>) -> bool {
         match evaluate(&self.0, properties, true) {
-            Value::Bool(b) => b,
+            Ok(Value::Bool(b)) => b,
             other => {
                 warn!("Filter did not evaluate to a boolean: {:?}", other);
                 false
@@ -132,9 +132,19 @@ fn mvt_value_to_json(value: &MvtValue) -> Value {
     }
 }
 
+#[derive(thiserror::Error, Debug)]
+pub enum Error {
+    #[error("{0}")]
+    Other(String),
+}
+
 /// Evaluate a style expression.
 /// https://maplibre.org/maplibre-style-spec/expressions/
-fn evaluate(value: &Value, properties: &HashMap<String, MvtValue>, filter: bool) -> Value {
+fn evaluate(
+    value: &Value,
+    properties: &HashMap<String, MvtValue>,
+    filter: bool,
+) -> Result<Value, Error> {
     match value {
         Value::Array(values) => {
             let (operator, arguments) = values.split_first().unwrap();
@@ -152,7 +162,7 @@ fn evaluate(value: &Value, properties: &HashMap<String, MvtValue>, filter: bool)
                         panic!("'literal' operator argument must be an array.");
                     }
 
-                    arguments[0].clone()
+                    Ok(arguments[0].clone())
                 }
                 "get" => {
                     if arguments.len() != 1 {
@@ -164,9 +174,9 @@ fn evaluate(value: &Value, properties: &HashMap<String, MvtValue>, filter: bool)
                     };
 
                     match properties.get(key) {
-                        Some(MvtValue::String(s)) => Value::String(s.clone()),
-                        Some(MvtValue::Int(i)) => Value::Number((*i).into()),
-                        None => Value::Null,
+                        Some(MvtValue::String(s)) => Ok(Value::String(s.clone())),
+                        Some(MvtValue::Int(i)) => Ok(Value::Number((*i).into())),
+                        None => Ok(Value::Null),
                         _ => {
                             panic!("Unsupported property value type for 'get' operator.");
                         }
@@ -174,7 +184,7 @@ fn evaluate(value: &Value, properties: &HashMap<String, MvtValue>, filter: bool)
                 }
                 "match" => {
                     let (value, arms) = arguments.split_first().unwrap();
-                    let evaluated_value = evaluate(value, properties, filter);
+                    let evaluated_value = evaluate(value, properties, filter)?;
                     for arm in arms.chunks(2) {
                         let arm_value = &arm[0];
                         let arm_result = &arm[1];
@@ -189,7 +199,7 @@ fn evaluate(value: &Value, properties: &HashMap<String, MvtValue>, filter: bool)
                     for arm in arguments.chunks(2) {
                         match arm.iter().as_slice() {
                             [condition, value] => {
-                                let evaluated_condition = evaluate(condition, properties, filter);
+                                let evaluated_condition = evaluate(condition, properties, filter)?;
                                 if let Value::Bool(true) = evaluated_condition {
                                     return evaluate(value, properties, filter);
                                 }
@@ -210,40 +220,43 @@ fn evaluate(value: &Value, properties: &HashMap<String, MvtValue>, filter: bool)
                     let evaluated_value = if filter {
                         mvt_value_to_json(properties.get(value.as_str().unwrap()).unwrap())
                     } else {
-                        evaluate(value, properties, filter)
+                        evaluate(value, properties, filter)?
                     };
 
                     for item in list {
-                        if evaluated_value == evaluate(item, properties, filter) {
-                            return Value::Bool(true);
+                        if evaluated_value == evaluate(item, properties, filter)? {
+                            return Ok(Value::Bool(true));
                         }
                     }
-                    Value::Bool(false)
+                    Ok(Value::Bool(false))
                 }
                 "==" => {
-                    let (a, b) = split_two_element_slice(arguments).unwrap();
+                    let (key_or_value, argument) = split_two_element_slice(arguments).unwrap();
 
-                    let a = if filter {
-                        dbg!(&a);
-                        dbg!(properties);
-                        mvt_value_to_json(properties.get(a.as_str().unwrap()).unwrap())
+                    let key_or_value = if filter {
+                        let key = key_or_value.as_str().unwrap();
+                        mvt_value_to_json(
+                            properties
+                                .get(key_or_value.as_str().unwrap())
+                                .ok_or(Error::Other(format!("Property '{key}' not found")))?,
+                        )
                     } else {
-                        evaluate(a, properties, filter)
+                        evaluate(key_or_value, properties, filter)?
                     };
 
-                    Value::Bool(a == *b)
+                    Ok(Value::Bool(key_or_value == *argument))
                 }
-                "any" => arguments
+                "any" => Ok(arguments
                     .iter()
-                    .any(|value| evaluate(value, properties, filter) == Value::Bool(true))
-                    .into(),
+                    .any(|value| evaluate(value, properties, filter).unwrap() == Value::Bool(true))
+                    .into()),
                 operator => {
                     warn!("Unsupported operator: {}", operator);
-                    Value::Null
+                    Ok(Value::Null)
                 }
             }
         }
-        primitive => primitive.clone(),
+        primitive => Ok(primitive.clone()),
     }
 }
 
@@ -305,7 +318,7 @@ mod tests {
         let properties = HashMap::new();
 
         assert_eq!(
-            evaluate(&json!(["literal", [1, 2, 3]]), &properties, false),
+            evaluate(&json!(["literal", [1, 2, 3]]), &properties, false).unwrap(),
             json!([1, 2, 3])
         );
     }
@@ -316,7 +329,7 @@ mod tests {
             HashMap::from([("name".to_string(), MvtValue::String("Polska".to_string()))]);
 
         assert_eq!(
-            evaluate(&json!(["get", "name"]), &properties, false),
+            evaluate(&json!(["get", "name"]), &properties, false).unwrap(),
             Value::String("Polska".to_string())
         );
     }
@@ -339,7 +352,8 @@ mod tests {
                 ]),
                 &properties,
                 false
-            ),
+            )
+            .unwrap(),
             Value::String("Got it!".to_string())
         );
     }
@@ -361,7 +375,8 @@ mod tests {
                 ]),
                 &properties,
                 false
-            ),
+            )
+            .unwrap(),
             Value::String("Got it!".to_string())
         );
 
@@ -370,7 +385,8 @@ mod tests {
                 &json!(["case", false, "first", false, "second", "default"]),
                 &properties,
                 false
-            ),
+            )
+            .unwrap(),
             json!("default")
         );
     }
@@ -380,12 +396,12 @@ mod tests {
         let properties = HashMap::new();
 
         assert_eq!(
-            evaluate(&json!(["in", 1, 1, 2, 3,]), &properties, false),
+            evaluate(&json!(["in", 1, 1, 2, 3,]), &properties, false).unwrap(),
             json!(true)
         );
 
         assert_eq!(
-            evaluate(&json!(["in", 4, 1, 2, 3,]), &properties, false),
+            evaluate(&json!(["in", 4, 1, 2, 3,]), &properties, false).unwrap(),
             json!(false)
         );
     }
@@ -395,12 +411,12 @@ mod tests {
         let properties = HashMap::new();
 
         assert_eq!(
-            evaluate(&json!(["any", true, false]), &properties, false),
+            evaluate(&json!(["any", true, false]), &properties, false).unwrap(),
             json!(true)
         );
 
         assert_eq!(
-            evaluate(&json!(["any", false, false]), &properties, false),
+            evaluate(&json!(["any", false, false]), &properties, false).unwrap(),
             json!(false)
         );
     }
