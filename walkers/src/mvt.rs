@@ -138,8 +138,12 @@ pub fn transformed(shapes: &[ShapeOrText], rect: egui::Rect) -> Vec<ShapeOrText>
     result
 }
 
-fn match_filter(feature: &Feature, filter: &Option<crate::style::Filter>) -> bool {
-    match (&feature.properties, filter) {
+fn match_filter(feature: &Feature, type_: &str, filter: &Option<crate::style::Filter>) -> bool {
+    let mut properties = feature.properties.clone().map(|mut properties| {
+        properties.insert("$type".to_string(), Value::String(type_.to_string()));
+        properties
+    });
+    match (&properties, filter) {
         (Some(properties), Some(filter)) => filter.matches(&properties),
         _ => true,
     }
@@ -187,7 +191,7 @@ fn feature_into_shape(
                 .collect::<Vec<_>>(),
         )?),
         Geometry::MultiPolygon(multi_polygon) => {
-            if !match_filter(&feature, filter) {
+            if !match_filter(&feature, "Polygon", filter) {
                 return Ok(());
             }
 
