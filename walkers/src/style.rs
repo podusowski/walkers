@@ -37,21 +37,17 @@ pub enum Layer {
 }
 
 #[derive(Deserialize, Debug)]
+#[serde(rename_all = "kebab-case")]
 pub struct Paint {
     pub fill_color: Option<Color>,
 }
 
 #[derive(Deserialize, Debug)]
-pub struct Color(Vec<Value>);
+pub struct Color(Value);
 
 impl Color {
-    fn evaluate(&self) -> Color32 {
-        if self.0.len() != 1 {
-            warn!("Only simple color definitions are supported.");
-            return Color32::MAGENTA;
-        }
-
-        let Value::String(color) = &self.0[0] else {
+    pub fn evaluate(&self) -> Color32 {
+        let Value::String(color) = &self.0 else {
             warn!("Only string color definitions are supported.");
             return Color32::MAGENTA;
         };

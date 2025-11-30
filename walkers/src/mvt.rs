@@ -186,21 +186,26 @@ fn feature_into_shape(
                 .collect::<Vec<_>>(),
         )?),
         Geometry::MultiPolygon(multi_polygon) => {
-            if let Some(fill) = polygon_fill(properties)? {
-                for polygon in multi_polygon.iter() {
-                    let points = polygon
-                        .exterior()
-                        .0
-                        .iter()
-                        .map(|p| pos2(p.x, p.y))
-                        .collect::<Vec<_>>();
-                    let interiors = polygon
-                        .interiors()
-                        .iter()
-                        .map(|hole| hole.0.iter().map(|p| pos2(p.x, p.y)).collect::<Vec<_>>())
-                        .collect::<Vec<_>>();
-                    shapes.push(tessellate_polygon(&points, &interiors, fill)?.into());
-                }
+            let Some(fill_color) = &paint.fill_color else {
+                warn!("Fill layer without fill color. Skipping.");
+                return Ok(());
+            };
+
+            let fill_color = fill_color.evaluate();
+
+            for polygon in multi_polygon.iter() {
+                let points = polygon
+                    .exterior()
+                    .0
+                    .iter()
+                    .map(|p| pos2(p.x, p.y))
+                    .collect::<Vec<_>>();
+                let interiors = polygon
+                    .interiors()
+                    .iter()
+                    .map(|hole| hole.0.iter().map(|p| pos2(p.x, p.y)).collect::<Vec<_>>())
+                    .collect::<Vec<_>>();
+                shapes.push(tessellate_polygon(&points, &interiors, fill_color)?.into());
             }
         }
         Geometry::Point(_point) => todo!(),
