@@ -34,8 +34,11 @@ pub enum Layer {
 
 #[derive(serde::Deserialize, Debug)]
 pub struct Paint {
-    pub fill_color: Option<Vec<Value>>,
+    pub fill_color: Option<Color>,
 }
+
+#[derive(serde::Deserialize, Debug)]
+pub struct Color(Vec<Value>);
 
 #[derive(serde::Deserialize, Debug)]
 pub struct Filter(Vec<Value>);
