@@ -160,8 +160,14 @@ mod tests {
 
     #[test]
     fn test_evaluate_color() {
-        let color = Color(vec![Value::String("#ffffff".to_string())]);
-        let evaluated = color.evaluate();
-        assert_eq!(evaluated, Color32::WHITE);
+        assert_eq!(
+            Color(vec![Value::String("#ffffff".to_string())]).evaluate(),
+            Color32::WHITE
+        );
+
+        assert_eq!(
+            Color(vec![Value::String("red".to_string())]).evaluate(),
+            Color32::RED
+        );
     }
 }
