@@ -48,7 +48,10 @@ pub struct Color(Value);
 impl Color {
     pub fn evaluate(&self) -> Color32 {
         let Value::String(color) = &self.0 else {
-            warn!("Only string color definitions are supported.");
+            warn!(
+                "Only string color definitions are supported. Got: {:?}",
+                self.0
+            );
             return Color32::MAGENTA;
         };
 
