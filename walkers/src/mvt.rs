@@ -19,7 +19,7 @@ use lyon_tessellation::{
 };
 use mvt_reader::feature::{Feature, Value};
 
-use crate::style::Style;
+use crate::style::{Layer, Style};
 
 #[derive(thiserror::Error, Debug)]
 pub enum Error {
@@ -90,32 +90,29 @@ pub fn render(data: &[u8], style: &Style) -> Result<Vec<ShapeOrText>, Error> {
     let data = mvt_reader::Reader::new(data.to_vec())?;
     let mut shapes = Vec::new();
 
-    let known_layers = [
-        "earth",
-        "landuse",
-        "water",
-        "landcover",
-        "buildings",
-        "roads",
-        "places",
-        "pois",
-    ];
-
-    for layer in data.get_layer_names()? {
-        if !known_layers.contains(&layer.as_str()) {
-            warn!("Unknown layer '{layer}' found. Skipping.");
-        }
-    }
-
-    for layer in known_layers {
-        if let Ok(layer_index) = find_layer(&data, layer) {
-            for feature in data.get_features(layer_index)? {
-                if let Err(err) = feature_into_shape(&feature, &mut shapes) {
-                    warn!("{err}");
+    for layer in &style.layers {
+        match layer {
+            Layer::Background => continue,
+            Layer::Fill {
+                id,
+                source_layer,
+                filter: _,
+                paint: _,
+            } => {
+                if let Ok(layer_index) = find_layer(&data, &source_layer) {
+                    for feature in data.get_features(layer_index)? {
+                        if let Err(err) = feature_into_shape(&feature, &mut shapes) {
+                            warn!("{err}");
+                        }
+                    }
+                } else {
+                    warn!("Source layer '{source_layer}' not found. Skipping.");
                 }
             }
-        } else {
-            warn!("Layer '{layer}' not found. Skipping.");
+            _ => {
+                warn!("Unsupported layer type in style.");
+                continue;
+            }
         }
     }
 

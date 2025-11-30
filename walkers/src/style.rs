@@ -1,7 +1,7 @@
 /// Style for rendering vector maps. Loosely (very) based on MapLibre's style specification.
 #[derive(serde::Deserialize)]
 pub struct Style {
-    layers: Vec<Layer>,
+    pub layers: Vec<Layer>,
 }
 
 impl Default for Style {
@@ -14,7 +14,7 @@ impl Default for Style {
 
 #[derive(serde::Deserialize)]
 #[serde(tag = "type", rename_all = "kebab-case")]
-enum Layer {
+pub enum Layer {
     Background,
     #[serde(rename_all = "kebab-case")]
     Fill {
@@ -28,8 +28,8 @@ enum Layer {
 }
 
 #[derive(serde::Deserialize)]
-struct Paint {
-    fill_color: Option<Vec<serde_json::Value>>,
+pub struct Paint {
+    pub fill_color: Option<Vec<serde_json::Value>>,
 }
 
 mod tests {
