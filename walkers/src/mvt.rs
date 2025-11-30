@@ -19,7 +19,7 @@ use lyon_tessellation::{
 };
 use mvt_reader::feature::{Feature, Value};
 
-use crate::style::{Layer, Paint, Style};
+use crate::style::{Filter, Layer, Paint, Style};
 
 #[derive(thiserror::Error, Debug)]
 pub enum Error {
@@ -105,11 +105,11 @@ pub fn render(data: &[u8], style: &Style) -> Result<Vec<ShapeOrText>, Error> {
                 };
 
                 for feature in data.get_features(layer_index)? {
-                    if !match_filter(&feature, filter) {
-                        continue;
-                    }
+                    //                    if !match_filter(&feature, filter) {
+                    //                        continue;
+                    //                    }
 
-                    if let Err(err) = feature_into_shape(&feature, &mut shapes, paint) {
+                    if let Err(err) = feature_into_shape(&feature, &mut shapes, filter, paint) {
                         warn!("{err}");
                     }
                 }
@@ -148,6 +148,7 @@ fn match_filter(feature: &Feature, filter: &Option<crate::style::Filter>) -> boo
 fn feature_into_shape(
     feature: &Feature,
     shapes: &mut Vec<ShapeOrText>,
+    filter: &Option<Filter>,
     paint: &Paint,
 ) -> Result<(), Error> {
     let properties = feature
@@ -186,6 +187,10 @@ fn feature_into_shape(
                 .collect::<Vec<_>>(),
         )?),
         Geometry::MultiPolygon(multi_polygon) => {
+            if !match_filter(&feature, filter) {
+                return Ok(());
+            }
+
             let Some(fill_color) = &paint.fill_color else {
                 warn!("Fill layer without fill color. Skipping.");
                 return Ok(());
