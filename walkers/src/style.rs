@@ -154,6 +154,25 @@ fn evaluate(value: &Value, properties: &HashMap<String, MvtValue>) -> Value {
                     }
                     todo!("No match found in 'match' expression.");
                 }
+                "case" => {
+                    for arm in arguments.chunks(2) {
+                        match arm.iter().as_slice() {
+                            [condition, value] => {
+                                let evaluated_condition = evaluate(condition, properties);
+                                if let Value::Bool(true) = evaluated_condition {
+                                    return evaluate(value, properties);
+                                }
+                            }
+                            [default] => {
+                                return evaluate(default, properties);
+                            }
+                            _ => {
+                                panic!("Invalid 'case' arm.");
+                            }
+                        }
+                    }
+                    todo!("No true condition found in 'case' expression.");
+                }
                 operator => {
                     warn!("Unsupported operator: {}", operator);
                     Value::Null
@@ -256,6 +275,35 @@ mod tests {
                 &properties
             ),
             Value::String("Got it!".to_string())
+        );
+    }
+
+    #[test]
+    fn test_case_operator() {
+        let properties = HashMap::new();
+
+        assert_eq!(
+            evaluate(
+                &json!([
+                    "case",
+                    false,
+                    "Not this one",
+                    false,
+                    "Also not this one",
+                    true,
+                    "Got it!",
+                ]),
+                &properties
+            ),
+            Value::String("Got it!".to_string())
+        );
+
+        assert_eq!(
+            evaluate(
+                &json!(["case", false, "first", false, "second", "default"]),
+                &properties
+            ),
+            json!("default")
         );
     }
 }
