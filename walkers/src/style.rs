@@ -123,6 +123,17 @@ fn evaluate(value: &Value, properties: &HashMap<String, MvtValue>) -> Value {
             };
 
             match operator.as_str() {
+                "literal" => {
+                    if arguments.len() != 1 {
+                        panic!("'literal' operator requires exactly one argument.");
+                    }
+
+                    if !arguments[0].is_array() {
+                        panic!("'literal' operator argument must be an array.");
+                    }
+
+                    arguments[0].clone()
+                }
                 "get" => {
                     if arguments.len() != 1 {
                         panic!("'get' operator requires exactly one argument.");
@@ -252,6 +263,16 @@ mod tests {
         assert_eq!(
             Color(Value::String("red".to_string())).evaluate(&HashMap::new()),
             Color32::RED
+        );
+    }
+
+    #[test]
+    fn test_literal_operator() {
+        let properties = HashMap::new();
+
+        assert_eq!(
+            evaluate(&json!(["literal", [1, 2, 3]]), &properties),
+            json!([1, 2, 3])
         );
     }
 
