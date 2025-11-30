@@ -13,7 +13,7 @@ pub struct Style {
 impl Default for Style {
     fn default() -> Self {
         // TODO: That's temporary. Or is it?
-        let style_json = include_str!("../assets/protonmaps-dark-style.json");
+        let style_json = include_str!("../assets/protomaps-dark-style.json");
         serde_json::from_str(style_json).expect("Failed to parse default style JSON")
     }
 }
@@ -99,7 +99,7 @@ mod tests {
     #[test]
     fn test_style_parsing() {
         let style = std::fs::read_to_string(
-            env!("CARGO_MANIFEST_DIR").to_owned() + "/assets/protonmaps-dark-style.json",
+            env!("CARGO_MANIFEST_DIR").to_owned() + "/assets/protomaps-dark-style.json",
         )
         .unwrap();
 
