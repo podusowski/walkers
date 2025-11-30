@@ -76,28 +76,6 @@ impl Filter {
                 false
             }
         }
-        //let (function, args) = self.0.split_first().unwrap();
-        //match function {
-        //    Value::String(op) if op == "==" => {
-        //        let (key, arg) = split_two_element_slice(args).unwrap();
-        //        let Value::String(key) = key else { todo!() };
-
-        //        properties.get(key) == Some(&MvtValue::String(arg.as_str().unwrap().to_string()))
-        //    }
-        //    Value::String(op) if op == "in" => {
-        //        let (key, values) = args.split_first().unwrap();
-        //        let Value::String(key) = key else { todo!() };
-
-        //        let properties_value = properties.get(key).unwrap();
-        //        values
-        //            .iter()
-        //            .any(|filter_value| eq(filter_value, properties_value))
-        //    }
-        //    f => {
-        //        log::warn!("Unsupported filter function: {f:?}");
-        //        false
-        //    }
-        //}
     }
 }
 
