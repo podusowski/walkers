@@ -68,6 +68,20 @@ impl Color {
 #[derive(Deserialize, Debug)]
 pub struct Opacity(Value);
 
+impl Opacity {
+    pub fn evaluate(&self, properties: &HashMap<String, MvtValue>) -> f32 {
+        let value = evaluate(&self.0, properties, false).unwrap();
+
+        match value {
+            Value::Number(num) => num.as_f64().unwrap() as f32,
+            other => {
+                warn!("Opacity did not evaluate to a number: {:?}", other);
+                1.0
+            }
+        }
+    }
+}
+
 #[derive(Deserialize, Debug)]
 pub struct Filter(Value);
 

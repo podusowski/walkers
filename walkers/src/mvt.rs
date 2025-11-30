@@ -200,6 +200,13 @@ fn feature_into_shape(
 
             let fill_color = fill_color.evaluate(&properties);
 
+            let fill_color = if let Some(fill_opacity) = &paint.fill_opacity {
+                let fill_opacity = fill_opacity.evaluate(&properties);
+                fill_color.gamma_multiply(fill_opacity)
+            } else {
+                fill_color
+            };
+
             for polygon in multi_polygon.iter() {
                 let points = polygon
                     .exterior()
