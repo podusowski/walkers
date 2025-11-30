@@ -1,5 +1,8 @@
 use std::collections::HashMap;
 
+use color::Rgba8;
+use egui::Color32;
+use log::warn;
 use mvt_reader::feature::Value as MvtValue;
 use serde::Deserialize;
 use serde_json::Value;
@@ -40,6 +43,24 @@ pub struct Paint {
 
 #[derive(Deserialize, Debug)]
 pub struct Color(Vec<Value>);
+
+impl Color {
+    fn evaluate(&self) -> Color32 {
+        if self.0.len() != 1 {
+            warn!("Only simple color definitions are supported.");
+            return Color32::MAGENTA;
+        }
+
+        let Value::String(color) = &self.0[0] else {
+            warn!("Only string color definitions are supported.");
+            return Color32::MAGENTA;
+        };
+
+        let color: color::AlphaColor<color::Srgb> = color.parse().unwrap();
+        let Rgba8 { r, g, b, a } = color.to_rgba8();
+        Color32::from_rgba_premultiplied(r, g, b, a)
+    }
+}
 
 #[derive(Deserialize, Debug)]
 pub struct Filter(Vec<Value>);
@@ -135,5 +156,12 @@ mod tests {
 
         assert!(filter.matches(&park));
         assert!(!filter.matches(&road));
+    }
+
+    #[test]
+    fn test_evaluate_color() {
+        let color = Color(vec![Value::String("#ffffff".to_string())]);
+        let evaluated = color.evaluate();
+        assert_eq!(evaluated, Color32::WHITE);
     }
 }
