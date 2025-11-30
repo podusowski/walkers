@@ -1,3 +1,5 @@
+use std::collections::HashMap;
+
 /// Style for rendering vector maps. Loosely (very) based on MapLibre's style specification.
 #[derive(serde::Deserialize)]
 pub struct Style {
@@ -20,7 +22,7 @@ pub enum Layer {
     Fill {
         id: String,
         source_layer: String,
-        filter: Option<Vec<serde_json::Value>>,
+        filter: Option<Filter>,
         paint: Paint,
     },
     Line,
@@ -30,6 +32,15 @@ pub enum Layer {
 #[derive(serde::Deserialize)]
 pub struct Paint {
     pub fill_color: Option<Vec<serde_json::Value>>,
+}
+
+#[derive(serde::Deserialize)]
+pub struct Filter(Vec<serde_json::Value>);
+
+impl Filter {
+    pub fn matches(&self, properties: &HashMap<String, mvt_reader::feature::Value>) -> bool {
+        todo!()
+    }
 }
 
 #[cfg(test)]
@@ -50,15 +61,23 @@ mod tests {
 
     #[test]
     fn test_filter_matching() {
-        let properties = HashMap::from([(
+        let park = HashMap::from([(
             "type".to_string(),
             mvt_reader::feature::Value::String("park".to_string()),
         )]);
 
-        let filter = vec![
+        let forest = HashMap::from([(
+            "type".to_string(),
+            mvt_reader::feature::Value::String("forest".to_string()),
+        )]);
+
+        let filter = Filter(vec![
             serde_json::Value::String("==".to_string()),
             serde_json::Value::String("type".to_string()),
             serde_json::Value::String("park".to_string()),
-        ];
+        ]);
+
+        assert!(filter.matches(&park));
+        assert!(!filter.matches(&forest));
     }
 }
