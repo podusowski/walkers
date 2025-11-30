@@ -46,8 +46,10 @@ pub struct Paint {
 pub struct Color(Value);
 
 impl Color {
-    pub fn evaluate(&self) -> Color32 {
-        let Value::String(color) = &self.0 else {
+    pub fn evaluate(&self, properties: &HashMap<String, MvtValue>) -> Color32 {
+        let value = evaluate(&self.0, properties);
+
+        let Value::String(color) = &value else {
             warn!(
                 "Only string color definitions are supported. Got: {:?}",
                 self.0
@@ -152,7 +154,10 @@ fn evaluate(value: &Value, properties: &HashMap<String, MvtValue>) -> Value {
                     }
                     todo!("No match found in 'match' expression.");
                 }
-                operator => todo!("Unsupported operator: {}", operator),
+                operator => {
+                    warn!("Unsupported operator: {}", operator);
+                    Value::Null
+                }
             }
         }
         primitive => primitive.clone(),
@@ -211,12 +216,12 @@ mod tests {
     #[test]
     fn test_evaluate_color() {
         assert_eq!(
-            Color(Value::String("#ffffff".to_string())).evaluate(),
+            Color(Value::String("#ffffff".to_string())).evaluate(&HashMap::new()),
             Color32::WHITE
         );
 
         assert_eq!(
-            Color(Value::String("red".to_string())).evaluate(),
+            Color(Value::String("red".to_string())).evaluate(&HashMap::new()),
             Color32::RED
         );
     }

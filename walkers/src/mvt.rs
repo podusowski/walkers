@@ -191,7 +191,7 @@ fn feature_into_shape(
                 return Ok(());
             };
 
-            let fill_color = fill_color.evaluate();
+            let fill_color = fill_color.evaluate(&properties);
 
             for polygon in multi_polygon.iter() {
                 let points = polygon
