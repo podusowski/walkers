@@ -1,7 +1,15 @@
 /// Style for rendering vector maps. Loosely (very) based on MapLibre's style specification.
-#[derive(serde::Deserialize, Default)]
+#[derive(serde::Deserialize)]
 pub struct Style {
     layers: Vec<Layer>,
+}
+
+impl Default for Style {
+    fn default() -> Self {
+        // TODO: That's temporary. Or is it?
+        let style_json = include_str!("../assets/protonmaps-dark-style.json");
+        serde_json::from_str(style_json).expect("Failed to parse default style JSON")
+    }
 }
 
 #[derive(serde::Deserialize)]
