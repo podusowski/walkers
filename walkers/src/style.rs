@@ -121,6 +121,24 @@ fn evaluate(value: &Value, properties: &HashMap<String, MvtValue>) -> Value {
             };
 
             match operator.as_str() {
+                "get" => {
+                    if arguments.len() != 1 {
+                        panic!("'get' operator requires exactly one argument.");
+                    }
+
+                    let Value::String(key) = &arguments[0] else {
+                        panic!("'get' operator argument must be a string.");
+                    };
+
+                    match properties.get(key) {
+                        Some(MvtValue::String(s)) => Value::String(s.clone()),
+                        Some(MvtValue::Int(i)) => Value::Number((*i).into()),
+                        None => Value::Null,
+                        _ => {
+                            panic!("Unsupported property value type for 'get' operator.");
+                        }
+                    }
+                }
                 "match" => {
                     let (value, arms) = arguments.split_first().unwrap();
                     let evaluated_value = evaluate(value, properties);
@@ -200,6 +218,17 @@ mod tests {
         assert_eq!(
             Color(Value::String("red".to_string())).evaluate(),
             Color32::RED
+        );
+    }
+
+    #[test]
+    fn test_get_operator() {
+        let properties =
+            HashMap::from([("name".to_string(), MvtValue::String("Polska".to_string()))]);
+
+        assert_eq!(
+            evaluate(&json!(["get", "name"]), &properties),
+            Value::String("Polska".to_string())
         );
     }
 
