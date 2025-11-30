@@ -54,7 +54,7 @@ impl Filter {
                         arg.as_str().unwrap().to_string(),
                     ))
             }
-            _ => todo!(),
+            f => todo!("{f:?}"),
         }
     }
 }

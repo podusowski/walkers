@@ -105,6 +105,10 @@ pub fn render(data: &[u8], style: &Style) -> Result<Vec<ShapeOrText>, Error> {
                 };
 
                 for feature in data.get_features(layer_index)? {
+                    if !match_filter(&feature, filter) {
+                        continue;
+                    }
+
                     if let Err(err) = feature_into_shape(&feature, &mut shapes) {
                         warn!("{err}");
                     }
@@ -132,6 +136,13 @@ pub fn transformed(shapes: &[ShapeOrText], rect: egui::Rect) -> Vec<ShapeOrText>
         shape.transform(transform);
     }
     result
+}
+
+fn match_filter(feature: &Feature, filter: &Option<crate::style::Filter>) -> bool {
+    match (&feature.properties, filter) {
+        (Some(properties), Some(filter)) => filter.matches(&properties),
+        _ => true,
+    }
 }
 
 fn feature_into_shape(feature: &Feature, shapes: &mut Vec<ShapeOrText>) -> Result<(), Error> {
