@@ -96,17 +96,18 @@ pub fn render(data: &[u8], style: &Style) -> Result<Vec<ShapeOrText>, Error> {
             Layer::Fill {
                 id,
                 source_layer,
-                filter: _,
+                filter,
                 paint: _,
             } => {
-                if let Ok(layer_index) = find_layer(&data, &source_layer) {
-                    for feature in data.get_features(layer_index)? {
-                        if let Err(err) = feature_into_shape(&feature, &mut shapes) {
-                            warn!("{err}");
-                        }
-                    }
-                } else {
+                let Ok(layer_index) = find_layer(&data, &source_layer) else {
                     warn!("Source layer '{source_layer}' not found. Skipping.");
+                    continue;
+                };
+
+                for feature in data.get_features(layer_index)? {
+                    if let Err(err) = feature_into_shape(&feature, &mut shapes) {
+                        warn!("{err}");
+                    }
                 }
             }
             _ => {
