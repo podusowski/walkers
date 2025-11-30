@@ -313,7 +313,7 @@ mod tests {
 
         assert_eq!(
             evaluate(&json!(["get", "name"]), &properties, false).unwrap(),
-            Value::String("Polska".to_string())
+            json!("Polska")
         );
     }
 
@@ -337,7 +337,7 @@ mod tests {
                 false
             )
             .unwrap(),
-            Value::String("Got it!".to_string())
+            json!("Got it!")
         );
     }
 
@@ -360,7 +360,7 @@ mod tests {
                 false
             )
             .unwrap(),
-            Value::String("Got it!".to_string())
+            json!("Got it!")
         );
 
         assert_eq!(
