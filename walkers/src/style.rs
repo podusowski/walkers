@@ -110,9 +110,42 @@ fn eq(a: &Value, b: &MvtValue) -> bool {
     }
 }
 
+/// Evaluate a style expression.
+/// https://maplibre.org/maplibre-style-spec/expressions/
+fn evaluate(value: &Value, properties: &HashMap<String, MvtValue>) -> Value {
+    match value {
+        Value::Array(values) => {
+            let (operator, arguments) = values.split_first().unwrap();
+            let Value::String(operator) = operator else {
+                panic!("Operator must be a string.");
+            };
+
+            match operator.as_str() {
+                "match" => {
+                    let (value, arms) = arguments.split_first().unwrap();
+                    let evaluated_value = evaluate(value, properties);
+                    for arm in arms.chunks(2) {
+                        let arm_value = &arm[0];
+                        let arm_result = &arm[1];
+
+                        if evaluated_value == *arm_value {
+                            return evaluate(arm_result, properties);
+                        }
+                    }
+                    todo!("No match found in 'match' expression.");
+                }
+                operator => todo!("Unsupported operator: {}", operator),
+            }
+        }
+        primitive => primitive.clone(),
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use std::collections::HashMap;
+
+    use serde_json::json;
 
     use super::*;
 
@@ -160,13 +193,35 @@ mod tests {
     #[test]
     fn test_evaluate_color() {
         assert_eq!(
-            Color(vec![Value::String("#ffffff".to_string())]).evaluate(),
+            Color(Value::String("#ffffff".to_string())).evaluate(),
             Color32::WHITE
         );
 
         assert_eq!(
-            Color(vec![Value::String("red".to_string())]).evaluate(),
+            Color(Value::String("red".to_string())).evaluate(),
             Color32::RED
+        );
+    }
+
+    #[test]
+    fn test_match_operator() {
+        let properties = HashMap::new();
+
+        assert_eq!(
+            evaluate(
+                &json!([
+                    "match",
+                    42,
+                    1,
+                    "Not this one",
+                    2,
+                    "Also not this one",
+                    42,
+                    "Got it!",
+                ]),
+                &properties
+            ),
+            Value::String("Got it!".to_string())
         );
     }
 }
