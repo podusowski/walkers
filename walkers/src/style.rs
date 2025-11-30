@@ -94,14 +94,6 @@ fn split_two_element_slice<T>(slice: &[T]) -> Option<(&T, &T)> {
     }
 }
 
-fn eq(a: &Value, b: &MvtValue) -> bool {
-    match (a, b) {
-        (Value::String(a), MvtValue::String(b)) => a == b,
-        (Value::Number(a), MvtValue::Int(b)) => a.as_i64() == Some(*b),
-        _ => false,
-    }
-}
-
 fn mvt_value_to_json(value: &MvtValue) -> Value {
     match value {
         MvtValue::String(s) => Value::String(s.clone()),
