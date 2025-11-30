@@ -194,14 +194,10 @@ fn evaluate(value: &Value, properties: &HashMap<String, MvtValue>) -> Value {
                     }
                     Value::Bool(false)
                 }
-                "any" => {
-                    for arg in arguments {
-                        if let Value::Bool(true) = evaluate(arg, properties) {
-                            return Value::Bool(true);
-                        }
-                    }
-                    Value::Bool(false)
-                }
+                "any" => arguments
+                    .iter()
+                    .any(|value| evaluate(value, properties) == Value::Bool(true))
+                    .into(),
                 operator => {
                     warn!("Unsupported operator: {}", operator);
                     Value::Null
