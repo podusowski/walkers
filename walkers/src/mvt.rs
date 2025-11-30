@@ -105,10 +105,6 @@ pub fn render(data: &[u8], style: &Style) -> Result<Vec<ShapeOrText>, Error> {
                 };
 
                 for feature in data.get_features(layer_index)? {
-                    //                    if !match_filter(&feature, filter) {
-                    //                        continue;
-                    //                    }
-
                     if let Err(err) = feature_into_shape(&feature, &mut shapes, filter, paint) {
                         warn!("{err}");
                     }
