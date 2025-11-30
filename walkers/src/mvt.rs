@@ -19,7 +19,7 @@ use lyon_tessellation::{
 };
 use mvt_reader::feature::{Feature, Value};
 
-use crate::style::{Layer, Style};
+use crate::style::{Layer, Paint, Style};
 
 #[derive(thiserror::Error, Debug)]
 pub enum Error {
@@ -97,7 +97,7 @@ pub fn render(data: &[u8], style: &Style) -> Result<Vec<ShapeOrText>, Error> {
                 id,
                 source_layer,
                 filter,
-                paint: _,
+                paint,
             } => {
                 let Ok(layer_index) = find_layer(&data, &source_layer) else {
                     warn!("Source layer '{source_layer}' not found. Skipping.");
@@ -109,7 +109,7 @@ pub fn render(data: &[u8], style: &Style) -> Result<Vec<ShapeOrText>, Error> {
                         continue;
                     }
 
-                    if let Err(err) = feature_into_shape(&feature, &mut shapes) {
+                    if let Err(err) = feature_into_shape(&feature, &mut shapes, paint) {
                         warn!("{err}");
                     }
                 }
@@ -145,7 +145,11 @@ fn match_filter(feature: &Feature, filter: &Option<crate::style::Filter>) -> boo
     }
 }
 
-fn feature_into_shape(feature: &Feature, shapes: &mut Vec<ShapeOrText>) -> Result<(), Error> {
+fn feature_into_shape(
+    feature: &Feature,
+    shapes: &mut Vec<ShapeOrText>,
+    paint: &Paint,
+) -> Result<(), Error> {
     let properties = feature
         .properties
         .as_ref()
