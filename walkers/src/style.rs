@@ -1,10 +1,11 @@
 use std::collections::HashMap;
 
 use mvt_reader::feature::Value as MvtValue;
+use serde::Deserialize;
 use serde_json::Value;
 
 /// Style for rendering vector maps. Loosely (very) based on MapLibre's style specification.
-#[derive(serde::Deserialize)]
+#[derive(Deserialize)]
 pub struct Style {
     pub layers: Vec<Layer>,
 }
@@ -17,7 +18,7 @@ impl Default for Style {
     }
 }
 
-#[derive(serde::Deserialize, Debug)]
+#[derive(Deserialize, Debug)]
 #[serde(tag = "type", rename_all = "kebab-case")]
 pub enum Layer {
     Background,
@@ -32,15 +33,15 @@ pub enum Layer {
     Symbol,
 }
 
-#[derive(serde::Deserialize, Debug)]
+#[derive(Deserialize, Debug)]
 pub struct Paint {
     pub fill_color: Option<Color>,
 }
 
-#[derive(serde::Deserialize, Debug)]
+#[derive(Deserialize, Debug)]
 pub struct Color(Vec<Value>);
 
-#[derive(serde::Deserialize, Debug)]
+#[derive(Deserialize, Debug)]
 pub struct Filter(Vec<Value>);
 
 impl Filter {
