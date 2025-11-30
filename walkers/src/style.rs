@@ -39,7 +39,33 @@ pub struct Filter(Vec<serde_json::Value>);
 
 impl Filter {
     pub fn matches(&self, properties: &HashMap<String, mvt_reader::feature::Value>) -> bool {
-        todo!()
+        let (function, args) = self.0.split_first().unwrap();
+        match function {
+            serde_json::Value::String(op) if op == "==" => {
+                let (key, arg) = split_two_element_slice(args).unwrap();
+
+                // key must be a string
+                let serde_json::Value::String(key) = key else {
+                    todo!()
+                };
+
+                properties.get(key)
+                    == Some(&mvt_reader::feature::Value::String(
+                        arg.as_str().unwrap().to_string(),
+                    ))
+            }
+            _ => todo!(),
+        }
+    }
+}
+
+/// Splits a slice into its first and second element. Returns `None` if the slice does not have
+/// exactly two elements.
+fn split_two_element_slice<T>(slice: &[T]) -> Option<(&T, &T)> {
+    if slice.len() == 2 {
+        Some((&slice[0], &slice[1]))
+    } else {
+        None
     }
 }
 
