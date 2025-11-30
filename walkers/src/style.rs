@@ -173,6 +173,16 @@ fn evaluate(value: &Value, properties: &HashMap<String, MvtValue>) -> Value {
                     }
                     todo!("No true condition found in 'case' expression.");
                 }
+                "in" => {
+                    let (value, list) = arguments.split_first().unwrap();
+                    let evaluated_value = evaluate(value, properties);
+                    for item in list {
+                        if evaluated_value == evaluate(item, properties) {
+                            return Value::Bool(true);
+                        }
+                    }
+                    Value::Bool(false)
+                }
                 operator => {
                     warn!("Unsupported operator: {}", operator);
                     Value::Null
@@ -304,6 +314,21 @@ mod tests {
                 &properties
             ),
             json!("default")
+        );
+    }
+
+    #[test]
+    fn test_in_operator() {
+        let properties = HashMap::new();
+
+        assert_eq!(
+            evaluate(&json!(["in", 1, 1, 2, 3,]), &properties),
+            json!(true)
+        );
+
+        assert_eq!(
+            evaluate(&json!(["in", 4, 1, 2, 3,]), &properties),
+            json!(false)
         );
     }
 }
