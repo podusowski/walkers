@@ -47,13 +47,23 @@ impl Filter {
         match function {
             Value::String(op) if op == "==" => {
                 let (key, arg) = split_two_element_slice(args).unwrap();
-
-                // key must be a string
                 let Value::String(key) = key else { todo!() };
 
                 properties.get(key) == Some(&MvtValue::String(arg.as_str().unwrap().to_string()))
             }
-            f => todo!("{f:?}"),
+            Value::String(op) if op == "in" => {
+                let (key, values) = args.split_first().unwrap();
+                let Value::String(key) = key else { todo!() };
+
+                let properties_value = properties.get(key).unwrap();
+                values
+                    .iter()
+                    .any(|filter_value| eq(filter_value, properties_value))
+            }
+            f => {
+                log::warn!("Unsupported filter function: {f:?}");
+                false
+            }
         }
     }
 }
@@ -65,6 +75,14 @@ fn split_two_element_slice<T>(slice: &[T]) -> Option<(&T, &T)> {
         Some((&slice[0], &slice[1]))
     } else {
         None
+    }
+}
+
+fn eq(a: &Value, b: &MvtValue) -> bool {
+    match (a, b) {
+        (Value::String(a), MvtValue::String(b)) => a == b,
+        (Value::Number(a), MvtValue::Int(b)) => a.as_i64() == Some(*b),
+        _ => false,
     }
 }
 
