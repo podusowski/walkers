@@ -32,7 +32,10 @@ pub struct Paint {
     pub fill_color: Option<Vec<serde_json::Value>>,
 }
 
+#[cfg(test)]
 mod tests {
+    use std::collections::HashMap;
+
     use super::*;
 
     #[test]
@@ -43,5 +46,19 @@ mod tests {
         .unwrap();
 
         let _parsed_style: Style = serde_json::from_str(&style).unwrap();
+    }
+
+    #[test]
+    fn test_filter_matching() {
+        let properties = HashMap::from([(
+            "type".to_string(),
+            mvt_reader::feature::Value::String("park".to_string()),
+        )]);
+
+        let filter = vec![
+            serde_json::Value::String("==".to_string()),
+            serde_json::Value::String("type".to_string()),
+            serde_json::Value::String("park".to_string()),
+        ];
     }
 }
