@@ -243,6 +243,13 @@ fn evaluate(
                     warn!("Unsupported operator: {}", operator);
                     Ok(Value::Null)
                 }
+                "interpolate" => {
+                    let (interpolation_type, args) = arguments.split_first().unwrap();
+                    let (input, stops) = args.split_first().unwrap();
+                    let evaluated_input = evaluate(input, properties, filter)?;
+
+                    Ok(Value::Null) // TODO: Implement interpolate
+                }
             }
         }
         primitive => Ok(primitive.clone()),
@@ -407,6 +414,22 @@ mod tests {
         assert_eq!(
             evaluate(&json!(["any", false, false]), &properties, false).unwrap(),
             json!(false)
+        );
+    }
+
+    #[test]
+    fn test_interpolate_operator() {
+        // https://maplibre.org/maplibre-style-spec/expressions/#interpolate
+        let properties = HashMap::from([("zoom".to_string(), MvtValue::Int(5))]);
+
+        assert_eq!(
+            evaluate(
+                &json!(["interpolate", ["linear"], ["get", "zoom"], 0, 1, 10, 2]),
+                &properties,
+                false
+            )
+            .unwrap(),
+            json!(1.5)
         );
     }
 }
