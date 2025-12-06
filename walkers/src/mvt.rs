@@ -186,16 +186,17 @@ fn feature_into_shape(
             }
         }
         Geometry::MultiLineString(multi_line_string) => {
-            if let Some(stroke) = line_stroke(properties)? {
-                for line_string in multi_line_string {
-                    let points = line_string
-                        .0
-                        .iter()
-                        .map(|p| pos2(p.x, p.y))
-                        .collect::<Vec<_>>();
-                    shapes.push(Shape::line(points, stroke).into());
-                }
+            let stroke = Stroke::new(2.0, Color32::WHITE.gamma_multiply(0.5));
+            //if let Some(stroke) = line_stroke(properties)? {
+            for line_string in multi_line_string {
+                let points = line_string
+                    .0
+                    .iter()
+                    .map(|p| pos2(p.x, p.y))
+                    .collect::<Vec<_>>();
+                shapes.push(Shape::line(points, stroke).into());
             }
+            //}
         }
         Geometry::MultiPoint(multi_point) => shapes.extend(points(
             properties,
