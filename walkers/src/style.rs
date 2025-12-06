@@ -231,6 +231,11 @@ fn evaluate(
                     let left = property_or_expression(left, properties, filter)?;
                     Ok(Value::Bool(left == *right))
                 }
+                "!=" => {
+                    let (left, right) = split_two_element_slice(arguments).unwrap();
+                    let left = property_or_expression(left, properties, filter)?;
+                    Ok(Value::Bool(left != *right))
+                }
                 "any" => Ok(arguments
                     .iter()
                     .any(|value| evaluate(value, properties, filter).unwrap() == Value::Bool(true))
