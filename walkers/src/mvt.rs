@@ -110,6 +110,23 @@ pub fn render(data: &[u8], style: &Style) -> Result<Vec<ShapeOrText>, Error> {
                     }
                 }
             }
+            Layer::Line {
+                id,
+                source_layer,
+                filter,
+                paint,
+            } => {
+                let Ok(layer_index) = find_layer(&data, &source_layer) else {
+                    warn!("Source layer '{source_layer}' not found. Skipping.");
+                    continue;
+                };
+
+                for feature in data.get_features(layer_index)? {
+                    if let Err(err) = feature_into_shape(&feature, &mut shapes, filter, paint) {
+                        warn!("{err}");
+                    }
+                }
+            }
             layer => {
                 log::warn!("Unsupported layer type in style: {layer:?}");
                 continue;
