@@ -130,6 +130,8 @@ pub enum Error {
     Other(String),
     #[error("Invalid expression: {0:?}")]
     InvalidExpression(Vec<Value>),
+    #[error("Expected a property name or an expression, got: {0:?}")]
+    ExpectedKeyOrExpression(Value),
 }
 
 /// Evaluate a style expression.
@@ -225,19 +227,9 @@ fn evaluate(
                     Ok(Value::Bool(false))
                 }
                 "==" => {
-                    let (key_or_value, argument) = split_two_element_slice(arguments).unwrap();
-
-                    let value = match key_or_value {
-                        Value::String(key) => mvt_value_to_json(
-                            properties
-                                .get(key_or_value.as_str().unwrap())
-                                .ok_or(Error::Other(format!("Property '{key}' not found")))?,
-                        ),
-                        Value::Array(_) => evaluate(key_or_value, properties, filter)?,
-                        _ => return Err(Error::InvalidExpression(values.clone())),
-                    };
-
-                    Ok(Value::Bool(value == *argument))
+                    let (left, right) = split_two_element_slice(arguments).unwrap();
+                    let left = property_or_expression(left, properties, filter)?;
+                    Ok(Value::Bool(left == *right))
                 }
                 "any" => Ok(arguments
                     .iter()
@@ -257,6 +249,22 @@ fn evaluate(
             }
         }
         primitive => Ok(primitive.clone()),
+    }
+}
+
+fn property_or_expression(
+    value: &Value,
+    properties: &HashMap<String, MvtValue>,
+    filter: bool,
+) -> Result<Value, Error> {
+    match value {
+        Value::String(key) => {
+            Ok(mvt_value_to_json(properties.get(key).ok_or(
+                Error::Other(format!("Property '{key}' not found")),
+            )?))
+        }
+        Value::Array(_) => evaluate(&value, properties, filter),
+        _ => Err(Error::ExpectedKeyOrExpression(value.clone())),
     }
 }
 
