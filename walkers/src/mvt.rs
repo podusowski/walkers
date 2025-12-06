@@ -177,6 +177,11 @@ fn line_feature_into_shape(
         .properties
         .as_ref()
         .ok_or(Error::FeatureWithoutProperties)?;
+
+    if !match_filter(&feature, "Line", filter) {
+        return Ok(());
+    }
+
     match &feature.geometry {
         Geometry::LineString(line_string) => {
             if let Some(stroke) = line_stroke(properties)? {

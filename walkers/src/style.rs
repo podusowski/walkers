@@ -177,10 +177,12 @@ fn evaluate(
 
                     match properties.get(key) {
                         Some(MvtValue::String(s)) => Ok(Value::String(s.clone())),
-                        Some(MvtValue::Int(i)) => Ok(Value::Number((*i).into())),
+                        Some(MvtValue::Int(i)) | Some(MvtValue::SInt(i)) => {
+                            Ok(Value::Number((*i).into()))
+                        }
                         None => Ok(Value::Null),
-                        _ => {
-                            panic!("Unsupported property value type for 'get' operator.");
+                        value => {
+                            panic!("Unsupported property value type for 'get' operator. {value:?}");
                         }
                     }
                 }
