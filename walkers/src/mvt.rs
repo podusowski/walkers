@@ -105,7 +105,9 @@ pub fn render(data: &[u8], style: &Style) -> Result<Vec<ShapeOrText>, Error> {
                 };
 
                 for feature in data.get_features(layer_index)? {
-                    if let Err(err) = feature_into_shape(&feature, &mut shapes, filter, paint) {
+                    if let Err(err) =
+                        polygon_feature_into_shape(&feature, &mut shapes, filter, paint)
+                    {
                         warn!("{err}");
                     }
                 }
@@ -199,9 +201,57 @@ fn line_feature_into_shape(
             }
             //}
         }
-        _ => {
-            // Ignore other geometries in line layers.
+        _ => (),
+    }
+    Ok(())
+}
+
+fn polygon_feature_into_shape(
+    feature: &Feature,
+    shapes: &mut Vec<ShapeOrText>,
+    filter: &Option<Filter>,
+    paint: &Paint,
+) -> Result<(), Error> {
+    let properties = feature
+        .properties
+        .as_ref()
+        .ok_or(Error::FeatureWithoutProperties)?;
+    match &feature.geometry {
+        Geometry::MultiPolygon(multi_polygon) => {
+            if !match_filter(&feature, "Polygon", filter) {
+                return Ok(());
+            }
+
+            let Some(fill_color) = &paint.fill_color else {
+                warn!("Fill layer without fill color. Skipping.");
+                return Ok(());
+            };
+
+            let fill_color = fill_color.evaluate(&properties);
+
+            let fill_color = if let Some(fill_opacity) = &paint.fill_opacity {
+                let fill_opacity = fill_opacity.evaluate(&properties);
+                fill_color.gamma_multiply(fill_opacity)
+            } else {
+                fill_color
+            };
+
+            for polygon in multi_polygon.iter() {
+                let points = polygon
+                    .exterior()
+                    .0
+                    .iter()
+                    .map(|p| pos2(p.x, p.y))
+                    .collect::<Vec<_>>();
+                let interiors = polygon
+                    .interiors()
+                    .iter()
+                    .map(|hole| hole.0.iter().map(|p| pos2(p.x, p.y)).collect::<Vec<_>>())
+                    .collect::<Vec<_>>();
+                shapes.push(tessellate_polygon(&points, &interiors, fill_color)?.into());
+            }
         }
+        _ => (),
     }
     Ok(())
 }
