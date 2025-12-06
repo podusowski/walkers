@@ -122,7 +122,8 @@ pub fn render(data: &[u8], style: &Style) -> Result<Vec<ShapeOrText>, Error> {
                 };
 
                 for feature in data.get_features(layer_index)? {
-                    if let Err(err) = feature_into_shape(&feature, &mut shapes, filter, paint) {
+                    if let Err(err) = line_feature_into_shape(&feature, &mut shapes, filter, paint)
+                    {
                         warn!("{err}");
                     }
                 }
@@ -162,6 +163,47 @@ fn match_filter(feature: &Feature, type_: &str, filter: &Option<Filter>) -> bool
         (Some(properties), Some(filter)) => filter.matches(&properties),
         _ => true,
     }
+}
+
+fn line_feature_into_shape(
+    feature: &Feature,
+    shapes: &mut Vec<ShapeOrText>,
+    filter: &Option<Filter>,
+    paint: &Paint,
+) -> Result<(), Error> {
+    let properties = feature
+        .properties
+        .as_ref()
+        .ok_or(Error::FeatureWithoutProperties)?;
+    match &feature.geometry {
+        Geometry::LineString(line_string) => {
+            if let Some(stroke) = line_stroke(properties)? {
+                let points = line_string
+                    .0
+                    .iter()
+                    .map(|p| pos2(p.x, p.y))
+                    .collect::<Vec<_>>();
+                shapes.push(Shape::line(points, stroke).into());
+            }
+        }
+        Geometry::MultiLineString(multi_line_string) => {
+            let stroke = Stroke::new(2.0, Color32::WHITE.gamma_multiply(0.5));
+            //if let Some(stroke) = line_stroke(properties)? {
+            for line_string in multi_line_string {
+                let points = line_string
+                    .0
+                    .iter()
+                    .map(|p| pos2(p.x, p.y))
+                    .collect::<Vec<_>>();
+                shapes.push(Shape::line(points, stroke).into());
+            }
+            //}
+        }
+        _ => {
+            // Ignore other geometries in line layers.
+        }
+    }
+    Ok(())
 }
 
 fn feature_into_shape(
