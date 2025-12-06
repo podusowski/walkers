@@ -188,6 +188,11 @@ fn evaluate(
                     let (value, arms) = arguments.split_first().unwrap();
                     let evaluated_value = evaluate(value, properties, filter)?;
                     for arm in arms.chunks(2) {
+                        if arm.len() == 1 {
+                            // Default case
+                            return evaluate(&arm[0], properties, filter);
+                        }
+
                         let arm_value = &arm[0];
                         let arm_result = &arm[1];
 
@@ -374,6 +379,29 @@ mod tests {
             )
             .unwrap(),
             json!("Got it!")
+        );
+    }
+
+    #[test]
+    fn test_match_operator_reaching_default() {
+        let properties = HashMap::new();
+
+        assert_eq!(
+            evaluate(
+                &json!([
+                    "match",
+                    42,
+                    1,
+                    "Not this one",
+                    2,
+                    "Also not this one",
+                    "It's the default!",
+                ]),
+                &properties,
+                false
+            )
+            .unwrap(),
+            json!("It's the default!")
         );
     }
 
