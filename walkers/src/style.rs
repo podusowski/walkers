@@ -240,16 +240,16 @@ fn evaluate(
                     .iter()
                     .any(|value| evaluate(value, properties, filter).unwrap() == Value::Bool(true))
                     .into()),
-                operator => {
-                    warn!("Unsupported operator: {}", operator);
-                    Ok(Value::Null)
-                }
                 "interpolate" => {
                     let (interpolation_type, args) = arguments.split_first().unwrap();
                     let (input, stops) = args.split_first().unwrap();
                     let evaluated_input = evaluate(input, properties, filter)?;
 
                     Ok(Value::Null) // TODO: Implement interpolate
+                }
+                operator => {
+                    warn!("Unsupported operator: {}", operator);
+                    Ok(Value::Null)
                 }
             }
         }
