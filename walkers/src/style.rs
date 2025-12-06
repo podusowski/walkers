@@ -251,6 +251,10 @@ fn evaluate(
                     .iter()
                     .any(|value| evaluate(value, properties, filter).unwrap() == Value::Bool(true))
                     .into()),
+                "all" => Ok(arguments
+                    .iter()
+                    .all(|value| evaluate(value, properties, filter).unwrap() == Value::Bool(true))
+                    .into()),
                 "interpolate" => {
                     let (interpolation_type, args) = arguments.split_first().unwrap();
                     let (input, stops) = args.split_first().unwrap();
@@ -465,6 +469,21 @@ mod tests {
         assert_eq!(
             evaluate(&json!(["any", false, false]), &properties, false).unwrap(),
             json!(false)
+        );
+    }
+
+    #[test]
+    fn test_all_operator() {
+        let properties = HashMap::new();
+
+        assert_eq!(
+            evaluate(&json!(["all", true, false]), &properties, false).unwrap(),
+            json!(false)
+        );
+
+        assert_eq!(
+            evaluate(&json!(["all", true, true]), &properties, false).unwrap(),
+            json!(true)
         );
     }
 
