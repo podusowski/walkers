@@ -228,7 +228,6 @@ fn evaluate(
                     let (key_or_value, argument) = split_two_element_slice(arguments).unwrap();
 
                     let value = match key_or_value {
-                        // It's a key. Take the value from properties.
                         Value::String(key) => mvt_value_to_json(
                             properties
                                 .get(key_or_value.as_str().unwrap())
