@@ -16,7 +16,8 @@ pub struct Style {
 impl Default for Style {
     fn default() -> Self {
         // TODO: That's temporary. Or is it?
-        let style_json = include_str!("../assets/protomaps-dark-style.json");
+        //let style_json = include_str!("../assets/protomaps-dark-style.json");
+        let style_json = include_str!("../assets/openfreemap-liberty.json");
         serde_json::from_str(style_json).expect("Failed to parse default style JSON")
     }
 }
@@ -34,6 +35,8 @@ pub enum Layer {
     },
     Line,
     Symbol,
+    Raster,
+    FillExtrusion,
 }
 
 #[derive(Deserialize, Debug)]
@@ -125,6 +128,8 @@ fn mvt_value_to_json(value: &MvtValue) -> Value {
 pub enum Error {
     #[error("{0}")]
     Other(String),
+    #[error("Invalid expression: {0:?}")]
+    InvalidExpression(Vec<Value>),
 }
 
 /// Evaluate a style expression.
@@ -222,18 +227,18 @@ fn evaluate(
                 "==" => {
                     let (key_or_value, argument) = split_two_element_slice(arguments).unwrap();
 
-                    let key_or_value = if filter {
-                        let key = key_or_value.as_str().unwrap();
-                        mvt_value_to_json(
+                    let value = match key_or_value {
+                        // It's a key. Take the value from properties.
+                        Value::String(key) => mvt_value_to_json(
                             properties
                                 .get(key_or_value.as_str().unwrap())
                                 .ok_or(Error::Other(format!("Property '{key}' not found")))?,
-                        )
-                    } else {
-                        evaluate(key_or_value, properties, filter)?
+                        ),
+                        Value::Array(_) => evaluate(key_or_value, properties, filter)?,
+                        _ => return Err(Error::InvalidExpression(values.clone())),
                     };
 
-                    Ok(Value::Bool(key_or_value == *argument))
+                    Ok(Value::Bool(value == *argument))
                 }
                 "any" => Ok(arguments
                     .iter()
