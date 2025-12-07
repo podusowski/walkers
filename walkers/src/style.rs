@@ -159,16 +159,12 @@ fn evaluate(
 
                     Ok(arguments[0].clone())
                 }
-                "get" => match properties.get(single_string(arguments)?) {
-                    Some(MvtValue::String(s)) => Ok(Value::String(s.clone())),
-                    Some(MvtValue::Int(i)) | Some(MvtValue::SInt(i)) => {
-                        Ok(Value::Number((*i).into()))
-                    }
-                    None => Ok(Value::Null),
-                    value => {
-                        panic!("Unsupported property value type for 'get' operator. {value:?}");
-                    }
-                },
+                "get" => {
+                    let key = single_string(arguments)?;
+                    Ok(mvt_value_to_json(properties.get(key).ok_or(
+                        Error::PropertyMissing(key.to_string(), properties.clone()),
+                    )?))
+                }
                 "has" => Ok(Value::Bool(
                     properties.contains_key(single_string(arguments)?),
                 )),
