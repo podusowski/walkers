@@ -146,6 +146,8 @@ pub enum Error {
     ImpossibleLerp(Value, Value),
     #[error("Interpolate stop not found for input value: {0:?}")]
     InterpolateStopNotFound(Value),
+    #[error("Single string expected, got: {0:?}")]
+    SingleStringExpected(Vec<Value>),
 }
 
 /// Evaluate a style expression.
@@ -176,13 +178,7 @@ fn evaluate(
                     Ok(arguments[0].clone())
                 }
                 "get" => {
-                    if arguments.len() != 1 {
-                        panic!("'get' operator requires exactly one argument.");
-                    }
-
-                    let Value::String(key) = &arguments[0] else {
-                        panic!("'get' operator argument must be a string.");
-                    };
+                    let key = single_string(arguments)?;
 
                     match properties.get(key) {
                         Some(MvtValue::String(s)) => Ok(Value::String(s.clone())),
@@ -372,6 +368,17 @@ fn property_or_expression(
         }
         Value::Array(_) => evaluate(&value, properties, zoom, filter),
         _ => Err(Error::ExpectedKeyOrExpression(value.clone())),
+    }
+}
+
+fn single_string(values: &[Value]) -> Result<&str, Error> {
+    if values.len() != 1 {
+        return Err(Error::SingleStringExpected(values.to_vec()));
+    }
+
+    match &values[0] {
+        Value::String(s) => Ok(s),
+        _ => Err(Error::SingleStringExpected(values.to_vec())),
     }
 }
 
