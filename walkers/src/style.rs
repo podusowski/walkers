@@ -107,29 +107,6 @@ impl Filter {
     }
 }
 
-/// Splits a slice into its first and second element. Returns `None` if the slice does not have
-/// exactly two elements.
-fn split_two_element_slice<T>(slice: &[T]) -> Option<(&T, &T)> {
-    if slice.len() == 2 {
-        Some((&slice[0], &slice[1]))
-    } else {
-        None
-    }
-}
-
-fn mvt_value_to_json(value: &MvtValue) -> Value {
-    match value {
-        MvtValue::String(s) => Value::String(s.clone()),
-        MvtValue::Int(i) => Value::Number((*i).into()),
-        MvtValue::Bool(b) => Value::Bool(*b),
-        MvtValue::Null => Value::Null,
-        _ => {
-            warn!("Unsupported MVT value type: {:?}", value);
-            Value::Null
-        }
-    }
-}
-
 #[derive(thiserror::Error, Debug)]
 pub enum Error {
     #[error("{0}")]
@@ -308,6 +285,29 @@ fn evaluate(
             }
         }
         primitive => Ok(primitive.clone()),
+    }
+}
+
+/// Splits a slice into its first and second element. Returns `None` if the slice does not have
+/// exactly two elements.
+fn split_two_element_slice<T>(slice: &[T]) -> Option<(&T, &T)> {
+    if slice.len() == 2 {
+        Some((&slice[0], &slice[1]))
+    } else {
+        None
+    }
+}
+
+fn mvt_value_to_json(value: &MvtValue) -> Value {
+    match value {
+        MvtValue::String(s) => Value::String(s.clone()),
+        MvtValue::Int(i) => Value::Number((*i).into()),
+        MvtValue::Bool(b) => Value::Bool(*b),
+        MvtValue::Null => Value::Null,
+        _ => {
+            warn!("Unsupported MVT value type: {:?}", value);
+            Value::Null
+        }
     }
 }
 
