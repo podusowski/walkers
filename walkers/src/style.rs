@@ -140,9 +140,8 @@ fn evaluate(
 ) -> Result<Value, Error> {
     match value {
         Value::Array(values) => {
-            let (operator, arguments) = values.split_first().unwrap();
-            let Value::String(operator) = operator else {
-                return Err(Error::InvalidExpression(operator.clone()));
+            let Some((Value::String(operator), arguments)) = values.split_first() else {
+                return Err(Error::InvalidExpression(value.clone()));
             };
 
             match operator.as_str() {
