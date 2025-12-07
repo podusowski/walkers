@@ -179,7 +179,6 @@ fn evaluate(
                 }
                 "get" => {
                     let key = single_string(arguments)?;
-
                     match properties.get(key) {
                         Some(MvtValue::String(s)) => Ok(Value::String(s.clone())),
                         Some(MvtValue::Int(i)) | Some(MvtValue::SInt(i)) => {
@@ -192,14 +191,7 @@ fn evaluate(
                     }
                 }
                 "has" => {
-                    if arguments.len() != 1 {
-                        panic!("'has' operator requires exactly one argument.");
-                    }
-
-                    let Value::String(key) = &arguments[0] else {
-                        panic!("'has' operator argument must be a string.");
-                    };
-
+                    let key = single_string(arguments)?;
                     Ok(Value::Bool(properties.contains_key(key)))
                 }
                 "match" => {
