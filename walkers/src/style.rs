@@ -57,8 +57,8 @@ pub struct Paint {
 pub struct Color(Value);
 
 impl Color {
-    pub fn evaluate(&self, properties: &HashMap<String, MvtValue>) -> Color32 {
-        let value = evaluate(&self.0, properties, false).unwrap();
+    pub fn evaluate(&self, properties: &HashMap<String, MvtValue>, zoom: u8) -> Color32 {
+        let value = evaluate(&self.0, properties, zoom, false).unwrap();
 
         let Value::String(color) = &value else {
             warn!(
@@ -78,11 +78,11 @@ impl Color {
 pub struct Opacity(Value);
 
 impl Opacity {
-    pub fn evaluate(&self, properties: &HashMap<String, MvtValue>) -> f32 {
-        let value = evaluate(&self.0, properties, false).unwrap();
+    pub fn evaluate(&self, properties: &HashMap<String, MvtValue>, zoom: u8) -> f32 {
+        let value = evaluate(&self.0, properties, zoom, false);
 
         match value {
-            Value::Number(num) => num.as_f64().unwrap() as f32,
+            Ok(Value::Number(num)) => num.as_f64().unwrap() as f32,
             other => {
                 warn!("Opacity did not evaluate to a number: {:?}", other);
                 0.5
@@ -96,8 +96,8 @@ pub struct Filter(Value);
 
 impl Filter {
     /// Match this filter against feature properties.
-    pub fn matches(&self, properties: &HashMap<String, MvtValue>) -> bool {
-        match evaluate(&self.0, properties, true) {
+    pub fn matches(&self, properties: &HashMap<String, MvtValue>, zoom: u8) -> bool {
+        match evaluate(&self.0, properties, zoom, true) {
             Ok(Value::Bool(b)) => b,
             other => {
                 warn!("Filter did not evaluate to a boolean: {:?}", other);
@@ -142,6 +142,8 @@ pub enum Error {
     ImpossibleNumericDifference(Value, Value),
     #[error("Impossible to lerp between {0:?} and {1:?}")]
     ImpossibleLerp(Value, Value),
+    #[error("Interpolate stop not found for input value: {0:?}")]
+    InterpolateStopNotFound(Value),
 }
 
 /// Evaluate a style expression.
@@ -149,6 +151,7 @@ pub enum Error {
 fn evaluate(
     value: &Value,
     properties: &HashMap<String, MvtValue>,
+    zoom: u8,
     filter: bool,
 ) -> Result<Value, Error> {
     match value {
@@ -192,18 +195,18 @@ fn evaluate(
                 }
                 "match" => {
                     let (value, arms) = arguments.split_first().unwrap();
-                    let evaluated_value = evaluate(value, properties, filter)?;
+                    let evaluated_value = evaluate(value, properties, zoom, filter)?;
                     for arm in arms.chunks(2) {
                         if arm.len() == 1 {
                             // Default case
-                            return evaluate(&arm[0], properties, filter);
+                            return evaluate(&arm[0], properties, zoom, filter);
                         }
 
                         let arm_value = &arm[0];
                         let arm_result = &arm[1];
 
                         if evaluated_value == *arm_value {
-                            return evaluate(arm_result, properties, filter);
+                            return evaluate(arm_result, properties, zoom, filter);
                         }
                     }
                     todo!("No match found in 'match' expression.");
@@ -212,13 +215,14 @@ fn evaluate(
                     for arm in arguments.chunks(2) {
                         match arm.iter().as_slice() {
                             [condition, value] => {
-                                let evaluated_condition = evaluate(condition, properties, filter)?;
+                                let evaluated_condition =
+                                    evaluate(condition, properties, zoom, filter)?;
                                 if let Value::Bool(true) = evaluated_condition {
-                                    return evaluate(value, properties, filter);
+                                    return evaluate(value, properties, zoom, filter);
                                 }
                             }
                             [default] => {
-                                return evaluate(default, properties, filter);
+                                return evaluate(default, properties, zoom, filter);
                             }
                             _ => {
                                 panic!("Invalid 'case' arm.");
@@ -233,11 +237,11 @@ fn evaluate(
                     let evaluated_value = if filter {
                         mvt_value_to_json(properties.get(value.as_str().unwrap()).unwrap())
                     } else {
-                        evaluate(value, properties, filter)?
+                        evaluate(value, properties, zoom, filter)?
                     };
 
                     for item in list {
-                        if evaluated_value == evaluate(item, properties, filter)? {
+                        if evaluated_value == evaluate(item, properties, zoom, filter)? {
                             return Ok(Value::Bool(true));
                         }
                     }
@@ -245,26 +249,30 @@ fn evaluate(
                 }
                 "==" => {
                     let (left, right) = split_two_element_slice(arguments).unwrap();
-                    let left = property_or_expression(left, properties, filter)?;
+                    let left = property_or_expression(left, properties, zoom, filter)?;
                     Ok(Value::Bool(left == *right))
                 }
                 "!=" => {
                     let (left, right) = split_two_element_slice(arguments).unwrap();
-                    let left = property_or_expression(left, properties, filter)?;
+                    let left = property_or_expression(left, properties, zoom, filter)?;
                     Ok(Value::Bool(left != *right))
                 }
                 "any" => Ok(arguments
                     .iter()
-                    .any(|value| evaluate(value, properties, filter).unwrap() == Value::Bool(true))
+                    .any(|value| {
+                        evaluate(value, properties, zoom, filter).unwrap() == Value::Bool(true)
+                    })
                     .into()),
                 "all" => Ok(arguments
                     .iter()
-                    .all(|value| evaluate(value, properties, filter).unwrap() == Value::Bool(true))
+                    .all(|value| {
+                        evaluate(value, properties, zoom, filter).unwrap() == Value::Bool(true)
+                    })
                     .into()),
                 "interpolate" => {
                     let (interpolation_type, args) = arguments.split_first().unwrap();
                     let (input, stops) = args.split_first().unwrap();
-                    let input = evaluate(input, properties, filter)?;
+                    let input = evaluate(input, properties, zoom, filter)?;
 
                     println!(
                         "Interpolate called with input: {:?}, stops: {:?}",
@@ -286,7 +294,7 @@ fn evaluate(
                             println!("input: {input:?}, stop: {left_stop:?}, {right_stop:?}");
                             lt(&left_stop, &input) && lt(&input, &right_stop)
                         })
-                        .unwrap();
+                        .ok_or(Error::InterpolateStopNotFound(value.clone()))?;
 
                     let input_delta = numeric_difference(&stop_pair[1].0, &stop_pair[0].0)?;
 
@@ -340,6 +348,7 @@ fn lt(left: &Value, right: &Value) -> bool {
 fn property_or_expression(
     value: &Value,
     properties: &HashMap<String, MvtValue>,
+    zoom: u8,
     filter: bool,
 ) -> Result<Value, Error> {
     match value {
@@ -348,7 +357,7 @@ fn property_or_expression(
                 Error::Other(format!("Property '{key}' not found")),
             )?))
         }
-        Value::Array(_) => evaluate(&value, properties, filter),
+        Value::Array(_) => evaluate(&value, properties, zoom, filter),
         _ => Err(Error::ExpectedKeyOrExpression(value.clone())),
     }
 }
@@ -378,8 +387,8 @@ mod tests {
 
         let filter = Filter(json!(["==", "type", "park"]));
 
-        assert!(filter.matches(&park));
-        assert!(!filter.matches(&forest));
+        assert!(filter.matches(&park, 1));
+        assert!(!filter.matches(&forest, 1));
     }
 
     #[test]
@@ -389,19 +398,19 @@ mod tests {
 
         let filter = Filter(json!(["in", "type", "park", "forest"]));
 
-        assert!(filter.matches(&park));
-        assert!(!filter.matches(&road));
+        assert!(filter.matches(&park, 1));
+        assert!(!filter.matches(&road, 1));
     }
 
     #[test]
     fn test_evaluate_color() {
         assert_eq!(
-            Color(Value::String("#ffffff".to_string())).evaluate(&HashMap::new()),
+            Color(Value::String("#ffffff".to_string())).evaluate(&HashMap::new(), 1),
             Color32::WHITE
         );
 
         assert_eq!(
-            Color(Value::String("red".to_string())).evaluate(&HashMap::new()),
+            Color(Value::String("red".to_string())).evaluate(&HashMap::new(), 1),
             Color32::RED
         );
     }
@@ -411,7 +420,7 @@ mod tests {
         let properties = HashMap::new();
 
         assert_eq!(
-            evaluate(&json!(["literal", [1, 2, 3]]), &properties, false).unwrap(),
+            evaluate(&json!(["literal", [1, 2, 3]]), &properties, 1, false).unwrap(),
             json!([1, 2, 3])
         );
     }
@@ -422,7 +431,7 @@ mod tests {
             HashMap::from([("name".to_string(), MvtValue::String("Polska".to_string()))]);
 
         assert_eq!(
-            evaluate(&json!(["get", "name"]), &properties, false).unwrap(),
+            evaluate(&json!(["get", "name"]), &properties, 1, false).unwrap(),
             json!("Polska")
         );
     }
@@ -444,6 +453,7 @@ mod tests {
                     "Got it!",
                 ]),
                 &properties,
+                1,
                 false
             )
             .unwrap(),
@@ -467,6 +477,7 @@ mod tests {
                     "It's the default!",
                 ]),
                 &properties,
+                1,
                 false
             )
             .unwrap(),
@@ -490,6 +501,7 @@ mod tests {
                     "Got it!",
                 ]),
                 &properties,
+                1,
                 false
             )
             .unwrap(),
@@ -500,6 +512,7 @@ mod tests {
             evaluate(
                 &json!(["case", false, "first", false, "second", "default"]),
                 &properties,
+                1,
                 false
             )
             .unwrap(),
@@ -512,12 +525,12 @@ mod tests {
         let properties = HashMap::new();
 
         assert_eq!(
-            evaluate(&json!(["in", 1, 1, 2, 3,]), &properties, false).unwrap(),
+            evaluate(&json!(["in", 1, 1, 2, 3,]), &properties, 1, false).unwrap(),
             json!(true)
         );
 
         assert_eq!(
-            evaluate(&json!(["in", 4, 1, 2, 3,]), &properties, false).unwrap(),
+            evaluate(&json!(["in", 4, 1, 2, 3,]), &properties, 1, false).unwrap(),
             json!(false)
         );
     }
@@ -527,12 +540,12 @@ mod tests {
         let properties = HashMap::new();
 
         assert_eq!(
-            evaluate(&json!(["any", true, false]), &properties, false).unwrap(),
+            evaluate(&json!(["any", true, false]), &properties, 1, false).unwrap(),
             json!(true)
         );
 
         assert_eq!(
-            evaluate(&json!(["any", false, false]), &properties, false).unwrap(),
+            evaluate(&json!(["any", false, false]), &properties, 1, false).unwrap(),
             json!(false)
         );
     }
@@ -542,12 +555,12 @@ mod tests {
         let properties = HashMap::new();
 
         assert_eq!(
-            evaluate(&json!(["all", true, false]), &properties, false).unwrap(),
+            evaluate(&json!(["all", true, false]), &properties, 1, false).unwrap(),
             json!(false)
         );
 
         assert_eq!(
-            evaluate(&json!(["all", true, true]), &properties, false).unwrap(),
+            evaluate(&json!(["all", true, true]), &properties, 1, false).unwrap(),
             json!(true)
         );
     }
@@ -561,6 +574,7 @@ mod tests {
             evaluate(
                 &json!(["interpolate", ["linear"], 5, 0, 0, 10, 10]),
                 &properties,
+                1,
                 false
             )
             .unwrap(),

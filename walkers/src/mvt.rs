@@ -106,7 +106,7 @@ pub fn render(data: &[u8], style: &Style) -> Result<Vec<ShapeOrText>, Error> {
 
                 for feature in data.get_features(layer_index)? {
                     if let Err(err) =
-                        polygon_feature_into_shape(&feature, &mut shapes, filter, paint)
+                        polygon_feature_into_shape(&feature, &mut shapes, filter, paint, 10)
                     {
                         warn!("{err}");
                     }
@@ -124,7 +124,8 @@ pub fn render(data: &[u8], style: &Style) -> Result<Vec<ShapeOrText>, Error> {
                 };
 
                 for feature in data.get_features(layer_index)? {
-                    if let Err(err) = line_feature_into_shape(&feature, &mut shapes, filter, paint)
+                    if let Err(err) =
+                        line_feature_into_shape(&feature, &mut shapes, filter, paint, 10)
                     {
                         warn!("{err}");
                     }
@@ -154,7 +155,7 @@ pub fn transformed(shapes: &[ShapeOrText], rect: egui::Rect) -> Vec<ShapeOrText>
     result
 }
 
-fn match_filter(feature: &Feature, type_: &str, filter: &Option<Filter>) -> bool {
+fn match_filter(feature: &Feature, type_: &str, zoom: u8, filter: &Option<Filter>) -> bool {
     // Special property "$type" to filter by geometry type. MapLibre Style spec mentions
     // 'geometry-type', but Protomaps uses '$type' in their styles.
     let mut properties = feature.properties.clone().map(|mut properties| {
@@ -162,7 +163,7 @@ fn match_filter(feature: &Feature, type_: &str, filter: &Option<Filter>) -> bool
         properties
     });
     match (&properties, filter) {
-        (Some(properties), Some(filter)) => filter.matches(&properties),
+        (Some(properties), Some(filter)) => filter.matches(&properties, zoom),
         _ => true,
     }
 }
@@ -172,13 +173,14 @@ fn line_feature_into_shape(
     shapes: &mut Vec<ShapeOrText>,
     filter: &Option<Filter>,
     paint: &Paint,
+    zoom: u8,
 ) -> Result<(), Error> {
     let properties = feature
         .properties
         .as_ref()
         .ok_or(Error::FeatureWithoutProperties)?;
 
-    if !match_filter(&feature, "Line", filter) {
+    if !match_filter(&feature, "Line", zoom, filter) {
         return Ok(());
     }
 
@@ -216,6 +218,7 @@ fn polygon_feature_into_shape(
     shapes: &mut Vec<ShapeOrText>,
     filter: &Option<Filter>,
     paint: &Paint,
+    zoom: u8,
 ) -> Result<(), Error> {
     let properties = feature
         .properties
@@ -223,7 +226,7 @@ fn polygon_feature_into_shape(
         .ok_or(Error::FeatureWithoutProperties)?;
     match &feature.geometry {
         Geometry::MultiPolygon(multi_polygon) => {
-            if !match_filter(&feature, "Polygon", filter) {
+            if !match_filter(&feature, "Polygon", zoom, filter) {
                 return Ok(());
             }
 
@@ -232,10 +235,10 @@ fn polygon_feature_into_shape(
                 return Ok(());
             };
 
-            let fill_color = fill_color.evaluate(&properties);
+            let fill_color = fill_color.evaluate(&properties, zoom);
 
             let fill_color = if let Some(fill_opacity) = &paint.fill_opacity {
-                let fill_opacity = fill_opacity.evaluate(&properties);
+                let fill_opacity = fill_opacity.evaluate(&properties, zoom);
                 fill_color.gamma_multiply(fill_opacity)
             } else {
                 fill_color
@@ -266,6 +269,7 @@ fn feature_into_shape(
     shapes: &mut Vec<ShapeOrText>,
     filter: &Option<Filter>,
     paint: &Paint,
+    zoom: u8,
 ) -> Result<(), Error> {
     let properties = feature
         .properties
@@ -304,7 +308,7 @@ fn feature_into_shape(
                 .collect::<Vec<_>>(),
         )?),
         Geometry::MultiPolygon(multi_polygon) => {
-            if !match_filter(&feature, "Polygon", filter) {
+            if !match_filter(&feature, "Polygon", zoom, filter) {
                 return Ok(());
             }
 
@@ -313,10 +317,10 @@ fn feature_into_shape(
                 return Ok(());
             };
 
-            let fill_color = fill_color.evaluate(&properties);
+            let fill_color = fill_color.evaluate(&properties, zoom);
 
             let fill_color = if let Some(fill_opacity) = &paint.fill_opacity {
-                let fill_opacity = fill_opacity.evaluate(&properties);
+                let fill_opacity = fill_opacity.evaluate(&properties, zoom);
                 fill_color.gamma_multiply(fill_opacity)
             } else {
                 fill_color
