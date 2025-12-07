@@ -195,6 +195,17 @@ fn evaluate(
                         }
                     }
                 }
+                "has" => {
+                    if arguments.len() != 1 {
+                        panic!("'has' operator requires exactly one argument.");
+                    }
+
+                    let Value::String(key) = &arguments[0] else {
+                        panic!("'has' operator argument must be a string.");
+                    };
+
+                    Ok(Value::Bool(properties.contains_key(key)))
+                }
                 "match" => {
                     let (value, arms) = arguments.split_first().unwrap();
                     let evaluated_value = evaluate(value, properties, zoom, filter)?;
@@ -435,6 +446,17 @@ mod tests {
         assert_eq!(
             evaluate(&json!(["get", "name"]), &properties, 1, false).unwrap(),
             json!("Polska")
+        );
+    }
+
+    #[test]
+    fn test_has_operator() {
+        let properties =
+            HashMap::from([("name".to_string(), MvtValue::String("Polska".to_string()))]);
+
+        assert_eq!(
+            evaluate(&json!(["has", "name"]), &properties, 1, false).unwrap(),
+            json!(true)
         );
     }
 
