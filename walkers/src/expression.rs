@@ -20,6 +20,8 @@ pub enum Error {
     InterpolateStopNotFound(Value),
     #[error("Single string expected, got: {0:?}")]
     SingleStringExpected(Vec<Value>),
+    #[error("Single array expected, got: {0:?}")]
+    SingleArrayExpected(Vec<Value>),
     #[error("Exactly two elemented expected, got: {0:?}")]
     TwoElementsExpected(Vec<Value>),
     #[error("Property '{0}' missing in {1:?}")]
@@ -41,17 +43,7 @@ pub fn evaluate(
 
             match operator.as_str() {
                 "zoom" => Ok(Value::Number((zoom as i64).into())),
-                "literal" => {
-                    if arguments.len() != 1 {
-                        panic!("'literal' operator requires exactly one argument.");
-                    }
-
-                    if !arguments[0].is_array() {
-                        panic!("'literal' operator argument must be an array.");
-                    }
-
-                    Ok(arguments[0].clone())
-                }
+                "literal" => single_array(arguments),
                 "get" => {
                     let key = single_string(arguments)?;
                     Ok(mvt_value_to_json(properties.get(key).ok_or(
@@ -241,6 +233,14 @@ fn single_string(values: &[Value]) -> Result<&str, Error> {
     }
 }
 
+/// Expect exactly one array element.
+fn single_array(values: &[Value]) -> Result<Value, Error> {
+    match values {
+        [arr] if arr.is_array() => Ok(arr.clone()),
+        _ => Err(Error::SingleArrayExpected(values.to_vec())),
+    }
+}
+
 /// Expect exactly two elements.
 fn two_elements(slice: &[Value]) -> Result<(&Value, &Value), Error> {
     if let [a, b] = slice {
@@ -308,7 +308,7 @@ mod tests {
         let properties = HashMap::new();
 
         assert_eq!(
-            evaluate(&json!(["literal", [1, 2, 3]]), &properties, 1,).unwrap(),
+            evaluate(&json!(["literal", [1, 2, 3]]), &properties, 1).unwrap(),
             json!([1, 2, 3])
         );
     }
@@ -319,7 +319,7 @@ mod tests {
             HashMap::from([("name".to_string(), MvtValue::String("Polska".to_string()))]);
 
         assert_eq!(
-            evaluate(&json!(["get", "name"]), &properties, 1,).unwrap(),
+            evaluate(&json!(["get", "name"]), &properties, 1).unwrap(),
             json!("Polska")
         );
     }
