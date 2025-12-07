@@ -177,23 +177,19 @@ fn evaluate(
 
                     Ok(arguments[0].clone())
                 }
-                "get" => {
-                    let key = single_string(arguments)?;
-                    match properties.get(key) {
-                        Some(MvtValue::String(s)) => Ok(Value::String(s.clone())),
-                        Some(MvtValue::Int(i)) | Some(MvtValue::SInt(i)) => {
-                            Ok(Value::Number((*i).into()))
-                        }
-                        None => Ok(Value::Null),
-                        value => {
-                            panic!("Unsupported property value type for 'get' operator. {value:?}");
-                        }
+                "get" => match properties.get(single_string(arguments)?) {
+                    Some(MvtValue::String(s)) => Ok(Value::String(s.clone())),
+                    Some(MvtValue::Int(i)) | Some(MvtValue::SInt(i)) => {
+                        Ok(Value::Number((*i).into()))
                     }
-                }
-                "has" => {
-                    let key = single_string(arguments)?;
-                    Ok(Value::Bool(properties.contains_key(key)))
-                }
+                    None => Ok(Value::Null),
+                    value => {
+                        panic!("Unsupported property value type for 'get' operator. {value:?}");
+                    }
+                },
+                "has" => Ok(Value::Bool(
+                    properties.contains_key(single_string(arguments)?),
+                )),
                 "match" => {
                     let (value, arms) = arguments.split_first().unwrap();
                     let evaluated_value = evaluate(value, properties, zoom, filter)?;
