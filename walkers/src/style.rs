@@ -210,18 +210,19 @@ fn evaluate(
                 }
                 "in" => {
                     let (value, list) = arguments.split_first().unwrap();
+                    let value = property_or_expression(value, properties, zoom, filter)?;
 
-                    let evaluated_value = if filter {
-                        let key = value
-                            .as_str()
-                            .ok_or(Error::InvalidExpression(value.clone()))?;
-                        mvt_value_to_json(properties.get(key).unwrap())
-                    } else {
-                        evaluate(value, properties, zoom, filter)?
-                    };
+                    //let evaluated_value = if filter {
+                    //    let key = value
+                    //        .as_str()
+                    //        .ok_or(Error::InvalidExpression(value.clone()))?;
+                    //    mvt_value_to_json(properties.get(key).unwrap())
+                    //} else {
+                    //    evaluate(value, properties, zoom, filter)?
+                    //};
 
                     for item in list {
-                        if evaluated_value == evaluate(item, properties, zoom, filter)? {
+                        if value == evaluate(item, properties, zoom, filter)? {
                             return Ok(Value::Bool(true));
                         }
                     }
@@ -345,6 +346,7 @@ fn lt(left: &Value, right: &Value) -> bool {
     }
 }
 
+/// Evaluate token as either a property key (String) or an expression (Array).
 fn property_or_expression(
     value: &Value,
     properties: &HashMap<String, MvtValue>,
@@ -552,15 +554,28 @@ mod tests {
 
     #[test]
     fn test_in_operator() {
-        let properties = HashMap::new();
+        let properties =
+            HashMap::from([("name".to_string(), MvtValue::String("Polska".to_string()))]);
 
         assert_eq!(
-            evaluate(&json!(["in", 1, 1, 2, 3,]), &properties, 1, false).unwrap(),
+            evaluate(
+                &json!(["in", "name", "one", "two", "Polska", "three"]),
+                &properties,
+                1,
+                false
+            )
+            .unwrap(),
             json!(true)
         );
 
         assert_eq!(
-            evaluate(&json!(["in", 4, 1, 2, 3,]), &properties, 1, false).unwrap(),
+            evaluate(
+                &json!(["in", "name", "one", "two", "three"]),
+                &properties,
+                1,
+                false
+            )
+            .unwrap(),
             json!(false)
         );
     }
