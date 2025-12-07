@@ -16,8 +16,8 @@ pub struct Style {
 impl Default for Style {
     fn default() -> Self {
         // TODO: That's temporary. Or is it?
-        let style_json = include_str!("../assets/protomaps-dark-style.json");
-        //let style_json = include_str!("../assets/openfreemap-liberty.json");
+        //let style_json = include_str!("../assets/protomaps-dark-style.json");
+        let style_json = include_str!("../assets/openfreemap-liberty.json");
         serde_json::from_str(style_json).expect("Failed to parse default style JSON")
     }
 }
@@ -135,7 +135,7 @@ pub enum Error {
     #[error("{0}")]
     Other(String),
     #[error("Invalid expression: {0:?}")]
-    InvalidExpression(Vec<Value>),
+    InvalidExpression(Value),
     #[error("Expected a property name or an expression, got: {0:?}")]
     ExpectedKeyOrExpression(Value),
     #[error("Impossible to numeric difference between {0:?} and {1:?}")]
@@ -235,7 +235,10 @@ fn evaluate(
                     let (value, list) = arguments.split_first().unwrap();
 
                     let evaluated_value = if filter {
-                        mvt_value_to_json(properties.get(value.as_str().unwrap()).unwrap())
+                        let key = value
+                            .as_str()
+                            .ok_or(Error::InvalidExpression(value.clone()))?;
+                        mvt_value_to_json(properties.get(key).unwrap())
                     } else {
                         evaluate(value, properties, zoom, filter)?
                     };
