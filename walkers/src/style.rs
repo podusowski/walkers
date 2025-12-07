@@ -41,7 +41,11 @@ pub enum Layer {
         filter: Option<Filter>,
         paint: Paint,
     },
-    Symbol,
+    #[serde(rename_all = "kebab-case")]
+    Symbol {
+        source_layer: String,
+        filter: Option<Filter>,
+    },
     Raster,
     FillExtrusion,
 }

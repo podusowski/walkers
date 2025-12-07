@@ -90,6 +90,9 @@ pub fn render(data: &[u8], style: &Style) -> Result<Vec<ShapeOrText>, Error> {
     let data = mvt_reader::Reader::new(data.to_vec())?;
     let mut shapes = Vec::new();
 
+    // TODO: Use real zoom level.
+    let fake_zoom = 10;
+
     for layer in &style.layers {
         match layer {
             Layer::Background => continue,
@@ -106,7 +109,7 @@ pub fn render(data: &[u8], style: &Style) -> Result<Vec<ShapeOrText>, Error> {
 
                 for feature in data.get_features(layer_index)? {
                     if let Err(err) =
-                        polygon_feature_into_shape(&feature, &mut shapes, filter, paint, 10)
+                        polygon_feature_into_shape(&feature, &mut shapes, filter, paint, fake_zoom)
                     {
                         warn!("{err}");
                     }
@@ -125,7 +128,24 @@ pub fn render(data: &[u8], style: &Style) -> Result<Vec<ShapeOrText>, Error> {
 
                 for feature in data.get_features(layer_index)? {
                     if let Err(err) =
-                        line_feature_into_shape(&feature, &mut shapes, filter, paint, 10)
+                        line_feature_into_shape(&feature, &mut shapes, filter, paint, fake_zoom)
+                    {
+                        warn!("{err}");
+                    }
+                }
+            }
+            Layer::Symbol {
+                source_layer,
+                filter,
+            } => {
+                let Ok(layer_index) = find_layer(&data, &source_layer) else {
+                    warn!("Source layer '{source_layer}' not found. Skipping.");
+                    continue;
+                };
+
+                for feature in data.get_features(layer_index)? {
+                    if let Err(err) =
+                        point_feature_into_shape(&feature, &mut shapes, filter, fake_zoom)
                     {
                         warn!("{err}");
                     }
@@ -158,7 +178,7 @@ pub fn transformed(shapes: &[ShapeOrText], rect: egui::Rect) -> Vec<ShapeOrText>
 fn match_filter(feature: &Feature, type_: &str, zoom: u8, filter: &Option<Filter>) -> bool {
     // Special property "$type" to filter by geometry type. MapLibre Style spec mentions
     // 'geometry-type', but Protomaps uses '$type' in their styles.
-    let mut properties = feature.properties.clone().map(|mut properties| {
+    let properties = feature.properties.clone().map(|mut properties| {
         properties.insert("$type".to_string(), Value::String(type_.to_string()));
         properties
     });
@@ -258,6 +278,36 @@ fn polygon_feature_into_shape(
                     .collect::<Vec<_>>();
                 shapes.push(tessellate_polygon(&points, &interiors, fill_color)?.into());
             }
+        }
+        _ => (),
+    }
+    Ok(())
+}
+
+fn point_feature_into_shape(
+    feature: &Feature,
+    shapes: &mut Vec<ShapeOrText>,
+    filter: &Option<Filter>,
+    zoom: u8,
+) -> Result<(), Error> {
+    let properties = feature
+        .properties
+        .as_ref()
+        .ok_or(Error::FeatureWithoutProperties)?;
+    match &feature.geometry {
+        Geometry::MultiPoint(multi_point) => {
+            if !match_filter(&feature, "Point", zoom, filter) {
+                return Ok(());
+            }
+
+            shapes.extend(points(
+                properties,
+                &multi_point
+                    .0
+                    .iter()
+                    .map(|p| pos2(p.x(), p.y()))
+                    .collect::<Vec<_>>(),
+            )?)
         }
         _ => (),
     }
