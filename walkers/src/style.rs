@@ -167,6 +167,9 @@ fn evaluate(
                 "has" => Ok(Value::Bool(
                     properties.contains_key(single_string(arguments)?),
                 )),
+                "!has" => Ok(Value::Bool(
+                    !properties.contains_key(single_string(arguments)?),
+                )),
                 "match" => {
                     let (value, arms) = arguments.split_first().unwrap();
                     let evaluated_value = evaluate(value, properties, zoom, filter)?;
@@ -451,6 +454,14 @@ mod tests {
 
         assert_eq!(
             evaluate(&json!(["has", "name"]), &properties, 1, false).unwrap(),
+            json!(true)
+        );
+    }
+
+    #[test]
+    fn test_not_has_operator() {
+        assert_eq!(
+            evaluate(&json!(["!has", "name"]), &HashMap::new(), 1, false).unwrap(),
             json!(true)
         );
     }
