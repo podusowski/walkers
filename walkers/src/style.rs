@@ -117,8 +117,8 @@ impl Filter {
 pub enum Error {
     #[error("{0}")]
     Other(String),
-    #[error("Invalid operator: {0:?}")]
-    InvalidOperator(Value),
+    #[error("Invalid expression: {0:?}")]
+    InvalidExpression(Value),
     #[error("Expected a property name or an expression, got: {0:?}")]
     ExpectedKeyOrExpression(Value),
     #[error("Impossible to numeric difference between {0:?} and {1:?}")]
@@ -142,7 +142,7 @@ fn evaluate(
         Value::Array(values) => {
             let (operator, arguments) = values.split_first().unwrap();
             let Value::String(operator) = operator else {
-                panic!("Operator must be a string.");
+                return Err(Error::InvalidExpression(operator.clone()));
             };
 
             match operator.as_str() {
@@ -280,7 +280,7 @@ fn evaluate(
                     let result = lerp(&stop_pair[0].1, &stop_pair[1].1, input_position)?;
                     Ok(result)
                 }
-                _ => Err(Error::InvalidOperator(value.clone())),
+                _ => Err(Error::InvalidExpression(value.clone())),
             }
         }
         primitive => Ok(primitive.clone()),

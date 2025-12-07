@@ -128,7 +128,7 @@ pub fn render(data: &[u8], style: &Style) -> Result<Vec<ShapeOrText>, Error> {
 
                 for feature in data.get_features(layer_index)? {
                     if let Err(err) =
-                        line_feature_into_shape(&feature, &mut shapes, filter, paint, fake_zoom)
+                        line_feature_into_shape(&feature, &mut shapes, filter, fake_zoom)
                     {
                         warn!("{err}");
                     }
@@ -192,14 +192,8 @@ fn line_feature_into_shape(
     feature: &Feature,
     shapes: &mut Vec<ShapeOrText>,
     filter: &Option<Filter>,
-    paint: &Paint,
     zoom: u8,
 ) -> Result<(), Error> {
-    let properties = feature
-        .properties
-        .as_ref()
-        .ok_or(Error::FeatureWithoutProperties)?;
-
     if !match_filter(&feature, "Line", zoom, filter) {
         return Ok(());
     }
@@ -216,7 +210,6 @@ fn line_feature_into_shape(
         }
         Geometry::MultiLineString(multi_line_string) => {
             let stroke = Stroke::new(2.0, Color32::WHITE.gamma_multiply(0.5));
-            //if let Some(stroke) = line_stroke(properties)? {
             for line_string in multi_line_string {
                 let points = line_string
                     .0
@@ -225,7 +218,6 @@ fn line_feature_into_shape(
                     .collect::<Vec<_>>();
                 shapes.push(Shape::line(points, stroke).into());
             }
-            //}
         }
         _ => (),
     }
@@ -313,9 +305,6 @@ fn point_feature_into_shape(
     Ok(())
 }
 
-const WATER_COLOR: Color32 = Color32::from_rgb(12, 39, 77);
-const ROAD_COLOR: Color32 = Color32::from_rgb(80, 80, 80);
-
 fn kind(properties: &HashMap<String, Value>) -> Result<String, Error> {
     if let Some(Value::String(kind)) = properties.get("kind") {
         Ok(kind.clone())
@@ -347,23 +336,6 @@ fn points(properties: &HashMap<String, Value>, points: &[Pos2]) -> Result<Vec<Sh
         // Without name, there is currently nothing to render.
         Ok(Vec::new())
     }
-}
-
-fn line_stroke(properties: &HashMap<String, Value>) -> Result<Option<Stroke>, Error> {
-    Ok(match kind(properties)?.as_str() {
-        "highway" | "aeroway" => Some(Stroke::new(15.0, ROAD_COLOR)),
-        "major_road" => Some(Stroke::new(12.0, ROAD_COLOR)),
-        "minor_road" => Some(Stroke::new(9.0, ROAD_COLOR)),
-        "rail" => Some(Stroke::new(3.0, ROAD_COLOR)),
-        "path" => Some(Stroke::new(3.0, Color32::from_rgb(60, 40, 0))),
-        "river" | "stream" | "drain" | "ditch" | "canal" => Some(Stroke::new(3.0, WATER_COLOR)),
-        "ferry" => Some(Stroke::new(3.0, Color32::from_rgb(15, 51, 102))),
-        "other" | "aerialway" | "cliff" => None,
-        _ => {
-            warn!("Unknown line kind: {properties:?}");
-            Some(Stroke::new(10.0, Color32::RED))
-        }
-    })
 }
 
 fn find_layer(data: &mvt_reader::Reader, name: &str) -> Result<usize, Error> {
