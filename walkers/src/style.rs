@@ -136,6 +136,8 @@ pub enum Error {
     Other(String),
     #[error("Invalid expression: {0:?}")]
     InvalidExpression(Value),
+    #[error("Invalid operator: {0:?}")]
+    InvalidOperator(Value),
     #[error("Expected a property name or an expression, got: {0:?}")]
     ExpectedKeyOrExpression(Value),
     #[error("Impossible to numeric difference between {0:?} and {1:?}")]
@@ -307,10 +309,7 @@ fn evaluate(
                     let result = lerp(&stop_pair[0].1, &stop_pair[1].1, input_position)?;
                     Ok(result)
                 }
-                operator => {
-                    warn!("Unsupported operator: {}", operator);
-                    Ok(Value::Null)
-                }
+                _ => Err(Error::InvalidOperator(value.clone())),
             }
         }
         primitive => Ok(primitive.clone()),
