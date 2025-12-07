@@ -115,8 +115,6 @@ impl Filter {
 
 #[derive(thiserror::Error, Debug)]
 pub enum Error {
-    #[error("{0}")]
-    Other(String),
     #[error("Invalid expression: {0:?}")]
     InvalidExpression(Value),
     #[error("Expected a property name or an expression, got: {0:?}")]
@@ -131,6 +129,8 @@ pub enum Error {
     SingleStringExpected(Vec<Value>),
     #[error("Exactly two elemented expected, got: {0:?}")]
     TwoElementsExpected(Vec<Value>),
+    #[error("Property '{0}' missing in {1:?}")]
+    PropertyMissing(String, HashMap<String, MvtValue>),
 }
 
 /// Evaluate a style expression.
@@ -335,7 +335,7 @@ fn property_or_expression(
     match value {
         Value::String(key) => {
             Ok(mvt_value_to_json(properties.get(key).ok_or(
-                Error::Other(format!("Property '{key}' not found")),
+                Error::PropertyMissing(key.clone(), properties.clone()),
             )?))
         }
         Value::Array(_) => evaluate(&value, properties, zoom),
