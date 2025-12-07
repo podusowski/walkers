@@ -206,14 +206,13 @@ fn line_feature_into_shape(
 
     match &feature.geometry {
         Geometry::LineString(line_string) => {
-            if let Some(stroke) = line_stroke(properties)? {
-                let points = line_string
-                    .0
-                    .iter()
-                    .map(|p| pos2(p.x, p.y))
-                    .collect::<Vec<_>>();
-                shapes.push(Shape::line(points, stroke).into());
-            }
+            let stroke = Stroke::new(2.0, Color32::WHITE.gamma_multiply(0.5));
+            let points = line_string
+                .0
+                .iter()
+                .map(|p| pos2(p.x, p.y))
+                .collect::<Vec<_>>();
+            shapes.push(Shape::line(points, stroke).into());
         }
         Geometry::MultiLineString(multi_line_string) => {
             let stroke = Stroke::new(2.0, Color32::WHITE.gamma_multiply(0.5));
@@ -314,93 +313,6 @@ fn point_feature_into_shape(
     Ok(())
 }
 
-fn feature_into_shape(
-    feature: &Feature,
-    shapes: &mut Vec<ShapeOrText>,
-    filter: &Option<Filter>,
-    paint: &Paint,
-    zoom: u8,
-) -> Result<(), Error> {
-    let properties = feature
-        .properties
-        .as_ref()
-        .ok_or(Error::FeatureWithoutProperties)?;
-    match &feature.geometry {
-        Geometry::LineString(line_string) => {
-            if let Some(stroke) = line_stroke(properties)? {
-                let points = line_string
-                    .0
-                    .iter()
-                    .map(|p| pos2(p.x, p.y))
-                    .collect::<Vec<_>>();
-                shapes.push(Shape::line(points, stroke).into());
-            }
-        }
-        Geometry::MultiLineString(multi_line_string) => {
-            let stroke = Stroke::new(2.0, Color32::WHITE.gamma_multiply(0.5));
-            //if let Some(stroke) = line_stroke(properties)? {
-            for line_string in multi_line_string {
-                let points = line_string
-                    .0
-                    .iter()
-                    .map(|p| pos2(p.x, p.y))
-                    .collect::<Vec<_>>();
-                shapes.push(Shape::line(points, stroke).into());
-            }
-            //}
-        }
-        Geometry::MultiPoint(multi_point) => shapes.extend(points(
-            properties,
-            &multi_point
-                .0
-                .iter()
-                .map(|p| pos2(p.x(), p.y()))
-                .collect::<Vec<_>>(),
-        )?),
-        Geometry::MultiPolygon(multi_polygon) => {
-            if !match_filter(&feature, "Polygon", zoom, filter) {
-                return Ok(());
-            }
-
-            let Some(fill_color) = &paint.fill_color else {
-                warn!("Fill layer without fill color. Skipping.");
-                return Ok(());
-            };
-
-            let fill_color = fill_color.evaluate(&properties, zoom);
-
-            let fill_color = if let Some(fill_opacity) = &paint.fill_opacity {
-                let fill_opacity = fill_opacity.evaluate(&properties, zoom);
-                fill_color.gamma_multiply(fill_opacity)
-            } else {
-                fill_color
-            };
-
-            for polygon in multi_polygon.iter() {
-                let points = polygon
-                    .exterior()
-                    .0
-                    .iter()
-                    .map(|p| pos2(p.x, p.y))
-                    .collect::<Vec<_>>();
-                let interiors = polygon
-                    .interiors()
-                    .iter()
-                    .map(|hole| hole.0.iter().map(|p| pos2(p.x, p.y)).collect::<Vec<_>>())
-                    .collect::<Vec<_>>();
-                shapes.push(tessellate_polygon(&points, &interiors, fill_color)?.into());
-            }
-        }
-        Geometry::Point(_point) => todo!(),
-        Geometry::Line(_line) => todo!(),
-        Geometry::Polygon(_polygon) => todo!(),
-        Geometry::GeometryCollection(_geometry_collection) => todo!(),
-        Geometry::Rect(_rect) => todo!(),
-        Geometry::Triangle(_triangle) => todo!(),
-    }
-    Ok(())
-}
-
 const WATER_COLOR: Color32 = Color32::from_rgb(12, 39, 77);
 const ROAD_COLOR: Color32 = Color32::from_rgb(80, 80, 80);
 
@@ -435,32 +347,6 @@ fn points(properties: &HashMap<String, Value>, points: &[Pos2]) -> Result<Vec<Sh
         // Without name, there is currently nothing to render.
         Ok(Vec::new())
     }
-}
-
-fn polygon_fill(properties: &HashMap<String, Value>) -> Result<Option<Color32>, Error> {
-    Ok(match kind(properties)?.as_str() {
-        "water" | "fountain" | "swimming_pool" | "basin" | "lake" | "ditch" | "ocean" => {
-            Some(WATER_COLOR)
-        }
-        "grass" | "garden" | "playground" | "zoo" | "park" | "forest" | "wood"
-        | "village_green" | "scrub" | "grassland" | "allotments" | "pitch" | "dog_park"
-        | "meadow" | "wetland" | "cemetery" | "golf_course" | "nature_reserve"
-        | "national_park" | "island" => Some(Color32::from_rgb(10, 20, 0)),
-        "farmland" => Some(Color32::from_rgb(20, 25, 0)),
-        "building" | "building_part" | "pier" | "runway" | "bare_rock" => {
-            Some(Color32::from_rgb(30, 30, 30))
-        }
-        "military" => Some(Color32::from_rgb(40, 0, 0)),
-        "sand" | "beach" => Some(Color32::from_rgb(64, 64, 0)),
-        "pedestrian" | "recreation_ground" | "railway" | "industrial" | "residential"
-        | "commercial" | "protected_area" | "school" | "platform" | "kindergarten" | "cliff"
-        | "university" | "hospital" | "college" | "aerodrome" | "airfield" | "earth"
-        | "urban_area" | "other" => None,
-        other => {
-            warn!("Unknown polygon kind: {other}");
-            Some(Color32::RED)
-        }
-    })
 }
 
 fn line_stroke(properties: &HashMap<String, Value>) -> Result<Option<Stroke>, Error> {
