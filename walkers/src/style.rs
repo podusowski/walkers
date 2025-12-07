@@ -228,11 +228,15 @@ fn evaluate(
                 }
                 "any" => Ok(arguments
                     .iter()
-                    .any(|value| evaluate(value, properties, zoom).unwrap() == Value::Bool(true))
+                    .try_fold(false, |acc, value| {
+                        Ok(acc || evaluate(value, properties, zoom)? == Value::Bool(true))
+                    })?
                     .into()),
                 "all" => Ok(arguments
                     .iter()
-                    .all(|value| evaluate(value, properties, zoom).unwrap() == Value::Bool(true))
+                    .try_fold(true, |acc, value| {
+                        Ok(acc && evaluate(value, properties, zoom)? == Value::Bool(true))
+                    })?
                     .into()),
                 "interpolate" => {
                     let (interpolation_type, args) = arguments.split_first().unwrap();
