@@ -138,6 +138,10 @@ pub enum Error {
     InvalidExpression(Vec<Value>),
     #[error("Expected a property name or an expression, got: {0:?}")]
     ExpectedKeyOrExpression(Value),
+    #[error("Impossible to numeric difference between {0:?} and {1:?}")]
+    ImpossibleNumericDifference(Value, Value),
+    #[error("Impossible to lerp between {0:?} and {1:?}")]
+    ImpossibleLerp(Value, Value),
 }
 
 /// Evaluate a style expression.
@@ -260,9 +264,37 @@ fn evaluate(
                 "interpolate" => {
                     let (interpolation_type, args) = arguments.split_first().unwrap();
                     let (input, stops) = args.split_first().unwrap();
-                    let evaluated_input = evaluate(input, properties, filter)?;
+                    let input = evaluate(input, properties, filter)?;
 
-                    Ok(Value::Null) // TODO: Implement interpolate
+                    println!(
+                        "Interpolate called with input: {:?}, stops: {:?}",
+                        input, stops
+                    );
+
+                    // Stops are pairs of [input, output].
+                    let stops = stops
+                        .chunks(2)
+                        .map(|chunk| (chunk[0].clone(), chunk[1].clone()))
+                        .collect::<Vec<_>>();
+
+                    // Find the two stops surrounding the input value.
+                    let stop_pair = stops
+                        .windows(2)
+                        .find(|pair| {
+                            let left_stop = &pair[0].0;
+                            let right_stop = &pair[1].0;
+                            println!("input: {input:?}, stop: {left_stop:?}, {right_stop:?}");
+                            lt(&left_stop, &input) && lt(&input, &right_stop)
+                        })
+                        .unwrap();
+
+                    let input_delta = numeric_difference(&stop_pair[1].0, &stop_pair[0].0)?;
+
+                    // Position of the input value between the two stops (0.0 to 1.0).
+                    let input_position = numeric_difference(&input, &stop_pair[0].0)? / input_delta;
+
+                    let result = lerp(&stop_pair[0].1, &stop_pair[1].1, input_position)?;
+                    Ok(result)
                 }
                 operator => {
                     warn!("Unsupported operator: {}", operator);
@@ -271,6 +303,37 @@ fn evaluate(
             }
         }
         primitive => Ok(primitive.clone()),
+    }
+}
+
+fn lerp(a: &Value, b: &Value, t: f64) -> Result<Value, Error> {
+    match (a, b) {
+        (Value::Number(na), Value::Number(nb)) => {
+            let a_f64 = na.as_f64().unwrap();
+            let b_f64 = nb.as_f64().unwrap();
+            Ok(Value::Number(
+                serde_json::Number::from_f64(a_f64 + (b_f64 - a_f64) * t).unwrap(),
+            ))
+        }
+        _ => Err(Error::ImpossibleLerp(a.clone(), b.clone())),
+    }
+}
+
+fn numeric_difference(left: &Value, right: &Value) -> Result<f64, Error> {
+    match (left, right) {
+        (Value::Number(l), Value::Number(r)) => Ok(l.as_f64().unwrap() - r.as_f64().unwrap()),
+        _ => Err(Error::ImpossibleNumericDifference(
+            left.clone(),
+            right.clone(),
+        )),
+    }
+}
+
+fn lt(left: &Value, right: &Value) -> bool {
+    match (left, right) {
+        (Value::Number(l), Value::Number(r)) => l.as_i64() < r.as_i64(),
+        (Value::String(l), Value::String(r)) => l < r,
+        _ => false,
     }
 }
 
@@ -496,12 +559,12 @@ mod tests {
 
         assert_eq!(
             evaluate(
-                &json!(["interpolate", ["linear"], ["get", "zoom"], 0, 1, 10, 2]),
+                &json!(["interpolate", ["linear"], 5, 0, 0, 10, 10]),
                 &properties,
                 false
             )
             .unwrap(),
-            json!(1.5)
+            json!(5)
         );
     }
 }
