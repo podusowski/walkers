@@ -16,8 +16,8 @@ pub struct Style {
 impl Default for Style {
     fn default() -> Self {
         // TODO: That's temporary. Or is it?
-        // let style_json = include_str!("../assets/protomaps-dark-style.json");
-        let style_json = include_str!("../assets/protomaps-light.json");
+        let style_json = include_str!("../assets/protomaps-dark-style.json");
+        //let style_json = include_str!("../assets/protomaps-light.json");
         //let style_json = include_str!("../assets/openfreemap-liberty.json");
         serde_json::from_str(style_json).expect("Failed to parse default style JSON")
     }
@@ -142,6 +142,7 @@ fn evaluate(
             };
 
             match operator.as_str() {
+                "zoom" => Ok(Value::Number((zoom as i64).into())),
                 "literal" => {
                     if arguments.len() != 1 {
                         panic!("'literal' operator requires exactly one argument.");
