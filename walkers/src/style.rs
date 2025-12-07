@@ -223,12 +223,12 @@ fn evaluate(
                     Ok(Value::Bool(false))
                 }
                 "==" => {
-                    let (left, right) = two_elements(arguments).unwrap();
+                    let (left, right) = two_elements(arguments)?;
                     let left = property_or_expression(left, properties, zoom)?;
                     Ok(Value::Bool(left == *right))
                 }
                 "!=" => {
-                    let (left, right) = two_elements(arguments).unwrap();
+                    let (left, right) = two_elements(arguments)?;
                     let left = property_or_expression(left, properties, zoom)?;
                     Ok(Value::Bool(left != *right))
                 }
@@ -353,11 +353,11 @@ fn single_string(values: &[Value]) -> Result<&str, Error> {
 }
 
 /// Expects exactly two elements.
-fn two_elements<T>(slice: &[T]) -> Option<(&T, &T)> {
-    if slice.len() == 2 {
-        Some((&slice[0], &slice[1]))
+fn two_elements(slice: &[Value]) -> Result<(&Value, &Value), Error> {
+    if let [a, b] = slice {
+        Ok((a, b))
     } else {
-        None
+        Err(Error::InvalidExpression(Value::Array(slice.to_vec())))
     }
 }
 
