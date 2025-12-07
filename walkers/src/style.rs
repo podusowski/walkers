@@ -129,6 +129,8 @@ pub enum Error {
     InterpolateStopNotFound(Value),
     #[error("Single string expected, got: {0:?}")]
     SingleStringExpected(Vec<Value>),
+    #[error("Exactly two elemented expected, got: {0:?}")]
+    TwoElementsExpected(Vec<Value>),
 }
 
 /// Evaluate a style expression.
@@ -341,23 +343,21 @@ fn property_or_expression(
     }
 }
 
+/// Expect exactly one string element.
 fn single_string(values: &[Value]) -> Result<&str, Error> {
-    if values.len() != 1 {
-        return Err(Error::SingleStringExpected(values.to_vec()));
-    }
-
-    match &values[0] {
-        Value::String(s) => Ok(s),
-        _ => Err(Error::SingleStringExpected(values.to_vec())),
+    if let [Value::String(s)] = values {
+        Ok(s)
+    } else {
+        Err(Error::SingleStringExpected(values.to_vec()))
     }
 }
 
-/// Expects exactly two elements.
+/// Expect exactly two elements.
 fn two_elements(slice: &[Value]) -> Result<(&Value, &Value), Error> {
     if let [a, b] = slice {
         Ok((a, b))
     } else {
-        Err(Error::InvalidExpression(Value::Array(slice.to_vec())))
+        Err(Error::TwoElementsExpected(slice.to_vec()))
     }
 }
 
