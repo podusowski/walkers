@@ -7,7 +7,8 @@ use mvt_reader::feature::Value as MvtValue;
 use serde::Deserialize;
 use serde_json::Value;
 
-/// Style for rendering vector maps. Loosely (very) based on MapLibre's style specification.
+/// Style for rendering vector maps. Based on MapLibre's style specification.
+/// https://maplibre.org/maplibre-style-spec/
 #[derive(Deserialize)]
 pub struct Style {
     pub layers: Vec<Layer>,
