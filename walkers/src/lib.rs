@@ -13,6 +13,8 @@ mod style;
 pub mod mercator;
 
 #[cfg(feature = "mvt")]
+mod expression;
+#[cfg(feature = "mvt")]
 mod mvt;
 #[cfg(feature = "pmtiles")]
 mod pmtiles;
