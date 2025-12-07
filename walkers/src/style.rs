@@ -16,8 +16,8 @@ pub struct Style {
 impl Default for Style {
     fn default() -> Self {
         // TODO: That's temporary. Or is it?
-        let style_json = include_str!("../assets/protomaps-dark-style.json");
-        //let style_json = include_str!("../assets/openfreemap-liberty.json");
+        // let style_json = include_str!("../assets/protomaps-dark-style.json");
+        let style_json = include_str!("../assets/openfreemap-liberty.json");
         serde_json::from_str(style_json).expect("Failed to parse default style JSON")
     }
 }
@@ -58,19 +58,20 @@ pub struct Color(Value);
 
 impl Color {
     pub fn evaluate(&self, properties: &HashMap<String, MvtValue>, zoom: u8) -> Color32 {
-        let value = evaluate(&self.0, properties, zoom).unwrap();
-
-        let Value::String(color) = &value else {
-            warn!(
-                "Only string color definitions are supported. Got: {:?}",
-                self.0
-            );
-            return Color32::MAGENTA;
-        };
-
-        let color: color::AlphaColor<color::Srgb> = color.parse().unwrap();
-        let Rgba8 { r, g, b, a } = color.to_rgba8();
-        Color32::from_rgba_premultiplied(r, g, b, a)
+        match evaluate(&self.0, properties, zoom) {
+            Ok(Value::String(color)) => {
+                let color: color::AlphaColor<color::Srgb> = color.parse().unwrap();
+                let Rgba8 { r, g, b, a } = color.to_rgba8();
+                Color32::from_rgba_premultiplied(r, g, b, a)
+            }
+            _ => {
+                warn!(
+                    "Only string color definitions are supported. Got: {:?}",
+                    self.0
+                );
+                Color32::MAGENTA
+            }
+        }
     }
 }
 
