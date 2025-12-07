@@ -223,12 +223,12 @@ fn evaluate(
                     Ok(Value::Bool(false))
                 }
                 "==" => {
-                    let (left, right) = split_two_element_slice(arguments).unwrap();
+                    let (left, right) = two_elements(arguments).unwrap();
                     let left = property_or_expression(left, properties, zoom)?;
                     Ok(Value::Bool(left == *right))
                 }
                 "!=" => {
-                    let (left, right) = split_two_element_slice(arguments).unwrap();
+                    let (left, right) = two_elements(arguments).unwrap();
                     let left = property_or_expression(left, properties, zoom)?;
                     Ok(Value::Bool(left != *right))
                 }
@@ -245,14 +245,9 @@ fn evaluate(
                     })?
                     .into()),
                 "interpolate" => {
-                    let (interpolation_type, args) = arguments.split_first().unwrap();
+                    let (_interpolation_type, args) = arguments.split_first().unwrap();
                     let (input, stops) = args.split_first().unwrap();
                     let input = evaluate(input, properties, zoom)?;
-
-                    println!(
-                        "Interpolate called with input: {:?}, stops: {:?}",
-                        input, stops
-                    );
 
                     // Stops are pairs of [input, output].
                     let stops = stops
@@ -266,7 +261,6 @@ fn evaluate(
                         .find(|pair| {
                             let left_stop = &pair[0].0;
                             let right_stop = &pair[1].0;
-                            println!("input: {input:?}, stop: {left_stop:?}, {right_stop:?}");
                             lt(&left_stop, &input) && lt(&input, &right_stop)
                         })
                         .ok_or(Error::InterpolateStopNotFound(value.clone()))?;
@@ -283,16 +277,6 @@ fn evaluate(
             }
         }
         primitive => Ok(primitive.clone()),
-    }
-}
-
-/// Splits a slice into its first and second element. Returns `None` if the slice does not have
-/// exactly two elements.
-fn split_two_element_slice<T>(slice: &[T]) -> Option<(&T, &T)> {
-    if slice.len() == 2 {
-        Some((&slice[0], &slice[1]))
-    } else {
-        None
     }
 }
 
@@ -365,6 +349,15 @@ fn single_string(values: &[Value]) -> Result<&str, Error> {
     match &values[0] {
         Value::String(s) => Ok(s),
         _ => Err(Error::SingleStringExpected(values.to_vec())),
+    }
+}
+
+/// Expects exactly two elements.
+fn two_elements<T>(slice: &[T]) -> Option<(&T, &T)> {
+    if slice.len() == 2 {
+        Some((&slice[0], &slice[1]))
+    } else {
+        None
     }
 }
 
