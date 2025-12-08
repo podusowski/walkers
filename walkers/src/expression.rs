@@ -22,6 +22,8 @@ pub enum Error {
     SingleStringExpected(Vec<Value>),
     #[error("Single array expected, got: {0:?}")]
     SingleArrayExpected(Vec<Value>),
+    #[error("Single value expected, got: {0:?}")]
+    SingleValueExpected(Vec<Value>),
     #[error("Exactly two elemented expected, got: {0:?}")]
     TwoElementsExpected(Vec<Value>),
     #[error("Property '{0}' missing in {1:?}")]
@@ -44,6 +46,10 @@ pub fn evaluate(
             match operator.as_str() {
                 "zoom" => Ok(Value::Number((zoom as i64).into())),
                 "literal" => single_array(arguments),
+                "!" => match evaluate(&single_value(arguments)?, properties, zoom)? {
+                    Value::Bool(b) => Ok(Value::Bool(!b)),
+                    _ => Err(Error::InvalidExpression(value.clone())),
+                },
                 "get" => {
                     let key = single_string(arguments)?;
                     Ok(mvt_value_to_json(properties.get(key).ok_or(
@@ -238,6 +244,14 @@ fn single_array(values: &[Value]) -> Result<Value, Error> {
     match values {
         [arr] if arr.is_array() => Ok(arr.clone()),
         _ => Err(Error::SingleArrayExpected(values.to_vec())),
+    }
+}
+
+/// Expect exactly one element.
+fn single_value(values: &[Value]) -> Result<Value, Error> {
+    match values {
+        [value] => Ok(value.clone()),
+        _ => Err(Error::SingleValueExpected(values.to_vec())),
     }
 }
 
@@ -492,6 +506,16 @@ mod tests {
             )
             .unwrap(),
             json!(5.0)
+        );
+    }
+
+    #[test]
+    fn test_negation_operator() {
+        let properties = HashMap::new();
+
+        assert_eq!(
+            evaluate(&json!(["!", false]), &properties, 1,).unwrap(),
+            json!(true)
         );
     }
 }
