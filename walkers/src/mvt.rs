@@ -19,7 +19,7 @@ use lyon_tessellation::{
 };
 use mvt_reader::feature::{Feature, Value};
 
-use crate::style::{Filter, Layer, Paint, Style};
+use crate::style::{Filter, Layer, Layout, Paint, Style};
 
 #[derive(thiserror::Error, Debug)]
 pub enum Error {
@@ -137,6 +137,7 @@ pub fn render(data: &[u8], style: &Style) -> Result<Vec<ShapeOrText>, Error> {
             Layer::Symbol {
                 source_layer,
                 filter,
+                layout,
             } => {
                 let Ok(layer_index) = find_layer(&data, &source_layer) else {
                     warn!("Source layer '{source_layer}' not found. Skipping.");
@@ -145,7 +146,7 @@ pub fn render(data: &[u8], style: &Style) -> Result<Vec<ShapeOrText>, Error> {
 
                 for feature in data.get_features(layer_index)? {
                     if let Err(err) =
-                        point_feature_into_shape(&feature, &mut shapes, filter, fake_zoom)
+                        point_feature_into_shape(&feature, &mut shapes, filter, layout, fake_zoom)
                     {
                         warn!("{err}");
                     }
@@ -279,6 +280,7 @@ fn point_feature_into_shape(
     feature: &Feature,
     shapes: &mut Vec<ShapeOrText>,
     filter: &Option<Filter>,
+    layout: &Layout,
     zoom: u8,
 ) -> Result<(), Error> {
     let properties = feature
@@ -291,14 +293,24 @@ fn point_feature_into_shape(
                 return Ok(());
             }
 
-            shapes.extend(points(
-                properties,
-                &multi_point
-                    .0
-                    .iter()
-                    .map(|p| pos2(p.x(), p.y()))
-                    .collect::<Vec<_>>(),
-            )?)
+            if let Some(text) = &layout.text(properties, zoom) {
+                //return Ok(());
+
+                shapes.extend(multi_point.0.iter().map(|p| ShapeOrText::Text {
+                    position: pos2(p.x(), p.y()),
+                    text: text.clone(),
+                    font_size: 12.0,
+                }))
+            }
+
+            // shapes.extend(points(
+            //     properties,
+            //     &multi_point
+            //         .0
+            //         .iter()
+            //         .map(|p| pos2(p.x(), p.y()))
+            //         .collect::<Vec<_>>(),
+            // )?)
         }
         _ => (),
     }

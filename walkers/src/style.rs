@@ -48,6 +48,7 @@ pub enum Layer {
     Symbol {
         source_layer: String,
         filter: Option<Filter>,
+        layout: Layout,
     },
     Raster,
     FillExtrusion,
@@ -112,6 +113,27 @@ impl Filter {
                 warn!("Filter did not evaluate to a boolean: {:?}", other);
                 false
             }
+        }
+    }
+}
+
+#[derive(Deserialize, Debug)]
+#[serde(rename_all = "kebab-case")]
+pub struct Layout {
+    text_field: Option<Value>,
+}
+
+impl Layout {
+    pub fn text(&self, properties: &HashMap<String, MvtValue>, zoom: u8) -> Option<String> {
+        match &self.text_field {
+            Some(value) => match evaluate(value, properties, zoom) {
+                Ok(Value::String(s)) => Some(s),
+                other => {
+                    warn!("text-field did not evaluate to a string: {:?}", other);
+                    None
+                }
+            },
+            None => None,
         }
     }
 }
