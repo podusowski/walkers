@@ -171,6 +171,18 @@ pub fn evaluate(
                     let result = lerp(&stop_pair[0].1, &stop_pair[1].1, input_position)?;
                     Ok(result)
                 }
+                "format" => {
+                    let mut result = String::new();
+                    for argument in arguments.chunks(2) {
+                        let (input, _style_override) = two_elements(argument)?;
+                        result.push_str(
+                            &evaluate(input, properties, zoom)?
+                                .as_str()
+                                .ok_or(Error::InvalidExpression(value.clone()))?,
+                        );
+                    }
+                    Ok(Value::String(result))
+                }
                 _ => Err(Error::InvalidExpression(value.clone())),
             }
         }
@@ -545,6 +557,16 @@ mod tests {
         assert_eq!(
             evaluate(&json!(["!", false]), &properties, 1,).unwrap(),
             json!(true)
+        );
+    }
+
+    #[test]
+    fn test_format_operator() {
+        let properties = HashMap::new();
+
+        assert_eq!(
+            evaluate(&json!(["format", "Hello", {}, "World", {}]), &properties, 1,).unwrap(),
+            json!("HelloWorld")
         );
     }
 }
