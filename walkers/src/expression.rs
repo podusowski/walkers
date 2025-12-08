@@ -99,6 +99,15 @@ pub fn evaluate(
                     }
                     todo!("No true condition found in 'case' expression.");
                 }
+                "coalesce" => {
+                    for argument in arguments {
+                        match evaluate(argument, properties, zoom)? {
+                            Value::Null => continue,
+                            non_null => return Ok(non_null),
+                        }
+                    }
+                    Ok(Value::Null)
+                }
                 "in" => {
                     let (value, list) = arguments.split_first().unwrap();
                     let value = property_or_expression(value, properties, zoom)?;
@@ -434,6 +443,26 @@ mod tests {
             )
             .unwrap(),
             json!("default")
+        );
+    }
+
+    #[test]
+    fn test_coalesce_operator() {
+        let properties = HashMap::new();
+
+        assert_eq!(
+            evaluate(&json!(["coalesce", Value::Null, "Got it!"]), &properties, 1,).unwrap(),
+            json!("Got it!")
+        );
+
+        assert_eq!(
+            evaluate(
+                &json!(["coalesce", Value::Null, Value::Null]),
+                &properties,
+                1,
+            )
+            .unwrap(),
+            Value::Null
         );
     }
 
