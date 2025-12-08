@@ -52,9 +52,7 @@ pub fn evaluate(
                 },
                 "get" => {
                     let key = single_string(arguments)?;
-                    Ok(mvt_value_to_json(properties.get(key).ok_or(
-                        Error::PropertyMissing(key.to_string(), properties.clone()),
-                    )?))
+                    Ok(properties.get(key).map_or(Value::Null, mvt_value_to_json))
                 }
                 "has" => Ok(Value::Bool(
                     properties.contains_key(single_string(arguments)?),
@@ -356,6 +354,11 @@ mod tests {
         assert_eq!(
             evaluate(&json!(["get", "name"]), &properties, 1).unwrap(),
             json!("Polska")
+        );
+
+        assert_eq!(
+            evaluate(&json!(["get", "population"]), &properties, 1).unwrap(),
+            Value::Null
         );
     }
 
