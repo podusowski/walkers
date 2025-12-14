@@ -70,6 +70,8 @@ enum ColorError {
     Expression(#[from] crate::expression::Error),
     #[error("color must be a string")]
     InvalidType,
+    #[error(transparent)]
+    Parsing(#[from] color::ParseError),
 }
 
 #[derive(Deserialize, Debug)]
@@ -93,7 +95,7 @@ impl Color {
     ) -> Result<Color32, ColorError> {
         match evaluate(&self.0, properties, zoom)? {
             Value::String(color) => {
-                let color: color::AlphaColor<color::Srgb> = color.parse().unwrap();
+                let color: color::AlphaColor<color::Srgb> = color.parse()?;
                 let Rgba8 { r, g, b, a } = color.to_rgba8();
                 Ok(Color32::from_rgba_premultiplied(r, g, b, a))
             }
