@@ -1,6 +1,6 @@
 name: Rust
 
-on: 
+on:
   pull_request:
   push:
     branches:
@@ -13,60 +13,62 @@ jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v4
-    - uses: Swatinem/rust-cache@v2
-    - uses: arduino/setup-protoc@v3.0.0
-      with:
-        repo-token: ${{ secrets.GITHUB_TOKEN }}
-    - name: Build
-      run: cargo build
-    - name: Cargo Check All Features
-      run: cargo check --all-features
-    - name: Build Demo Native
-      run: env -C demo_native cargo build
+      - uses: actions/checkout@v4
+      - uses: Swatinem/rust-cache@v2
+      - uses: arduino/setup-protoc@v3.0.0
+        with:
+          repo-token: ${{ secrets.GITHUB_TOKEN }}
+      - name: Build
+        run: cargo build
+      - name: Cargo Check All Features
+        run: cargo check -p walkers --all-features
+      - name: Cargo Check No Features
+        run: cargo check -p walkers --no-default-features
+      - name: Build Demo Native
+        run: env -C demo_native cargo build
 
   wasm:
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v4
-    - uses: Swatinem/rust-cache@v2
-    - run: cargo install trunk@0.21.14 --locked
-    - name: Build Demo Web
-      run: env -C demo_web trunk build
+      - uses: actions/checkout@v4
+      - uses: Swatinem/rust-cache@v2
+      - run: cargo install trunk@0.21.14 --locked
+      - name: Build Demo Web
+        run: env -C demo_web trunk build
 
   android:
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v4
-    - uses: Swatinem/rust-cache@v2
-    - name: Setup Java JDK
-      uses: actions/setup-java@v4.5.0
-      with:
-        java-version: '17'
-        distribution: 'temurin'
-    - name: Setup Android SDK
-      uses: android-actions/setup-android@v3
-    - name: Install Cargo NDK
-      run: cargo install cargo-ndk@3.5.4 --locked
-    - name: Build APK
-      working-directory: ./demo_android
-      run: make apk
+      - uses: actions/checkout@v4
+      - uses: Swatinem/rust-cache@v2
+      - name: Setup Java JDK
+        uses: actions/setup-java@v4.5.0
+        with:
+          java-version: "17"
+          distribution: "temurin"
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v3
+      - name: Install Cargo NDK
+        run: cargo install cargo-ndk@3.5.4 --locked
+      - name: Build APK
+        working-directory: ./demo_android
+        run: make apk
 
   tests-lints:
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v4
-    - uses: Swatinem/rust-cache@v2
-    - uses: arduino/setup-protoc@v3.0.0
-      with:
-        repo-token: ${{ secrets.GITHUB_TOKEN }}
-    - name: Tests
-      run: cargo test --verbose
-    - name: Formatting
-      run:  cargo fmt --all --check
-    - name: Clippy
-      run:  cargo clippy --all-features -- -D warnings 
-    - name: Documentation
-      run:  cargo doc --no-deps
-    - name: Typos
-      uses: crate-ci/typos@v1.30.2
+      - uses: actions/checkout@v4
+      - uses: Swatinem/rust-cache@v2
+      - uses: arduino/setup-protoc@v3.0.0
+        with:
+          repo-token: ${{ secrets.GITHUB_TOKEN }}
+      - name: Tests
+        run: cargo test --verbose
+      - name: Formatting
+        run: cargo fmt --all --check
+      - name: Clippy
+        run: cargo clippy --all-features -- -D warnings
+      - name: Documentation
+        run: cargo doc --no-deps
+      - name: Typos
+        uses: crate-ci/typos@v1.30.2
