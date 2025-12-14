@@ -120,12 +120,28 @@ pub(crate) fn providers(egui_ctx: Context) -> Providers {
             providers.available.insert(
                 name.clone(),
                 vec![TilesKind::PmTiles(PmTiles::with_style(
-                    path,
+                    path.clone(),
                     Style::protonmaps_dark(),
                     egui_ctx.to_owned(),
                 ))],
             );
-            providers.selected = name;
+            providers.selected = name.clone();
+
+            providers.available.insert(
+                format!("{}WithGeoportal", name),
+                vec![
+                    TilesKind::PmTiles(PmTiles::with_style(
+                        path,
+                        Style::protonmaps_dark(),
+                        egui_ctx.to_owned(),
+                    )),
+                    TilesKind::Http(HttpTiles::with_options(
+                        walkers::sources::Geoportal,
+                        http_options(),
+                        egui_ctx.to_owned(),
+                    )),
+                ],
+            );
         }
     }
 
