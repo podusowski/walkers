@@ -3,7 +3,7 @@
 
 use log::warn;
 use mvt_reader::feature::Value as MvtValue;
-use serde_json::Value;
+use serde_json::{Number, Value};
 use std::collections::HashMap;
 
 #[derive(thiserror::Error, Debug)]
@@ -214,11 +214,10 @@ fn float(v: &Value) -> Result<f64, Error> {
 }
 
 fn lerp(a: &Value, b: &Value, t: f64) -> Result<Value, Error> {
-    let a_f64 = float(a)?;
-    let b_f64 = float(b)?;
+    let a = float(a)?;
+    let b = float(b)?;
     Ok(Value::Number(
-        serde_json::Number::from_f64(a_f64 + (b_f64 - a_f64) * t)
-            .ok_or(Error::CouldNotSerializeFloat)?,
+        Number::from_f64(a + (b - a) * t).ok_or(Error::CouldNotSerializeFloat)?,
     ))
 }
 
