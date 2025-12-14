@@ -65,13 +65,11 @@ pub struct Paint {
 }
 
 #[derive(Debug, Error)]
-enum ColorError {
+enum StyleError {
     #[error(transparent)]
     Expression(#[from] crate::expression::Error),
-    #[error("color must be a string")]
+    #[error("invalid type")]
     InvalidType,
-    #[error("opacity must be a number")]
-    OpacityMustBeANumber,
     #[error(transparent)]
     Parsing(#[from] color::ParseError),
 }
@@ -94,14 +92,14 @@ impl Color {
         &self,
         properties: &HashMap<String, MvtValue>,
         zoom: u8,
-    ) -> Result<Color32, ColorError> {
+    ) -> Result<Color32, StyleError> {
         match evaluate(&self.0, properties, zoom)? {
             Value::String(color) => {
                 let color: color::AlphaColor<color::Srgb> = color.parse()?;
                 let Rgba8 { r, g, b, a } = color.to_rgba8();
                 Ok(Color32::from_rgba_premultiplied(r, g, b, a))
             }
-            _ => Err(ColorError::InvalidType),
+            _ => Err(StyleError::InvalidType),
         }
     }
 }
@@ -124,10 +122,10 @@ impl Opacity {
         &self,
         properties: &HashMap<String, MvtValue>,
         zoom: u8,
-    ) -> Result<f32, ColorError> {
+    ) -> Result<f32, StyleError> {
         match evaluate(&self.0, properties, zoom)? {
-            Value::Number(num) => Ok(num.as_f64().ok_or(ColorError::OpacityMustBeANumber)? as f32),
-            _ => Err(ColorError::OpacityMustBeANumber),
+            Value::Number(num) => Ok(num.as_f64().ok_or(StyleError::InvalidType)? as f32),
+            _ => Err(StyleError::InvalidType),
         }
     }
 }
