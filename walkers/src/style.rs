@@ -185,5 +185,6 @@ mod tests {
     #[test]
     fn test_style_parsing() {
         Style::protomaps_dark();
+        Style::protomaps_light();
     }
 }

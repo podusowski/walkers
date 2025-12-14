@@ -292,7 +292,7 @@ fn first_and_rest(slice: &[Value]) -> Result<(&Value, &[Value]), Error> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::style::{Color, Filter, Style};
+    use crate::style::{Color, Filter};
     use egui::Color32;
     use serde_json::json;
     use std::collections::HashMap;
