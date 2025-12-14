@@ -109,7 +109,7 @@ pub fn evaluate(
                     Ok(Value::Null)
                 }
                 "in" => {
-                    let (value, list) = arguments.split_first().unwrap();
+                    let (value, list) = first_and_rest(arguments)?;
                     let value = property_or_expression(value, properties, zoom)?;
 
                     for item in list {
@@ -143,8 +143,8 @@ pub fn evaluate(
                     })?
                     .into()),
                 "interpolate" => {
-                    let (_interpolation_type, args) = arguments.split_first().unwrap();
-                    let (input, stops) = args.split_first().unwrap();
+                    let (_interpolation_type, args) = first_and_rest(arguments)?;
+                    let (input, stops) = first_and_rest(args)?;
                     let input = evaluate(input, properties, zoom)?;
 
                     // Stops are pairs of [input, output].
