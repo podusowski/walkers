@@ -101,7 +101,7 @@ pub fn render(data: &[u8], style: &Style) -> Result<Vec<ShapeOrText>, Error> {
                 filter,
                 paint,
             } => {
-                let Ok(layer_index) = find_layer(&data, &source_layer) else {
+                let Ok(layer_index) = find_layer(&data, source_layer) else {
                     warn!("Source layer '{source_layer}' not found. Skipping.");
                     continue;
                 };
@@ -119,7 +119,7 @@ pub fn render(data: &[u8], style: &Style) -> Result<Vec<ShapeOrText>, Error> {
                 filter,
                 paint: _,
             } => {
-                let Ok(layer_index) = find_layer(&data, &source_layer) else {
+                let Ok(layer_index) = find_layer(&data, source_layer) else {
                     warn!("Source layer '{source_layer}' not found. Skipping.");
                     continue;
                 };
@@ -137,7 +137,7 @@ pub fn render(data: &[u8], style: &Style) -> Result<Vec<ShapeOrText>, Error> {
                 filter,
                 layout,
             } => {
-                let Ok(layer_index) = find_layer(&data, &source_layer) else {
+                let Ok(layer_index) = find_layer(&data, source_layer) else {
                     warn!("Source layer '{source_layer}' not found. Skipping.");
                     continue;
                 };
@@ -236,7 +236,7 @@ fn polygon_feature_into_shape(
         .ok_or(Error::FeatureWithoutProperties)?;
     match &feature.geometry {
         Geometry::MultiPolygon(multi_polygon) => {
-            if !match_filter(&feature, "Polygon", zoom, filter) {
+            if !match_filter(feature, "Polygon", zoom, filter) {
                 return Ok(());
             }
 
@@ -245,10 +245,10 @@ fn polygon_feature_into_shape(
                 return Ok(());
             };
 
-            let fill_color = fill_color.evaluate(&properties, zoom);
+            let fill_color = fill_color.evaluate(properties, zoom);
 
             let fill_color = if let Some(fill_opacity) = &paint.fill_opacity {
-                let fill_opacity = fill_opacity.evaluate(&properties, zoom);
+                let fill_opacity = fill_opacity.evaluate(properties, zoom);
                 fill_color.gamma_multiply(fill_opacity)
             } else {
                 fill_color
@@ -287,7 +287,7 @@ fn point_feature_into_shape(
         .ok_or(Error::FeatureWithoutProperties)?;
     match &feature.geometry {
         Geometry::MultiPoint(multi_point) => {
-            if !match_filter(&feature, "Point", zoom, filter) {
+            if !match_filter(feature, "Point", zoom, filter) {
                 return Ok(());
             }
 

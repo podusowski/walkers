@@ -128,7 +128,7 @@ pub(crate) fn providers(egui_ctx: Context) -> Providers {
             providers.selected = name.clone();
 
             providers.available.insert(
-                format!("{}WithGeoportal", name),
+                format!("{name}WithGeoportal"),
                 vec![
                     TilesKind::PmTiles(PmTiles::with_style(
                         path,
