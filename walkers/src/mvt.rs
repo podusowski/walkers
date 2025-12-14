@@ -304,39 +304,6 @@ fn point_feature_into_shape(
     Ok(())
 }
 
-fn kind(properties: &HashMap<String, Value>) -> Result<String, Error> {
-    if let Some(Value::String(kind)) = properties.get("kind") {
-        Ok(kind.clone())
-    } else {
-        Err(Error::FeatureWithoutKind(properties.clone()))
-    }
-}
-
-fn points(properties: &HashMap<String, Value>, points: &[Pos2]) -> Result<Vec<ShapeOrText>, Error> {
-    let font_size = match kind(properties)?.as_str() {
-        "country" => Ok(32.0),
-        "neighbourhood" | "locality" => Ok(16.0),
-        "peak" | "water" | "forest" | "park" | "national_park" | "protected_area"
-        | "nature_reserve" | "military" | "hospital" | "bus_station" | "train_station"
-        | "aerodrome" => Ok(10.0),
-        _ => Err(Error::UnsupportedFeatureKind(properties.clone())),
-    }?;
-
-    if let Some(Value::String(name)) = properties.get("name") {
-        Ok(points
-            .iter()
-            .map(|point| ShapeOrText::Text {
-                position: *point,
-                text: name.clone(),
-                font_size,
-            })
-            .collect::<Vec<_>>())
-    } else {
-        // Without name, there is currently nothing to render.
-        Ok(Vec::new())
-    }
-}
-
 fn find_layer(data: &mvt_reader::Reader, name: &str) -> Result<usize, Error> {
     let layer = data
         .get_layer_metadata()?
