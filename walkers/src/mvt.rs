@@ -285,21 +285,18 @@ fn point_feature_into_shape(
         .properties
         .as_ref()
         .ok_or(Error::FeatureWithoutProperties)?;
-    match &feature.geometry {
-        Geometry::MultiPoint(multi_point) => {
-            if !match_filter(feature, "Point", zoom, filter) {
-                return Ok(());
-            }
-
-            if let Some(text) = &layout.text(properties, zoom) {
-                shapes.extend(multi_point.0.iter().map(|p| ShapeOrText::Text {
-                    position: pos2(p.x(), p.y()),
-                    text: text.clone(),
-                    font_size: 12.0,
-                }))
-            }
+    if let Geometry::MultiPoint(multi_point) = &feature.geometry {
+        if !match_filter(feature, "Point", zoom, filter) {
+            return Ok(());
         }
-        _ => (),
+
+        if let Some(text) = &layout.text(properties, zoom) {
+            shapes.extend(multi_point.0.iter().map(|p| ShapeOrText::Text {
+                position: pos2(p.x(), p.y()),
+                text: text.clone(),
+                font_size: 12.0,
+            }))
+        }
     }
     Ok(())
 }
