@@ -24,8 +24,19 @@ pub struct Style {
 }
 
 impl Style {
+    /// Style based on Protomaps Dark flavour. Requires Protomaps source.
+    ///
+    /// <https://docs.protomaps.com/basemaps/flavors>
     pub fn protomaps_dark() -> Self {
         let style_json = include_str!("../assets/protomaps-dark.json");
+        serde_json::from_str(style_json).expect("failed to parse style JSON")
+    }
+
+    /// Style based on Protomaps Light flavour. Requires Protomaps source.
+    ///
+    /// <https://docs.protomaps.com/basemaps/flavors>
+    pub fn protomaps_light() -> Self {
+        let style_json = include_str!("../assets/protomaps-light.json");
         serde_json::from_str(style_json).expect("failed to parse style JSON")
     }
 }
