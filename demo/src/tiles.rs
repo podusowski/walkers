@@ -121,7 +121,7 @@ pub(crate) fn providers(egui_ctx: Context) -> Providers {
                 name.clone(),
                 vec![TilesKind::PmTiles(PmTiles::with_style(
                     path,
-                    Style::default(),
+                    Style::protonmaps_dark(),
                     egui_ctx.to_owned(),
                 ))],
             );

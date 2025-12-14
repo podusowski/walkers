@@ -16,17 +16,15 @@ use crate::expression::evaluate;
 /// [`Tiles`] it is used with.
 ///
 /// https://maplibre.org/maplibre-style-spec/
-#[derive(Deserialize)]
+#[derive(Deserialize, Default)]
 pub struct Style {
     pub layers: Vec<Layer>,
 }
 
-impl Default for Style {
-    fn default() -> Self {
-        // TODO: That's temporary. Or is it?
+impl Style {
+    pub fn protonmaps_dark() -> Self {
         let style_json = include_str!("../assets/protomaps-dark.json");
-        //let style_json = include_str!("../assets/protomaps-light.json");
-        serde_json::from_str(style_json).expect("Failed to parse default style JSON")
+        serde_json::from_str(style_json).expect("failed to parse style JSON")
     }
 }
 
