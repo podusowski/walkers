@@ -97,7 +97,6 @@ pub fn render(data: &[u8], style: &Style) -> Result<Vec<ShapeOrText>, Error> {
         match layer {
             Layer::Background => continue,
             Layer::Fill {
-                id,
                 source_layer,
                 filter,
                 paint,
@@ -116,7 +115,6 @@ pub fn render(data: &[u8], style: &Style) -> Result<Vec<ShapeOrText>, Error> {
                 }
             }
             Layer::Line {
-                id,
                 source_layer,
                 filter,
                 paint,

@@ -31,14 +31,12 @@ pub enum Layer {
     Background,
     #[serde(rename_all = "kebab-case")]
     Fill {
-        id: String,
         source_layer: String,
         filter: Option<Filter>,
         paint: Paint,
     },
     #[serde(rename_all = "kebab-case")]
     Line {
-        id: String,
         source_layer: String,
         filter: Option<Filter>,
         paint: Paint,
