@@ -24,7 +24,7 @@ pub struct Style {
 }
 
 impl Style {
-    pub fn protonmaps_dark() -> Self {
+    pub fn protomaps_dark() -> Self {
         let style_json = include_str!("../assets/protomaps-dark.json");
         serde_json::from_str(style_json).expect("failed to parse style JSON")
     }
@@ -173,6 +173,6 @@ mod tests {
 
     #[test]
     fn test_style_parsing() {
-        Style::protonmaps_dark();
+        Style::protomaps_dark();
     }
 }

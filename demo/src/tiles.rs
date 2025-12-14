@@ -121,7 +121,7 @@ pub(crate) fn providers(egui_ctx: Context) -> Providers {
                 name.clone(),
                 vec![TilesKind::PmTiles(PmTiles::with_style(
                     path.clone(),
-                    Style::protonmaps_dark(),
+                    Style::protomaps_dark(),
                     egui_ctx.to_owned(),
                 ))],
             );
@@ -132,7 +132,7 @@ pub(crate) fn providers(egui_ctx: Context) -> Providers {
                 vec![
                     TilesKind::PmTiles(PmTiles::with_style(
                         path,
-                        Style::protonmaps_dark(),
+                        Style::protomaps_dark(),
                         egui_ctx.to_owned(),
                     )),
                     TilesKind::Http(HttpTiles::with_options(
