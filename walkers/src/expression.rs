@@ -206,12 +206,12 @@ fn mvt_value_to_json(value: &MvtValue) -> Value {
 }
 
 fn float(v: &Value) -> Result<f32, Error> {
-    match v {
-        Value::Number(n) => n
-            .as_f64()
+    if let Value::Number(n) = v {
+        n.as_f64()
             .map(|f64| f64 as f32)
-            .ok_or(Error::ValueMustFitInF32(v.clone())),
-        _ => Err(Error::ValueMustFitInF32(v.clone())),
+            .ok_or(Error::ValueMustFitInF32(v.clone()))
+    } else {
+        Err(Error::ValueMustFitInF32(v.clone()))
     }
 }
 
