@@ -117,7 +117,7 @@ pub fn render(data: &[u8], style: &Style) -> Result<Vec<ShapeOrText>, Error> {
             Layer::Line {
                 source_layer,
                 filter,
-                paint,
+                paint: _,
             } => {
                 let Ok(layer_index) = find_layer(&data, &source_layer) else {
                     warn!("Source layer '{source_layer}' not found. Skipping.");
