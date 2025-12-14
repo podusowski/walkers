@@ -6,7 +6,11 @@ use lru::LruCache;
 
 use crate::{
     Tile, TileId,
-    io::{Fetch, fetch::fetch_continuously, runtime::Runtime},
+    io::{
+        Fetch,
+        fetch::{TileFactory, fetch_continuously},
+        runtime::Runtime,
+    },
 };
 
 /// Asynchronously load and cache tiles from different local and remote sources.
@@ -25,7 +29,11 @@ pub struct TilesIo {
 }
 
 impl TilesIo {
-    pub fn new(fetch: impl Fetch + Send + Sync + 'static, egui_ctx: Context) -> Self {
+    pub fn new(
+        fetch: impl Fetch + Send + Sync + 'static,
+        tile_factory: impl TileFactory + Send + Sync + 'static,
+        egui_ctx: Context,
+    ) -> Self {
         let stats = Arc::new(Mutex::new(Stats { in_progress: 0 }));
 
         // This ensures that newer requests are prioritized.
@@ -41,6 +49,7 @@ impl TilesIo {
             request_rx,
             tile_tx,
             egui_ctx,
+            tile_factory,
         ));
 
         // Just arbitrary value which seemed right.

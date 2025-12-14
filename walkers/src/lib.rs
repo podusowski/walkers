@@ -7,10 +7,21 @@ mod io;
 mod local_tiles;
 mod map;
 mod memory;
+#[cfg(feature = "mvt")]
+mod style;
+
+#[cfg(not(feature = "mvt"))]
+mod style {
+    /// Dummy style, used when `mtv` feature is not enabled.
+    #[derive(Default)]
+    pub struct Style;
+}
 
 // TODO: I don't want it to be public.
 pub mod mercator;
 
+#[cfg(feature = "mvt")]
+mod expression;
 #[cfg(feature = "mvt")]
 mod mvt;
 #[cfg(feature = "pmtiles")]
@@ -31,5 +42,8 @@ pub use memory::MapMemory;
 pub use pmtiles::PmTiles;
 pub use position::{Position, lat_lon, lon_lat};
 pub use projector::Projector;
+pub use style::Style;
+#[cfg(feature = "mvt")]
+pub use style::{Color, Filter, Layer};
 pub use tiles::{Tile, TileId, TilePiece, Tiles};
 pub use zoom::InvalidZoom;

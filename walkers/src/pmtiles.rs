@@ -1,6 +1,9 @@
 use crate::{
-    TileId, TilePiece, Tiles, io::Fetch, io::tiles_io::TilesIo, sources::Attribution,
-    tiles::interpolate_from_lower_zoom,
+    TileId, TilePiece, Tiles,
+    io::{Fetch, tiles_io::TilesIo},
+    sources::Attribution,
+    style::Style,
+    tiles::{EguiTileFactory, interpolate_from_lower_zoom},
 };
 use bytes::Bytes;
 use egui::Context;
@@ -20,8 +23,18 @@ pub struct PmTiles {
 
 impl PmTiles {
     pub fn new(path: impl AsRef<Path>, egui_ctx: Context) -> Self {
+        Self::with_style(path, Style::default(), egui_ctx)
+    }
+
+    /// Construct new [`PmTiles`] with [`Style']. Style is relevant only for vector tile
+    /// sources.
+    pub fn with_style(path: impl AsRef<Path>, style: Style, egui_ctx: Context) -> Self {
         Self {
-            tiles_io: TilesIo::new(PmTilesFetch::new(path.as_ref()), egui_ctx),
+            tiles_io: TilesIo::new(
+                PmTilesFetch::new(path.as_ref()),
+                EguiTileFactory::new(egui_ctx.clone(), style),
+                egui_ctx,
+            ),
         }
     }
 

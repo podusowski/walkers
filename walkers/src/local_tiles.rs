@@ -1,5 +1,6 @@
 use crate::{
-    Tile, TileId, TilePiece, Tiles, sources::Attribution, tiles::interpolate_from_lower_zoom,
+    Tile, TileId, TilePiece, Tiles, sources::Attribution, style::Style,
+    tiles::interpolate_from_lower_zoom,
 };
 use log::trace;
 use lru::LruCache;
@@ -83,5 +84,5 @@ fn load(
         format!("{}.png", tile_id.y).into(),
     ]);
     let bytes = std::fs::read(path)?;
-    Ok(Tile::new(&bytes, egui_ctx)?)
+    Ok(Tile::new(&bytes, &Style::default(), egui_ctx)?)
 }

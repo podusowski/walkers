@@ -19,6 +19,8 @@ use lyon_tessellation::{
 };
 use mvt_reader::feature::{Feature, Value};
 
+use crate::style::{Filter, Layer, Layout, Paint, Style};
+
 #[derive(thiserror::Error, Debug)]
 pub enum Error {
     #[error("Decoding MVT failed: {0}.")]
@@ -84,36 +86,74 @@ impl ShapeOrText {
 }
 
 /// Render MVT data into a list of [`epaint::Shape`]s.
-pub fn render(data: &[u8]) -> Result<Vec<ShapeOrText>, Error> {
+pub fn render(data: &[u8], style: &Style) -> Result<Vec<ShapeOrText>, Error> {
     let data = mvt_reader::Reader::new(data.to_vec())?;
     let mut shapes = Vec::new();
 
-    let known_layers = [
-        "earth",
-        "landuse",
-        "water",
-        "landcover",
-        "buildings",
-        "roads",
-        "places",
-        "pois",
-    ];
+    // TODO: Use real zoom level.
+    let fake_zoom = 10;
 
-    for layer in data.get_layer_names()? {
-        if !known_layers.contains(&layer.as_str()) {
-            warn!("Unknown layer '{layer}' found. Skipping.");
-        }
-    }
+    for layer in &style.layers {
+        match layer {
+            Layer::Background => continue,
+            Layer::Fill {
+                source_layer,
+                filter,
+                paint,
+            } => {
+                let Ok(layer_index) = find_layer(&data, source_layer) else {
+                    warn!("Source layer '{source_layer}' not found. Skipping.");
+                    continue;
+                };
 
-    for layer in known_layers {
-        if let Ok(layer_index) = find_layer(&data, layer) {
-            for feature in data.get_features(layer_index)? {
-                if let Err(err) = feature_into_shape(&feature, &mut shapes) {
-                    warn!("{err}");
+                for feature in data.get_features(layer_index)? {
+                    if let Err(err) =
+                        polygon_feature_into_shape(&feature, &mut shapes, filter, paint, fake_zoom)
+                    {
+                        warn!("{err}");
+                    }
                 }
             }
-        } else {
-            warn!("Layer '{layer}' not found. Skipping.");
+            Layer::Line {
+                source_layer,
+                filter,
+                paint: _,
+            } => {
+                let Ok(layer_index) = find_layer(&data, source_layer) else {
+                    warn!("Source layer '{source_layer}' not found. Skipping.");
+                    continue;
+                };
+
+                for feature in data.get_features(layer_index)? {
+                    if let Err(err) =
+                        line_feature_into_shape(&feature, &mut shapes, filter, fake_zoom)
+                    {
+                        warn!("{err}");
+                    }
+                }
+            }
+            Layer::Symbol {
+                source_layer,
+                filter,
+                layout,
+            } => {
+                let Ok(layer_index) = find_layer(&data, source_layer) else {
+                    warn!("Source layer '{source_layer}' not found. Skipping.");
+                    continue;
+                };
+
+                for feature in data.get_features(layer_index)? {
+                    if let Err(err) =
+                        point_feature_into_shape(&feature, &mut shapes, filter, layout, fake_zoom)
+                    {
+                        warn!("{err}");
+                    }
+                }
+            }
+            layer => {
+                log::warn!("Unsupported layer type in style: {layer:?}");
+                continue;
+            }
         }
     }
 
@@ -134,14 +174,42 @@ pub fn transformed(shapes: &[ShapeOrText], rect: egui::Rect) -> Vec<ShapeOrText>
     result
 }
 
-fn feature_into_shape(feature: &Feature, shapes: &mut Vec<ShapeOrText>) -> Result<(), Error> {
-    let properties = feature
-        .properties
-        .as_ref()
-        .ok_or(Error::FeatureWithoutProperties)?;
+fn match_filter(feature: &Feature, type_: &str, zoom: u8, filter: &Option<Filter>) -> bool {
+    // Special property "$type" to filter by geometry type. MapLibre Style spec mentions
+    // 'geometry-type', but Protomaps uses '$type' in their styles.
+    let properties = feature.properties.clone().map(|mut properties| {
+        properties.insert("$type".to_string(), Value::String(type_.to_string()));
+        properties
+    });
+    match (&properties, filter) {
+        (Some(properties), Some(filter)) => filter.matches(properties, zoom),
+        _ => true,
+    }
+}
+
+fn line_feature_into_shape(
+    feature: &Feature,
+    shapes: &mut Vec<ShapeOrText>,
+    filter: &Option<Filter>,
+    zoom: u8,
+) -> Result<(), Error> {
+    if !match_filter(feature, "Line", zoom, filter) {
+        return Ok(());
+    }
+
     match &feature.geometry {
         Geometry::LineString(line_string) => {
-            if let Some(stroke) = line_stroke(properties)? {
+            let stroke = Stroke::new(2.0, Color32::WHITE.gamma_multiply(0.5));
+            let points = line_string
+                .0
+                .iter()
+                .map(|p| pos2(p.x, p.y))
+                .collect::<Vec<_>>();
+            shapes.push(Shape::line(points, stroke).into());
+        }
+        Geometry::MultiLineString(multi_line_string) => {
+            let stroke = Stroke::new(2.0, Color32::WHITE.gamma_multiply(0.5));
+            for line_string in multi_line_string {
                 let points = line_string
                     .0
                     .iter()
@@ -150,131 +218,84 @@ fn feature_into_shape(feature: &Feature, shapes: &mut Vec<ShapeOrText>) -> Resul
                 shapes.push(Shape::line(points, stroke).into());
             }
         }
-        Geometry::MultiLineString(multi_line_string) => {
-            if let Some(stroke) = line_stroke(properties)? {
-                for line_string in multi_line_string {
-                    let points = line_string
-                        .0
-                        .iter()
-                        .map(|p| pos2(p.x, p.y))
-                        .collect::<Vec<_>>();
-                    shapes.push(Shape::line(points, stroke).into());
-                }
-            }
-        }
-        Geometry::MultiPoint(multi_point) => shapes.extend(points(
-            properties,
-            &multi_point
-                .0
-                .iter()
-                .map(|p| pos2(p.x(), p.y()))
-                .collect::<Vec<_>>(),
-        )?),
-        Geometry::MultiPolygon(multi_polygon) => {
-            if let Some(fill) = polygon_fill(properties)? {
-                for polygon in multi_polygon.iter() {
-                    let points = polygon
-                        .exterior()
-                        .0
-                        .iter()
-                        .map(|p| pos2(p.x, p.y))
-                        .collect::<Vec<_>>();
-                    let interiors = polygon
-                        .interiors()
-                        .iter()
-                        .map(|hole| hole.0.iter().map(|p| pos2(p.x, p.y)).collect::<Vec<_>>())
-                        .collect::<Vec<_>>();
-                    shapes.push(tessellate_polygon(&points, &interiors, fill)?.into());
-                }
-            }
-        }
-        Geometry::Point(_point) => todo!(),
-        Geometry::Line(_line) => todo!(),
-        Geometry::Polygon(_polygon) => todo!(),
-        Geometry::GeometryCollection(_geometry_collection) => todo!(),
-        Geometry::Rect(_rect) => todo!(),
-        Geometry::Triangle(_triangle) => todo!(),
+        _ => (),
     }
     Ok(())
 }
 
-const WATER_COLOR: Color32 = Color32::from_rgb(12, 39, 77);
-const ROAD_COLOR: Color32 = Color32::from_rgb(80, 80, 80);
+fn polygon_feature_into_shape(
+    feature: &Feature,
+    shapes: &mut Vec<ShapeOrText>,
+    filter: &Option<Filter>,
+    paint: &Paint,
+    zoom: u8,
+) -> Result<(), Error> {
+    let properties = feature
+        .properties
+        .as_ref()
+        .ok_or(Error::FeatureWithoutProperties)?;
+    if let Geometry::MultiPolygon(multi_polygon) = &feature.geometry {
+        if !match_filter(feature, "Polygon", zoom, filter) {
+            return Ok(());
+        }
 
-fn kind(properties: &HashMap<String, Value>) -> Result<String, Error> {
-    if let Some(Value::String(kind)) = properties.get("kind") {
-        Ok(kind.clone())
-    } else {
-        Err(Error::FeatureWithoutKind(properties.clone()))
+        let Some(fill_color) = &paint.fill_color else {
+            warn!("Fill layer without fill color. Skipping.");
+            return Ok(());
+        };
+
+        let fill_color = fill_color.evaluate(properties, zoom);
+
+        let fill_color = if let Some(fill_opacity) = &paint.fill_opacity {
+            let fill_opacity = fill_opacity.evaluate(properties, zoom);
+            fill_color.gamma_multiply(fill_opacity)
+        } else {
+            fill_color
+        };
+
+        for polygon in multi_polygon.iter() {
+            let points = polygon
+                .exterior()
+                .0
+                .iter()
+                .map(|p| pos2(p.x, p.y))
+                .collect::<Vec<_>>();
+            let interiors = polygon
+                .interiors()
+                .iter()
+                .map(|hole| hole.0.iter().map(|p| pos2(p.x, p.y)).collect::<Vec<_>>())
+                .collect::<Vec<_>>();
+            shapes.push(tessellate_polygon(&points, &interiors, fill_color)?.into());
+        }
     }
+    Ok(())
 }
 
-fn points(properties: &HashMap<String, Value>, points: &[Pos2]) -> Result<Vec<ShapeOrText>, Error> {
-    let font_size = match kind(properties)?.as_str() {
-        "country" => Ok(32.0),
-        "neighbourhood" | "locality" => Ok(16.0),
-        "peak" | "water" | "forest" | "park" | "national_park" | "protected_area"
-        | "nature_reserve" | "military" | "hospital" | "bus_station" | "train_station"
-        | "aerodrome" => Ok(10.0),
-        _ => Err(Error::UnsupportedFeatureKind(properties.clone())),
-    }?;
+fn point_feature_into_shape(
+    feature: &Feature,
+    shapes: &mut Vec<ShapeOrText>,
+    filter: &Option<Filter>,
+    layout: &Layout,
+    zoom: u8,
+) -> Result<(), Error> {
+    let properties = feature
+        .properties
+        .as_ref()
+        .ok_or(Error::FeatureWithoutProperties)?;
+    if let Geometry::MultiPoint(multi_point) = &feature.geometry {
+        if !match_filter(feature, "Point", zoom, filter) {
+            return Ok(());
+        }
 
-    if let Some(Value::String(name)) = properties.get("name") {
-        Ok(points
-            .iter()
-            .map(|point| ShapeOrText::Text {
-                position: *point,
-                text: name.clone(),
-                font_size,
-            })
-            .collect::<Vec<_>>())
-    } else {
-        // Without name, there is currently nothing to render.
-        Ok(Vec::new())
+        if let Some(text) = &layout.text(properties, zoom) {
+            shapes.extend(multi_point.0.iter().map(|p| ShapeOrText::Text {
+                position: pos2(p.x(), p.y()),
+                text: text.clone(),
+                font_size: 12.0,
+            }))
+        }
     }
-}
-
-fn polygon_fill(properties: &HashMap<String, Value>) -> Result<Option<Color32>, Error> {
-    Ok(match kind(properties)?.as_str() {
-        "water" | "fountain" | "swimming_pool" | "basin" | "lake" | "ditch" | "ocean" => {
-            Some(WATER_COLOR)
-        }
-        "grass" | "garden" | "playground" | "zoo" | "park" | "forest" | "wood"
-        | "village_green" | "scrub" | "grassland" | "allotments" | "pitch" | "dog_park"
-        | "meadow" | "wetland" | "cemetery" | "golf_course" | "nature_reserve"
-        | "national_park" | "island" => Some(Color32::from_rgb(10, 20, 0)),
-        "farmland" => Some(Color32::from_rgb(20, 25, 0)),
-        "building" | "building_part" | "pier" | "runway" | "bare_rock" => {
-            Some(Color32::from_rgb(30, 30, 30))
-        }
-        "military" => Some(Color32::from_rgb(40, 0, 0)),
-        "sand" | "beach" => Some(Color32::from_rgb(64, 64, 0)),
-        "pedestrian" | "recreation_ground" | "railway" | "industrial" | "residential"
-        | "commercial" | "protected_area" | "school" | "platform" | "kindergarten" | "cliff"
-        | "university" | "hospital" | "college" | "aerodrome" | "airfield" | "earth"
-        | "urban_area" | "other" => None,
-        other => {
-            warn!("Unknown polygon kind: {other}");
-            Some(Color32::RED)
-        }
-    })
-}
-
-fn line_stroke(properties: &HashMap<String, Value>) -> Result<Option<Stroke>, Error> {
-    Ok(match kind(properties)?.as_str() {
-        "highway" | "aeroway" => Some(Stroke::new(15.0, ROAD_COLOR)),
-        "major_road" => Some(Stroke::new(12.0, ROAD_COLOR)),
-        "minor_road" => Some(Stroke::new(9.0, ROAD_COLOR)),
-        "rail" => Some(Stroke::new(3.0, ROAD_COLOR)),
-        "path" => Some(Stroke::new(3.0, Color32::from_rgb(60, 40, 0))),
-        "river" | "stream" | "drain" | "ditch" | "canal" => Some(Stroke::new(3.0, WATER_COLOR)),
-        "ferry" => Some(Stroke::new(3.0, Color32::from_rgb(15, 51, 102))),
-        "other" | "aerialway" | "cliff" => None,
-        _ => {
-            warn!("Unknown line kind: {properties:?}");
-            Some(Stroke::new(10.0, Color32::RED))
-        }
-    })
+    Ok(())
 }
 
 fn find_layer(data: &mvt_reader::Reader, name: &str) -> Result<usize, Error> {

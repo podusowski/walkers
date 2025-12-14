@@ -3,6 +3,7 @@ use std::{collections::BTreeMap, path::PathBuf};
 use egui::Context;
 #[cfg(feature = "pmtiles")]
 use walkers::PmTiles;
+use walkers::Style;
 use walkers::{HttpOptions, HttpTiles, LocalTiles, Tiles};
 
 pub(crate) enum TilesKind {
@@ -118,9 +119,29 @@ pub(crate) fn providers(egui_ctx: Context) -> Providers {
             let name = path.file_stem().unwrap().to_string_lossy().to_string();
             providers.available.insert(
                 name.clone(),
-                vec![TilesKind::PmTiles(PmTiles::new(path, egui_ctx.to_owned()))],
+                vec![TilesKind::PmTiles(PmTiles::with_style(
+                    path.clone(),
+                    Style::protomaps_dark(),
+                    egui_ctx.to_owned(),
+                ))],
             );
-            providers.selected = name;
+            providers.selected = name.clone();
+
+            providers.available.insert(
+                format!("{name}WithGeoportal"),
+                vec![
+                    TilesKind::PmTiles(PmTiles::with_style(
+                        path,
+                        Style::protomaps_dark(),
+                        egui_ctx.to_owned(),
+                    )),
+                    TilesKind::Http(HttpTiles::with_options(
+                        walkers::sources::Geoportal,
+                        http_options(),
+                        egui_ctx.to_owned(),
+                    )),
+                ],
+            );
         }
     }
 
