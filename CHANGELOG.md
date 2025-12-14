@@ -5,6 +5,7 @@ All notable changes to this project will be documented in this file.
 ## Unreleased
 
 * `vector_tiles` Cargo feature is now split into `mvt` and `pmtiles`.
+* Basic support for vector styling. See `Style` struct for details.
 
 ## 0.50.0
 
