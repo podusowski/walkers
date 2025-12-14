@@ -12,8 +12,6 @@ pub enum Error {
     InvalidExpression(Value),
     #[error("Expected a property name or an expression, got: {0:?}")]
     ExpectedKeyOrExpression(Value),
-    #[error("Impossible to numeric difference between {0:?} and {1:?}")]
-    ImpossibleNumericDifference(Value, Value),
     #[error("Interpolate stop not found for input value: {0:?}")]
     InterpolateStopNotFound(Value),
     #[error("Single string expected, got: {0:?}")]

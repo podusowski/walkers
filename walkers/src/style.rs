@@ -82,7 +82,7 @@ impl Color {
         match self.try_evaluate(properties, zoom) {
             Ok(color) => color,
             Err(err) => {
-                warn!("{:?}", err);
+                warn!("{err:?}");
                 Color32::MAGENTA
             }
         }
@@ -112,7 +112,7 @@ impl Opacity {
         match self.try_evaluate(properties, zoom) {
             Ok(opacity) => opacity,
             Err(err) => {
-                warn!("{:?}", err);
+                warn!("{err:?}");
                 0.5
             }
         }
@@ -139,7 +139,7 @@ impl Filter {
         match evaluate(&self.0, properties, zoom) {
             Ok(Value::Bool(b)) => b,
             other => {
-                warn!("Filter did not evaluate to a boolean: {:?}", other);
+                warn!("Expected filter to evaluate to boolean, got: {other:?}");
                 false
             }
         }
@@ -158,7 +158,7 @@ impl Layout {
             Some(value) => match evaluate(value, properties, zoom) {
                 Ok(Value::String(s)) => Some(s),
                 other => {
-                    warn!("text-field did not evaluate to a string: {:?}", other);
+                    warn!("Expected text-field to evaluate to a string, got: {other:?}");
                     None
                 }
             },
