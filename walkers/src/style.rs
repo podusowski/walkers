@@ -70,6 +70,8 @@ enum ColorError {
     Expression(#[from] crate::expression::Error),
     #[error("color must be a string")]
     InvalidType,
+    #[error("opacity must be a number")]
+    OpacityMustBeANumber,
     #[error(transparent)]
     Parsing(#[from] color::ParseError),
 }
@@ -109,14 +111,23 @@ pub struct Opacity(Value);
 
 impl Opacity {
     pub fn evaluate(&self, properties: &HashMap<String, MvtValue>, zoom: u8) -> f32 {
-        let value = evaluate(&self.0, properties, zoom);
-
-        match value {
-            Ok(Value::Number(num)) => num.as_f64().unwrap() as f32,
-            other => {
-                warn!("Opacity did not evaluate to a number: {:?}", other);
+        match self.try_evaluate(properties, zoom) {
+            Ok(opacity) => opacity,
+            Err(err) => {
+                warn!("{:?}", err);
                 0.5
             }
+        }
+    }
+
+    fn try_evaluate(
+        &self,
+        properties: &HashMap<String, MvtValue>,
+        zoom: u8,
+    ) -> Result<f32, ColorError> {
+        match evaluate(&self.0, properties, zoom)? {
+            Value::Number(num) => Ok(num.as_f64().ok_or(ColorError::OpacityMustBeANumber)? as f32),
+            _ => Err(ColorError::OpacityMustBeANumber),
         }
     }
 }
