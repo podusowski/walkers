@@ -9,7 +9,12 @@ use serde_json::Value;
 
 use crate::expression::evaluate;
 
-/// Style for rendering vector maps. Based on MapLibre's style specification.
+/// Style for rendering vector maps.
+///
+/// It is beased on MapLibre's style specification, but only a small subset is supported.
+/// Most notably, Walkers only read `layers` section of the style and applies it to the
+/// [`Tiles`] it is used with.
+///
 /// https://maplibre.org/maplibre-style-spec/
 #[derive(Deserialize)]
 pub struct Style {
