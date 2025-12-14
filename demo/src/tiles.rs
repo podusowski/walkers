@@ -3,6 +3,7 @@ use std::{collections::BTreeMap, path::PathBuf};
 use egui::Context;
 #[cfg(feature = "pmtiles")]
 use walkers::PmTiles;
+use walkers::Style;
 use walkers::{HttpOptions, HttpTiles, LocalTiles, Tiles};
 
 pub(crate) enum TilesKind {
@@ -127,7 +128,11 @@ pub(crate) fn providers(egui_ctx: Context) -> Providers {
             let name = path.file_stem().unwrap().to_string_lossy().to_string();
             providers.available.insert(
                 name.clone(),
-                vec![TilesKind::PmTiles(PmTiles::new(path, egui_ctx.to_owned()))],
+                vec![TilesKind::PmTiles(PmTiles::new(
+                    path,
+                    Style::default(),
+                    egui_ctx.to_owned(),
+                ))],
             );
             providers.selected = name;
         }

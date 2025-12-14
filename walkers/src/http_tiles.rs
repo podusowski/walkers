@@ -33,6 +33,20 @@ impl HttpTiles {
     where
         S: TileSource + Sync + Send + 'static,
     {
+        Self::with_options_and_style(source, http_options, Style::default(), egui_ctx)
+    }
+
+    /// Construct new [`Tiles`] with supplied [`HttpOptions`] and [`Style']. Style is relevant
+    /// only for vector tile sources.
+    pub fn with_options_and_style<S>(
+        source: S,
+        http_options: HttpOptions,
+        style: Style,
+        egui_ctx: Context,
+    ) -> Self
+    where
+        S: TileSource + Sync + Send + 'static,
+    {
         let attribution = source.attribution();
         let tile_size = source.tile_size();
         let max_zoom = source.max_zoom();
@@ -41,7 +55,7 @@ impl HttpTiles {
             attribution,
             tiles_io: TilesIo::new(
                 HttpFetch::new(source, http_options),
-                EguiTileFactory::new(egui_ctx.clone(), Style::default()),
+                EguiTileFactory::new(egui_ctx.clone(), style),
                 egui_ctx,
             ),
             tile_size,

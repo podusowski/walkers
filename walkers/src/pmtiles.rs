@@ -22,11 +22,11 @@ pub struct PmTiles {
 }
 
 impl PmTiles {
-    pub fn new(path: impl AsRef<Path>, egui_ctx: Context) -> Self {
+    pub fn new(path: impl AsRef<Path>, style: Style, egui_ctx: Context) -> Self {
         Self {
             tiles_io: TilesIo::new(
                 PmTilesFetch::new(path.as_ref()),
-                EguiTileFactory::new(egui_ctx.clone(), Style::default()),
+                EguiTileFactory::new(egui_ctx.clone(), style),
                 egui_ctx,
             ),
         }
