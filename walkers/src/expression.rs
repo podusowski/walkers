@@ -222,13 +222,7 @@ fn lerp(a: &Value, b: &Value, t: f64) -> Result<Value, Error> {
 }
 
 fn numeric_difference(left: &Value, right: &Value) -> Result<f64, Error> {
-    match (left, right) {
-        (Value::Number(l), Value::Number(r)) => Ok(l.as_f64().unwrap() - r.as_f64().unwrap()),
-        _ => Err(Error::ImpossibleNumericDifference(
-            left.clone(),
-            right.clone(),
-        )),
-    }
+    Ok(float(left)? - float(right)?)
 }
 
 fn lt(left: &Value, right: &Value) -> bool {
