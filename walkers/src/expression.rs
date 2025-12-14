@@ -14,8 +14,6 @@ pub enum Error {
     ExpectedKeyOrExpression(Value),
     #[error("Impossible to numeric difference between {0:?} and {1:?}")]
     ImpossibleNumericDifference(Value, Value),
-    #[error("Impossible to lerp between {0:?} and {1:?}")]
-    ImpossibleLerp(Value, Value),
     #[error("Interpolate stop not found for input value: {0:?}")]
     InterpolateStopNotFound(Value),
     #[error("Single string expected, got: {0:?}")]
@@ -205,27 +203,20 @@ fn mvt_value_to_json(value: &MvtValue) -> Value {
     }
 }
 
-fn float(v: &Value) -> Result<f32, Error> {
+fn float(v: &Value) -> Result<f64, Error> {
     if let Value::Number(n) = v {
-        n.as_f64()
-            .map(|f64| f64 as f32)
-            .ok_or(Error::ValueMustFitInF32(v.clone()))
+        n.as_f64().ok_or(Error::ValueMustFitInF32(v.clone()))
     } else {
         Err(Error::ValueMustFitInF32(v.clone()))
     }
 }
 
 fn lerp(a: &Value, b: &Value, t: f64) -> Result<Value, Error> {
-    match (a, b) {
-        (Value::Number(na), Value::Number(nb)) => {
-            let a_f64 = na.as_f64().unwrap();
-            let b_f64 = nb.as_f64().unwrap();
-            Ok(Value::Number(
-                serde_json::Number::from_f64(a_f64 + (b_f64 - a_f64) * t).unwrap(),
-            ))
-        }
-        _ => Err(Error::ImpossibleLerp(a.clone(), b.clone())),
-    }
+    let a_f64 = float(a)?;
+    let b_f64 = float(b)?;
+    Ok(Value::Number(
+        serde_json::Number::from_f64(a_f64 + (b_f64 - a_f64) * t).unwrap(),
+    ))
 }
 
 fn numeric_difference(left: &Value, right: &Value) -> Result<f64, Error> {
