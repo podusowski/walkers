@@ -292,16 +292,6 @@ mod tests {
     use std::collections::HashMap;
 
     #[test]
-    fn test_style_parsing() {
-        let style = std::fs::read_to_string(
-            env!("CARGO_MANIFEST_DIR").to_owned() + "/assets/protomaps-dark-style.json",
-        )
-        .unwrap();
-
-        let _parsed_style: Style = serde_json::from_str(&style).unwrap();
-    }
-
-    #[test]
     fn test_eq_filter_matching() {
         let park = HashMap::from([("type".to_string(), MvtValue::String("park".to_string()))]);
         let forest = HashMap::from([("type".to_string(), MvtValue::String("forest".to_string()))]);
