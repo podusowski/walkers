@@ -234,42 +234,39 @@ fn polygon_feature_into_shape(
         .properties
         .as_ref()
         .ok_or(Error::FeatureWithoutProperties)?;
-    match &feature.geometry {
-        Geometry::MultiPolygon(multi_polygon) => {
-            if !match_filter(feature, "Polygon", zoom, filter) {
-                return Ok(());
-            }
-
-            let Some(fill_color) = &paint.fill_color else {
-                warn!("Fill layer without fill color. Skipping.");
-                return Ok(());
-            };
-
-            let fill_color = fill_color.evaluate(properties, zoom);
-
-            let fill_color = if let Some(fill_opacity) = &paint.fill_opacity {
-                let fill_opacity = fill_opacity.evaluate(properties, zoom);
-                fill_color.gamma_multiply(fill_opacity)
-            } else {
-                fill_color
-            };
-
-            for polygon in multi_polygon.iter() {
-                let points = polygon
-                    .exterior()
-                    .0
-                    .iter()
-                    .map(|p| pos2(p.x, p.y))
-                    .collect::<Vec<_>>();
-                let interiors = polygon
-                    .interiors()
-                    .iter()
-                    .map(|hole| hole.0.iter().map(|p| pos2(p.x, p.y)).collect::<Vec<_>>())
-                    .collect::<Vec<_>>();
-                shapes.push(tessellate_polygon(&points, &interiors, fill_color)?.into());
-            }
+    if let Geometry::MultiPolygon(multi_polygon) = &feature.geometry {
+        if !match_filter(feature, "Polygon", zoom, filter) {
+            return Ok(());
         }
-        _ => (),
+
+        let Some(fill_color) = &paint.fill_color else {
+            warn!("Fill layer without fill color. Skipping.");
+            return Ok(());
+        };
+
+        let fill_color = fill_color.evaluate(properties, zoom);
+
+        let fill_color = if let Some(fill_opacity) = &paint.fill_opacity {
+            let fill_opacity = fill_opacity.evaluate(properties, zoom);
+            fill_color.gamma_multiply(fill_opacity)
+        } else {
+            fill_color
+        };
+
+        for polygon in multi_polygon.iter() {
+            let points = polygon
+                .exterior()
+                .0
+                .iter()
+                .map(|p| pos2(p.x, p.y))
+                .collect::<Vec<_>>();
+            let interiors = polygon
+                .interiors()
+                .iter()
+                .map(|hole| hole.0.iter().map(|p| pos2(p.x, p.y)).collect::<Vec<_>>())
+                .collect::<Vec<_>>();
+            shapes.push(tessellate_polygon(&points, &interiors, fill_color)?.into());
+        }
     }
     Ok(())
 }
