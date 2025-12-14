@@ -13,7 +13,8 @@ use crate::expression::evaluate;
 ///
 /// It is beased on MapLibre's style specification, but only a small subset is supported.
 /// Most notably, Walkers only read `layers` section of the style and applies it to the
-/// [`Tiles`] it is used with.
+/// [`Tiles`] it is used with. In spite that, it should be possible to deserialize most
+/// of the MapLibre's styles using `serde`, as unknown JSON/YAML fields are simply ignored.
 ///
 /// https://maplibre.org/maplibre-style-spec/
 #[derive(Deserialize, Default)]
