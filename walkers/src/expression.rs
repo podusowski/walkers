@@ -28,8 +28,10 @@ pub enum Error {
     AtLeastTwoElementsExpected(Vec<Value>),
     #[error("Property '{0}' missing in {1:?}")]
     PropertyMissing(String, HashMap<String, MvtValue>),
-    #[error("Value must be a float that fits f32, got: {0:?}")]
-    ValueMustFitInF32(Value),
+    #[error("Value must be a float, got: {0:?}")]
+    ExpectedFloat(Value),
+    #[error("Could not serialize a float. Is it NaN?")]
+    CouldNotSerializeFloat,
 }
 
 /// Evaluate a style expression.
@@ -205,9 +207,9 @@ fn mvt_value_to_json(value: &MvtValue) -> Value {
 
 fn float(v: &Value) -> Result<f64, Error> {
     if let Value::Number(n) = v {
-        n.as_f64().ok_or(Error::ValueMustFitInF32(v.clone()))
+        n.as_f64().ok_or(Error::ExpectedFloat(v.clone()))
     } else {
-        Err(Error::ValueMustFitInF32(v.clone()))
+        Err(Error::ExpectedFloat(v.clone()))
     }
 }
 
@@ -215,7 +217,8 @@ fn lerp(a: &Value, b: &Value, t: f64) -> Result<Value, Error> {
     let a_f64 = float(a)?;
     let b_f64 = float(b)?;
     Ok(Value::Number(
-        serde_json::Number::from_f64(a_f64 + (b_f64 - a_f64) * t).unwrap(),
+        serde_json::Number::from_f64(a_f64 + (b_f64 - a_f64) * t)
+            .ok_or(Error::CouldNotSerializeFloat)?,
     ))
 }
 
