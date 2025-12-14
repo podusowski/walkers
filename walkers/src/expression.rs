@@ -159,7 +159,7 @@ pub fn evaluate(
                         .find(|pair| {
                             let left_stop = &pair[0].0;
                             let right_stop = &pair[1].0;
-                            lt(&left_stop, &input) && lt(&input, &right_stop)
+                            lt(left_stop, &input) && lt(&input, right_stop)
                         })
                         .ok_or(Error::InterpolateStopNotFound(value.clone()))?;
 
@@ -176,7 +176,7 @@ pub fn evaluate(
                     for argument in arguments.chunks(2) {
                         let (input, _style_override) = two_elements(argument)?;
                         result.push_str(
-                            &evaluate(input, properties, zoom)?
+                            evaluate(input, properties, zoom)?
                                 .as_str()
                                 .ok_or(Error::InvalidExpression(value.clone()))?,
                         );
@@ -197,7 +197,7 @@ fn mvt_value_to_json(value: &MvtValue) -> Value {
         MvtValue::Bool(b) => Value::Bool(*b),
         MvtValue::Null => Value::Null,
         _ => {
-            warn!("Unsupported MVT value type: {:?}", value);
+            warn!("Unsupported MVT value type: {value:?}");
             Value::Null
         }
     }
@@ -243,7 +243,7 @@ fn property_or_expression(
                 Error::PropertyMissing(key.clone(), properties.clone()),
             )?))
         }
-        Value::Array(_) => evaluate(&value, properties, zoom),
+        Value::Array(_) => evaluate(value, properties, zoom),
         _ => Err(Error::ExpectedKeyOrExpression(value.clone())),
     }
 }
