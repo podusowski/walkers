@@ -58,7 +58,6 @@ async fn fetch_and_decode(
     fetch: &impl Fetch,
     tile_id: TileId,
     tile_factory: &impl TileFactory,
-    egui_ctx: &Context,
 ) -> Result<(TileId, Tile), Error> {
     let data = fetch
         .fetch(tile_id)
@@ -104,7 +103,7 @@ async fn fetch_continuously_impl(
         if outstanding.is_empty() {
             // Only new fetches might be requested.
             let tile_id = request_rx.next().await.ok_or(Error::RequestChannelBroken)?;
-            let f = fetch_and_decode(&fetch, tile_id, &tile_factory, &egui_ctx);
+            let f = fetch_and_decode(&fetch, tile_id, &tile_factory);
             outstanding.push(Box::pin(f));
         } else if outstanding.len() < fetch.max_concurrency() {
             // New fetches might be requested or ongoing fetches might be completed.
@@ -112,7 +111,7 @@ async fn fetch_continuously_impl(
                 // New fetch was requested.
                 Either::Left((request, remaining)) => {
                     let tile_id = request.ok_or(Error::RequestChannelBroken)?;
-                    let f = fetch_and_decode(&fetch, tile_id, &tile_factory, &egui_ctx);
+                    let f = fetch_and_decode(&fetch, tile_id, &tile_factory);
                     outstanding = remaining.into_inner();
                     outstanding.push(Box::pin(f));
                 }
