@@ -144,11 +144,6 @@ mod tests {
 
     #[test]
     fn test_style_parsing() {
-        let style = std::fs::read_to_string(
-            env!("CARGO_MANIFEST_DIR").to_owned() + "/assets/protomaps-dark-style.json",
-        )
-        .unwrap();
-
-        let _parsed_style: Style = serde_json::from_str(&style).unwrap();
+        Style::protonmaps_dark();
     }
 }
