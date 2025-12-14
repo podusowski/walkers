@@ -22,7 +22,13 @@ pub struct PmTiles {
 }
 
 impl PmTiles {
-    pub fn new(path: impl AsRef<Path>, style: Style, egui_ctx: Context) -> Self {
+    pub fn new(path: impl AsRef<Path>, egui_ctx: Context) -> Self {
+        Self::with_style(path, Style::default(), egui_ctx)
+    }
+
+    /// Construct new [`PmTiles`] with [`Style']. Style is relevant only for vector tile
+    /// sources.
+    pub fn with_style(path: impl AsRef<Path>, style: Style, egui_ctx: Context) -> Self {
         Self {
             tiles_io: TilesIo::new(
                 PmTilesFetch::new(path.as_ref()),
