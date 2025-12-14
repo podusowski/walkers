@@ -1,8 +1,5 @@
 #[cfg(feature = "mvt")]
-use crate::{
-    mvt::{self, ShapeOrText},
-    style::Style,
-};
+use crate::mvt::{self, ShapeOrText};
 
 use egui::{Color32, Context, Mesh, Rect, Vec2, pos2};
 use egui::{ColorImage, TextureHandle};
@@ -17,6 +14,7 @@ use crate::io::TileFactory;
 use crate::mercator::{project, tile_id, total_tiles};
 use crate::position::{Pixels, PixelsExt};
 use crate::sources::Attribution;
+use crate::style::Style;
 use crate::zoom::Zoom;
 
 #[derive(Error, Debug)]
@@ -113,6 +111,9 @@ impl Tile {
     /// Create a tile from raw image data. The data can be either raster image (PNG, JPEG, etc.)
     /// or vector tile (MVT) if the `mvt` feature is enabled.
     pub fn new(image: &[u8], style: &Style, ctx: &Context) -> Result<Self, TileError> {
+        #[cfg(not(feature = "mvt"))]
+        let _ = style;
+
         if image.is_empty() {
             return Err(TileError::Empty);
         }
