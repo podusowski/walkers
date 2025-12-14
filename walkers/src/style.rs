@@ -6,6 +6,7 @@ use log::warn;
 use mvt_reader::feature::Value as MvtValue;
 use serde::Deserialize;
 use serde_json::Value;
+use thiserror::Error;
 
 use crate::expression::evaluate;
 
@@ -63,24 +64,40 @@ pub struct Paint {
     pub fill_opacity: Option<Opacity>,
 }
 
+#[derive(Debug, Error)]
+enum ColorError {
+    #[error(transparent)]
+    Expression(#[from] crate::expression::Error),
+    #[error("color must be a string")]
+    InvalidType,
+}
+
 #[derive(Deserialize, Debug)]
 pub struct Color(pub Value);
 
 impl Color {
     pub fn evaluate(&self, properties: &HashMap<String, MvtValue>, zoom: u8) -> Color32 {
-        match evaluate(&self.0, properties, zoom) {
-            Ok(Value::String(color)) => {
-                let color: color::AlphaColor<color::Srgb> = color.parse().unwrap();
-                let Rgba8 { r, g, b, a } = color.to_rgba8();
-                Color32::from_rgba_premultiplied(r, g, b, a)
-            }
-            _ => {
-                warn!(
-                    "Only string color definitions are supported. Got: {:?}",
-                    self.0
-                );
+        match self.try_evaluate(properties, zoom) {
+            Ok(color) => color,
+            Err(err) => {
+                warn!("{:?}", err);
                 Color32::MAGENTA
             }
+        }
+    }
+
+    fn try_evaluate(
+        &self,
+        properties: &HashMap<String, MvtValue>,
+        zoom: u8,
+    ) -> Result<Color32, ColorError> {
+        match evaluate(&self.0, properties, zoom)? {
+            Value::String(color) => {
+                let color: color::AlphaColor<color::Srgb> = color.parse().unwrap();
+                let Rgba8 { r, g, b, a } = color.to_rgba8();
+                Ok(Color32::from_rgba_premultiplied(r, g, b, a))
+            }
+            _ => Err(ColorError::InvalidType),
         }
     }
 }
