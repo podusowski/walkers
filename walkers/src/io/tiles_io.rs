@@ -6,7 +6,11 @@ use lru::LruCache;
 
 use crate::{
     Tile, TileId,
-    io::{Fetch, fetch::{TileFactory, fetch_continuously}, runtime::Runtime},
+    io::{
+        Fetch,
+        fetch::{TileFactory, fetch_continuously},
+        runtime::Runtime,
+    },
 };
 
 /// Asynchronously load and cache tiles from different local and remote sources.
