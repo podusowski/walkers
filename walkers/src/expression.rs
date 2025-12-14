@@ -30,6 +30,8 @@ pub enum Error {
     AtLeastTwoElementsExpected(Vec<Value>),
     #[error("Property '{0}' missing in {1:?}")]
     PropertyMissing(String, HashMap<String, MvtValue>),
+    #[error("Value must be a float that fits f32, got: {0:?}")]
+    ValueMustFitInF32(Value),
 }
 
 /// Evaluate a style expression.
@@ -200,6 +202,16 @@ fn mvt_value_to_json(value: &MvtValue) -> Value {
             warn!("Unsupported MVT value type: {:?}", value);
             Value::Null
         }
+    }
+}
+
+fn float(v: &Value) -> Result<f32, Error> {
+    match v {
+        Value::Number(n) => n
+            .as_f64()
+            .map(|f64| f64 as f32)
+            .ok_or(Error::ValueMustFitInF32(v.clone())),
+        _ => Err(Error::ValueMustFitInF32(v.clone())),
     }
 }
 
