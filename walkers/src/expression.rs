@@ -26,6 +26,8 @@ pub enum Error {
     SingleValueExpected(Vec<Value>),
     #[error("Exactly two elemented expected, got: {0:?}")]
     TwoElementsExpected(Vec<Value>),
+    #[error("At least two elemented expected, got: {0:?}")]
+    AtLeastTwoElementsExpected(Vec<Value>),
     #[error("Property '{0}' missing in {1:?}")]
     PropertyMissing(String, HashMap<String, MvtValue>),
 }
@@ -61,7 +63,7 @@ pub fn evaluate(
                     !properties.contains_key(single_string(arguments)?),
                 )),
                 "match" => {
-                    let (value, arms) = arguments.split_first().unwrap();
+                    let (value, arms) = first_and_rest(arguments)?;
                     let evaluated_value = evaluate(value, properties, zoom)?;
                     for arm in arms.chunks(2) {
                         if arm.len() == 1 {
@@ -281,6 +283,13 @@ fn two_elements(slice: &[Value]) -> Result<(&Value, &Value), Error> {
     } else {
         Err(Error::TwoElementsExpected(slice.to_vec()))
     }
+}
+
+/// Expect two or more elements.
+fn first_and_rest(slice: &[Value]) -> Result<(&Value, &[Value]), Error> {
+    slice
+        .split_first()
+        .ok_or(Error::AtLeastTwoElementsExpected(slice.to_vec()))
 }
 
 #[cfg(test)]
