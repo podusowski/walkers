@@ -2,13 +2,11 @@
 
 mod geoportal;
 mod mapbox;
-mod openfreemap;
 mod openstreetmap;
 
 use crate::TileId;
 pub use geoportal::Geoportal;
 pub use mapbox::{Mapbox, MapboxStyle};
-pub use openfreemap::OpenFreeMap;
 pub use openstreetmap::OpenStreetMap;
 
 #[derive(Clone)]
