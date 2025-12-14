@@ -18,8 +18,6 @@ jobs:
       - uses: arduino/setup-protoc@v3.0.0
         with:
           repo-token: ${{ secrets.GITHUB_TOKEN }}
-      - name: Build
-        run: cargo build
       - name: Cargo Check All Features
         run: cargo check -p walkers --all-features
       - name: Cargo Check No Features
