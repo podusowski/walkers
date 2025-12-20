@@ -94,7 +94,7 @@ impl Color {
         match self.try_evaluate(properties, zoom) {
             Ok(color) => color,
             Err(err) => {
-                warn!("{err:?}");
+                warn!("{err}");
                 Color32::MAGENTA
             }
         }
@@ -124,7 +124,7 @@ impl Opacity {
         match self.try_evaluate(properties, zoom) {
             Ok(opacity) => opacity,
             Err(err) => {
-                warn!("{err:?}");
+                warn!("{err}");
                 0.5
             }
         }
