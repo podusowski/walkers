@@ -12,8 +12,8 @@ pub enum Error {
     InvalidExpression(Value),
     #[error("Expected a property name or an expression, got: {0:?}")]
     ExpectedKeyOrExpression(Value),
-    #[error("Interpolate stop not found for input value: {0:?}")]
-    InterpolateStopNotFound(Value),
+    #[error("Interpolate stop not found for input value: {0}. Expression: {1}")]
+    InterpolateStopNotFound(Value, Value),
     #[error("Single string expected, got: {0:?}")]
     SingleStringExpected(Vec<Value>),
     #[error("Single array expected, got: {0:?}")]
@@ -161,7 +161,7 @@ pub fn evaluate(
                             let right_stop = &pair[1].0;
                             lt(left_stop, &input) && lt(&input, right_stop)
                         })
-                        .ok_or(Error::InterpolateStopNotFound(value.clone()))?;
+                        .ok_or(Error::InterpolateStopNotFound(input.clone(), value.clone()))?;
 
                     let input_delta = numeric_difference(&stop_pair[1].0, &stop_pair[0].0)?;
 
