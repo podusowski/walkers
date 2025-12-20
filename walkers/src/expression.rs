@@ -154,22 +154,30 @@ pub fn evaluate(
                         .collect::<Vec<_>>();
 
                     // Find the two stops surrounding the input value.
-                    let stop_pair = stops
-                        .windows(2)
-                        .find(|pair| {
-                            let left_stop = &pair[0].0;
-                            let right_stop = &pair[1].0;
-                            lt(left_stop, &input) && lt(&input, right_stop)
-                        })
-                        .ok_or(Error::InterpolateStopNotFound(input.clone(), value.clone()))?;
+                    let stop_pair = stops.windows(2).find(|pair| {
+                        let left_stop = &pair[0].0;
+                        let right_stop = &pair[1].0;
+                        lte(left_stop, &input) && lte(&input, right_stop)
+                    });
 
-                    let input_delta = numeric_difference(&stop_pair[1].0, &stop_pair[0].0)?;
+                    if let Some(stop_pair) = stop_pair {
+                        let input_delta = numeric_difference(&stop_pair[1].0, &stop_pair[0].0)?;
 
-                    // Position of the input value between the two stops (0.0 to 1.0).
-                    let input_position = numeric_difference(&input, &stop_pair[0].0)? / input_delta;
+                        // Position of the input value between the two stops (0.0 to 1.0).
+                        let input_position =
+                            numeric_difference(&input, &stop_pair[0].0)? / input_delta;
 
-                    let result = lerp(&stop_pair[0].1, &stop_pair[1].1, input_position)?;
-                    Ok(result)
+                        let result = lerp(&stop_pair[0].1, &stop_pair[1].1, input_position)?;
+                        Ok(result)
+                    } else {
+                        if lt(&input, &stops[0].0) {
+                            Ok(stops[0].1.clone())
+                        } else if lt(&stops[stops.len() - 1].0, &input) {
+                            Ok(stops[stops.len() - 1].1.clone())
+                        } else {
+                            Err(Error::InterpolateStopNotFound(input, value.clone()))
+                        }
+                    }
                 }
                 "format" => {
                     let mut result = String::new();
@@ -227,6 +235,14 @@ fn lt(left: &Value, right: &Value) -> bool {
     match (left, right) {
         (Value::Number(l), Value::Number(r)) => l.as_i64() < r.as_i64(),
         (Value::String(l), Value::String(r)) => l < r,
+        _ => false,
+    }
+}
+
+fn lte(left: &Value, right: &Value) -> bool {
+    match (left, right) {
+        (Value::Number(l), Value::Number(r)) => l.as_i64() <= r.as_i64(),
+        (Value::String(l), Value::String(r)) => l <= r,
         _ => false,
     }
 }
