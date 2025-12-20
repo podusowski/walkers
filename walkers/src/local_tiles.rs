@@ -84,5 +84,5 @@ fn load(
         format!("{}.png", tile_id.y).into(),
     ]);
     let bytes = std::fs::read(path)?;
-    Ok(Tile::new(&bytes, &Style::default(), egui_ctx)?)
+    Ok(Tile::new(&bytes, &Style::default(), 10, egui_ctx)?)
 }

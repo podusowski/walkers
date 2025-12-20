@@ -86,12 +86,9 @@ impl ShapeOrText {
 }
 
 /// Render MVT data into a list of [`epaint::Shape`]s.
-pub fn render(data: &[u8], style: &Style) -> Result<Vec<ShapeOrText>, Error> {
+pub fn render(data: &[u8], style: &Style, zoom: u8) -> Result<Vec<ShapeOrText>, Error> {
     let data = mvt_reader::Reader::new(data.to_vec())?;
     let mut shapes = Vec::new();
-
-    // TODO: Use real zoom level.
-    let fake_zoom = 10;
 
     for layer in &style.layers {
         match layer {
@@ -108,7 +105,7 @@ pub fn render(data: &[u8], style: &Style) -> Result<Vec<ShapeOrText>, Error> {
 
                 for feature in data.get_features(layer_index)? {
                     if let Err(err) =
-                        polygon_feature_into_shape(&feature, &mut shapes, filter, paint, fake_zoom)
+                        polygon_feature_into_shape(&feature, &mut shapes, filter, paint, zoom)
                     {
                         warn!("{err}");
                     }
@@ -126,7 +123,7 @@ pub fn render(data: &[u8], style: &Style) -> Result<Vec<ShapeOrText>, Error> {
 
                 for feature in data.get_features(layer_index)? {
                     if let Err(err) =
-                        line_feature_into_shape(&feature, &mut shapes, filter, paint, fake_zoom)
+                        line_feature_into_shape(&feature, &mut shapes, filter, paint, zoom)
                     {
                         warn!("{err}");
                     }
@@ -144,7 +141,7 @@ pub fn render(data: &[u8], style: &Style) -> Result<Vec<ShapeOrText>, Error> {
 
                 for feature in data.get_features(layer_index)? {
                     if let Err(err) =
-                        point_feature_into_shape(&feature, &mut shapes, filter, layout, fake_zoom)
+                        point_feature_into_shape(&feature, &mut shapes, filter, layout, zoom)
                     {
                         warn!("{err}");
                     }
