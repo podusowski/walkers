@@ -137,6 +137,16 @@ pub fn evaluate(
                     let left = property_or_expression(left, properties, zoom)?;
                     Ok(Value::Bool(left != *right))
                 }
+                "<" => {
+                    let (left, right) = two_elements(arguments)?;
+                    let left = property_or_expression(left, properties, zoom)?;
+                    Ok(Value::Bool(lt(&left, right)))
+                }
+                ">=" => {
+                    let (left, right) = two_elements(arguments)?;
+                    let left = property_or_expression(left, properties, zoom)?;
+                    Ok(Value::Bool(lte(right, &left)))
+                }
                 "any" => Ok(arguments
                     .iter()
                     .try_fold(false, |acc, value| {

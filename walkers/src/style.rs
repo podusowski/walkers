@@ -174,6 +174,7 @@ impl Filter {
 #[serde(rename_all = "kebab-case")]
 pub struct Layout {
     text_field: Option<Value>,
+    pub text_size: Option<Opacity>,
 }
 
 impl Layout {
