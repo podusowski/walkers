@@ -37,6 +37,8 @@ pub enum Error {
     CouldNotSerializeFloat,
     #[error(transparent)]
     ColorParse(color::ParseError),
+    #[error("No case or match arm was matched. Expression: {0}")]
+    UnmatchedCaseOrMatch(Value),
 }
 
 /// Evaluate a style expression.
@@ -73,38 +75,36 @@ pub fn evaluate(
                     let (value, arms) = first_and_rest(arguments)?;
                     let evaluated_value = evaluate(value, properties, zoom)?;
                     for arm in arms.chunks(2) {
-                        if arm.len() == 1 {
-                            // Default case
-                            return evaluate(&arm[0], properties, zoom);
-                        }
-
-                        let arm_value = &arm[0];
-                        let arm_result = &arm[1];
-
-                        if evaluated_value == *arm_value {
-                            return evaluate(arm_result, properties, zoom);
-                        }
-                    }
-                    todo!("No match found in 'match' expression.");
-                }
-                "case" => {
-                    for arm in arguments.chunks(2) {
                         match arm.iter().as_slice() {
-                            [condition, value] => {
-                                let evaluated_condition = evaluate(condition, properties, zoom)?;
-                                if let Value::Bool(true) = evaluated_condition {
-                                    return evaluate(value, properties, zoom);
+                            [arm_value, arm_result] => {
+                                if evaluated_value == *arm_value {
+                                    return evaluate(arm_result, properties, zoom);
                                 }
                             }
                             [default] => {
                                 return evaluate(default, properties, zoom);
                             }
-                            _ => {
-                                panic!("Invalid 'case' arm.");
-                            }
+                            _ => unreachable!(),
                         }
                     }
-                    todo!("No true condition found in 'case' expression.");
+                    Err(Error::UnmatchedCaseOrMatch(value.clone()))
+                }
+                "case" => {
+                    for arm in arguments.chunks(2) {
+                        match arm.iter().as_slice() {
+                            [condition, arm_result] => {
+                                let evaluated_condition = evaluate(condition, properties, zoom)?;
+                                if let Value::Bool(true) = evaluated_condition {
+                                    return evaluate(arm_result, properties, zoom);
+                                }
+                            }
+                            [default] => {
+                                return evaluate(default, properties, zoom);
+                            }
+                            _ => unreachable!(),
+                        }
+                    }
+                    Err(Error::UnmatchedCaseOrMatch(value.clone()))
                 }
                 "coalesce" => {
                     for argument in arguments {
