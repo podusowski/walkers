@@ -606,6 +606,21 @@ mod tests {
     }
 
     #[test]
+    fn test_interpolate_operator_with_evaluated_stop() {
+        let properties = HashMap::from([("zoom".to_string(), MvtValue::Int(5))]);
+
+        assert_eq!(
+            evaluate(
+                &json!(["interpolate", ["linear"], 5, 0, 0, 10, ["get", "zoom"]]),
+                &properties,
+                1,
+            )
+            .unwrap(),
+            json!(2.5)
+        );
+    }
+
+    #[test]
     fn test_negation_operator() {
         let properties = HashMap::new();
 
