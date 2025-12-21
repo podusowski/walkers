@@ -227,9 +227,9 @@ fn float(v: &Value) -> Result<f64, Error> {
 fn lerp(a: &Value, b: &Value, t: f64) -> Result<Value, Error> {
     match (a, b) {
         (Value::String(a), Value::String(b)) => {
-            let a_color: color::AlphaColor<color::Srgb> = a.parse().unwrap();
-            let b_color: color::AlphaColor<color::Srgb> = b.parse().unwrap();
-            let color = a_color.lerp(b_color, t as f32, HueDirection::default());
+            let a: color::AlphaColor<color::Srgb> = a.parse().unwrap();
+            let b: color::AlphaColor<color::Srgb> = b.parse().unwrap();
+            let color = a.lerp(b, t as f32, HueDirection::default());
             Ok(Value::String(color.to_rgba8().to_string()))
         }
         (Value::Number(a), Value::Number(b)) => {
