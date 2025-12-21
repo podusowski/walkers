@@ -312,7 +312,20 @@ fn point_feature_into_shape(
         let text_size = layout
             .text_size
             .as_ref()
-            .map_or(12.0, |size| size.evaluate(properties, zoom));
+            .and_then(|text_size| {
+                let size = text_size.evaluate(properties, zoom);
+
+                if size > 3.0 {
+                    Some(size)
+                } else {
+                    warn!(
+                        "{} evaluated into {size}, which is too small for text size.",
+                        text_size.0
+                    );
+                    None
+                }
+            })
+            .unwrap_or(12.0);
 
         if let Some(text) = &layout.text(properties, zoom) {
             shapes.extend(multi_point.0.iter().map(|p| ShapeOrText::Text {

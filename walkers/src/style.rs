@@ -129,7 +129,7 @@ impl Color {
 }
 
 #[derive(Deserialize, Debug)]
-pub struct Opacity(Value);
+pub struct Opacity(pub Value);
 
 impl Opacity {
     pub fn evaluate(&self, properties: &HashMap<String, MvtValue>, zoom: u8) -> f32 {

@@ -184,7 +184,11 @@ pub fn evaluate(
                         let input_position =
                             numeric_difference(&input, &stop_pair[0].0)? / input_delta;
 
-                        let result = lerp(&stop_pair[0].1, &stop_pair[1].1, input_position)?;
+                        let result = lerp(
+                            &evaluate(&stop_pair[0].1, properties, zoom)?,
+                            &evaluate(&stop_pair[1].1, properties, zoom)?,
+                            input_position,
+                        )?;
                         Ok(result)
                     } else if lt(&input, &stops[0].0) {
                         Ok(stops[0].1.clone())
