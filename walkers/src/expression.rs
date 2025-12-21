@@ -1,6 +1,7 @@
 //! Evaluate MapLibre style expressions.
 //! <https://maplibre.org/maplibre-style-spec/expressions/>
 
+use color::HueDirection;
 use log::warn;
 use mvt_reader::feature::Value as MvtValue;
 use serde_json::{Number, Value};
@@ -218,6 +219,15 @@ fn float(v: &Value) -> Result<f64, Error> {
 }
 
 fn lerp(a: &Value, b: &Value, t: f64) -> Result<Value, Error> {
+    match (a, b) {
+        (Value::String(a), Value::String(b)) => {
+            let a_color: color::AlphaColor<color::Srgb> = a.parse().unwrap();
+            let b_color: color::AlphaColor<color::Srgb> = b.parse().unwrap();
+            let color = a_color.lerp(b_color, t as f32, HueDirection::default());
+            return Ok(Value::String(color.to_rgba8().to_string()));
+        }
+        _ => {}
+    }
     let a = float(a)?;
     let b = float(b)?;
     Ok(Value::Number(
@@ -312,6 +322,25 @@ mod tests {
     use egui::Color32;
     use serde_json::json;
     use std::collections::HashMap;
+
+    #[test]
+    fn test_lerp() {
+        assert_eq!(5.0, lerp(&json!(0), &json!(10.0), 0.5).unwrap());
+
+        //  "line-color": [
+        //    "interpolate",
+        //    ["exponential", 1.6],
+        //    ["zoom"],
+        //    11,
+        //    "#3d3d3d",
+        //    16,
+        //    "#333333"
+        //  ],
+        assert_eq!(
+            "#555555",
+            lerp(&json!("#000000"), &json!("#999999"), 0.5).unwrap()
+        );
+    }
 
     #[test]
     fn test_eq_filter_matching() {
