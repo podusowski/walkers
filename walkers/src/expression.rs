@@ -229,6 +229,7 @@ fn numeric_difference(left: &Value, right: &Value) -> Result<f64, Error> {
     Ok(float(left)? - float(right)?)
 }
 
+/// Less than comparison for Numbers and Strings.
 fn lt(left: &Value, right: &Value) -> bool {
     match (left, right) {
         (Value::Number(l), Value::Number(r)) => l.as_i64() < r.as_i64(),
@@ -237,6 +238,7 @@ fn lt(left: &Value, right: &Value) -> bool {
     }
 }
 
+/// Less than or equal comparison for Numbers and Strings.
 fn lte(left: &Value, right: &Value) -> bool {
     match (left, right) {
         (Value::Number(l), Value::Number(r)) => l.as_i64() <= r.as_i64(),
