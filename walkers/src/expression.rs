@@ -29,10 +29,10 @@ pub enum Error {
     AtLeastTwoElementsExpected(Vec<Value>),
     #[error("Property '{0}' missing in {1:?}")]
     PropertyMissing(String, HashMap<String, MvtValue>),
-    #[error("Value must be a float, got: {0:?}")]
-    ExpectedFloat(Value),
-    #[error("Value must be a float, got: {0:?}")]
-    ExpectedFloat2(Number),
+    #[error("Value must be a number, got: {0}")]
+    ExpectedNumber(Value),
+    #[error("Number must be a float, got: {0}")]
+    ExpectedFloat(Number),
     #[error("Could not serialize a float. Is it NaN?")]
     CouldNotSerializeFloat,
 }
@@ -214,11 +214,12 @@ fn mvt_value_to_json(value: &MvtValue) -> Value {
     }
 }
 
+/// Expect a float Value.
 fn float(v: &Value) -> Result<f64, Error> {
     if let Value::Number(n) = v {
-        n.as_f64().ok_or(Error::ExpectedFloat(v.clone()))
+        n.as_f64().ok_or(Error::ExpectedFloat(n.clone()))
     } else {
-        Err(Error::ExpectedFloat(v.clone()))
+        Err(Error::ExpectedNumber(v.clone()))
     }
 }
 
@@ -232,8 +233,8 @@ fn lerp(a: &Value, b: &Value, t: f64) -> Result<Value, Error> {
             Ok(Value::String(color.to_rgba8().to_string()))
         }
         (Value::Number(a), Value::Number(b)) => {
-            let a = a.as_f64().ok_or(Error::ExpectedFloat2(a.clone()))?;
-            let b = b.as_f64().ok_or(Error::ExpectedFloat2(b.clone()))?;
+            let a = a.as_f64().ok_or(Error::ExpectedFloat(a.clone()))?;
+            let b = b.as_f64().ok_or(Error::ExpectedFloat(b.clone()))?;
             Ok(Value::Number(
                 Number::from_f64(a + (b - a) * t).ok_or(Error::CouldNotSerializeFloat)?,
             ))
