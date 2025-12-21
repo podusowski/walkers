@@ -207,8 +207,14 @@ fn line_feature_into_shape(
         2.0
     };
 
+    let opacity = if let Some(opacity) = &paint.line_opacity {
+        opacity.evaluate(properties, zoom)
+    } else {
+        1.0
+    };
+
     let color = if let Some(color) = &paint.line_color {
-        color.evaluate(properties, zoom)
+        color.evaluate(properties, zoom).gamma_multiply(opacity)
     } else {
         Color32::WHITE
     };
