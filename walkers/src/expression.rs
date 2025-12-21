@@ -592,12 +592,10 @@ mod tests {
     #[test]
     fn test_interpolate_operator() {
         // https://maplibre.org/maplibre-style-spec/expressions/#interpolate
-        let properties = HashMap::from([("zoom".to_string(), MvtValue::Int(5))]);
-
         assert_eq!(
             evaluate(
                 &json!(["interpolate", ["linear"], 5, 0, 0, 10, 10]),
-                &properties,
+                &HashMap::new(),
                 1,
             )
             .unwrap(),
