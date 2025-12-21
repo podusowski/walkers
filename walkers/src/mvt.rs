@@ -309,11 +309,29 @@ fn point_feature_into_shape(
             return Ok(());
         }
 
+        let text_size = layout
+            .text_size
+            .as_ref()
+            .and_then(|text_size| {
+                let size = text_size.evaluate(properties, zoom);
+
+                if size > 3.0 {
+                    Some(size)
+                } else {
+                    warn!(
+                        "{} evaluated into {size}, which is too small for text size.",
+                        text_size.0
+                    );
+                    None
+                }
+            })
+            .unwrap_or(12.0);
+
         if let Some(text) = &layout.text(properties, zoom) {
             shapes.extend(multi_point.0.iter().map(|p| ShapeOrText::Text {
                 position: pos2(p.x(), p.y()),
                 text: text.clone(),
-                font_size: 12.0,
+                font_size: text_size,
             }))
         }
     }

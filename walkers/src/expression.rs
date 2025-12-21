@@ -137,6 +137,26 @@ pub fn evaluate(
                     let left = property_or_expression(left, properties, zoom)?;
                     Ok(Value::Bool(left != *right))
                 }
+                "<" => {
+                    let (left, right) = two_elements(arguments)?;
+                    let left = property_or_expression(left, properties, zoom)?;
+                    Ok(Value::Bool(lt(&left, right)))
+                }
+                ">" => {
+                    let (left, right) = two_elements(arguments)?;
+                    let left = property_or_expression(left, properties, zoom)?;
+                    Ok(Value::Bool(lt(right, &left)))
+                }
+                "<=" => {
+                    let (left, right) = two_elements(arguments)?;
+                    let left = property_or_expression(left, properties, zoom)?;
+                    Ok(Value::Bool(lte(&left, right)))
+                }
+                ">=" => {
+                    let (left, right) = two_elements(arguments)?;
+                    let left = property_or_expression(left, properties, zoom)?;
+                    Ok(Value::Bool(lte(right, &left)))
+                }
                 "any" => Ok(arguments
                     .iter()
                     .try_fold(false, |acc, value| {
@@ -174,7 +194,11 @@ pub fn evaluate(
                         let input_position =
                             numeric_difference(&input, &stop_pair[0].0)? / input_delta;
 
-                        let result = lerp(&stop_pair[0].1, &stop_pair[1].1, input_position)?;
+                        let result = lerp(
+                            &evaluate(&stop_pair[0].1, properties, zoom)?,
+                            &evaluate(&stop_pair[1].1, properties, zoom)?,
+                            input_position,
+                        )?;
                         Ok(result)
                     } else if lt(&input, &stops[0].0) {
                         Ok(stops[0].1.clone())
@@ -206,7 +230,7 @@ pub fn evaluate(
 fn mvt_value_to_json(value: &MvtValue) -> Value {
     match value {
         MvtValue::String(s) => Value::String(s.clone()),
-        MvtValue::Int(i) => Value::Number((*i).into()),
+        MvtValue::Int(i) | MvtValue::SInt(i) => Value::Number((*i).into()),
         MvtValue::Bool(b) => Value::Bool(*b),
         MvtValue::Null => Value::Null,
         _ => {
@@ -582,16 +606,29 @@ mod tests {
     #[test]
     fn test_interpolate_operator() {
         // https://maplibre.org/maplibre-style-spec/expressions/#interpolate
-        let properties = HashMap::from([("zoom".to_string(), MvtValue::Int(5))]);
-
         assert_eq!(
             evaluate(
                 &json!(["interpolate", ["linear"], 5, 0, 0, 10, 10]),
-                &properties,
+                &HashMap::new(),
                 1,
             )
             .unwrap(),
             json!(5.0)
+        );
+    }
+
+    #[test]
+    fn test_interpolate_operator_with_evaluated_stop() {
+        let properties = HashMap::from([("zoom".to_string(), MvtValue::Int(5))]);
+
+        assert_eq!(
+            evaluate(
+                &json!(["interpolate", ["linear"], 5, 0, 0, 10, ["get", "zoom"]]),
+                &properties,
+                1,
+            )
+            .unwrap(),
+            json!(2.5)
         );
     }
 

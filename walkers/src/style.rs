@@ -129,7 +129,7 @@ impl Color {
 }
 
 #[derive(Deserialize, Debug)]
-pub struct Opacity(Value);
+pub struct Opacity(pub Value);
 
 impl Opacity {
     pub fn evaluate(&self, properties: &HashMap<String, MvtValue>, zoom: u8) -> f32 {
@@ -174,6 +174,7 @@ impl Filter {
 #[serde(rename_all = "kebab-case")]
 pub struct Layout {
     text_field: Option<Value>,
+    pub text_size: Option<Opacity>,
 }
 
 impl Layout {
