@@ -7,6 +7,7 @@ All notable changes to this project will be documented in this file.
 * `vector_tiles` Cargo feature is now split into `mvt` and `pmtiles`.
 * Basic support for vector styling. See `Style` struct for details. You can use it with `Tiles`
   implementations that support vector tiles, e.g. `PmTiles::with_style()`.
+* `LocalTiles` is now deprecated. For local maps, use `PmTiles` with local `.pmtiles` file.
 
 ## 0.50.0
 

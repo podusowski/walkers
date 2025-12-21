@@ -102,6 +102,7 @@ pub(crate) fn providers(egui_ctx: Context) -> Providers {
         ))],
     );
 
+    #[allow(deprecated)]
     providers.available.insert(
         "LocalTiles".to_string(),
         vec![TilesKind::Local(LocalTiles::new(
