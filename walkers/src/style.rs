@@ -32,6 +32,14 @@ impl Style {
         serde_json::from_str(style_json).expect("failed to parse style JSON")
     }
 
+    /// Style based on Protomaps Dark Vis flavour. Requires Protomaps source.
+    ///
+    /// <https://docs.protomaps.com/basemaps/flavors>
+    pub fn protomaps_dark_vis() -> Self {
+        let style_json = include_str!("../assets/protomaps-dark-vis.json");
+        serde_json::from_str(style_json).expect("failed to parse style JSON")
+    }
+
     /// Style based on Protomaps Light flavour. Requires Protomaps source.
     ///
     /// <https://docs.protomaps.com/basemaps/flavors>
