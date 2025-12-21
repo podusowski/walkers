@@ -5,7 +5,8 @@ All notable changes to this project will be documented in this file.
 ## Unreleased
 
 * `vector_tiles` Cargo feature is now split into `mvt` and `pmtiles`.
-* Basic support for vector styling. See `Style` struct for details.
+* Basic support for vector styling. See `Style` struct for details. You can use it with `Tiles`
+  implementations that support vector tiles, e.g. `PmTiles::with_style()`.
 
 ## 0.50.0
 
