@@ -37,6 +37,8 @@ pub enum Error {
     CouldNotSerializeFloat,
     #[error(transparent)]
     ColorParse(color::ParseError),
+    #[error("No case or match arm was matched. Expression: {0}")]
+    UnmatchedCaseOrMatch(Value),
 }
 
 /// Evaluate a style expression.
@@ -85,26 +87,24 @@ pub fn evaluate(
                             _ => unreachable!(),
                         }
                     }
-                    todo!("No match found in 'match' expression.");
+                    Err(Error::UnmatchedCaseOrMatch(value.clone()))
                 }
                 "case" => {
                     for arm in arguments.chunks(2) {
                         match arm.iter().as_slice() {
-                            [condition, value] => {
+                            [condition, arm_result] => {
                                 let evaluated_condition = evaluate(condition, properties, zoom)?;
                                 if let Value::Bool(true) = evaluated_condition {
-                                    return evaluate(value, properties, zoom);
+                                    return evaluate(arm_result, properties, zoom);
                                 }
                             }
                             [default] => {
                                 return evaluate(default, properties, zoom);
                             }
-                            _ => {
-                                panic!("Invalid 'case' arm.");
-                            }
+                            _ => unreachable!(),
                         }
                     }
-                    todo!("No true condition found in 'case' expression.");
+                    Err(Error::UnmatchedCaseOrMatch(value.clone()))
                 }
                 "coalesce" => {
                     for argument in arguments {
