@@ -1,7 +1,7 @@
 //! Evaluate MapLibre style expressions.
 //! <https://maplibre.org/maplibre-style-spec/expressions/>
 
-use color::HueDirection;
+use color::{AlphaColor, HueDirection, Srgb};
 use log::warn;
 use mvt_reader::feature::Value as MvtValue;
 use serde_json::{Number, Value};
@@ -229,8 +229,8 @@ fn float(v: &Value) -> Result<f64, Error> {
 fn lerp(a: &Value, b: &Value, t: f64) -> Result<Value, Error> {
     match (a, b) {
         (Value::String(a), Value::String(b)) => {
-            let a: color::AlphaColor<color::Srgb> = a.parse().map_err(Error::ColorParseError)?;
-            let b: color::AlphaColor<color::Srgb> = b.parse().map_err(Error::ColorParseError)?;
+            let a: AlphaColor<Srgb> = a.parse().map_err(Error::ColorParseError)?;
+            let b: AlphaColor<Srgb> = b.parse().map_err(Error::ColorParseError)?;
             let color = a.lerp(b, t as f32, HueDirection::default());
             Ok(Value::String(color.to_rgba8().to_string()))
         }
