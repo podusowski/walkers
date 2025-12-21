@@ -142,6 +142,16 @@ pub fn evaluate(
                     let left = property_or_expression(left, properties, zoom)?;
                     Ok(Value::Bool(lt(&left, right)))
                 }
+                ">" => {
+                    let (left, right) = two_elements(arguments)?;
+                    let left = property_or_expression(left, properties, zoom)?;
+                    Ok(Value::Bool(lt(right, &left)))
+                }
+                "<=" => {
+                    let (left, right) = two_elements(arguments)?;
+                    let left = property_or_expression(left, properties, zoom)?;
+                    Ok(Value::Bool(lte(&left, right)))
+                }
                 ">=" => {
                     let (left, right) = two_elements(arguments)?;
                     let left = property_or_expression(left, properties, zoom)?;
