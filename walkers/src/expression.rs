@@ -15,6 +15,8 @@ pub enum Error {
     ExpectedKeyOrExpression(Value),
     #[error("Interpolate stop not found for input value: {0}. Expression: {1}")]
     InterpolateStopNotFound(Value, Value),
+    #[error("Cannot interpolate between values: {0} and {1}")]
+    CannotInterpolate(Value, Value),
     #[error("Single string expected, got: {0:?}")]
     SingleStringExpected(Vec<Value>),
     #[error("Single array expected, got: {0:?}")]
@@ -29,6 +31,8 @@ pub enum Error {
     PropertyMissing(String, HashMap<String, MvtValue>),
     #[error("Value must be a float, got: {0:?}")]
     ExpectedFloat(Value),
+    #[error("Value must be a float, got: {0:?}")]
+    ExpectedFloat2(Number),
     #[error("Could not serialize a float. Is it NaN?")]
     CouldNotSerializeFloat,
 }
@@ -218,21 +222,24 @@ fn float(v: &Value) -> Result<f64, Error> {
     }
 }
 
+/// Linear interpolation between two Values (Numbers or Strings representing colors).
 fn lerp(a: &Value, b: &Value, t: f64) -> Result<Value, Error> {
     match (a, b) {
         (Value::String(a), Value::String(b)) => {
             let a_color: color::AlphaColor<color::Srgb> = a.parse().unwrap();
             let b_color: color::AlphaColor<color::Srgb> = b.parse().unwrap();
             let color = a_color.lerp(b_color, t as f32, HueDirection::default());
-            return Ok(Value::String(color.to_rgba8().to_string()));
+            Ok(Value::String(color.to_rgba8().to_string()))
         }
-        _ => {}
+        (Value::Number(a), Value::Number(b)) => {
+            let a = a.as_f64().ok_or(Error::ExpectedFloat2(a.clone()))?;
+            let b = b.as_f64().ok_or(Error::ExpectedFloat2(b.clone()))?;
+            Ok(Value::Number(
+                Number::from_f64(a + (b - a) * t).ok_or(Error::CouldNotSerializeFloat)?,
+            ))
+        }
+        _ => Err(Error::CannotInterpolate(a.clone(), b.clone())),
     }
-    let a = float(a)?;
-    let b = float(b)?;
-    Ok(Value::Number(
-        Number::from_f64(a + (b - a) * t).ok_or(Error::CouldNotSerializeFloat)?,
-    ))
 }
 
 fn numeric_difference(left: &Value, right: &Value) -> Result<f64, Error> {
@@ -327,18 +334,9 @@ mod tests {
     fn test_lerp() {
         assert_eq!(5.0, lerp(&json!(0), &json!(10.0), 0.5).unwrap());
 
-        //  "line-color": [
-        //    "interpolate",
-        //    ["exponential", 1.6],
-        //    ["zoom"],
-        //    11,
-        //    "#3d3d3d",
-        //    16,
-        //    "#333333"
-        //  ],
         assert_eq!(
-            "#555555",
-            lerp(&json!("#000000"), &json!("#999999"), 0.5).unwrap()
+            "rgb(128, 128, 128)",
+            lerp(&json!("rgb(0, 0, 0)"), &json!("rgb(255, 255, 255)"), 0.5).unwrap()
         );
     }
 
