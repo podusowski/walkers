@@ -36,7 +36,7 @@ pub enum Error {
     #[error("Could not serialize a float. Is it NaN?")]
     CouldNotSerializeFloat,
     #[error(transparent)]
-    ColorParseError(color::ParseError),
+    ColorParse(color::ParseError),
 }
 
 /// Evaluate a style expression.
@@ -229,8 +229,8 @@ fn float(v: &Value) -> Result<f64, Error> {
 fn lerp(a: &Value, b: &Value, t: f64) -> Result<Value, Error> {
     match (a, b) {
         (Value::String(a), Value::String(b)) => {
-            let a: AlphaColor<Srgb> = a.parse().map_err(Error::ColorParseError)?;
-            let b: AlphaColor<Srgb> = b.parse().map_err(Error::ColorParseError)?;
+            let a: AlphaColor<Srgb> = a.parse().map_err(Error::ColorParse)?;
+            let b: AlphaColor<Srgb> = b.parse().map_err(Error::ColorParse)?;
             let color = a.lerp(b, t as f32, HueDirection::default());
             Ok(Value::String(color.to_rgba8().to_string()))
         }
