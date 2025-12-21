@@ -169,14 +169,12 @@ pub fn evaluate(
 
                         let result = lerp(&stop_pair[0].1, &stop_pair[1].1, input_position)?;
                         Ok(result)
+                    } else if lt(&input, &stops[0].0) {
+                        Ok(stops[0].1.clone())
+                    } else if lt(&stops[stops.len() - 1].0, &input) {
+                        Ok(stops[stops.len() - 1].1.clone())
                     } else {
-                        if lt(&input, &stops[0].0) {
-                            Ok(stops[0].1.clone())
-                        } else if lt(&stops[stops.len() - 1].0, &input) {
-                            Ok(stops[stops.len() - 1].1.clone())
-                        } else {
-                            Err(Error::InterpolateStopNotFound(input, value.clone()))
-                        }
+                        Err(Error::InterpolateStopNotFound(input, value.clone()))
                     }
                 }
                 "format" => {
