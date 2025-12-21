@@ -1,6 +1,7 @@
 //! Evaluate MapLibre style expressions.
 //! <https://maplibre.org/maplibre-style-spec/expressions/>
 
+use color::{AlphaColor, HueDirection, Srgb};
 use log::warn;
 use mvt_reader::feature::Value as MvtValue;
 use serde_json::{Number, Value};
@@ -12,8 +13,10 @@ pub enum Error {
     InvalidExpression(Value),
     #[error("Expected a property name or an expression, got: {0:?}")]
     ExpectedKeyOrExpression(Value),
-    #[error("Interpolate stop not found for input value: {0:?}")]
-    InterpolateStopNotFound(Value),
+    #[error("Interpolate stop not found for input value: {0}. Expression: {1}")]
+    InterpolateStopNotFound(Value, Value),
+    #[error("Cannot interpolate between values: {0} and {1}")]
+    CannotInterpolate(Value, Value),
     #[error("Single string expected, got: {0:?}")]
     SingleStringExpected(Vec<Value>),
     #[error("Single array expected, got: {0:?}")]
@@ -26,10 +29,14 @@ pub enum Error {
     AtLeastTwoElementsExpected(Vec<Value>),
     #[error("Property '{0}' missing in {1:?}")]
     PropertyMissing(String, HashMap<String, MvtValue>),
-    #[error("Value must be a float, got: {0:?}")]
-    ExpectedFloat(Value),
+    #[error("Value must be a number, got: {0}")]
+    ExpectedNumber(Value),
+    #[error("Number must be a float, got: {0}")]
+    ExpectedFloat(Number),
     #[error("Could not serialize a float. Is it NaN?")]
     CouldNotSerializeFloat,
+    #[error(transparent)]
+    ColorParse(color::ParseError),
 }
 
 /// Evaluate a style expression.
@@ -154,22 +161,28 @@ pub fn evaluate(
                         .collect::<Vec<_>>();
 
                     // Find the two stops surrounding the input value.
-                    let stop_pair = stops
-                        .windows(2)
-                        .find(|pair| {
-                            let left_stop = &pair[0].0;
-                            let right_stop = &pair[1].0;
-                            lt(left_stop, &input) && lt(&input, right_stop)
-                        })
-                        .ok_or(Error::InterpolateStopNotFound(value.clone()))?;
+                    let stop_pair = stops.windows(2).find(|pair| {
+                        let left_stop = &pair[0].0;
+                        let right_stop = &pair[1].0;
+                        lte(left_stop, &input) && lte(&input, right_stop)
+                    });
 
-                    let input_delta = numeric_difference(&stop_pair[1].0, &stop_pair[0].0)?;
+                    if let Some(stop_pair) = stop_pair {
+                        let input_delta = numeric_difference(&stop_pair[1].0, &stop_pair[0].0)?;
 
-                    // Position of the input value between the two stops (0.0 to 1.0).
-                    let input_position = numeric_difference(&input, &stop_pair[0].0)? / input_delta;
+                        // Position of the input value between the two stops (0.0 to 1.0).
+                        let input_position =
+                            numeric_difference(&input, &stop_pair[0].0)? / input_delta;
 
-                    let result = lerp(&stop_pair[0].1, &stop_pair[1].1, input_position)?;
-                    Ok(result)
+                        let result = lerp(&stop_pair[0].1, &stop_pair[1].1, input_position)?;
+                        Ok(result)
+                    } else if lt(&input, &stops[0].0) {
+                        Ok(stops[0].1.clone())
+                    } else if lt(&stops[stops.len() - 1].0, &input) {
+                        Ok(stops[stops.len() - 1].1.clone())
+                    } else {
+                        Err(Error::InterpolateStopNotFound(input, value.clone()))
+                    }
                 }
                 "format" => {
                     let mut result = String::new();
@@ -203,30 +216,53 @@ fn mvt_value_to_json(value: &MvtValue) -> Value {
     }
 }
 
+/// Expect a float Value.
 fn float(v: &Value) -> Result<f64, Error> {
     if let Value::Number(n) = v {
-        n.as_f64().ok_or(Error::ExpectedFloat(v.clone()))
+        n.as_f64().ok_or(Error::ExpectedFloat(n.clone()))
     } else {
-        Err(Error::ExpectedFloat(v.clone()))
+        Err(Error::ExpectedNumber(v.clone()))
     }
 }
 
+/// Linear interpolation between two Values (Numbers or Strings representing colors).
 fn lerp(a: &Value, b: &Value, t: f64) -> Result<Value, Error> {
-    let a = float(a)?;
-    let b = float(b)?;
-    Ok(Value::Number(
-        Number::from_f64(a + (b - a) * t).ok_or(Error::CouldNotSerializeFloat)?,
-    ))
+    match (a, b) {
+        (Value::String(a), Value::String(b)) => {
+            let a: AlphaColor<Srgb> = a.parse().map_err(Error::ColorParse)?;
+            let b: AlphaColor<Srgb> = b.parse().map_err(Error::ColorParse)?;
+            let color = a.lerp(b, t as f32, HueDirection::default());
+            Ok(Value::String(color.to_rgba8().to_string()))
+        }
+        (Value::Number(a), Value::Number(b)) => {
+            let a = a.as_f64().ok_or(Error::ExpectedFloat(a.clone()))?;
+            let b = b.as_f64().ok_or(Error::ExpectedFloat(b.clone()))?;
+            Ok(Value::Number(
+                Number::from_f64(a + (b - a) * t).ok_or(Error::CouldNotSerializeFloat)?,
+            ))
+        }
+        _ => Err(Error::CannotInterpolate(a.clone(), b.clone())),
+    }
 }
 
 fn numeric_difference(left: &Value, right: &Value) -> Result<f64, Error> {
     Ok(float(left)? - float(right)?)
 }
 
+/// Less than comparison for Numbers and Strings.
 fn lt(left: &Value, right: &Value) -> bool {
     match (left, right) {
         (Value::Number(l), Value::Number(r)) => l.as_i64() < r.as_i64(),
         (Value::String(l), Value::String(r)) => l < r,
+        _ => false,
+    }
+}
+
+/// Less than or equal comparison for Numbers and Strings.
+fn lte(left: &Value, right: &Value) -> bool {
+    match (left, right) {
+        (Value::Number(l), Value::Number(r)) => l.as_i64() <= r.as_i64(),
+        (Value::String(l), Value::String(r)) => l <= r,
         _ => false,
     }
 }
@@ -296,6 +332,16 @@ mod tests {
     use egui::Color32;
     use serde_json::json;
     use std::collections::HashMap;
+
+    #[test]
+    fn test_lerp() {
+        assert_eq!(5.0, lerp(&json!(0), &json!(10.0), 0.5).unwrap());
+
+        assert_eq!(
+            "rgb(128, 128, 128)",
+            lerp(&json!("rgb(0, 0, 0)"), &json!("rgb(255, 255, 255)"), 0.5).unwrap()
+        );
+    }
 
     #[test]
     fn test_eq_filter_matching() {

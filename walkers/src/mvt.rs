@@ -86,12 +86,9 @@ impl ShapeOrText {
 }
 
 /// Render MVT data into a list of [`epaint::Shape`]s.
-pub fn render(data: &[u8], style: &Style) -> Result<Vec<ShapeOrText>, Error> {
+pub fn render(data: &[u8], style: &Style, zoom: u8) -> Result<Vec<ShapeOrText>, Error> {
     let data = mvt_reader::Reader::new(data.to_vec())?;
     let mut shapes = Vec::new();
-
-    // TODO: Use real zoom level.
-    let fake_zoom = 10;
 
     for layer in &style.layers {
         match layer {
@@ -108,7 +105,7 @@ pub fn render(data: &[u8], style: &Style) -> Result<Vec<ShapeOrText>, Error> {
 
                 for feature in data.get_features(layer_index)? {
                     if let Err(err) =
-                        polygon_feature_into_shape(&feature, &mut shapes, filter, paint, fake_zoom)
+                        polygon_feature_into_shape(&feature, &mut shapes, filter, paint, zoom)
                     {
                         warn!("{err}");
                     }
@@ -117,7 +114,7 @@ pub fn render(data: &[u8], style: &Style) -> Result<Vec<ShapeOrText>, Error> {
             Layer::Line {
                 source_layer,
                 filter,
-                paint: _,
+                paint,
             } => {
                 let Ok(layer_index) = find_layer(&data, source_layer) else {
                     warn!("Source layer '{source_layer}' not found. Skipping.");
@@ -126,7 +123,7 @@ pub fn render(data: &[u8], style: &Style) -> Result<Vec<ShapeOrText>, Error> {
 
                 for feature in data.get_features(layer_index)? {
                     if let Err(err) =
-                        line_feature_into_shape(&feature, &mut shapes, filter, fake_zoom)
+                        line_feature_into_shape(&feature, &mut shapes, filter, paint, zoom)
                     {
                         warn!("{err}");
                     }
@@ -144,7 +141,7 @@ pub fn render(data: &[u8], style: &Style) -> Result<Vec<ShapeOrText>, Error> {
 
                 for feature in data.get_features(layer_index)? {
                     if let Err(err) =
-                        point_feature_into_shape(&feature, &mut shapes, filter, layout, fake_zoom)
+                        point_feature_into_shape(&feature, &mut shapes, filter, layout, zoom)
                     {
                         warn!("{err}");
                     }
@@ -191,15 +188,40 @@ fn line_feature_into_shape(
     feature: &Feature,
     shapes: &mut Vec<ShapeOrText>,
     filter: &Option<Filter>,
+    paint: &Paint,
     zoom: u8,
 ) -> Result<(), Error> {
     if !match_filter(feature, "Line", zoom, filter) {
         return Ok(());
     }
 
+    let properties = feature
+        .properties
+        .as_ref()
+        .ok_or(Error::FeatureWithoutProperties)?;
+
+    let width = if let Some(width) = &paint.line_width {
+        // Align to the proportion of MVT extent and tile size.
+        width.evaluate(properties, zoom) * 4.0
+    } else {
+        2.0
+    };
+
+    let opacity = if let Some(opacity) = &paint.line_opacity {
+        opacity.evaluate(properties, zoom)
+    } else {
+        1.0
+    };
+
+    let color = if let Some(color) = &paint.line_color {
+        color.evaluate(properties, zoom).gamma_multiply(opacity)
+    } else {
+        Color32::WHITE
+    };
+
     match &feature.geometry {
         Geometry::LineString(line_string) => {
-            let stroke = Stroke::new(2.0, Color32::WHITE.gamma_multiply(0.5));
+            let stroke = Stroke::new(width, color);
             let points = line_string
                 .0
                 .iter()
@@ -208,7 +230,7 @@ fn line_feature_into_shape(
             shapes.push(Shape::line(points, stroke).into());
         }
         Geometry::MultiLineString(multi_line_string) => {
-            let stroke = Stroke::new(2.0, Color32::WHITE.gamma_multiply(0.5));
+            let stroke = Stroke::new(width, color);
             for line_string in multi_line_string {
                 let points = line_string
                     .0

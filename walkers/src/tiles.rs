@@ -110,7 +110,7 @@ pub enum Tile {
 impl Tile {
     /// Create a tile from raw image data. The data can be either raster image (PNG, JPEG, etc.)
     /// or vector tile (MVT) if the `mvt` feature is enabled.
-    pub fn new(image: &[u8], style: &Style, ctx: &Context) -> Result<Self, TileError> {
+    pub fn new(image: &[u8], style: &Style, zoom: u8, ctx: &Context) -> Result<Self, TileError> {
         #[cfg(not(feature = "mvt"))]
         let _ = style;
 
@@ -133,7 +133,7 @@ impl Tile {
             #[cfg(feature = "mvt")]
             {
                 log::debug!("Trying to decode tile as MVT vector tile.");
-                Ok(Self::from_mvt(image, style)?)
+                Ok(Self::from_mvt(image, style, zoom)?)
             }
             #[cfg(not(feature = "mvt"))]
             {
@@ -143,8 +143,8 @@ impl Tile {
     }
 
     #[cfg(feature = "mvt")]
-    pub fn from_mvt(data: &[u8], style: &Style) -> Result<Self, TileError> {
-        Ok(Self::Vector(mvt::render(data, style)?))
+    pub fn from_mvt(data: &[u8], style: &Style, zoom: u8) -> Result<Self, TileError> {
+        Ok(Self::Vector(mvt::render(data, style, zoom)?))
     }
 
     /// Load the texture from egui's [`ColorImage`].
@@ -344,8 +344,8 @@ impl EguiTileFactory {
 }
 
 impl TileFactory for EguiTileFactory {
-    fn create_tile(&self, data: &bytes::Bytes) -> Result<Tile, TileError> {
-        Tile::new(data, &self.style, &self.egui_ctx)
+    fn create_tile(&self, data: &bytes::Bytes, zoom: u8) -> Result<Tile, TileError> {
+        Tile::new(data, &self.style, zoom, &self.egui_ctx)
     }
 }
 

@@ -32,6 +32,14 @@ impl Style {
         serde_json::from_str(style_json).expect("failed to parse style JSON")
     }
 
+    /// Style based on Protomaps Dark Vis flavour. Requires Protomaps source.
+    ///
+    /// <https://docs.protomaps.com/basemaps/flavors>
+    pub fn protomaps_dark_vis() -> Self {
+        let style_json = include_str!("../assets/protomaps-dark-vis.json");
+        serde_json::from_str(style_json).expect("failed to parse style JSON")
+    }
+
     /// Style based on Protomaps Light flavour. Requires Protomaps source.
     ///
     /// <https://docs.protomaps.com/basemaps/flavors>
@@ -73,6 +81,11 @@ pub struct Paint {
     pub fill_color: Option<Color>,
     /// https://maplibre.org/maplibre-style-spec/layers/#fill-opacity
     pub fill_opacity: Option<Opacity>,
+    pub line_width: Option<Opacity>,
+    /// https://maplibre.org/maplibre-style-spec/layers/#line-color
+    pub line_color: Option<Color>,
+    /// https://maplibre.org/maplibre-style-spec/layers/#line-opacity
+    pub line_opacity: Option<Opacity>,
 }
 
 #[derive(Debug, Error)]
@@ -93,7 +106,7 @@ impl Color {
         match self.try_evaluate(properties, zoom) {
             Ok(color) => color,
             Err(err) => {
-                warn!("{err:?}");
+                warn!("{err}");
                 Color32::MAGENTA
             }
         }
@@ -123,7 +136,7 @@ impl Opacity {
         match self.try_evaluate(properties, zoom) {
             Ok(opacity) => opacity,
             Err(err) => {
-                warn!("{err:?}");
+                warn!("{err}");
                 0.5
             }
         }

@@ -50,7 +50,7 @@ impl<T> From<std::sync::PoisonError<T>> for Error {
 }
 
 pub trait TileFactory {
-    fn create_tile(&self, data: &Bytes) -> Result<Tile, TileError>;
+    fn create_tile(&self, data: &Bytes, zoom: u8) -> Result<Tile, TileError>;
 }
 
 /// Download and decode the tile.
@@ -64,7 +64,7 @@ async fn fetch_and_decode(
         .await
         .map_err(|e| Error::Fetch(e.to_string()))?;
     Ok(tile_factory
-        .create_tile(&data)
+        .create_tile(&data, tile_id.zoom)
         .map(|tile| (tile_id, tile))?)
 }
 
