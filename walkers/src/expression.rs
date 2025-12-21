@@ -73,16 +73,16 @@ pub fn evaluate(
                     let (value, arms) = first_and_rest(arguments)?;
                     let evaluated_value = evaluate(value, properties, zoom)?;
                     for arm in arms.chunks(2) {
-                        if arm.len() == 1 {
-                            // Default case
-                            return evaluate(&arm[0], properties, zoom);
-                        }
-
-                        let arm_value = &arm[0];
-                        let arm_result = &arm[1];
-
-                        if evaluated_value == *arm_value {
-                            return evaluate(arm_result, properties, zoom);
+                        match arm.iter().as_slice() {
+                            [arm_value, arm_result] => {
+                                if evaluated_value == *arm_value {
+                                    return evaluate(arm_result, properties, zoom);
+                                }
+                            }
+                            [default] => {
+                                return evaluate(default, properties, zoom);
+                            }
+                            _ => unreachable!(),
                         }
                     }
                     todo!("No match found in 'match' expression.");
