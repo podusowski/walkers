@@ -206,9 +206,15 @@ fn line_feature_into_shape(
         2.0
     };
 
+    let color = if let Some(color) = &paint.line_color {
+        color.evaluate(properties, zoom)
+    } else {
+        Color32::WHITE
+    };
+
     match &feature.geometry {
         Geometry::LineString(line_string) => {
-            let stroke = Stroke::new(width, Color32::WHITE.gamma_multiply(0.5));
+            let stroke = Stroke::new(width, color);
             let points = line_string
                 .0
                 .iter()
@@ -217,7 +223,7 @@ fn line_feature_into_shape(
             shapes.push(Shape::line(points, stroke).into());
         }
         Geometry::MultiLineString(multi_line_string) => {
-            let stroke = Stroke::new(width, Color32::WHITE.gamma_multiply(0.5));
+            let stroke = Stroke::new(width, color);
             for line_string in multi_line_string {
                 let points = line_string
                     .0

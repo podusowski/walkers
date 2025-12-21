@@ -74,6 +74,8 @@ pub struct Paint {
     /// https://maplibre.org/maplibre-style-spec/layers/#fill-opacity
     pub fill_opacity: Option<Opacity>,
     pub line_width: Option<Opacity>,
+    /// https://maplibre.org/maplibre-style-spec/layers/#line-color
+    pub line_color: Option<Color>,
 }
 
 #[derive(Debug, Error)]
