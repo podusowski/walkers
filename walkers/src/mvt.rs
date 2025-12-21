@@ -201,7 +201,8 @@ fn line_feature_into_shape(
         .ok_or(Error::FeatureWithoutProperties)?;
 
     let width = if let Some(width) = &paint.line_width {
-        width.evaluate(properties, zoom)
+        // Align to the proportion of MVT extent and tile size.
+        width.evaluate(properties, zoom) * 4.0
     } else {
         2.0
     };
