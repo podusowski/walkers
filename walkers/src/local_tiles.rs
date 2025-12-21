@@ -20,6 +20,9 @@ pub struct LocalTiles {
 }
 
 impl LocalTiles {
+    #[deprecated(
+        note = "For local tiles, use PmTiles with local .pmtiles file instead. LocalTiles will be removed in future versions."
+    )]
     pub fn new(path: impl AsRef<Path>, egui_ctx: egui::Context) -> Self {
         // Just arbitrary value which seemed right.
         #[allow(clippy::unwrap_used)]
