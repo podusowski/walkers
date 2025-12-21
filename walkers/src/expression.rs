@@ -220,7 +220,7 @@ pub fn evaluate(
 fn mvt_value_to_json(value: &MvtValue) -> Value {
     match value {
         MvtValue::String(s) => Value::String(s.clone()),
-        MvtValue::Int(i) => Value::Number((*i).into()),
+        MvtValue::Int(i) | MvtValue::SInt(i) => Value::Number((*i).into()),
         MvtValue::Bool(b) => Value::Bool(*b),
         MvtValue::Null => Value::Null,
         _ => {
