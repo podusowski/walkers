@@ -381,12 +381,13 @@ fn symbol_into_shape(
         };
 
         for line_string in multi_line_string {
-            let mid_index = line_string.0.len() / 2;
-            let mid_point = &line_string.0[mid_index];
+            let lines: Vec<_> = line_string.lines().collect();
+            let mid_line = lines[lines.len() / 2];
+            let mid_point = mid_line.start_point();
 
             if let Some(text) = &layout.text(properties, zoom) {
                 shapes.push(ShapeOrText::Text {
-                    position: pos2(mid_point.x, mid_point.y),
+                    position: pos2(mid_point.x(), mid_point.y()),
                     text: text.clone(),
                     font_size: text_size,
                     text_color,
