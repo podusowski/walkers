@@ -143,7 +143,7 @@ pub fn render(data: &[u8], style: &Style, zoom: u8) -> Result<Vec<ShapeOrText>, 
 
                 for feature in data.get_features(layer_index)? {
                     if let Err(err) =
-                        point_feature_into_shape(&feature, &mut shapes, filter, layout, paint, zoom)
+                        symbol_into_shape(&feature, &mut shapes, filter, layout, paint, zoom)
                     {
                         warn!("{err}");
                     }
@@ -295,7 +295,8 @@ fn polygon_feature_into_shape(
     Ok(())
 }
 
-fn point_feature_into_shape(
+/// Render a shape from symbol layer.
+fn symbol_into_shape(
     feature: &Feature,
     shapes: &mut Vec<ShapeOrText>,
     filter: &Option<Filter>,
