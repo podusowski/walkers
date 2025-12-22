@@ -70,6 +70,7 @@ pub enum Layer {
         source_layer: String,
         filter: Option<Filter>,
         layout: Layout,
+        paint: Option<Paint>,
     },
     Raster,
     FillExtrusion,
@@ -80,12 +81,14 @@ pub enum Layer {
 pub struct Paint {
     pub fill_color: Option<Color>,
     /// https://maplibre.org/maplibre-style-spec/layers/#fill-opacity
-    pub fill_opacity: Option<Opacity>,
-    pub line_width: Option<Opacity>,
+    pub fill_opacity: Option<Float>,
+    pub line_width: Option<Float>,
     /// https://maplibre.org/maplibre-style-spec/layers/#line-color
     pub line_color: Option<Color>,
     /// https://maplibre.org/maplibre-style-spec/layers/#line-opacity
-    pub line_opacity: Option<Opacity>,
+    pub line_opacity: Option<Float>,
+    /// https://maplibre.org/maplibre-style-spec/layers/#text-color
+    pub text_color: Option<Color>,
 }
 
 #[derive(Debug, Error)]
@@ -129,9 +132,9 @@ impl Color {
 }
 
 #[derive(Deserialize, Debug)]
-pub struct Opacity(pub Value);
+pub struct Float(pub Value);
 
-impl Opacity {
+impl Float {
     pub fn evaluate(&self, properties: &HashMap<String, MvtValue>, zoom: u8) -> f32 {
         match self.try_evaluate(properties, zoom) {
             Ok(opacity) => opacity,
@@ -174,7 +177,7 @@ impl Filter {
 #[serde(rename_all = "kebab-case")]
 pub struct Layout {
     text_field: Option<Value>,
-    pub text_size: Option<Opacity>,
+    pub text_size: Option<Float>,
 }
 
 impl Layout {
