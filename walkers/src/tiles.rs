@@ -178,7 +178,8 @@ impl Tile {
                             position,
                             text,
                             font_size,
-                        } => self.draw_text(position, text, font_size, painter.ctx()),
+                            text_color,
+                        } => self.draw_text(position, text, font_size, text_color, painter.ctx()),
                     })
                     .collect();
 
@@ -188,7 +189,14 @@ impl Tile {
     }
 
     #[cfg(feature = "mvt")]
-    fn draw_text(&self, pos: Pos2, text: String, font_size: f32, ctx: &Context) -> Shape {
+    fn draw_text(
+        &self,
+        pos: Pos2,
+        text: String,
+        font_size: f32,
+        text_color: Color32,
+        ctx: &Context,
+    ) -> Shape {
         ctx.fonts_mut(|fonts| {
             Shape::text(
                 fonts,
@@ -196,7 +204,7 @@ impl Tile {
                 egui::Align2::CENTER_CENTER,
                 text,
                 FontId::proportional(font_size),
-                Color32::WHITE.gamma_multiply(0.6),
+                text_color,
             )
         })
     }

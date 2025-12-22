@@ -70,6 +70,7 @@ pub enum Layer {
         source_layer: String,
         filter: Option<Filter>,
         layout: Layout,
+        paint: Option<Paint>,
     },
     Raster,
     FillExtrusion,
@@ -86,6 +87,8 @@ pub struct Paint {
     pub line_color: Option<Color>,
     /// https://maplibre.org/maplibre-style-spec/layers/#line-opacity
     pub line_opacity: Option<Float>,
+    /// https://maplibre.org/maplibre-style-spec/layers/#text-color
+    pub text_color: Option<Color>,
 }
 
 #[derive(Debug, Error)]

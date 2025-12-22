@@ -56,6 +56,7 @@ pub enum ShapeOrText {
         position: Pos2,
         text: String,
         font_size: f32,
+        text_color: Color32,
     },
 }
 
@@ -133,6 +134,7 @@ pub fn render(data: &[u8], style: &Style, zoom: u8) -> Result<Vec<ShapeOrText>, 
                 source_layer,
                 filter,
                 layout,
+                paint,
             } => {
                 let Ok(layer_index) = find_layer(&data, source_layer) else {
                     warn!("Source layer '{source_layer}' not found. Skipping.");
@@ -141,7 +143,7 @@ pub fn render(data: &[u8], style: &Style, zoom: u8) -> Result<Vec<ShapeOrText>, 
 
                 for feature in data.get_features(layer_index)? {
                     if let Err(err) =
-                        point_feature_into_shape(&feature, &mut shapes, filter, layout, zoom)
+                        point_feature_into_shape(&feature, &mut shapes, filter, layout, paint, zoom)
                     {
                         warn!("{err}");
                     }
@@ -298,6 +300,7 @@ fn point_feature_into_shape(
     shapes: &mut Vec<ShapeOrText>,
     filter: &Option<Filter>,
     layout: &Layout,
+    paint: &Option<Paint>,
     zoom: u8,
 ) -> Result<(), Error> {
     let properties = feature
@@ -327,11 +330,20 @@ fn point_feature_into_shape(
             })
             .unwrap_or(12.0);
 
+        let text_color = if let Some(paint) = paint
+            && let Some(color) = &paint.text_color
+        {
+            color.evaluate(properties, zoom)
+        } else {
+            Color32::BLACK
+        };
+
         if let Some(text) = &layout.text(properties, zoom) {
             shapes.extend(multi_point.0.iter().map(|p| ShapeOrText::Text {
                 position: pos2(p.x(), p.y()),
                 text: text.clone(),
                 font_size: text_size,
+                text_color,
             }))
         }
     }
