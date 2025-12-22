@@ -384,9 +384,20 @@ fn symbol_into_shape(
 
         for line_string in multi_line_string {
             let lines: Vec<_> = line_string.lines().collect();
-            let mid_line = lines[lines.len() / 2];
-            let mid_point = mid_line.start_point();
-            let angle = mid_line.slope().atan();
+
+            let line = lines
+                .iter()
+                .max_by_key(|line| {
+                    let start = line.start_point();
+                    let end = line.end_point();
+                    let dx = end.x() - start.x();
+                    let dy = end.y() - start.y();
+                    (dx * dx + dy * dy) as u32
+                })
+                .unwrap();
+
+            let mid_point = midpoint(&line.start_point(), &line.end_point());
+            let angle = line.slope().atan();
 
             if let Some(text) = &layout.text(properties, zoom) {
                 shapes.push(ShapeOrText::Text {
@@ -400,6 +411,10 @@ fn symbol_into_shape(
         }
     }
     Ok(())
+}
+
+fn midpoint(p1: &geo_types::Point<f32>, p2: &geo_types::Point<f32>) -> geo_types::Point<f32> {
+    geo_types::Point::new((p1.x() + p2.x()) / 2.0, (p1.y() + p2.y()) / 2.0)
 }
 
 fn find_layer(data: &mvt_reader::Reader, name: &str) -> Result<usize, Error> {
