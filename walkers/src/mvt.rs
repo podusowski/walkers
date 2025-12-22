@@ -348,6 +348,52 @@ fn symbol_into_shape(
             }))
         }
     }
+
+    if let Geometry::MultiLineString(multi_line_string) = &feature.geometry {
+        if !match_filter(feature, "Point", zoom, filter) {
+            return Ok(());
+        }
+
+        let text_size = layout
+            .text_size
+            .as_ref()
+            .and_then(|text_size| {
+                let size = text_size.evaluate(properties, zoom);
+
+                if size > 3.0 {
+                    Some(size)
+                } else {
+                    warn!(
+                        "{} evaluated into {size}, which is too small for text size.",
+                        text_size.0
+                    );
+                    None
+                }
+            })
+            .unwrap_or(12.0);
+
+        let text_color = if let Some(paint) = paint
+            && let Some(color) = &paint.text_color
+        {
+            color.evaluate(properties, zoom)
+        } else {
+            Color32::BLACK
+        };
+
+        for line_string in multi_line_string {
+            let mid_index = line_string.0.len() / 2;
+            let mid_point = &line_string.0[mid_index];
+
+            if let Some(text) = &layout.text(properties, zoom) {
+                shapes.push(ShapeOrText::Text {
+                    position: pos2(mid_point.x, mid_point.y),
+                    text: text.clone(),
+                    font_size: text_size,
+                    text_color,
+                });
+            }
+        }
+    }
     Ok(())
 }
 
