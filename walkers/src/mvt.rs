@@ -386,6 +386,7 @@ fn symbol_into_shape(
             let lines: Vec<_> = line_string.lines().collect();
             let mid_line = lines[lines.len() / 2];
             let mid_point = mid_line.start_point();
+            let angle = mid_line.slope().atan();
 
             if let Some(text) = &layout.text(properties, zoom) {
                 shapes.push(ShapeOrText::Text {
@@ -393,7 +394,7 @@ fn symbol_into_shape(
                     text: text.clone(),
                     font_size: text_size,
                     text_color,
-                    angle: 1.0,
+                    angle,
                 });
             }
         }
