@@ -179,7 +179,15 @@ impl Tile {
                             text,
                             font_size,
                             text_color,
-                        } => self.draw_text(position, text, font_size, text_color, painter.ctx()),
+                            angle,
+                        } => self.draw_text(
+                            position,
+                            text,
+                            font_size,
+                            text_color,
+                            angle,
+                            painter.ctx(),
+                        ),
                     })
                     .collect();
 
@@ -195,17 +203,20 @@ impl Tile {
         text: String,
         font_size: f32,
         text_color: Color32,
+        angle: f32,
         ctx: &Context,
     ) -> Shape {
         ctx.fonts_mut(|fonts| {
-            Shape::text(
-                fonts,
-                pos,
-                egui::Align2::CENTER_CENTER,
-                text,
+            use egui::epaint::TextShape;
+
+            let galley = fonts.layout_no_wrap(
+                text.to_string(),
                 FontId::proportional(font_size),
                 text_color,
-            )
+            );
+            TextShape::new(pos, galley, text_color)
+                .with_angle(angle)
+                .into()
         })
     }
 }

@@ -57,6 +57,7 @@ pub enum ShapeOrText {
         text: String,
         font_size: f32,
         text_color: Color32,
+        angle: f32,
     },
 }
 
@@ -345,6 +346,7 @@ fn symbol_into_shape(
                 text: text.clone(),
                 font_size: text_size,
                 text_color,
+                angle: 0.0,
             }))
         }
     }
@@ -391,6 +393,7 @@ fn symbol_into_shape(
                     text: text.clone(),
                     font_size: text_size,
                     text_color,
+                    angle: 1.0,
                 });
             }
         }
