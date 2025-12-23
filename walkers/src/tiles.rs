@@ -197,11 +197,20 @@ impl Tile {
         ctx.fonts_mut(|fonts| {
             use egui::{epaint::TextShape, vec2};
 
-            let galley = fonts.layout_no_wrap(
-                text.text.to_string(),
-                FontId::proportional(text.font_size),
-                text.text_color,
+            let mut layout_job = egui::text::LayoutJob::default();
+
+            layout_job.append(
+                &text.text,
+                0.0,
+                egui::TextFormat {
+                    font_id: FontId::proportional(text.font_size),
+                    color: text.text_color,
+                    background: text.background_color,
+                    ..Default::default()
+                },
             );
+
+            let galley = fonts.layout_job(layout_job);
 
             // Voodoo to rotate text around its center, instead of top-left corner.
             let half = galley.size() * 0.5;

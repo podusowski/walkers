@@ -87,6 +87,7 @@ pub struct Text {
     pub position: Pos2,
     pub font_size: f32,
     pub text_color: Color32,
+    pub background_color: Color32,
     pub angle: f32,
 }
 
@@ -352,6 +353,7 @@ fn symbol_into_shape(
                         text: text.clone(),
                         font_size: text_size,
                         text_color,
+                        background_color: Color32::TRANSPARENT,
                         angle: 0.0,
                     })
                 }))
@@ -388,6 +390,14 @@ fn symbol_into_shape(
                 Color32::BLACK
             };
 
+            let text_halo_color = if let Some(paint) = paint
+                && let Some(color) = &paint.text_halo_color
+            {
+                color.evaluate(properties, zoom)
+            } else {
+                Color32::TRANSPARENT
+            };
+
             for line_string in multi_line_string {
                 let lines: Vec<_> = line_string.lines().collect();
 
@@ -403,6 +413,8 @@ fn symbol_into_shape(
                         text: text.clone(),
                         font_size: text_size,
                         text_color,
+                        // TODO: Implement real halo rendering.
+                        background_color: text_halo_color.gamma_multiply(0.5),
                         angle,
                     }));
                 }
