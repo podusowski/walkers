@@ -215,6 +215,7 @@ impl Tile {
                 text_color,
             );
 
+            // Voodoo to rotate text around its center, instead of top-left corner.
             let half = galley.size() * 0.5;
             let (s, c) = angle.sin_cos();
             let rotated_half = vec2(half.x * c - half.y * s, half.x * s + half.y * c);
