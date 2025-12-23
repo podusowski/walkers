@@ -87,6 +87,7 @@ pub struct Text {
     pub position: Pos2,
     pub font_size: f32,
     pub text_color: Color32,
+    pub background_color: Color32,
     pub angle: f32,
 }
 
@@ -352,6 +353,7 @@ fn symbol_into_shape(
                         text: text.clone(),
                         font_size: text_size,
                         text_color,
+                        background_color: Color32::TRANSPARENT,
                         angle: 0.0,
                     })
                 }))
@@ -403,6 +405,7 @@ fn symbol_into_shape(
                         text: text.clone(),
                         font_size: text_size,
                         text_color,
+                        background_color: Color32::TRANSPARENT,
                         angle,
                     }));
                 }
