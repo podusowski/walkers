@@ -8,7 +8,7 @@ use egui::{
     epaint::{Vertex, WHITE_UV},
     pos2,
 };
-use geo_types::Geometry;
+use geo_types::{Geometry, Line};
 use log::warn;
 use lyon_path::{
     Path, Polygon,
@@ -385,15 +385,10 @@ fn symbol_into_shape(
         for line_string in multi_line_string {
             let lines: Vec<_> = line_string.lines().collect();
 
+            // Use the longest line to fit the label.
             let line = lines
-                .iter()
-                .max_by_key(|line| {
-                    let start = line.start_point();
-                    let end = line.end_point();
-                    let dx = end.x() - start.x();
-                    let dy = end.y() - start.y();
-                    (dx * dx + dy * dy) as u32
-                })
+                .into_iter()
+                .max_by_key(|line| length(line) as u32)
                 .unwrap();
 
             let mid_point = midpoint(&line.start_point(), &line.end_point());
@@ -411,6 +406,10 @@ fn symbol_into_shape(
         }
     }
     Ok(())
+}
+
+fn length(line: &Line<f32>) -> f32 {
+    (line.dx() * line.dx() + line.dy() * line.dy()).sqrt()
 }
 
 fn midpoint(p1: &geo_types::Point<f32>, p2: &geo_types::Point<f32>) -> geo_types::Point<f32> {

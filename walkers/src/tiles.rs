@@ -207,14 +207,20 @@ impl Tile {
         ctx: &Context,
     ) -> Shape {
         ctx.fonts_mut(|fonts| {
-            use egui::epaint::TextShape;
+            use egui::{epaint::TextShape, vec2};
 
             let galley = fonts.layout_no_wrap(
                 text.to_string(),
                 FontId::proportional(font_size),
                 text_color,
             );
-            TextShape::new(pos, galley, text_color)
+
+            let half = galley.size() * 0.5;
+            let (s, c) = angle.sin_cos();
+            let rotated_half = vec2(half.x * c - half.y * s, half.x * s + half.y * c);
+            let pivot = pos - rotated_half;
+
+            TextShape::new(pivot, galley, text_color)
                 .with_angle(angle)
                 .into()
         })
