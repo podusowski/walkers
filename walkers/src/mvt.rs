@@ -309,98 +309,101 @@ fn symbol_into_shape(
         .properties
         .as_ref()
         .ok_or(Error::FeatureWithoutProperties)?;
-    if let Geometry::MultiPoint(multi_point) = &feature.geometry {
-        if !match_filter(feature, "Point", zoom, filter) {
-            return Ok(());
-        }
 
-        let text_size = layout
-            .text_size
-            .as_ref()
-            .and_then(|text_size| {
-                let size = text_size.evaluate(properties, zoom);
+    match &feature.geometry {
+        Geometry::MultiPoint(multi_point) => {
+            if !match_filter(feature, "Point", zoom, filter) {
+                return Ok(());
+            }
 
-                if size > 3.0 {
-                    Some(size)
-                } else {
-                    warn!(
-                        "{} evaluated into {size}, which is too small for text size.",
-                        text_size.0
-                    );
-                    None
-                }
-            })
-            .unwrap_or(12.0);
+            let text_size = layout
+                .text_size
+                .as_ref()
+                .and_then(|text_size| {
+                    let size = text_size.evaluate(properties, zoom);
 
-        let text_color = if let Some(paint) = paint
-            && let Some(color) = &paint.text_color
-        {
-            color.evaluate(properties, zoom)
-        } else {
-            Color32::BLACK
-        };
+                    if size > 3.0 {
+                        Some(size)
+                    } else {
+                        warn!(
+                            "{} evaluated into {size}, which is too small for text size.",
+                            text_size.0
+                        );
+                        None
+                    }
+                })
+                .unwrap_or(12.0);
 
-        if let Some(text) = &layout.text(properties, zoom) {
-            shapes.extend(multi_point.0.iter().map(|p| ShapeOrText::Text {
-                position: pos2(p.x(), p.y()),
-                text: text.clone(),
-                font_size: text_size,
-                text_color,
-                angle: 0.0,
-            }))
-        }
-    }
-
-    if let Geometry::MultiLineString(multi_line_string) = &feature.geometry {
-        if !match_filter(feature, "Point", zoom, filter) {
-            return Ok(());
-        }
-
-        let text_size = layout
-            .text_size
-            .as_ref()
-            .and_then(|text_size| {
-                let size = text_size.evaluate(properties, zoom);
-
-                if size > 3.0 {
-                    Some(size)
-                } else {
-                    warn!(
-                        "{} evaluated into {size}, which is too small for text size.",
-                        text_size.0
-                    );
-                    None
-                }
-            })
-            .unwrap_or(12.0);
-
-        let text_color = if let Some(paint) = paint
-            && let Some(color) = &paint.text_color
-        {
-            color.evaluate(properties, zoom)
-        } else {
-            Color32::BLACK
-        };
-
-        for line_string in multi_line_string {
-            let lines: Vec<_> = line_string.lines().collect();
-
-            if let Some(text) = &layout.text(properties, zoom)
-                // Use the longest line to fit the label.
-                && let Some(line) = lines.into_iter().max_by_key(|line| length(line) as u32)
+            let text_color = if let Some(paint) = paint
+                && let Some(color) = &paint.text_color
             {
-                let mid_point = midpoint(&line.start_point(), &line.end_point());
-                let angle = line.slope().atan();
+                color.evaluate(properties, zoom)
+            } else {
+                Color32::BLACK
+            };
 
-                shapes.push(ShapeOrText::Text {
-                    position: pos2(mid_point.x(), mid_point.y()),
+            if let Some(text) = &layout.text(properties, zoom) {
+                shapes.extend(multi_point.0.iter().map(|p| ShapeOrText::Text {
+                    position: pos2(p.x(), p.y()),
                     text: text.clone(),
                     font_size: text_size,
                     text_color,
-                    angle,
-                });
+                    angle: 0.0,
+                }))
             }
         }
+        Geometry::MultiLineString(multi_line_string) => {
+            if !match_filter(feature, "Point", zoom, filter) {
+                return Ok(());
+            }
+
+            let text_size = layout
+                .text_size
+                .as_ref()
+                .and_then(|text_size| {
+                    let size = text_size.evaluate(properties, zoom);
+
+                    if size > 3.0 {
+                        Some(size)
+                    } else {
+                        warn!(
+                            "{} evaluated into {size}, which is too small for text size.",
+                            text_size.0
+                        );
+                        None
+                    }
+                })
+                .unwrap_or(12.0);
+
+            let text_color = if let Some(paint) = paint
+                && let Some(color) = &paint.text_color
+            {
+                color.evaluate(properties, zoom)
+            } else {
+                Color32::BLACK
+            };
+
+            for line_string in multi_line_string {
+                let lines: Vec<_> = line_string.lines().collect();
+
+                if let Some(text) = &layout.text(properties, zoom)
+                // Use the longest line to fit the label.
+                && let Some(line) = lines.into_iter().max_by_key(|line| length(line) as u32)
+                {
+                    let mid_point = midpoint(&line.start_point(), &line.end_point());
+                    let angle = line.slope().atan();
+
+                    shapes.push(ShapeOrText::Text {
+                        position: pos2(mid_point.x(), mid_point.y()),
+                        text: text.clone(),
+                        font_size: text_size,
+                        text_color,
+                        angle,
+                    });
+                }
+            }
+        }
+        _ => (),
     }
     Ok(())
 }
