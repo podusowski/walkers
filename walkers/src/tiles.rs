@@ -169,6 +169,8 @@ impl Tile {
                 // ...and then it can be clipped to the `rect`.
                 let painter = painter.with_clip_rect(rect);
 
+                let mut text_areas = TextAreas::new();
+
                 // Need to collect it to avoid deadlock caused by `Painter::extend` and `fonts_mut`.
                 let shapes: Vec<_> = mvt::transformed(shapes, full_rect)
                     .into_iter()
@@ -187,6 +189,7 @@ impl Tile {
                             text_color,
                             angle,
                             painter.ctx(),
+                            &mut text_areas,
                         ),
                     })
                     .collect();
@@ -205,6 +208,7 @@ impl Tile {
         text_color: Color32,
         angle: f32,
         ctx: &Context,
+        text_areas: &mut TextAreas,
     ) -> Shape {
         ctx.fonts_mut(|fonts| {
             use egui::{epaint::TextShape, vec2};
@@ -221,10 +225,59 @@ impl Tile {
             let rotated_half = vec2(half.x * c - half.y * s, half.x * s + half.y * c);
             let pivot = pos - rotated_half;
 
-            TextShape::new(pivot, galley, text_color)
-                .with_angle(angle)
-                .into()
+            // Compute rotated bbox for collision detection:
+            let w = galley.size().x;
+            let h = galley.size().y;
+
+            let rotate = |dx: f32, dy: f32| -> Pos2 {
+                let rx = dx * c - dy * s;
+                let ry = dx * s + dy * c;
+                Pos2::new(pivot.x + rx, pivot.y + ry)
+            };
+
+            let p0 = rotate(0.0, 0.0);
+            let p1 = rotate(w, 0.0);
+            let p2 = rotate(w, h);
+            let p3 = rotate(0.0, h);
+
+            let min_x = p0.x.min(p1.x).min(p2.x).min(p3.x);
+            let max_x = p0.x.max(p1.x).max(p2.x).max(p3.x);
+            let min_y = p0.y.min(p1.y).min(p2.y).min(p3.y);
+            let max_y = p0.y.max(p1.y).max(p2.y).max(p3.y);
+            let bbox = Rect::from_min_max(pos2(min_x, min_y), pos2(max_x, max_y));
+
+            if text_areas.collides(bbox) {
+                Shape::Noop
+            } else {
+                text_areas.add(bbox);
+                TextShape::new(pivot, galley, text_color)
+                    .with_angle(angle)
+                    .into()
+            }
+
+            // TextShape::new(pivot, galley, text_color)
+            //     .with_angle(angle)
+            //     .into()
         })
+    }
+}
+
+// Tracks areas occupied by texts to avoid overlapping them.
+struct TextAreas {
+    rects: Vec<Rect>,
+}
+
+impl TextAreas {
+    fn new() -> Self {
+        Self { rects: Vec::new() }
+    }
+
+    fn collides(&self, rect: Rect) -> bool {
+        self.rects.iter().any(|existing| existing.intersects(rect))
+    }
+
+    fn add(&mut self, rect: Rect) {
+        self.rects.push(rect);
     }
 }
 
