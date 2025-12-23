@@ -47,6 +47,11 @@ impl Style {
         let style_json = include_str!("../assets/protomaps-light.json");
         serde_json::from_str(style_json).expect("failed to parse style JSON")
     }
+
+    pub fn openfreemap_bright() -> Self {
+        let style_json = include_str!("../assets/openfreemap-bright.json");
+        serde_json::from_str(style_json).expect("failed to parse style JSON")
+    }
 }
 
 #[derive(Deserialize, Debug)]
