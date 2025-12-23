@@ -246,18 +246,13 @@ impl Tile {
             let max_y = p0.y.max(p1.y).max(p2.y).max(p3.y);
             let bbox = Rect::from_min_max(pos2(min_x, min_y), pos2(max_x, max_y));
 
-            if text_areas.collides(bbox) {
-                Shape::Noop
-            } else {
-                text_areas.add(bbox);
+            if text_areas.try_acquire(bbox) {
                 TextShape::new(pivot, galley, text_color)
                     .with_angle(angle)
                     .into()
+            } else {
+                Shape::Noop
             }
-
-            // TextShape::new(pivot, galley, text_color)
-            //     .with_angle(angle)
-            //     .into()
         })
     }
 }
@@ -272,12 +267,13 @@ impl TextAreas {
         Self { rects: Vec::new() }
     }
 
-    fn collides(&self, rect: Rect) -> bool {
-        self.rects.iter().any(|existing| existing.intersects(rect))
-    }
-
-    fn add(&mut self, rect: Rect) {
-        self.rects.push(rect);
+    fn try_acquire(&mut self, rect: Rect) -> bool {
+        if !self.rects.iter().any(|existing| existing.intersects(rect)) {
+            self.rects.push(rect);
+            true
+        } else {
+            false
+        }
     }
 }
 

@@ -129,6 +129,24 @@ pub(crate) fn providers(egui_ctx: Context) -> Providers {
             providers.selected = name.clone();
 
             providers.available.insert(
+                format!("{} (Protomaps Dark Vis)", name.clone()),
+                vec![TilesKind::PmTiles(PmTiles::with_style(
+                    path.clone(),
+                    Style::protomaps_dark_vis(),
+                    egui_ctx.to_owned(),
+                ))],
+            );
+
+            providers.available.insert(
+                format!("{} (Protomaps Light)", name.clone()),
+                vec![TilesKind::PmTiles(PmTiles::with_style(
+                    path.clone(),
+                    Style::protomaps_light(),
+                    egui_ctx.to_owned(),
+                ))],
+            );
+
+            providers.available.insert(
                 format!("{name}WithGeoportal"),
                 vec![
                     TilesKind::PmTiles(PmTiles::with_style(
