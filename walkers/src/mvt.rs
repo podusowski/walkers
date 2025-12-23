@@ -385,20 +385,20 @@ fn symbol_into_shape(
         for line_string in multi_line_string {
             let lines: Vec<_> = line_string.lines().collect();
 
-            // Use the longest line to fit the label.
-            if let Some(line) = lines.into_iter().max_by_key(|line| length(line) as u32) {
+            if let Some(text) = &layout.text(properties, zoom)
+                // Use the longest line to fit the label.
+                && let Some(line) = lines.into_iter().max_by_key(|line| length(line) as u32)
+            {
                 let mid_point = midpoint(&line.start_point(), &line.end_point());
                 let angle = line.slope().atan();
 
-                if let Some(text) = &layout.text(properties, zoom) {
-                    shapes.push(ShapeOrText::Text {
-                        position: pos2(mid_point.x(), mid_point.y()),
-                        text: text.clone(),
-                        font_size: text_size,
-                        text_color,
-                        angle,
-                    });
-                }
+                shapes.push(ShapeOrText::Text {
+                    position: pos2(mid_point.x(), mid_point.y()),
+                    text: text.clone(),
+                    font_size: text_size,
+                    text_color,
+                    angle,
+                });
             }
         }
     }
