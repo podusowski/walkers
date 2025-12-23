@@ -89,6 +89,8 @@ pub struct Paint {
     pub line_opacity: Option<Float>,
     /// https://maplibre.org/maplibre-style-spec/layers/#text-color
     pub text_color: Option<Color>,
+    /// https://maplibre.org/maplibre-style-spec/layers/#text-halo-color
+    pub text_halo_color: Option<Color>,
 }
 
 #[derive(Debug, Error)]
