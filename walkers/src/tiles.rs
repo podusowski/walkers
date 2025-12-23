@@ -169,7 +169,7 @@ impl Tile {
                 // ...and then it can be clipped to the `rect`.
                 let painter = painter.with_clip_rect(rect);
 
-                let mut text_areas = TextAreas::new();
+                let mut occupied_text_areas = OccupiedAreas::new();
 
                 // Need to collect it to avoid deadlock caused by `Painter::extend` and `fonts_mut`.
                 let shapes: Vec<_> = mvt::transformed(shapes, full_rect)
@@ -189,7 +189,7 @@ impl Tile {
                             text_color,
                             angle,
                             painter.ctx(),
-                            &mut text_areas,
+                            &mut occupied_text_areas,
                         ),
                     })
                     .collect();
@@ -208,7 +208,7 @@ impl Tile {
         text_color: Color32,
         angle: f32,
         ctx: &Context,
-        text_areas: &mut TextAreas,
+        occupied_text_areas: &mut OccupiedAreas,
     ) -> Shape {
         ctx.fonts_mut(|fonts| {
             use egui::{epaint::TextShape, vec2};
@@ -225,7 +225,7 @@ impl Tile {
             let rotated_half = vec2(half.x * c - half.y * s, half.x * s + half.y * c);
             let pivot = pos - rotated_half;
 
-            // Compute rotated bbox for collision detection:
+            // Another voodoo to calculate bounding box of rotated text.
             let w = galley.size().x;
             let h = galley.size().y;
 
@@ -246,7 +246,7 @@ impl Tile {
             let max_y = p0.y.max(p1.y).max(p2.y).max(p3.y);
             let bbox = Rect::from_min_max(pos2(min_x, min_y), pos2(max_x, max_y));
 
-            if text_areas.try_acquire(bbox) {
+            if occupied_text_areas.try_acquire(bbox) {
                 TextShape::new(pivot, galley, text_color)
                     .with_angle(angle)
                     .into()
@@ -258,18 +258,18 @@ impl Tile {
 }
 
 // Tracks areas occupied by texts to avoid overlapping them.
-struct TextAreas {
-    rects: Vec<Rect>,
+struct OccupiedAreas {
+    areas: Vec<Rect>,
 }
 
-impl TextAreas {
+impl OccupiedAreas {
     fn new() -> Self {
-        Self { rects: Vec::new() }
+        Self { areas: Vec::new() }
     }
 
     fn try_acquire(&mut self, rect: Rect) -> bool {
-        if !self.rects.iter().any(|existing| existing.intersects(rect)) {
-            self.rects.push(rect);
+        if !self.areas.iter().any(|existing| existing.intersects(rect)) {
+            self.areas.push(rect);
             true
         } else {
             false
