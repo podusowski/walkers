@@ -52,13 +52,7 @@ const ONLY_SUPPORTED_EXTENT: u32 = 4096;
 #[derive(Debug, Clone)]
 pub enum ShapeOrText {
     Shape(Shape),
-    Text {
-        position: Pos2,
-        text: String,
-        font_size: f32,
-        text_color: Color32,
-        angle: f32,
-    },
+    Text(Text),
 }
 
 impl From<Shape> for ShapeOrText {
@@ -79,12 +73,21 @@ impl ShapeOrText {
             ShapeOrText::Shape(shape) => {
                 shape.transform(transform);
             }
-            ShapeOrText::Text { position, .. } => {
+            ShapeOrText::Text(Text { position, .. }) => {
                 *position *= transform.scaling;
                 *position += transform.translation;
             }
         }
     }
+}
+
+#[derive(Debug, Clone)]
+pub struct Text {
+    pub text: String,
+    pub position: Pos2,
+    pub font_size: f32,
+    pub text_color: Color32,
+    pub angle: f32,
 }
 
 /// Render MVT data into a list of [`epaint::Shape`]s.
@@ -343,12 +346,14 @@ fn symbol_into_shape(
             };
 
             if let Some(text) = &layout.text(properties, zoom) {
-                shapes.extend(multi_point.0.iter().map(|p| ShapeOrText::Text {
-                    position: pos2(p.x(), p.y()),
-                    text: text.clone(),
-                    font_size: text_size,
-                    text_color,
-                    angle: 0.0,
+                shapes.extend(multi_point.0.iter().map(|p| {
+                    ShapeOrText::Text(Text {
+                        position: pos2(p.x(), p.y()),
+                        text: text.clone(),
+                        font_size: text_size,
+                        text_color,
+                        angle: 0.0,
+                    })
                 }))
             }
         }
@@ -393,13 +398,13 @@ fn symbol_into_shape(
                     let mid_point = midpoint(&line.start_point(), &line.end_point());
                     let angle = line.slope().atan();
 
-                    shapes.push(ShapeOrText::Text {
+                    shapes.push(ShapeOrText::Text(Text {
                         position: pos2(mid_point.x(), mid_point.y()),
                         text: text.clone(),
                         font_size: text_size,
                         text_color,
                         angle,
-                    });
+                    }));
                 }
             }
         }

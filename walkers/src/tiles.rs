@@ -1,5 +1,5 @@
 #[cfg(feature = "mvt")]
-use crate::mvt::{self, ShapeOrText};
+use crate::mvt::{self, ShapeOrText, Text};
 
 use egui::{Color32, Context, Mesh, Rect, Vec2, pos2};
 use egui::{ColorImage, TextureHandle};
@@ -176,21 +176,9 @@ impl Tile {
                     .into_iter()
                     .map(|shape_or_text| match shape_or_text {
                         ShapeOrText::Shape(shape) => shape,
-                        ShapeOrText::Text {
-                            position,
-                            text,
-                            font_size,
-                            text_color,
-                            angle,
-                        } => self.draw_text(
-                            position,
-                            text,
-                            font_size,
-                            text_color,
-                            angle,
-                            painter.ctx(),
-                            &mut occupied_text_areas,
-                        ),
+                        ShapeOrText::Text(text) => {
+                            self.draw_text(text, painter.ctx(), &mut occupied_text_areas)
+                        }
                     })
                     .collect();
 
@@ -202,11 +190,7 @@ impl Tile {
     #[cfg(feature = "mvt")]
     fn draw_text(
         &self,
-        pos: Pos2,
-        text: String,
-        font_size: f32,
-        text_color: Color32,
-        angle: f32,
+        text: Text,
         ctx: &Context,
         occupied_text_areas: &mut OccupiedAreas,
     ) -> Shape {
@@ -214,16 +198,16 @@ impl Tile {
             use egui::{epaint::TextShape, vec2};
 
             let galley = fonts.layout_no_wrap(
-                text.to_string(),
-                FontId::proportional(font_size),
-                text_color,
+                text.text.to_string(),
+                FontId::proportional(text.font_size),
+                text.text_color,
             );
 
             // Voodoo to rotate text around its center, instead of top-left corner.
             let half = galley.size() * 0.5;
-            let (s, c) = angle.sin_cos();
+            let (s, c) = text.angle.sin_cos();
             let rotated_half = vec2(half.x * c - half.y * s, half.x * s + half.y * c);
-            let pivot = pos - rotated_half;
+            let pivot = text.position - rotated_half;
 
             // Another voodoo to calculate bounding box of rotated text.
             let w = galley.size().x;
@@ -247,8 +231,8 @@ impl Tile {
             let bbox = Rect::from_min_max(pos2(min_x, min_y), pos2(max_x, max_y));
 
             if occupied_text_areas.try_acquire(bbox) {
-                TextShape::new(pivot, galley, text_color)
-                    .with_angle(angle)
+                TextShape::new(pivot, galley, text.text_color)
+                    .with_angle(text.angle)
                     .into()
             } else {
                 Shape::Noop
