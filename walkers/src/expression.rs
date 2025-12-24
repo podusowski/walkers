@@ -411,9 +411,10 @@ mod tests {
     #[test]
     fn test_literal_operator() {
         let properties = HashMap::new();
+        let context = Context::new(&properties, 1);
 
         assert_eq!(
-            evaluate(&json!(["literal", [1, 2, 3]]), &properties, 1).unwrap(),
+            context.evaluate(&json!(["literal", [1, 2, 3]])).unwrap(),
             json!([1, 2, 3])
         );
     }
@@ -422,14 +423,15 @@ mod tests {
     fn test_get_operator() {
         let properties =
             HashMap::from([("name".to_string(), MvtValue::String("Polska".to_string()))]);
+        let context = Context::new(&properties, 1);
 
         assert_eq!(
-            evaluate(&json!(["get", "name"]), &properties, 1).unwrap(),
+            context.evaluate(&json!(["get", "name"]),).unwrap(),
             json!("Polska")
         );
 
         assert_eq!(
-            evaluate(&json!(["get", "population"]), &properties, 1).unwrap(),
+            context.evaluate(&json!(["get", "population"]),).unwrap(),
             Value::Null
         );
     }
@@ -438,17 +440,21 @@ mod tests {
     fn test_has_operator() {
         let properties =
             HashMap::from([("name".to_string(), MvtValue::String("Polska".to_string()))]);
+        let context = Context::new(&properties, 1);
 
         assert_eq!(
-            evaluate(&json!(["has", "name"]), &properties, 1,).unwrap(),
+            context.evaluate(&json!(["has", "name"])).unwrap(),
             json!(true)
         );
     }
 
     #[test]
     fn test_not_has_operator() {
+        let properties = HashMap::new();
+        let context = Context::new(&properties, 1);
+
         assert_eq!(
-            evaluate(&json!(["!has", "name"]), &HashMap::new(), 1,).unwrap(),
+            context.evaluate(&json!(["!has", "name"])).unwrap(),
             json!(true)
         );
     }
@@ -456,10 +462,11 @@ mod tests {
     #[test]
     fn test_match_operator() {
         let properties = HashMap::new();
+        let context = Context::new(&properties, 1);
 
         assert_eq!(
-            evaluate(
-                &json!([
+            context
+                .evaluate(&json!([
                     "match",
                     42,
                     1,
@@ -468,11 +475,8 @@ mod tests {
                     "Also not this one",
                     42,
                     "Got it!",
-                ]),
-                &properties,
-                1,
-            )
-            .unwrap(),
+                ]),)
+                .unwrap(),
             json!("Got it!")
         );
     }
@@ -480,10 +484,11 @@ mod tests {
     #[test]
     fn test_match_operator_reaching_default() {
         let properties = HashMap::new();
+        let context = Context::new(&properties, 1);
 
         assert_eq!(
-            evaluate(
-                &json!([
+            context
+                .evaluate(&json!([
                     "match",
                     42,
                     1,
@@ -491,11 +496,8 @@ mod tests {
                     2,
                     "Also not this one",
                     "It's the default!",
-                ]),
-                &properties,
-                1,
-            )
-            .unwrap(),
+                ]))
+                .unwrap(),
             json!("It's the default!")
         );
     }
@@ -503,10 +505,11 @@ mod tests {
     #[test]
     fn test_case_operator() {
         let properties = HashMap::new();
+        let context = Context::new(&properties, 1);
 
         assert_eq!(
-            evaluate(
-                &json!([
+            context
+                .evaluate(&json!([
                     "case",
                     false,
                     "Not this one",
@@ -514,21 +517,15 @@ mod tests {
                     "Also not this one",
                     true,
                     "Got it!",
-                ]),
-                &properties,
-                1,
-            )
-            .unwrap(),
+                ]))
+                .unwrap(),
             json!("Got it!")
         );
 
         assert_eq!(
-            evaluate(
-                &json!(["case", false, "first", false, "second", "default"]),
-                &properties,
-                1,
-            )
-            .unwrap(),
+            context
+                .evaluate(&json!(["case", false, "first", false, "second", "default"]))
+                .unwrap(),
             json!("default")
         );
     }
@@ -536,19 +533,19 @@ mod tests {
     #[test]
     fn test_coalesce_operator() {
         let properties = HashMap::new();
+        let context = Context::new(&properties, 1);
 
         assert_eq!(
-            evaluate(&json!(["coalesce", Value::Null, "Got it!"]), &properties, 1,).unwrap(),
+            context
+                .evaluate(&json!(["coalesce", Value::Null, "Got it!"]))
+                .unwrap(),
             json!("Got it!")
         );
 
         assert_eq!(
-            evaluate(
-                &json!(["coalesce", Value::Null, Value::Null]),
-                &properties,
-                1,
-            )
-            .unwrap(),
+            context
+                .evaluate(&json!(["coalesce", Value::Null, Value::Null]))
+                .unwrap(),
             Value::Null
         );
     }
@@ -557,24 +554,19 @@ mod tests {
     fn test_in_operator() {
         let properties =
             HashMap::from([("name".to_string(), MvtValue::String("Polska".to_string()))]);
+        let context = Context::new(&properties, 1);
 
         assert_eq!(
-            evaluate(
-                &json!(["in", "name", "one", "two", "Polska", "three"]),
-                &properties,
-                1,
-            )
-            .unwrap(),
+            context
+                .evaluate(&json!(["in", "name", "one", "two", "Polska", "three"]))
+                .unwrap(),
             json!(true)
         );
 
         assert_eq!(
-            evaluate(
-                &json!(["in", "name", "one", "two", "three"]),
-                &properties,
-                1,
-            )
-            .unwrap(),
+            context
+                .evaluate(&json!(["in", "name", "one", "two", "three"]))
+                .unwrap(),
             json!(false)
         );
     }
@@ -582,14 +574,15 @@ mod tests {
     #[test]
     fn test_any_operator() {
         let properties = HashMap::new();
+        let context = Context::new(&properties, 1);
 
         assert_eq!(
-            evaluate(&json!(["any", true, false]), &properties, 1,).unwrap(),
+            context.evaluate(&json!(["any", true, false])).unwrap(),
             json!(true)
         );
 
         assert_eq!(
-            evaluate(&json!(["any", false, false]), &properties, 1,).unwrap(),
+            context.evaluate(&json!(["any", false, false])).unwrap(),
             json!(false)
         );
     }
@@ -597,28 +590,29 @@ mod tests {
     #[test]
     fn test_all_operator() {
         let properties = HashMap::new();
+        let context = Context::new(&properties, 1);
 
         assert_eq!(
-            evaluate(&json!(["all", true, false]), &properties, 1,).unwrap(),
+            context.evaluate(&json!(["all", true, false])).unwrap(),
             json!(false)
         );
 
         assert_eq!(
-            evaluate(&json!(["all", true, true]), &properties, 1,).unwrap(),
+            context.evaluate(&json!(["all", true, true])).unwrap(),
             json!(true)
         );
     }
 
     #[test]
     fn test_interpolate_operator() {
+        let properties = HashMap::new();
+        let context = Context::new(&properties, 1);
+
         // https://maplibre.org/maplibre-style-spec/expressions/#interpolate
         assert_eq!(
-            evaluate(
-                &json!(["interpolate", ["linear"], 5, 0, 0, 10, 10]),
-                &HashMap::new(),
-                1,
-            )
-            .unwrap(),
+            context
+                .evaluate(&json!(["interpolate", ["linear"], 5, 0, 0, 10, 10]))
+                .unwrap(),
             json!(5.0)
         );
     }
@@ -626,14 +620,20 @@ mod tests {
     #[test]
     fn test_interpolate_operator_with_evaluated_stop() {
         let properties = HashMap::from([("zoom".to_string(), MvtValue::Int(5))]);
+        let context = Context::new(&properties, 1);
 
         assert_eq!(
-            evaluate(
-                &json!(["interpolate", ["linear"], 5, 0, 0, 10, ["get", "zoom"]]),
-                &properties,
-                1,
-            )
-            .unwrap(),
+            context
+                .evaluate(&json!([
+                    "interpolate",
+                    ["linear"],
+                    5,
+                    0,
+                    0,
+                    10,
+                    ["get", "zoom"]
+                ]))
+                .unwrap(),
             json!(2.5)
         );
     }
@@ -641,19 +641,20 @@ mod tests {
     #[test]
     fn test_negation_operator() {
         let properties = HashMap::new();
+        let context = Context::new(&properties, 1);
 
-        assert_eq!(
-            evaluate(&json!(["!", false]), &properties, 1,).unwrap(),
-            json!(true)
-        );
+        assert_eq!(context.evaluate(&json!(["!", false])).unwrap(), json!(true));
     }
 
     #[test]
     fn test_format_operator() {
         let properties = HashMap::new();
+        let context = Context::new(&properties, 1);
 
         assert_eq!(
-            evaluate(&json!(["format", "Hello", {}, "World", {}]), &properties, 1,).unwrap(),
+            context
+                .evaluate(&json!(["format", "Hello", {}, "World", {}]))
+                .unwrap(),
             json!("HelloWorld")
         );
     }
