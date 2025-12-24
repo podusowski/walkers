@@ -41,189 +41,212 @@ pub enum Error {
     UnmatchedCaseOrMatch(Value),
 }
 
-/// Evaluate a style expression.
-/// https://maplibre.org/maplibre-style-spec/expressions/
-pub fn evaluate(
-    value: &Value,
-    properties: &HashMap<String, MvtValue>,
+pub struct Context<'a> {
+    properties: &'a HashMap<String, MvtValue>,
     zoom: u8,
-) -> Result<Value, Error> {
-    match value {
-        Value::Array(values) => {
-            let Some((Value::String(operator), arguments)) = values.split_first() else {
-                return Err(Error::InvalidExpression(value.clone()));
-            };
+}
 
-            match operator.as_str() {
-                "zoom" => Ok(Value::Number((zoom as i64).into())),
-                "literal" => single_array(arguments),
-                "!" => match evaluate(&single_value(arguments)?, properties, zoom)? {
-                    Value::Bool(b) => Ok(Value::Bool(!b)),
+impl<'a> Context<'a> {
+    pub fn new(properties: &'a HashMap<String, MvtValue>, zoom: u8) -> Self {
+        Self { properties, zoom }
+    }
+
+    /// Evaluate a style expression.
+    /// https://maplibre.org/maplibre-style-spec/expressions/
+    pub fn evaluate(&self, value: &Value) -> Result<Value, Error> {
+        match value {
+            Value::Array(values) => {
+                let Some((Value::String(operator), arguments)) = values.split_first() else {
+                    return Err(Error::InvalidExpression(value.clone()));
+                };
+
+                match operator.as_str() {
+                    "zoom" => Ok(Value::Number((self.zoom as i64).into())),
+                    "literal" => single_array(arguments),
+                    "!" => match self.evaluate(&single_value(arguments)?)? {
+                        Value::Bool(b) => Ok(Value::Bool(!b)),
+                        _ => Err(Error::InvalidExpression(value.clone())),
+                    },
+                    "get" => {
+                        let key = single_string(arguments)?;
+                        Ok(self
+                            .properties
+                            .get(key)
+                            .map_or(Value::Null, mvt_value_to_json))
+                    }
+                    "has" => Ok(Value::Bool(
+                        self.properties.contains_key(single_string(arguments)?),
+                    )),
+                    "!has" => Ok(Value::Bool(
+                        !self.properties.contains_key(single_string(arguments)?),
+                    )),
+                    "match" => {
+                        let (value, arms) = first_and_rest(arguments)?;
+                        let evaluated_value = self.evaluate(value)?;
+                        for arm in arms.chunks(2) {
+                            match arm.iter().as_slice() {
+                                [arm_value, arm_result] => {
+                                    if evaluated_value == *arm_value {
+                                        return self.evaluate(arm_result);
+                                    }
+                                }
+                                [default] => {
+                                    return self.evaluate(default);
+                                }
+                                _ => unreachable!(),
+                            }
+                        }
+                        Err(Error::UnmatchedCaseOrMatch(value.clone()))
+                    }
+                    "case" => {
+                        for arm in arguments.chunks(2) {
+                            match arm.iter().as_slice() {
+                                [condition, arm_result] => {
+                                    let evaluated_condition = self.evaluate(condition)?;
+                                    if let Value::Bool(true) = evaluated_condition {
+                                        return self.evaluate(arm_result);
+                                    }
+                                }
+                                [default] => {
+                                    return self.evaluate(default);
+                                }
+                                _ => unreachable!(),
+                            }
+                        }
+                        Err(Error::UnmatchedCaseOrMatch(value.clone()))
+                    }
+                    "coalesce" => {
+                        for argument in arguments {
+                            match self.evaluate(argument)? {
+                                Value::Null => continue,
+                                non_null => return Ok(non_null),
+                            }
+                        }
+                        Ok(Value::Null)
+                    }
+                    "in" => {
+                        let (value, list) = first_and_rest(arguments)?;
+                        let value = self.property_or_expression(value)?;
+
+                        for item in list {
+                            if value == self.evaluate(item)? {
+                                return Ok(Value::Bool(true));
+                            }
+                        }
+
+                        Ok(Value::Bool(false))
+                    }
+                    "==" => {
+                        let (left, right) = two_elements(arguments)?;
+                        let left = self.property_or_expression(left)?;
+                        Ok(Value::Bool(left == *right))
+                    }
+                    "!=" => {
+                        let (left, right) = two_elements(arguments)?;
+                        let left = self.property_or_expression(left)?;
+                        Ok(Value::Bool(left != *right))
+                    }
+                    "<" => {
+                        let (left, right) = two_elements(arguments)?;
+                        let left = self.property_or_expression(left)?;
+                        Ok(Value::Bool(lt(&left, right)))
+                    }
+                    ">" => {
+                        let (left, right) = two_elements(arguments)?;
+                        let left = self.property_or_expression(left)?;
+                        Ok(Value::Bool(lt(right, &left)))
+                    }
+                    "<=" => {
+                        let (left, right) = two_elements(arguments)?;
+                        let left = self.property_or_expression(left)?;
+                        Ok(Value::Bool(lte(&left, right)))
+                    }
+                    ">=" => {
+                        let (left, right) = two_elements(arguments)?;
+                        let left = self.property_or_expression(left)?;
+                        Ok(Value::Bool(lte(right, &left)))
+                    }
+                    "any" => Ok(arguments
+                        .iter()
+                        .try_fold(false, |acc, value| {
+                            Ok(acc || self.evaluate(value)? == Value::Bool(true))
+                        })?
+                        .into()),
+                    "all" => Ok(arguments
+                        .iter()
+                        .try_fold(true, |acc, value| {
+                            Ok(acc && self.evaluate(value)? == Value::Bool(true))
+                        })?
+                        .into()),
+                    "interpolate" => {
+                        let (_interpolation_type, args) = first_and_rest(arguments)?;
+                        let (input, stops) = first_and_rest(args)?;
+                        let input = self.evaluate(input)?;
+
+                        // Stops are pairs of [input, output].
+                        let stops = stops
+                            .chunks(2)
+                            .map(|chunk| (chunk[0].clone(), chunk[1].clone()))
+                            .collect::<Vec<_>>();
+
+                        // Find the two stops surrounding the input value.
+                        let stop_pair = stops.windows(2).find(|pair| {
+                            let left_stop = &pair[0].0;
+                            let right_stop = &pair[1].0;
+                            lte(left_stop, &input) && lte(&input, right_stop)
+                        });
+
+                        if let Some(stop_pair) = stop_pair {
+                            let input_delta = numeric_difference(&stop_pair[1].0, &stop_pair[0].0)?;
+
+                            // Position of the input value between the two stops (0.0 to 1.0).
+                            let input_position =
+                                numeric_difference(&input, &stop_pair[0].0)? / input_delta;
+
+                            let result = lerp(
+                                &self.evaluate(&stop_pair[0].1)?,
+                                &self.evaluate(&stop_pair[1].1)?,
+                                input_position,
+                            )?;
+                            Ok(result)
+                        } else if lt(&input, &stops[0].0) {
+                            Ok(stops[0].1.clone())
+                        } else if lt(&stops[stops.len() - 1].0, &input) {
+                            Ok(stops[stops.len() - 1].1.clone())
+                        } else {
+                            Err(Error::InterpolateStopNotFound(input, value.clone()))
+                        }
+                    }
+                    "format" => {
+                        let mut result = String::new();
+                        for argument in arguments.chunks(2) {
+                            let (input, _style_override) = two_elements(argument)?;
+                            result.push_str(
+                                self.evaluate(input)?
+                                    .as_str()
+                                    .ok_or(Error::InvalidExpression(value.clone()))?,
+                            );
+                        }
+                        Ok(Value::String(result))
+                    }
                     _ => Err(Error::InvalidExpression(value.clone())),
-                },
-                "get" => {
-                    let key = single_string(arguments)?;
-                    Ok(properties.get(key).map_or(Value::Null, mvt_value_to_json))
                 }
-                "has" => Ok(Value::Bool(
-                    properties.contains_key(single_string(arguments)?),
-                )),
-                "!has" => Ok(Value::Bool(
-                    !properties.contains_key(single_string(arguments)?),
-                )),
-                "match" => {
-                    let (value, arms) = first_and_rest(arguments)?;
-                    let evaluated_value = evaluate(value, properties, zoom)?;
-                    for arm in arms.chunks(2) {
-                        match arm.iter().as_slice() {
-                            [arm_value, arm_result] => {
-                                if evaluated_value == *arm_value {
-                                    return evaluate(arm_result, properties, zoom);
-                                }
-                            }
-                            [default] => {
-                                return evaluate(default, properties, zoom);
-                            }
-                            _ => unreachable!(),
-                        }
-                    }
-                    Err(Error::UnmatchedCaseOrMatch(value.clone()))
-                }
-                "case" => {
-                    for arm in arguments.chunks(2) {
-                        match arm.iter().as_slice() {
-                            [condition, arm_result] => {
-                                let evaluated_condition = evaluate(condition, properties, zoom)?;
-                                if let Value::Bool(true) = evaluated_condition {
-                                    return evaluate(arm_result, properties, zoom);
-                                }
-                            }
-                            [default] => {
-                                return evaluate(default, properties, zoom);
-                            }
-                            _ => unreachable!(),
-                        }
-                    }
-                    Err(Error::UnmatchedCaseOrMatch(value.clone()))
-                }
-                "coalesce" => {
-                    for argument in arguments {
-                        match evaluate(argument, properties, zoom)? {
-                            Value::Null => continue,
-                            non_null => return Ok(non_null),
-                        }
-                    }
-                    Ok(Value::Null)
-                }
-                "in" => {
-                    let (value, list) = first_and_rest(arguments)?;
-                    let value = property_or_expression(value, properties, zoom)?;
-
-                    for item in list {
-                        if value == evaluate(item, properties, zoom)? {
-                            return Ok(Value::Bool(true));
-                        }
-                    }
-
-                    Ok(Value::Bool(false))
-                }
-                "==" => {
-                    let (left, right) = two_elements(arguments)?;
-                    let left = property_or_expression(left, properties, zoom)?;
-                    Ok(Value::Bool(left == *right))
-                }
-                "!=" => {
-                    let (left, right) = two_elements(arguments)?;
-                    let left = property_or_expression(left, properties, zoom)?;
-                    Ok(Value::Bool(left != *right))
-                }
-                "<" => {
-                    let (left, right) = two_elements(arguments)?;
-                    let left = property_or_expression(left, properties, zoom)?;
-                    Ok(Value::Bool(lt(&left, right)))
-                }
-                ">" => {
-                    let (left, right) = two_elements(arguments)?;
-                    let left = property_or_expression(left, properties, zoom)?;
-                    Ok(Value::Bool(lt(right, &left)))
-                }
-                "<=" => {
-                    let (left, right) = two_elements(arguments)?;
-                    let left = property_or_expression(left, properties, zoom)?;
-                    Ok(Value::Bool(lte(&left, right)))
-                }
-                ">=" => {
-                    let (left, right) = two_elements(arguments)?;
-                    let left = property_or_expression(left, properties, zoom)?;
-                    Ok(Value::Bool(lte(right, &left)))
-                }
-                "any" => Ok(arguments
-                    .iter()
-                    .try_fold(false, |acc, value| {
-                        Ok(acc || evaluate(value, properties, zoom)? == Value::Bool(true))
-                    })?
-                    .into()),
-                "all" => Ok(arguments
-                    .iter()
-                    .try_fold(true, |acc, value| {
-                        Ok(acc && evaluate(value, properties, zoom)? == Value::Bool(true))
-                    })?
-                    .into()),
-                "interpolate" => {
-                    let (_interpolation_type, args) = first_and_rest(arguments)?;
-                    let (input, stops) = first_and_rest(args)?;
-                    let input = evaluate(input, properties, zoom)?;
-
-                    // Stops are pairs of [input, output].
-                    let stops = stops
-                        .chunks(2)
-                        .map(|chunk| (chunk[0].clone(), chunk[1].clone()))
-                        .collect::<Vec<_>>();
-
-                    // Find the two stops surrounding the input value.
-                    let stop_pair = stops.windows(2).find(|pair| {
-                        let left_stop = &pair[0].0;
-                        let right_stop = &pair[1].0;
-                        lte(left_stop, &input) && lte(&input, right_stop)
-                    });
-
-                    if let Some(stop_pair) = stop_pair {
-                        let input_delta = numeric_difference(&stop_pair[1].0, &stop_pair[0].0)?;
-
-                        // Position of the input value between the two stops (0.0 to 1.0).
-                        let input_position =
-                            numeric_difference(&input, &stop_pair[0].0)? / input_delta;
-
-                        let result = lerp(
-                            &evaluate(&stop_pair[0].1, properties, zoom)?,
-                            &evaluate(&stop_pair[1].1, properties, zoom)?,
-                            input_position,
-                        )?;
-                        Ok(result)
-                    } else if lt(&input, &stops[0].0) {
-                        Ok(stops[0].1.clone())
-                    } else if lt(&stops[stops.len() - 1].0, &input) {
-                        Ok(stops[stops.len() - 1].1.clone())
-                    } else {
-                        Err(Error::InterpolateStopNotFound(input, value.clone()))
-                    }
-                }
-                "format" => {
-                    let mut result = String::new();
-                    for argument in arguments.chunks(2) {
-                        let (input, _style_override) = two_elements(argument)?;
-                        result.push_str(
-                            evaluate(input, properties, zoom)?
-                                .as_str()
-                                .ok_or(Error::InvalidExpression(value.clone()))?,
-                        );
-                    }
-                    Ok(Value::String(result))
-                }
-                _ => Err(Error::InvalidExpression(value.clone())),
             }
+            primitive => Ok(primitive.clone()),
         }
-        primitive => Ok(primitive.clone()),
+    }
+
+    /// Evaluate token as either a property key (String) or an expression (Array).
+    fn property_or_expression(&self, value: &Value) -> Result<Value, Error> {
+        match value {
+            Value::String(key) => {
+                Ok(mvt_value_to_json(self.properties.get(key).ok_or(
+                    Error::PropertyMissing(key.clone(), self.properties.clone()),
+                )?))
+            }
+            Value::Array(_) => self.evaluate(value),
+            _ => Err(Error::ExpectedKeyOrExpression(value.clone())),
+        }
     }
 }
 
@@ -288,23 +311,6 @@ fn lte(left: &Value, right: &Value) -> bool {
         (Value::Number(l), Value::Number(r)) => l.as_i64() <= r.as_i64(),
         (Value::String(l), Value::String(r)) => l <= r,
         _ => false,
-    }
-}
-
-/// Evaluate token as either a property key (String) or an expression (Array).
-fn property_or_expression(
-    value: &Value,
-    properties: &HashMap<String, MvtValue>,
-    zoom: u8,
-) -> Result<Value, Error> {
-    match value {
-        Value::String(key) => {
-            Ok(mvt_value_to_json(properties.get(key).ok_or(
-                Error::PropertyMissing(key.clone(), properties.clone()),
-            )?))
-        }
-        Value::Array(_) => evaluate(value, properties, zoom),
-        _ => Err(Error::ExpectedKeyOrExpression(value.clone())),
     }
 }
 
