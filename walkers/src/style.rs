@@ -137,8 +137,8 @@ impl Color {
 pub struct Float(pub Value);
 
 impl Float {
-    pub fn evaluate(&self, properties: &HashMap<String, MvtValue>, zoom: u8) -> f32 {
-        match self.try_evaluate(properties, zoom) {
+    pub fn evaluate(&self, context: &Context) -> f32 {
+        match self.try_evaluate(context) {
             Ok(opacity) => opacity,
             Err(err) => {
                 warn!("{err}");
@@ -147,12 +147,8 @@ impl Float {
         }
     }
 
-    fn try_evaluate(
-        &self,
-        properties: &HashMap<String, MvtValue>,
-        zoom: u8,
-    ) -> Result<f32, StyleError> {
-        match Context::new(properties, zoom).evaluate(&self.0)? {
+    fn try_evaluate(&self, context: &Context) -> Result<f32, StyleError> {
+        match context.evaluate(&self.0)? {
             Value::Number(num) => Ok(num.as_f64().ok_or(StyleError::InvalidType)? as f32),
             _ => Err(StyleError::InvalidType),
         }

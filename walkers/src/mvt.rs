@@ -19,7 +19,10 @@ use lyon_tessellation::{
 };
 use mvt_reader::feature::{Feature, Value};
 
-use crate::style::{Filter, Layer, Layout, Paint, Style};
+use crate::{
+    expression::Context,
+    style::{Filter, Layer, Layout, Paint, Style},
+};
 
 #[derive(thiserror::Error, Debug)]
 pub enum Error {
@@ -207,15 +210,17 @@ fn line_feature_into_shape(
         .as_ref()
         .ok_or(Error::FeatureWithoutProperties)?;
 
+    let context = Context::new(properties, zoom);
+
     let width = if let Some(width) = &paint.line_width {
         // Align to the proportion of MVT extent and tile size.
-        width.evaluate(properties, zoom) * 4.0
+        width.evaluate(&context) * 4.0
     } else {
         2.0
     };
 
     let opacity = if let Some(opacity) = &paint.line_opacity {
-        opacity.evaluate(properties, zoom)
+        opacity.evaluate(&context)
     } else {
         1.0
     };
@@ -263,6 +268,9 @@ fn polygon_feature_into_shape(
         .properties
         .as_ref()
         .ok_or(Error::FeatureWithoutProperties)?;
+
+    let context = Context::new(properties, zoom);
+
     if let Geometry::MultiPolygon(multi_polygon) = &feature.geometry {
         if !match_filter(feature, "Polygon", zoom, filter) {
             return Ok(());
@@ -276,7 +284,7 @@ fn polygon_feature_into_shape(
         let fill_color = fill_color.evaluate(properties, zoom);
 
         let fill_color = if let Some(fill_opacity) = &paint.fill_opacity {
-            let fill_opacity = fill_opacity.evaluate(properties, zoom);
+            let fill_opacity = fill_opacity.evaluate(&context);
             fill_color.gamma_multiply(fill_opacity)
         } else {
             fill_color
@@ -314,6 +322,8 @@ fn symbol_into_shape(
         .as_ref()
         .ok_or(Error::FeatureWithoutProperties)?;
 
+    let context = Context::new(properties, zoom);
+
     match &feature.geometry {
         Geometry::MultiPoint(multi_point) => {
             if !match_filter(feature, "Point", zoom, filter) {
@@ -324,7 +334,7 @@ fn symbol_into_shape(
                 .text_size
                 .as_ref()
                 .and_then(|text_size| {
-                    let size = text_size.evaluate(properties, zoom);
+                    let size = text_size.evaluate(&context);
 
                     if size > 3.0 {
                         Some(size)
@@ -368,7 +378,7 @@ fn symbol_into_shape(
                 .text_size
                 .as_ref()
                 .and_then(|text_size| {
-                    let size = text_size.evaluate(properties, zoom);
+                    let size = text_size.evaluate(&context);
 
                     if size > 3.0 {
                         Some(size)
