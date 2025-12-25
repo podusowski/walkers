@@ -13,8 +13,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Install Trunk
-        run: cargo install trunk@0.20.3 --locked
+      - uses: arduino/setup-protoc@v3.0.0
+      - run: cargo install trunk@0.21.14 --locked
       - name: Build
         run: env -C demo_web trunk build --release --public-url .
       - name: Deploy
