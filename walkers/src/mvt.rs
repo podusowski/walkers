@@ -203,16 +203,18 @@ fn line_feature_into_shape(
     paint: &Paint,
     zoom: u8,
 ) -> Result<(), Error> {
-    if !match_filter(feature, "Line", zoom, filter) {
-        return Ok(());
-    }
-
     let properties = feature
         .properties
         .as_ref()
         .ok_or(Error::FeatureWithoutProperties)?;
 
     let context = Context::new("Line".to_string(), properties, zoom);
+
+    if let Some(filter) = filter
+        && !filter.matches(&context)
+    {
+        return Ok(());
+    }
 
     let width = if let Some(width) = &paint.line_width {
         // Align to the proportion of MVT extent and tile size.
@@ -274,7 +276,9 @@ fn polygon_feature_into_shape(
     let context = Context::new("Polygon".to_string(), properties, zoom);
 
     if let Geometry::MultiPolygon(multi_polygon) = &feature.geometry {
-        if !match_filter(feature, "Polygon", zoom, filter) {
+        if let Some(filter) = filter
+            && !filter.matches(&context)
+        {
             return Ok(());
         }
 
@@ -328,7 +332,9 @@ fn symbol_into_shape(
 
     match &feature.geometry {
         Geometry::MultiPoint(multi_point) => {
-            if !match_filter(feature, "Point", zoom, filter) {
+            if let Some(filter) = filter
+                && !filter.matches(&context)
+            {
                 return Ok(());
             }
 
@@ -373,7 +379,9 @@ fn symbol_into_shape(
             }
         }
         Geometry::MultiLineString(multi_line_string) => {
-            if !match_filter(feature, "Point", zoom, filter) {
+            if let Some(filter) = filter
+                && !filter.matches(&context)
+            {
                 return Ok(());
             }
 
