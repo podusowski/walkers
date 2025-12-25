@@ -181,21 +181,6 @@ pub fn transformed(shapes: &[ShapeOrText], rect: egui::Rect) -> Vec<ShapeOrText>
     result
 }
 
-fn match_filter(feature: &Feature, type_: &str, zoom: u8, filter: &Option<Filter>) -> bool {
-    // Special property "$type" to filter by geometry type. MapLibre Style spec mentions
-    // 'geometry-type', but Protomaps uses '$type' in their styles.
-    let properties = feature.properties.clone().map(|mut properties| {
-        properties.insert("$type".to_string(), Value::String(type_.to_string()));
-        properties
-    });
-    match (&properties, filter) {
-        (Some(properties), Some(filter)) => {
-            filter.matches(&Context::new(type_.to_string(), properties, zoom))
-        }
-        _ => true,
-    }
-}
-
 fn line_feature_into_shape(
     feature: &Feature,
     shapes: &mut Vec<ShapeOrText>,
