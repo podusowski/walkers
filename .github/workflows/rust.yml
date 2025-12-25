@@ -22,10 +22,10 @@ jobs:
       #  run: cargo check -p walkers --all-features
       #- name: Cargo Check Walkers No Features
       #  run: cargo check -p walkers --no-default-features
-      - name: Build Demo Native
-        run: env -C demo_native cargo build --all-features
-      - name: Build Demo Native No Features
-        run: env -C demo_native cargo build --no-default-features
+      - name: Build Demo Native All Features
+        run: cargo build -p demo_native --all-features
+      - name: Build Walkers No Features
+        run: cargo build -p walkers --no-default-features
 
   wasm:
     runs-on: ubuntu-latest
