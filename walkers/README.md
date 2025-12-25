@@ -58,13 +58,9 @@ impl App for MyApp {
 
 You can see a more complete example [here](https://github.com/podusowski/walkers/blob/main/demo/src/lib.rs).
 
-## Running demos
+## Native
 
-Walkers supports numerous build options, such as Android and WASM. They all share
-a common library - `demo`, but require a different build workflow, not
-necessarily compatible with Cargo alone.
-
-### Native
+To run demo application locally, use a default cargo run target.
 
 ```sh
 cargo run
@@ -83,14 +79,14 @@ To enable **mapbox** layers, you need to define `MAPBOX_ACCESS_TOKEN` environmen
 variable before building. You can get one by creating a
 [mapbox account](https://account.mapbox.com/).
 
-### Web / WASM
+## Web / WASM
 
 ```sh
 cd demo_web
 trunk serve --release
 ```
 
-### Android
+## Android
 
 You need to have [Android SDK](https://developer.android.com/) and
 [cargo-ndk](https://github.com/bbqsrc/cargo-ndk) installed.

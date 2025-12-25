@@ -8,7 +8,7 @@ use egui::{
     epaint::{Vertex, WHITE_UV},
     pos2,
 };
-use geo_types::Geometry;
+use geo_types::{Geometry, Line};
 use log::warn;
 use lyon_path::{
     Path, Polygon,
@@ -19,7 +19,10 @@ use lyon_tessellation::{
 };
 use mvt_reader::feature::{Feature, Value};
 
-use crate::style::{Filter, Layer, Layout, Paint, Style};
+use crate::{
+    expression::Context,
+    style::{Filter, Layer, Layout, Paint, Style},
+};
 
 #[derive(thiserror::Error, Debug)]
 pub enum Error {
@@ -52,12 +55,7 @@ const ONLY_SUPPORTED_EXTENT: u32 = 4096;
 #[derive(Debug, Clone)]
 pub enum ShapeOrText {
     Shape(Shape),
-    Text {
-        position: Pos2,
-        text: String,
-        font_size: f32,
-        text_color: Color32,
-    },
+    Text(Text),
 }
 
 impl From<Shape> for ShapeOrText {
@@ -78,12 +76,22 @@ impl ShapeOrText {
             ShapeOrText::Shape(shape) => {
                 shape.transform(transform);
             }
-            ShapeOrText::Text { position, .. } => {
+            ShapeOrText::Text(Text { position, .. }) => {
                 *position *= transform.scaling;
                 *position += transform.translation;
             }
         }
     }
+}
+
+#[derive(Debug, Clone)]
+pub struct Text {
+    pub text: String,
+    pub position: Pos2,
+    pub font_size: f32,
+    pub text_color: Color32,
+    pub background_color: Color32,
+    pub angle: f32,
 }
 
 /// Render MVT data into a list of [`epaint::Shape`]s.
@@ -143,7 +151,7 @@ pub fn render(data: &[u8], style: &Style, zoom: u8) -> Result<Vec<ShapeOrText>, 
 
                 for feature in data.get_features(layer_index)? {
                     if let Err(err) =
-                        point_feature_into_shape(&feature, &mut shapes, filter, layout, paint, zoom)
+                        symbol_into_shape(&feature, &mut shapes, filter, layout, paint, zoom)
                     {
                         warn!("{err}");
                     }
@@ -173,19 +181,6 @@ pub fn transformed(shapes: &[ShapeOrText], rect: egui::Rect) -> Vec<ShapeOrText>
     result
 }
 
-fn match_filter(feature: &Feature, type_: &str, zoom: u8, filter: &Option<Filter>) -> bool {
-    // Special property "$type" to filter by geometry type. MapLibre Style spec mentions
-    // 'geometry-type', but Protomaps uses '$type' in their styles.
-    let properties = feature.properties.clone().map(|mut properties| {
-        properties.insert("$type".to_string(), Value::String(type_.to_string()));
-        properties
-    });
-    match (&properties, filter) {
-        (Some(properties), Some(filter)) => filter.matches(properties, zoom),
-        _ => true,
-    }
-}
-
 fn line_feature_into_shape(
     feature: &Feature,
     shapes: &mut Vec<ShapeOrText>,
@@ -193,30 +188,34 @@ fn line_feature_into_shape(
     paint: &Paint,
     zoom: u8,
 ) -> Result<(), Error> {
-    if !match_filter(feature, "Line", zoom, filter) {
-        return Ok(());
-    }
-
     let properties = feature
         .properties
         .as_ref()
         .ok_or(Error::FeatureWithoutProperties)?;
 
+    let context = Context::new("Line".to_string(), properties, zoom);
+
+    if let Some(filter) = filter
+        && !filter.matches(&context)
+    {
+        return Ok(());
+    }
+
     let width = if let Some(width) = &paint.line_width {
         // Align to the proportion of MVT extent and tile size.
-        width.evaluate(properties, zoom) * 4.0
+        width.evaluate(&context) * 4.0
     } else {
         2.0
     };
 
     let opacity = if let Some(opacity) = &paint.line_opacity {
-        opacity.evaluate(properties, zoom)
+        opacity.evaluate(&context)
     } else {
         1.0
     };
 
     let color = if let Some(color) = &paint.line_color {
-        color.evaluate(properties, zoom).gamma_multiply(opacity)
+        color.evaluate(&context).gamma_multiply(opacity)
     } else {
         Color32::WHITE
     };
@@ -258,8 +257,13 @@ fn polygon_feature_into_shape(
         .properties
         .as_ref()
         .ok_or(Error::FeatureWithoutProperties)?;
+
+    let context = Context::new("Polygon".to_string(), properties, zoom);
+
     if let Geometry::MultiPolygon(multi_polygon) = &feature.geometry {
-        if !match_filter(feature, "Polygon", zoom, filter) {
+        if let Some(filter) = filter
+            && !filter.matches(&context)
+        {
             return Ok(());
         }
 
@@ -268,10 +272,10 @@ fn polygon_feature_into_shape(
             return Ok(());
         };
 
-        let fill_color = fill_color.evaluate(properties, zoom);
+        let fill_color = fill_color.evaluate(&context);
 
         let fill_color = if let Some(fill_opacity) = &paint.fill_opacity {
-            let fill_opacity = fill_opacity.evaluate(properties, zoom);
+            let fill_opacity = fill_opacity.evaluate(&context);
             fill_color.gamma_multiply(fill_opacity)
         } else {
             fill_color
@@ -295,7 +299,8 @@ fn polygon_feature_into_shape(
     Ok(())
 }
 
-fn point_feature_into_shape(
+/// Render a shape from symbol layer.
+fn symbol_into_shape(
     feature: &Feature,
     shapes: &mut Vec<ShapeOrText>,
     filter: &Option<Filter>,
@@ -307,47 +312,131 @@ fn point_feature_into_shape(
         .properties
         .as_ref()
         .ok_or(Error::FeatureWithoutProperties)?;
-    if let Geometry::MultiPoint(multi_point) = &feature.geometry {
-        if !match_filter(feature, "Point", zoom, filter) {
-            return Ok(());
+
+    let context = Context::new("Point".to_string(), properties, zoom);
+
+    match &feature.geometry {
+        Geometry::MultiPoint(multi_point) => {
+            if let Some(filter) = filter
+                && !filter.matches(&context)
+            {
+                return Ok(());
+            }
+
+            let text_size = layout
+                .text_size
+                .as_ref()
+                .and_then(|text_size| {
+                    let size = text_size.evaluate(&context);
+
+                    if size > 3.0 {
+                        Some(size)
+                    } else {
+                        warn!(
+                            "{} evaluated into {size}, which is too small for text size.",
+                            text_size.0
+                        );
+                        None
+                    }
+                })
+                .unwrap_or(12.0);
+
+            let text_color = if let Some(paint) = paint
+                && let Some(color) = &paint.text_color
+            {
+                color.evaluate(&context)
+            } else {
+                // Default from MapLibre spec.
+                Color32::BLACK
+            };
+
+            if let Some(text) = &layout.text(&context) {
+                shapes.extend(multi_point.0.iter().map(|p| {
+                    ShapeOrText::Text(Text {
+                        position: pos2(p.x(), p.y()),
+                        text: text.clone(),
+                        font_size: text_size,
+                        text_color,
+                        background_color: Color32::TRANSPARENT,
+                        angle: 0.0,
+                    })
+                }))
+            }
         }
+        Geometry::MultiLineString(multi_line_string) => {
+            if let Some(filter) = filter
+                && !filter.matches(&context)
+            {
+                return Ok(());
+            }
 
-        let text_size = layout
-            .text_size
-            .as_ref()
-            .and_then(|text_size| {
-                let size = text_size.evaluate(properties, zoom);
+            let text_size = layout
+                .text_size
+                .as_ref()
+                .and_then(|text_size| {
+                    let size = text_size.evaluate(&context);
 
-                if size > 3.0 {
-                    Some(size)
-                } else {
-                    warn!(
-                        "{} evaluated into {size}, which is too small for text size.",
-                        text_size.0
-                    );
-                    None
+                    if size > 3.0 {
+                        Some(size)
+                    } else {
+                        warn!(
+                            "{} evaluated into {size}, which is too small for text size.",
+                            text_size.0
+                        );
+                        None
+                    }
+                })
+                .unwrap_or(12.0);
+
+            let text_color = if let Some(paint) = paint
+                && let Some(color) = &paint.text_color
+            {
+                color.evaluate(&context)
+            } else {
+                Color32::BLACK
+            };
+
+            let text_halo_color = if let Some(paint) = paint
+                && let Some(color) = &paint.text_halo_color
+            {
+                color.evaluate(&context)
+            } else {
+                Color32::TRANSPARENT
+            };
+
+            for line_string in multi_line_string {
+                let lines: Vec<_> = line_string.lines().collect();
+
+                if let Some(text) = &layout.text(&context)
+                // Use the longest line to fit the label.
+                && let Some(line) = lines.into_iter().max_by_key(|line| length(line) as u32)
+                {
+                    let mid_point = midpoint(&line.start_point(), &line.end_point());
+                    let angle = line.slope().atan();
+
+                    shapes.push(ShapeOrText::Text(Text {
+                        position: pos2(mid_point.x(), mid_point.y()),
+                        text: text.clone(),
+                        font_size: text_size,
+                        text_color,
+                        // TODO: Implement real halo rendering.
+                        background_color: text_halo_color.gamma_multiply(0.5),
+                        angle,
+                    }));
                 }
-            })
-            .unwrap_or(12.0);
-
-        let text_color = if let Some(paint) = paint
-            && let Some(color) = &paint.text_color
-        {
-            color.evaluate(properties, zoom)
-        } else {
-            Color32::BLACK
-        };
-
-        if let Some(text) = &layout.text(properties, zoom) {
-            shapes.extend(multi_point.0.iter().map(|p| ShapeOrText::Text {
-                position: pos2(p.x(), p.y()),
-                text: text.clone(),
-                font_size: text_size,
-                text_color,
-            }))
+            }
         }
+        _ => (),
     }
     Ok(())
+}
+
+fn length(line: &Line<f32>) -> f32 {
+    (line.dx() * line.dx() + line.dy() * line.dy()).sqrt()
+}
+
+fn midpoint(p1: &geo_types::Point<f32>, p2: &geo_types::Point<f32>) -> geo_types::Point<f32> {
+    geo_types::Point::new((p1.x() + p2.x()) / 2.0, (p1.y() + p2.y()) / 2.0)
 }
 
 fn find_layer(data: &mvt_reader::Reader, name: &str) -> Result<usize, Error> {

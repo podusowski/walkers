@@ -1,5 +1,5 @@
 #[cfg(feature = "mvt")]
-use crate::mvt::{self, ShapeOrText};
+use crate::mvt::{self, ShapeOrText, Text};
 
 use egui::{Color32, Context, Mesh, Rect, Vec2, pos2};
 use egui::{ColorImage, TextureHandle};
@@ -169,17 +169,16 @@ impl Tile {
                 // ...and then it can be clipped to the `rect`.
                 let painter = painter.with_clip_rect(rect);
 
+                let mut occupied_text_areas = OccupiedAreas::new();
+
                 // Need to collect it to avoid deadlock caused by `Painter::extend` and `fonts_mut`.
                 let shapes: Vec<_> = mvt::transformed(shapes, full_rect)
                     .into_iter()
                     .map(|shape_or_text| match shape_or_text {
                         ShapeOrText::Shape(shape) => shape,
-                        ShapeOrText::Text {
-                            position,
-                            text,
-                            font_size,
-                            text_color,
-                        } => self.draw_text(position, text, font_size, text_color, painter.ctx()),
+                        ShapeOrText::Text(text) => {
+                            self.draw_text(text, painter.ctx(), &mut occupied_text_areas)
+                        }
                     })
                     .collect();
 
@@ -191,22 +190,83 @@ impl Tile {
     #[cfg(feature = "mvt")]
     fn draw_text(
         &self,
-        pos: Pos2,
-        text: String,
-        font_size: f32,
-        text_color: Color32,
+        text: Text,
         ctx: &Context,
+        occupied_text_areas: &mut OccupiedAreas,
     ) -> Shape {
         ctx.fonts_mut(|fonts| {
-            Shape::text(
-                fonts,
-                pos,
-                egui::Align2::CENTER_CENTER,
-                text,
-                FontId::proportional(font_size),
-                text_color,
-            )
+            use egui::{epaint::TextShape, vec2};
+
+            let mut layout_job = egui::text::LayoutJob::default();
+
+            layout_job.append(
+                &text.text,
+                0.0,
+                egui::TextFormat {
+                    font_id: FontId::proportional(text.font_size),
+                    color: text.text_color,
+                    background: text.background_color,
+                    ..Default::default()
+                },
+            );
+
+            let galley = fonts.layout_job(layout_job);
+
+            // Voodoo to rotate text around its center, instead of top-left corner.
+            let half = galley.size() * 0.5;
+            let (s, c) = text.angle.sin_cos();
+            let rotated_half = vec2(half.x * c - half.y * s, half.x * s + half.y * c);
+            let pivot = text.position - rotated_half;
+
+            // Another voodoo to calculate bounding box of rotated text.
+            let w = galley.size().x;
+            let h = galley.size().y;
+
+            let rotate = |dx: f32, dy: f32| -> Pos2 {
+                let rx = dx * c - dy * s;
+                let ry = dx * s + dy * c;
+                Pos2::new(pivot.x + rx, pivot.y + ry)
+            };
+
+            let p0 = rotate(0.0, 0.0);
+            let p1 = rotate(w, 0.0);
+            let p2 = rotate(w, h);
+            let p3 = rotate(0.0, h);
+
+            let min_x = p0.x.min(p1.x).min(p2.x).min(p3.x);
+            let max_x = p0.x.max(p1.x).max(p2.x).max(p3.x);
+            let min_y = p0.y.min(p1.y).min(p2.y).min(p3.y);
+            let max_y = p0.y.max(p1.y).max(p2.y).max(p3.y);
+            let bbox = Rect::from_min_max(pos2(min_x, min_y), pos2(max_x, max_y));
+
+            if occupied_text_areas.try_acquire(bbox) {
+                TextShape::new(pivot, galley, text.text_color)
+                    .with_angle(text.angle)
+                    .into()
+            } else {
+                Shape::Noop
+            }
         })
+    }
+}
+
+// Tracks areas occupied by texts to avoid overlapping them.
+struct OccupiedAreas {
+    areas: Vec<Rect>,
+}
+
+impl OccupiedAreas {
+    fn new() -> Self {
+        Self { areas: Vec::new() }
+    }
+
+    fn try_acquire(&mut self, rect: Rect) -> bool {
+        if !self.areas.iter().any(|existing| existing.intersects(rect)) {
+            self.areas.push(rect);
+            true
+        } else {
+            false
+        }
     }
 }
 
