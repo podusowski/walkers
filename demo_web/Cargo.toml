@@ -5,7 +5,7 @@ edition.workspace = true
 publish = false
 
 [dependencies]
-demo = { path = "../demo" }
+demo = { path = "../demo", features = ["mvt"] }
 eframe.workspace = true
 egui.workspace = true
 log.workspace = true
