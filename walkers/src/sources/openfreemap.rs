@@ -19,4 +19,8 @@ impl TileSource for OpenFreeMap {
             logo_dark: None,
         }
     }
+
+    fn tile_size(&self) -> u32 {
+        1024
+    }
 }
