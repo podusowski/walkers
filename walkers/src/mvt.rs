@@ -19,7 +19,10 @@ use lyon_tessellation::{
 };
 use mvt_reader::feature::{Feature, Value};
 
-use crate::style::{Filter, Layer, Layout, Paint, Style};
+use crate::{
+    expression::Context,
+    style::{Filter, Layer, Layout, Paint, Style},
+};
 
 #[derive(thiserror::Error, Debug)]
 pub enum Error {
@@ -178,19 +181,6 @@ pub fn transformed(shapes: &[ShapeOrText], rect: egui::Rect) -> Vec<ShapeOrText>
     result
 }
 
-fn match_filter(feature: &Feature, type_: &str, zoom: u8, filter: &Option<Filter>) -> bool {
-    // Special property "$type" to filter by geometry type. MapLibre Style spec mentions
-    // 'geometry-type', but Protomaps uses '$type' in their styles.
-    let properties = feature.properties.clone().map(|mut properties| {
-        properties.insert("$type".to_string(), Value::String(type_.to_string()));
-        properties
-    });
-    match (&properties, filter) {
-        (Some(properties), Some(filter)) => filter.matches(properties, zoom),
-        _ => true,
-    }
-}
-
 fn line_feature_into_shape(
     feature: &Feature,
     shapes: &mut Vec<ShapeOrText>,
@@ -198,30 +188,34 @@ fn line_feature_into_shape(
     paint: &Paint,
     zoom: u8,
 ) -> Result<(), Error> {
-    if !match_filter(feature, "Line", zoom, filter) {
-        return Ok(());
-    }
-
     let properties = feature
         .properties
         .as_ref()
         .ok_or(Error::FeatureWithoutProperties)?;
 
+    let context = Context::new("Line".to_string(), properties, zoom);
+
+    if let Some(filter) = filter
+        && !filter.matches(&context)
+    {
+        return Ok(());
+    }
+
     let width = if let Some(width) = &paint.line_width {
         // Align to the proportion of MVT extent and tile size.
-        width.evaluate(properties, zoom) * 4.0
+        width.evaluate(&context) * 4.0
     } else {
         2.0
     };
 
     let opacity = if let Some(opacity) = &paint.line_opacity {
-        opacity.evaluate(properties, zoom)
+        opacity.evaluate(&context)
     } else {
         1.0
     };
 
     let color = if let Some(color) = &paint.line_color {
-        color.evaluate(properties, zoom).gamma_multiply(opacity)
+        color.evaluate(&context).gamma_multiply(opacity)
     } else {
         Color32::WHITE
     };
@@ -263,8 +257,13 @@ fn polygon_feature_into_shape(
         .properties
         .as_ref()
         .ok_or(Error::FeatureWithoutProperties)?;
+
+    let context = Context::new("Polygon".to_string(), properties, zoom);
+
     if let Geometry::MultiPolygon(multi_polygon) = &feature.geometry {
-        if !match_filter(feature, "Polygon", zoom, filter) {
+        if let Some(filter) = filter
+            && !filter.matches(&context)
+        {
             return Ok(());
         }
 
@@ -273,10 +272,10 @@ fn polygon_feature_into_shape(
             return Ok(());
         };
 
-        let fill_color = fill_color.evaluate(properties, zoom);
+        let fill_color = fill_color.evaluate(&context);
 
         let fill_color = if let Some(fill_opacity) = &paint.fill_opacity {
-            let fill_opacity = fill_opacity.evaluate(properties, zoom);
+            let fill_opacity = fill_opacity.evaluate(&context);
             fill_color.gamma_multiply(fill_opacity)
         } else {
             fill_color
@@ -314,9 +313,13 @@ fn symbol_into_shape(
         .as_ref()
         .ok_or(Error::FeatureWithoutProperties)?;
 
+    let context = Context::new("Point".to_string(), properties, zoom);
+
     match &feature.geometry {
         Geometry::MultiPoint(multi_point) => {
-            if !match_filter(feature, "Point", zoom, filter) {
+            if let Some(filter) = filter
+                && !filter.matches(&context)
+            {
                 return Ok(());
             }
 
@@ -324,7 +327,7 @@ fn symbol_into_shape(
                 .text_size
                 .as_ref()
                 .and_then(|text_size| {
-                    let size = text_size.evaluate(properties, zoom);
+                    let size = text_size.evaluate(&context);
 
                     if size > 3.0 {
                         Some(size)
@@ -341,12 +344,13 @@ fn symbol_into_shape(
             let text_color = if let Some(paint) = paint
                 && let Some(color) = &paint.text_color
             {
-                color.evaluate(properties, zoom)
+                color.evaluate(&context)
             } else {
+                // Default from MapLibre spec.
                 Color32::BLACK
             };
 
-            if let Some(text) = &layout.text(properties, zoom) {
+            if let Some(text) = &layout.text(&context) {
                 shapes.extend(multi_point.0.iter().map(|p| {
                     ShapeOrText::Text(Text {
                         position: pos2(p.x(), p.y()),
@@ -360,7 +364,9 @@ fn symbol_into_shape(
             }
         }
         Geometry::MultiLineString(multi_line_string) => {
-            if !match_filter(feature, "Point", zoom, filter) {
+            if let Some(filter) = filter
+                && !filter.matches(&context)
+            {
                 return Ok(());
             }
 
@@ -368,7 +374,7 @@ fn symbol_into_shape(
                 .text_size
                 .as_ref()
                 .and_then(|text_size| {
-                    let size = text_size.evaluate(properties, zoom);
+                    let size = text_size.evaluate(&context);
 
                     if size > 3.0 {
                         Some(size)
@@ -385,7 +391,7 @@ fn symbol_into_shape(
             let text_color = if let Some(paint) = paint
                 && let Some(color) = &paint.text_color
             {
-                color.evaluate(properties, zoom)
+                color.evaluate(&context)
             } else {
                 Color32::BLACK
             };
@@ -393,7 +399,7 @@ fn symbol_into_shape(
             let text_halo_color = if let Some(paint) = paint
                 && let Some(color) = &paint.text_halo_color
             {
-                color.evaluate(properties, zoom)
+                color.evaluate(&context)
             } else {
                 Color32::TRANSPARENT
             };
@@ -401,7 +407,7 @@ fn symbol_into_shape(
             for line_string in multi_line_string {
                 let lines: Vec<_> = line_string.lines().collect();
 
-                if let Some(text) = &layout.text(properties, zoom)
+                if let Some(text) = &layout.text(&context)
                 // Use the longest line to fit the label.
                 && let Some(line) = lines.into_iter().max_by_key(|line| length(line) as u32)
                 {

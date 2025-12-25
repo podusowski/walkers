@@ -1,14 +1,11 @@
-use std::collections::HashMap;
-
 use color::Rgba8;
 use egui::Color32;
 use log::warn;
-use mvt_reader::feature::Value as MvtValue;
 use serde::Deserialize;
 use serde_json::Value;
 use thiserror::Error;
 
-use crate::expression::evaluate;
+use crate::expression::Context;
 
 /// Style for rendering vector maps.
 ///
@@ -107,8 +104,8 @@ enum StyleError {
 pub struct Color(pub Value);
 
 impl Color {
-    pub fn evaluate(&self, properties: &HashMap<String, MvtValue>, zoom: u8) -> Color32 {
-        match self.try_evaluate(properties, zoom) {
+    pub fn evaluate(&self, context: &Context) -> Color32 {
+        match self.try_evaluate(context) {
             Ok(color) => color,
             Err(err) => {
                 warn!("{err}");
@@ -117,12 +114,8 @@ impl Color {
         }
     }
 
-    fn try_evaluate(
-        &self,
-        properties: &HashMap<String, MvtValue>,
-        zoom: u8,
-    ) -> Result<Color32, StyleError> {
-        match evaluate(&self.0, properties, zoom)? {
+    fn try_evaluate(&self, context: &Context) -> Result<Color32, StyleError> {
+        match context.evaluate(&self.0)? {
             Value::String(color) => {
                 let color: color::AlphaColor<color::Srgb> = color.parse()?;
                 let Rgba8 { r, g, b, a } = color.to_rgba8();
@@ -137,8 +130,8 @@ impl Color {
 pub struct Float(pub Value);
 
 impl Float {
-    pub fn evaluate(&self, properties: &HashMap<String, MvtValue>, zoom: u8) -> f32 {
-        match self.try_evaluate(properties, zoom) {
+    pub fn evaluate(&self, context: &Context) -> f32 {
+        match self.try_evaluate(context) {
             Ok(opacity) => opacity,
             Err(err) => {
                 warn!("{err}");
@@ -147,12 +140,8 @@ impl Float {
         }
     }
 
-    fn try_evaluate(
-        &self,
-        properties: &HashMap<String, MvtValue>,
-        zoom: u8,
-    ) -> Result<f32, StyleError> {
-        match evaluate(&self.0, properties, zoom)? {
+    fn try_evaluate(&self, context: &Context) -> Result<f32, StyleError> {
+        match context.evaluate(&self.0)? {
             Value::Number(num) => Ok(num.as_f64().ok_or(StyleError::InvalidType)? as f32),
             _ => Err(StyleError::InvalidType),
         }
@@ -164,8 +153,8 @@ pub struct Filter(pub Value);
 
 impl Filter {
     /// Match this filter against feature properties.
-    pub fn matches(&self, properties: &HashMap<String, MvtValue>, zoom: u8) -> bool {
-        match evaluate(&self.0, properties, zoom) {
+    pub fn matches(&self, context: &Context) -> bool {
+        match context.evaluate(&self.0) {
             Ok(Value::Bool(b)) => b,
             other => {
                 warn!("Expected filter to evaluate to boolean, got: {other:?}");
@@ -183,9 +172,9 @@ pub struct Layout {
 }
 
 impl Layout {
-    pub fn text(&self, properties: &HashMap<String, MvtValue>, zoom: u8) -> Option<String> {
+    pub fn text(&self, context: &Context) -> Option<String> {
         match &self.text_field {
-            Some(value) => match evaluate(value, properties, zoom) {
+            Some(value) => match context.evaluate(value) {
                 Ok(Value::String(s)) => Some(s),
                 other => {
                     warn!("Expected text-field to evaluate to a string, got: {other:?}");
