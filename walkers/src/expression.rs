@@ -245,6 +245,7 @@ impl<'a> Context<'a> {
     /// Evaluate token as either a property key (String) or an expression (Array).
     fn property_or_expression(&self, value: &Value) -> Result<Value, Error> {
         match value {
+            Value::String(key) if key == "$type" => Ok(Value::String(self.geometry_type.clone())),
             Value::String(key) => {
                 Ok(mvt_value_to_json(self.properties.get(key).ok_or(
                     Error::PropertyMissing(key.clone(), self.properties.clone()),
@@ -391,6 +392,20 @@ mod tests {
 
         assert!(filter.matches(&park_context));
         assert!(!filter.matches(&forest_context));
+    }
+
+    /// `$type` seems to be legacy from old Mapbox GL JS, but is still supported in MapLibre
+    /// and used in Protomap styles.
+    #[test]
+    fn test_eq_filter_matching_type() {
+        let line_filter = Filter(json!(["==", "$type", "Line"]));
+        let point_filter = Filter(json!(["==", "$type", "Point"]));
+
+        let properties = HashMap::new();
+        let point_context = Context::new("Point".to_string(), &properties, 1);
+
+        assert!(point_filter.matches(&point_context));
+        assert!(!line_filter.matches(&point_context));
     }
 
     #[test]
