@@ -382,10 +382,10 @@ mod tests {
     #[test]
     fn test_eq_filter_matching() {
         let park = HashMap::from([("type".to_string(), MvtValue::String("park".to_string()))]);
-        let park_context = Context::new(&park, 1);
+        let park_context = Context::new("Point".to_string(), &park, 1);
 
         let forest = HashMap::from([("type".to_string(), MvtValue::String("forest".to_string()))]);
-        let forest_context = Context::new(&forest, 1);
+        let forest_context = Context::new("Point".to_string(), &forest, 1);
 
         let filter = Filter(json!(["==", "type", "park"]));
 
@@ -396,10 +396,10 @@ mod tests {
     #[test]
     fn test_in_filter() {
         let park = HashMap::from([("type".to_string(), MvtValue::String("park".to_string()))]);
-        let park_context = Context::new(&park, 1);
+        let park_context = Context::new("Point".to_string(), &park, 1);
 
         let road = HashMap::from([("type".to_string(), MvtValue::String("road".to_string()))]);
-        let road_context = Context::new(&road, 1);
+        let road_context = Context::new("Point".to_string(), &road, 1);
 
         let filter = Filter(json!(["in", "type", "park", "forest"]));
 
@@ -410,7 +410,7 @@ mod tests {
     #[test]
     fn test_evaluate_color() {
         let properties = HashMap::new();
-        let context = Context::new(&properties, 1);
+        let context = Context::new("Point".to_string(), &properties, 1);
 
         assert_eq!(
             Color(Value::String("#ffffff".to_string())).evaluate(&context),
@@ -426,7 +426,7 @@ mod tests {
     #[test]
     fn test_literal_operator() {
         let properties = HashMap::new();
-        let context = Context::new(&properties, 1);
+        let context = Context::new("Point".to_string(), &properties, 1);
 
         assert_eq!(
             context.evaluate(&json!(["literal", [1, 2, 3]])).unwrap(),
@@ -438,7 +438,7 @@ mod tests {
     fn test_get_operator() {
         let properties =
             HashMap::from([("name".to_string(), MvtValue::String("Polska".to_string()))]);
-        let context = Context::new(&properties, 1);
+        let context = Context::new("Point".to_string(), &properties, 1);
 
         assert_eq!(
             context.evaluate(&json!(["get", "name"]),).unwrap(),
@@ -455,7 +455,7 @@ mod tests {
     fn test_has_operator() {
         let properties =
             HashMap::from([("name".to_string(), MvtValue::String("Polska".to_string()))]);
-        let context = Context::new(&properties, 1);
+        let context = Context::new("Point".to_string(), &properties, 1);
 
         assert_eq!(
             context.evaluate(&json!(["has", "name"])).unwrap(),
@@ -466,7 +466,7 @@ mod tests {
     #[test]
     fn test_not_has_operator() {
         let properties = HashMap::new();
-        let context = Context::new(&properties, 1);
+        let context = Context::new("Point".to_string(), &properties, 1);
 
         assert_eq!(
             context.evaluate(&json!(["!has", "name"])).unwrap(),
@@ -477,7 +477,7 @@ mod tests {
     #[test]
     fn test_match_operator() {
         let properties = HashMap::new();
-        let context = Context::new(&properties, 1);
+        let context = Context::new("Point".to_string(), &properties, 1);
 
         assert_eq!(
             context
@@ -499,7 +499,7 @@ mod tests {
     #[test]
     fn test_match_operator_reaching_default() {
         let properties = HashMap::new();
-        let context = Context::new(&properties, 1);
+        let context = Context::new("Point".to_string(), &properties, 1);
 
         assert_eq!(
             context
@@ -520,7 +520,7 @@ mod tests {
     #[test]
     fn test_case_operator() {
         let properties = HashMap::new();
-        let context = Context::new(&properties, 1);
+        let context = Context::new("Point".to_string(), &properties, 1);
 
         assert_eq!(
             context
@@ -548,7 +548,7 @@ mod tests {
     #[test]
     fn test_coalesce_operator() {
         let properties = HashMap::new();
-        let context = Context::new(&properties, 1);
+        let context = Context::new("Point".to_string(), &properties, 1);
 
         assert_eq!(
             context
@@ -569,7 +569,7 @@ mod tests {
     fn test_in_operator() {
         let properties =
             HashMap::from([("name".to_string(), MvtValue::String("Polska".to_string()))]);
-        let context = Context::new(&properties, 1);
+        let context = Context::new("Point".to_string(), &properties, 1);
 
         assert_eq!(
             context
@@ -589,7 +589,7 @@ mod tests {
     #[test]
     fn test_any_operator() {
         let properties = HashMap::new();
-        let context = Context::new(&properties, 1);
+        let context = Context::new("Point".to_string(), &properties, 1);
 
         assert_eq!(
             context.evaluate(&json!(["any", true, false])).unwrap(),
@@ -605,7 +605,7 @@ mod tests {
     #[test]
     fn test_all_operator() {
         let properties = HashMap::new();
-        let context = Context::new(&properties, 1);
+        let context = Context::new("Point".to_string(), &properties, 1);
 
         assert_eq!(
             context.evaluate(&json!(["all", true, false])).unwrap(),
@@ -621,7 +621,7 @@ mod tests {
     #[test]
     fn test_interpolate_operator() {
         let properties = HashMap::new();
-        let context = Context::new(&properties, 1);
+        let context = Context::new("Point".to_string(), &properties, 1);
 
         // https://maplibre.org/maplibre-style-spec/expressions/#interpolate
         assert_eq!(
@@ -635,7 +635,7 @@ mod tests {
     #[test]
     fn test_interpolate_operator_with_evaluated_stop() {
         let properties = HashMap::from([("zoom".to_string(), MvtValue::Int(5))]);
-        let context = Context::new(&properties, 1);
+        let context = Context::new("Point".to_string(), &properties, 1);
 
         assert_eq!(
             context
@@ -656,7 +656,7 @@ mod tests {
     #[test]
     fn test_negation_operator() {
         let properties = HashMap::new();
-        let context = Context::new(&properties, 1);
+        let context = Context::new("Point".to_string(), &properties, 1);
 
         assert_eq!(context.evaluate(&json!(["!", false])).unwrap(), json!(true));
     }
@@ -664,7 +664,7 @@ mod tests {
     #[test]
     fn test_format_operator() {
         let properties = HashMap::new();
-        let context = Context::new(&properties, 1);
+        let context = Context::new("Point".to_string(), &properties, 1);
 
         assert_eq!(
             context
