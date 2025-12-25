@@ -41,6 +41,7 @@ pub enum Error {
     UnmatchedCaseOrMatch(Value),
 }
 
+/// Context in which expressions are evaluated.
 pub struct Context<'a> {
     properties: &'a HashMap<String, MvtValue>,
     zoom: u8,
