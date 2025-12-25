@@ -398,13 +398,16 @@ mod tests {
 
     #[test]
     fn test_evaluate_color() {
+        let properties = HashMap::new();
+        let context = Context::new(&properties, 1);
+
         assert_eq!(
-            Color(Value::String("#ffffff".to_string())).evaluate(&HashMap::new(), 1),
+            Color(Value::String("#ffffff".to_string())).evaluate(&context),
             Color32::WHITE
         );
 
         assert_eq!(
-            Color(Value::String("red".to_string())).evaluate(&HashMap::new(), 1),
+            Color(Value::String("red".to_string())).evaluate(&context),
             Color32::RED
         );
     }
