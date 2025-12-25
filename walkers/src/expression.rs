@@ -68,6 +68,7 @@ impl<'a> Context<'a> {
 
                 match operator.as_str() {
                     "zoom" => Ok(Value::Number((self.zoom as i64).into())),
+                    "geometry-type" => Ok(Value::String(self.geometry_type.clone())),
                     "literal" => single_array(arguments),
                     "!" => match self.evaluate(&single_value(arguments)?)? {
                         Value::Bool(b) => Ok(Value::Bool(!b)),
@@ -246,6 +247,9 @@ impl<'a> Context<'a> {
     fn property_or_expression(&self, value: &Value) -> Result<Value, Error> {
         match value {
             Value::String(key) if key == "$type" => Ok(Value::String(self.geometry_type.clone())),
+            Value::String(key) if key == "geometry-type" => {
+                Ok(Value::String(self.geometry_type.clone()))
+            }
             Value::String(key) => {
                 Ok(mvt_value_to_json(self.properties.get(key).ok_or(
                     Error::PropertyMissing(key.clone(), self.properties.clone()),
