@@ -106,8 +106,6 @@ pub fn render(data: &[u8], style: &Style, zoom: u8) -> Result<Vec<ShapeOrText>, 
         match layer {
             Layer::Background { paint } => {
                 let properties = HashMap::new();
-
-                // TODO: Is thit a proper geometry-type?
                 let context = Context::new("Polygon".to_string(), &properties, zoom);
 
                 let bg_color = if let Some(color) = &paint.background_color {
