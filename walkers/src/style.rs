@@ -1,9 +1,6 @@
-use std::collections::HashMap;
-
 use color::Rgba8;
 use egui::Color32;
 use log::warn;
-use mvt_reader::feature::Value as MvtValue;
 use serde::Deserialize;
 use serde_json::Value;
 use thiserror::Error;
