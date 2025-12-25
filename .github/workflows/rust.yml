@@ -18,12 +18,14 @@ jobs:
       - uses: arduino/setup-protoc@v3.0.0
         with:
           repo-token: ${{ secrets.GITHUB_TOKEN }}
-      - name: Cargo Check All Features
-        run: cargo check -p walkers --all-features
-      - name: Cargo Check No Features
-        run: cargo check -p walkers --no-default-features
+      #- name: Cargo Check Walkers All Features
+      #  run: cargo check -p walkers --all-features
+      #- name: Cargo Check Walkers No Features
+      #  run: cargo check -p walkers --no-default-features
       - name: Build Demo Native
-        run: env -C demo_native cargo build
+        run: env -C demo_native cargo build --all-features
+      - name: Build Demo Native No Features
+        run: env -C demo_native cargo build --no-default-features
 
   wasm:
     runs-on: ubuntu-latest
