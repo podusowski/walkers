@@ -169,11 +169,8 @@ pub fn transformed(shapes: &[ShapeOrText], rect: egui::Rect) -> Vec<ShapeOrText>
     result
 }
 
-fn get_layer_features(
-    reader: &Reader,
-    name: &str,
-) -> Result<Vec<Feature>, mvt_reader::error::ParserError> {
-    if let Ok(layer_index) = find_layer(&reader, name) {
+fn get_layer_features(reader: &Reader, name: &str) -> Result<Vec<Feature>, Error> {
+    if let Ok(layer_index) = find_layer(reader, name) {
         Ok(reader.get_features(layer_index)?)
     } else {
         warn!("Source layer '{name}' not found. Skipping.");
