@@ -156,8 +156,8 @@ pub struct Filter(pub Value);
 
 impl Filter {
     /// Match this filter against feature properties.
-    pub fn matches(&self, properties: &HashMap<String, MvtValue>, zoom: u8) -> bool {
-        match Context::new(properties, zoom).evaluate(&self.0) {
+    pub fn matches(&self, context: &Context) -> bool {
+        match context.evaluate(&self.0) {
             Ok(Value::Bool(b)) => b,
             other => {
                 warn!("Expected filter to evaluate to boolean, got: {other:?}");

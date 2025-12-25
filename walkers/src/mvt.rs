@@ -189,7 +189,7 @@ fn match_filter(feature: &Feature, type_: &str, zoom: u8, filter: &Option<Filter
         properties
     });
     match (&properties, filter) {
-        (Some(properties), Some(filter)) => filter.matches(properties, zoom),
+        (Some(properties), Some(filter)) => filter.matches(&Context::new(properties, zoom)),
         _ => true,
     }
 }

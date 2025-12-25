@@ -377,23 +377,29 @@ mod tests {
     #[test]
     fn test_eq_filter_matching() {
         let park = HashMap::from([("type".to_string(), MvtValue::String("park".to_string()))]);
+        let park_context = Context::new(&park, 1);
+
         let forest = HashMap::from([("type".to_string(), MvtValue::String("forest".to_string()))]);
+        let forest_context = Context::new(&forest, 1);
 
         let filter = Filter(json!(["==", "type", "park"]));
 
-        assert!(filter.matches(&park, 1));
-        assert!(!filter.matches(&forest, 1));
+        assert!(filter.matches(&park_context));
+        assert!(!filter.matches(&forest_context));
     }
 
     #[test]
     fn test_in_filter() {
         let park = HashMap::from([("type".to_string(), MvtValue::String("park".to_string()))]);
+        let park_context = Context::new(&park, 1);
+
         let road = HashMap::from([("type".to_string(), MvtValue::String("road".to_string()))]);
+        let road_context = Context::new(&road, 1);
 
         let filter = Filter(json!(["in", "type", "park", "forest"]));
 
-        assert!(filter.matches(&park, 1));
-        assert!(!filter.matches(&road, 1));
+        assert!(filter.matches(&park_context));
+        assert!(!filter.matches(&road_context));
     }
 
     #[test]
