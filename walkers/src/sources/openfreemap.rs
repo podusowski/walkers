@@ -23,4 +23,8 @@ impl TileSource for OpenFreeMap {
     fn tile_size(&self) -> u32 {
         512
     }
+
+    fn max_zoom(&self) -> u8 {
+        14
+    }
 }
