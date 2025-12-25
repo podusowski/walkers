@@ -19,6 +19,7 @@ use thiserror::Error;
 /// <https://docs.protomaps.com/guide/getting-started>
 pub struct PmTiles {
     tiles_io: TilesIo,
+    tile_size: u32,
 }
 
 impl PmTiles {
@@ -35,7 +36,13 @@ impl PmTiles {
                 EguiTileFactory::new(egui_ctx.clone(), style),
                 egui_ctx,
             ),
+            tile_size: 1024,
         }
+    }
+
+    pub fn with_tile_size(mut self, tile_size: u32) -> Self {
+        self.tile_size = tile_size;
+        self
     }
 
     /// Get at tile, or interpolate it from lower zoom levels. This function does not start any
@@ -87,9 +94,7 @@ impl Tiles for PmTiles {
     }
 
     fn tile_size(&self) -> u32 {
-        // Vector tiles can be rendered at any size. Effectively this means that the lower the
-        // tile, the more details are visible.
-        1024
+        self.tile_size
     }
 }
 
