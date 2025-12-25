@@ -107,8 +107,8 @@ enum StyleError {
 pub struct Color(pub Value);
 
 impl Color {
-    pub fn evaluate(&self, properties: &HashMap<String, MvtValue>, zoom: u8) -> Color32 {
-        match self.try_evaluate(properties, zoom) {
+    pub fn evaluate(&self, context: &Context) -> Color32 {
+        match self.try_evaluate(context) {
             Ok(color) => color,
             Err(err) => {
                 warn!("{err}");
@@ -117,12 +117,8 @@ impl Color {
         }
     }
 
-    fn try_evaluate(
-        &self,
-        properties: &HashMap<String, MvtValue>,
-        zoom: u8,
-    ) -> Result<Color32, StyleError> {
-        match Context::new(properties, zoom).evaluate(&self.0)? {
+    fn try_evaluate(&self, context: &Context) -> Result<Color32, StyleError> {
+        match context.evaluate(&self.0)? {
             Value::String(color) => {
                 let color: color::AlphaColor<color::Srgb> = color.parse()?;
                 let Rgba8 { r, g, b, a } = color.to_rgba8();

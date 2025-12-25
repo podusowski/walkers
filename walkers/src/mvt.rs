@@ -226,7 +226,7 @@ fn line_feature_into_shape(
     };
 
     let color = if let Some(color) = &paint.line_color {
-        color.evaluate(properties, zoom).gamma_multiply(opacity)
+        color.evaluate(&context).gamma_multiply(opacity)
     } else {
         Color32::WHITE
     };
@@ -281,7 +281,7 @@ fn polygon_feature_into_shape(
             return Ok(());
         };
 
-        let fill_color = fill_color.evaluate(properties, zoom);
+        let fill_color = fill_color.evaluate(&context);
 
         let fill_color = if let Some(fill_opacity) = &paint.fill_opacity {
             let fill_opacity = fill_opacity.evaluate(&context);
@@ -351,8 +351,9 @@ fn symbol_into_shape(
             let text_color = if let Some(paint) = paint
                 && let Some(color) = &paint.text_color
             {
-                color.evaluate(properties, zoom)
+                color.evaluate(&context)
             } else {
+                // Default from MapLibre spec.
                 Color32::BLACK
             };
 
@@ -395,7 +396,7 @@ fn symbol_into_shape(
             let text_color = if let Some(paint) = paint
                 && let Some(color) = &paint.text_color
             {
-                color.evaluate(properties, zoom)
+                color.evaluate(&context)
             } else {
                 Color32::BLACK
             };
@@ -403,7 +404,7 @@ fn symbol_into_shape(
             let text_halo_color = if let Some(paint) = paint
                 && let Some(color) = &paint.text_halo_color
             {
-                color.evaluate(properties, zoom)
+                color.evaluate(&context)
             } else {
                 Color32::TRANSPARENT
             };
