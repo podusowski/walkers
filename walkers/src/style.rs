@@ -175,9 +175,9 @@ pub struct Layout {
 }
 
 impl Layout {
-    pub fn text(&self, properties: &HashMap<String, MvtValue>, zoom: u8) -> Option<String> {
+    pub fn text(&self, context: &Context) -> Option<String> {
         match &self.text_field {
-            Some(value) => match Context::new(properties, zoom).evaluate(value) {
+            Some(value) => match context.evaluate(value) {
                 Ok(Value::String(s)) => Some(s),
                 other => {
                     warn!("Expected text-field to evaluate to a string, got: {other:?}");

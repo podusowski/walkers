@@ -357,7 +357,7 @@ fn symbol_into_shape(
                 Color32::BLACK
             };
 
-            if let Some(text) = &layout.text(properties, zoom) {
+            if let Some(text) = &layout.text(&context) {
                 shapes.extend(multi_point.0.iter().map(|p| {
                     ShapeOrText::Text(Text {
                         position: pos2(p.x(), p.y()),
@@ -412,7 +412,7 @@ fn symbol_into_shape(
             for line_string in multi_line_string {
                 let lines: Vec<_> = line_string.lines().collect();
 
-                if let Some(text) = &layout.text(properties, zoom)
+                if let Some(text) = &layout.text(&context)
                 // Use the longest line to fit the label.
                 && let Some(line) = lines.into_iter().max_by_key(|line| length(line) as u32)
                 {
