@@ -17,7 +17,10 @@ use lyon_path::{
 use lyon_tessellation::{
     BuffersBuilder, FillOptions, FillTessellator, FillVertex, TessellationError, VertexBuffers,
 };
-use mvt_reader::feature::{Feature, Value};
+use mvt_reader::{
+    Reader,
+    feature::{Feature, Value},
+};
 
 use crate::{
     expression::Context,
@@ -107,12 +110,7 @@ pub fn render(data: &[u8], style: &Style, zoom: u8) -> Result<Vec<ShapeOrText>, 
                 filter,
                 paint,
             } => {
-                let Ok(layer_index) = find_layer(&data, source_layer) else {
-                    warn!("Source layer '{source_layer}' not found. Skipping.");
-                    continue;
-                };
-
-                for feature in data.get_features(layer_index)? {
+                for feature in get_layer_features(&data, source_layer)? {
                     if let Err(err) =
                         polygon_feature_into_shape(&feature, &mut shapes, filter, paint, zoom)
                     {
@@ -125,12 +123,7 @@ pub fn render(data: &[u8], style: &Style, zoom: u8) -> Result<Vec<ShapeOrText>, 
                 filter,
                 paint,
             } => {
-                let Ok(layer_index) = find_layer(&data, source_layer) else {
-                    warn!("Source layer '{source_layer}' not found. Skipping.");
-                    continue;
-                };
-
-                for feature in data.get_features(layer_index)? {
+                for feature in get_layer_features(&data, source_layer)? {
                     if let Err(err) =
                         line_feature_into_shape(&feature, &mut shapes, filter, paint, zoom)
                     {
@@ -144,12 +137,7 @@ pub fn render(data: &[u8], style: &Style, zoom: u8) -> Result<Vec<ShapeOrText>, 
                 layout,
                 paint,
             } => {
-                let Ok(layer_index) = find_layer(&data, source_layer) else {
-                    warn!("Source layer '{source_layer}' not found. Skipping.");
-                    continue;
-                };
-
-                for feature in data.get_features(layer_index)? {
+                for feature in get_layer_features(&data, source_layer)? {
                     if let Err(err) =
                         symbol_into_shape(&feature, &mut shapes, filter, layout, paint, zoom)
                     {
@@ -179,6 +167,18 @@ pub fn transformed(shapes: &[ShapeOrText], rect: egui::Rect) -> Vec<ShapeOrText>
         shape.transform(transform);
     }
     result
+}
+
+fn get_layer_features(
+    reader: &Reader,
+    name: &str,
+) -> Result<Vec<Feature>, mvt_reader::error::ParserError> {
+    if let Ok(layer_index) = find_layer(&reader, name) {
+        Ok(reader.get_features(layer_index)?)
+    } else {
+        warn!("Source layer '{name}' not found. Skipping.");
+        Ok(Vec::new())
+    }
 }
 
 fn line_feature_into_shape(
