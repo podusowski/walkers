@@ -68,6 +68,7 @@ pub(crate) fn providers(egui_ctx: Context) -> Providers {
     );
     providers.selected = "OpenStreetMap".to_string();
 
+    #[cfg(feature = "mvt")]
     providers.available.insert(
         "OpenFreeMap".to_string(),
         vec![TilesKind::Http(HttpTiles::with_options_and_style(
