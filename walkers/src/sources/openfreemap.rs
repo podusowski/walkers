@@ -13,14 +13,14 @@ impl TileSource for OpenFreeMap {
 
     fn attribution(&self) -> Attribution {
         Attribution {
-            text: "OpenStreetMap contributors",
-            url: "https://www.openstreetmap.org/copyright",
+            text: "OpenFreeMap © OpenMapTiles Data from OpenStreetMap",
+            url: "https://openfreemap.org",
             logo_light: None,
             logo_dark: None,
         }
     }
 
     fn tile_size(&self) -> u32 {
-        1024
+        512
     }
 }
