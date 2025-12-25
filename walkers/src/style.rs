@@ -44,12 +44,19 @@ impl Style {
         let style_json = include_str!("../assets/protomaps-light.json");
         serde_json::from_str(style_json).expect("failed to parse style JSON")
     }
+
+    pub fn openfreemap_bright() -> Self {
+        let style_json = include_str!("../assets/openfreemap-bright.json");
+        serde_json::from_str(style_json).expect("failed to parse style JSON")
+    }
 }
 
 #[derive(Deserialize, Debug)]
 #[serde(tag = "type", rename_all = "kebab-case")]
 pub enum Layer {
-    Background,
+    Background {
+        paint: Paint,
+    },
     #[serde(rename_all = "kebab-case")]
     Fill {
         source_layer: String,
@@ -76,6 +83,7 @@ pub enum Layer {
 #[derive(Deserialize, Debug)]
 #[serde(rename_all = "kebab-case")]
 pub struct Paint {
+    pub background_color: Option<Color>,
     pub fill_color: Option<Color>,
     /// https://maplibre.org/maplibre-style-spec/layers/#fill-opacity
     pub fill_opacity: Option<Float>,

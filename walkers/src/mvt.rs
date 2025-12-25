@@ -3,10 +3,10 @@
 use std::collections::HashMap;
 
 use egui::{
-    Color32, Mesh, Pos2, Shape, Stroke,
+    Color32, Mesh, Pos2, Rect, Shape, Stroke,
     emath::TSTransform,
     epaint::{Vertex, WHITE_UV},
-    pos2,
+    pos2, vec2,
 };
 use geo_types::{Geometry, Line};
 use log::warn;
@@ -104,7 +104,22 @@ pub fn render(data: &[u8], style: &Style, zoom: u8) -> Result<Vec<ShapeOrText>, 
 
     for layer in &style.layers {
         match layer {
-            Layer::Background => continue,
+            Layer::Background { paint } => {
+                let properties = HashMap::new();
+                let context = Context::new("Polygon".to_string(), &properties, zoom);
+
+                let bg_color = if let Some(color) = &paint.background_color {
+                    color.evaluate(&context)
+                } else {
+                    Color32::WHITE
+                };
+
+                let rect = Rect::from_min_size(
+                    pos2(0.0, 0.0),
+                    vec2(ONLY_SUPPORTED_EXTENT as f32, ONLY_SUPPORTED_EXTENT as f32),
+                );
+                shapes.push(Shape::rect_filled(rect, 0.0, bg_color).into());
+            }
             Layer::Fill {
                 source_layer,
                 filter,

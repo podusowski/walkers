@@ -93,7 +93,7 @@ impl<'a> Context<'a> {
                         for arm in arms.chunks(2) {
                             match arm.iter().as_slice() {
                                 [arm_value, arm_result] => {
-                                    if evaluated_value == *arm_value {
+                                    if match_arm(&evaluated_value, arm_value) {
                                         return self.evaluate(arm_result);
                                     }
                                 }
@@ -258,6 +258,16 @@ impl<'a> Context<'a> {
             Value::Array(_) => self.evaluate(value),
             _ => Err(Error::ExpectedKeyOrExpression(value.clone())),
         }
+    }
+}
+
+/// Match `input` value against a `match` operator arm value.
+/// <https://maplibre.org/maplibre-style-spec/expressions/#match>
+fn match_arm(input: &Value, arm_value: &Value) -> bool {
+    if let Value::Array(arm_values) = arm_value {
+        arm_values.iter().any(|arm_value| arm_value == input)
+    } else {
+        input == arm_value
     }
 }
 
@@ -533,6 +543,25 @@ mod tests {
                 ]))
                 .unwrap(),
             json!("It's the default!")
+        );
+    }
+
+    #[test]
+    fn test_match_when_arm_label_is_an_array() {
+        let properties = HashMap::new();
+        let context = Context::new("Polygon".to_string(), &properties, 1);
+
+        assert_eq!(
+            json!(true),
+            context
+                .evaluate(&json!([
+                    "match",
+                    ["geometry-type"],
+                    ["MultiPolygon", "Polygon"],
+                    true,
+                    false
+                ]))
+                .unwrap()
         );
     }
 

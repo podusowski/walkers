@@ -18,10 +18,12 @@ jobs:
       - uses: arduino/setup-protoc@v3.0.0
         with:
           repo-token: ${{ secrets.GITHUB_TOKEN }}
-      - name: Cargo Check All Features
+      - name: Cargo Check Walkers All Features
         run: cargo check -p walkers --all-features
-      - name: Cargo Check No Features
+      - name: Cargo Check Walkers No Features
         run: cargo check -p walkers --no-default-features
+      - name: Cargo Check Walkers Default Features
+        run: cargo check -p demo
       - name: Build Demo Native
         run: env -C demo_native cargo build
 
@@ -30,6 +32,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: Swatinem/rust-cache@v2
+      - uses: arduino/setup-protoc@v3.0.0
       - run: cargo install trunk@0.21.14 --locked
       - name: Build Demo Web
         run: env -C demo_web trunk build

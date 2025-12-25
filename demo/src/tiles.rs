@@ -68,6 +68,17 @@ pub(crate) fn providers(egui_ctx: Context) -> Providers {
     );
     providers.selected = "OpenStreetMap".to_string();
 
+    #[cfg(feature = "mvt")]
+    providers.available.insert(
+        "OpenFreeMap".to_string(),
+        vec![TilesKind::Http(HttpTiles::with_options_and_style(
+            walkers::sources::OpenFreeMap,
+            http_options(),
+            Style::openfreemap_bright(),
+            egui_ctx.to_owned(),
+        ))],
+    );
+
     providers.available.insert(
         "Geoportal".to_string(),
         vec![TilesKind::Http(HttpTiles::with_options(
