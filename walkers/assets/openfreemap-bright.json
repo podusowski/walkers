@@ -1548,7 +1548,7 @@
       "id": "poi_r20",
       "type": "symbol",
       "source": "openmaptiles",
-      "source-layer": "poi",
+      "source-layer": "_poi",
       "minzoom": 17,
       "filter": [
         "all",
@@ -1575,7 +1575,7 @@
       "id": "poi_r7",
       "type": "symbol",
       "source": "openmaptiles",
-      "source-layer": "poi",
+      "source-layer": "_poi",
       "minzoom": 16,
       "filter": [
         "all",
@@ -1603,7 +1603,7 @@
       "id": "poi_r1",
       "type": "symbol",
       "source": "openmaptiles",
-      "source-layer": "poi",
+      "source-layer": "_poi",
       "minzoom": 15,
       "filter": [
         "all",
@@ -1646,7 +1646,7 @@
         "text-font": ["Noto Sans Italic"],
         "text-max-width": 9,
         "text-offset": [0.9, 0],
-        "text-size": 12
+        "text-size": 10
       },
       "paint": { "text-color": "#2e5a80", "text-halo-blur": 0.5, "text-halo-color": "#ffffff", "text-halo-width": 1 }
     },
