@@ -467,7 +467,7 @@ fn find_layer(data: &mvt_reader::Reader, name: &str) -> Result<usize, Error> {
 }
 
 /// Egui cannot tessellate complex polygons, so we use lyon for that.
-fn tessellate_polygon(
+pub fn tessellate_polygon(
     exterior: &[Point<f32>],
     interiors: &[Vec<Point<f32>>],
     fill_color: Color32,

@@ -3,13 +3,14 @@ use std::sync::Arc;
 use egui::epaint::{Mesh, Vertex};
 use egui::{self, Color32, Pos2, Response, Shape, Stroke, Ui};
 use lyon_path::Path;
+use lyon_path::geom::Point;
 use lyon_tessellation::{
     BuffersBuilder, FillOptions, FillRule, FillTessellator, FillVertex, VertexBuffers, math::point,
 };
 use quick_xml::Reader;
 use quick_xml::events::{BytesStart, Event};
 use thiserror::Error;
-use walkers::{MapMemory, Plugin, Position, Projector, lon_lat};
+use walkers::{MapMemory, Plugin, Position, Projector, lon_lat, tessellate_polygon};
 
 /// Geometry variants supported by the KML parser.
 #[derive(Debug, Clone, PartialEq)]
@@ -507,7 +508,7 @@ fn draw_polygon(
         return;
     };
 
-    let mut hole_points: Vec<Vec<Pos2>> = Vec::with_capacity(holes.len());
+    let mut hole_points: Vec<Vec<Point<f32>>> = Vec::with_capacity(holes.len());
     for hole in holes {
         if let Some(points) = ring_to_screen_points(hole, projector) {
             hole_points.push(points);
@@ -515,25 +516,29 @@ fn draw_polygon(
     }
 
     if let Some(fill_color) = fill_color {
-        if let Some(mesh) = tessellate_polygon(
-            &exterior_screen,
-            &hole_points,
-            fill_color,
-            defaults.fill_tolerance,
-        ) {
+        if let Ok(mesh) = tessellate_polygon(&exterior_screen, &hole_points, fill_color) {
             painter.add(Shape::mesh(mesh));
         }
     }
 
     if let Some(stroke) = outline_stroke {
-        painter.add(Shape::closed_line(exterior_screen.clone(), stroke));
+        painter.add(Shape::closed_line(
+            exterior_screen
+                .iter()
+                .map(|p| egui::pos2(p.x, p.y))
+                .collect(),
+            stroke,
+        ));
         for hole in &hole_points {
-            painter.add(Shape::closed_line(hole.clone(), stroke));
+            painter.add(Shape::closed_line(
+                hole.iter().map(|p| egui::pos2(p.x, p.y)).collect(),
+                stroke,
+            ));
         }
     }
 }
 
-fn ring_to_screen_points(ring: &[Position], projector: &Projector) -> Option<Vec<Pos2>> {
+fn ring_to_screen_points(ring: &[Position], projector: &Projector) -> Option<Vec<Point<f32>>> {
     if ring.len() < 3 {
         return None;
     }
@@ -543,61 +548,10 @@ fn ring_to_screen_points(ring: &[Position], projector: &Projector) -> Option<Vec
             // Skip duplicate closing vertex.
             continue;
         }
-        points.push(projector.project(*position).to_pos2());
+        let p = projector.project(*position).to_pos2();
+        points.push(point(p.x, p.y));
     }
     if points.len() < 3 { None } else { Some(points) }
-}
-
-fn tessellate_polygon(
-    exterior: &[Pos2],
-    holes: &[Vec<Pos2>],
-    fill_color: Color32,
-    tolerance: f32,
-) -> Option<Mesh> {
-    if exterior.len() < 3 {
-        return None;
-    }
-
-    let mut builder = Path::builder();
-    add_ring_to_path(&mut builder, exterior);
-    for hole in holes {
-        if hole.len() >= 3 {
-            add_ring_to_path(&mut builder, hole);
-        }
-    }
-
-    let path = builder.build();
-    let mut tessellator = FillTessellator::new();
-    let mut buffers: VertexBuffers<Pos2, u32> = VertexBuffers::new();
-    let mut options = FillOptions::default();
-    options.tolerance = tolerance.max(0.01);
-    options.fill_rule = FillRule::EvenOdd;
-
-    if tessellator
-        .tessellate_path(
-            path.as_slice(),
-            &options,
-            &mut BuffersBuilder::new(&mut buffers, |vertex: FillVertex| {
-                let pos = vertex.position();
-                Pos2::new(pos.x, pos.y)
-            }),
-        )
-        .is_err()
-    {
-        return None;
-    }
-
-    let mut mesh = Mesh::default();
-    mesh.indices.extend(buffers.indices);
-    mesh.vertices.reserve(buffers.vertices.len());
-    for pos in buffers.vertices.into_iter() {
-        mesh.vertices.push(Vertex {
-            pos,
-            uv: egui::epaint::WHITE_UV,
-            color: fill_color,
-        });
-    }
-    Some(mesh)
 }
 
 fn add_ring_to_path(builder: &mut lyon_path::path::Builder, ring: &[Pos2]) {
