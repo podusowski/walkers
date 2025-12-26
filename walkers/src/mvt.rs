@@ -8,7 +8,7 @@ use egui::{
     epaint::{Vertex, WHITE_UV},
     pos2, vec2,
 };
-use geo_types::{Geometry, Line};
+use geo_types::{Coord, Geometry, Line};
 use log::warn;
 use lyon_path::{
     Path, Polygon,
@@ -294,18 +294,13 @@ fn polygon_feature_into_shape(
         };
 
         for polygon in multi_polygon.iter() {
-            let points = polygon
-                .exterior()
-                .0
-                .iter()
-                .map(|p| point(p.x, p.y))
-                .collect::<Vec<_>>();
+            let exterior = lyon_points(&polygon.exterior().0);
             let interiors = polygon
                 .interiors()
                 .iter()
-                .map(|hole| hole.0.iter().map(|p| point(p.x, p.y)).collect::<Vec<_>>())
+                .map(|hole| lyon_points(&hole.0))
                 .collect::<Vec<_>>();
-            shapes.push(tessellate_polygon(&points, &interiors, fill_color)?.into());
+            shapes.push(tessellate_polygon(&exterior, &interiors, fill_color)?.into());
         }
     }
     Ok(())
@@ -513,6 +508,7 @@ fn tessellate_polygon(
     })
 }
 
-fn lyon_points(points: &[Pos2]) -> Vec<Point<f32>> {
+/// Convert list of `geo_types::Coord` to Lyon's `Point`s.
+fn lyon_points(points: &[Coord<f32>]) -> Vec<Point<f32>> {
     points.iter().map(|p| point(p.x, p.y)).collect()
 }
