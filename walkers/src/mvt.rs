@@ -298,12 +298,12 @@ fn polygon_feature_into_shape(
                 .exterior()
                 .0
                 .iter()
-                .map(|p| pos2(p.x, p.y))
+                .map(|p| point(p.x, p.y))
                 .collect::<Vec<_>>();
             let interiors = polygon
                 .interiors()
                 .iter()
-                .map(|hole| hole.0.iter().map(|p| pos2(p.x, p.y)).collect::<Vec<_>>())
+                .map(|hole| hole.0.iter().map(|p| point(p.x, p.y)).collect::<Vec<_>>())
                 .collect::<Vec<_>>();
             shapes.push(tessellate_polygon(&points, &interiors, fill_color)?.into());
         }
@@ -473,20 +473,20 @@ fn find_layer(data: &mvt_reader::Reader, name: &str) -> Result<usize, Error> {
 
 /// Egui cannot tessellate complex polygons, so we use lyon for that.
 fn tessellate_polygon(
-    exterior: &[Pos2],
-    interiors: &[Vec<Pos2>],
+    exterior: &[Point<f32>],
+    interiors: &[Vec<Point<f32>>],
     fill_color: Color32,
 ) -> Result<Mesh, TessellationError> {
     let mut builder = Path::builder();
 
     builder.add_polygon(Polygon {
-        points: &lyon_points(exterior),
+        points: exterior,
         closed: true,
     });
 
     for interior in interiors {
         builder.add_polygon(Polygon {
-            points: &lyon_points(interior),
+            points: interior,
             closed: true,
         });
     }
