@@ -1,12 +1,8 @@
 use std::sync::Arc;
 
-use egui::epaint::{Mesh, Vertex};
-use egui::{self, Color32, Pos2, Response, Shape, Stroke, Ui};
-use lyon_path::Path;
+use egui::{self, Color32, Response, Shape, Stroke, Ui};
 use lyon_path::geom::Point;
-use lyon_tessellation::{
-    BuffersBuilder, FillOptions, FillRule, FillTessellator, FillVertex, VertexBuffers, math::point,
-};
+use lyon_tessellation::math::point;
 use quick_xml::Reader;
 use quick_xml::events::{BytesStart, Event};
 use thiserror::Error;
@@ -552,17 +548,6 @@ fn ring_to_screen_points(ring: &[Position], projector: &Projector) -> Option<Vec
         points.push(point(p.x, p.y));
     }
     if points.len() < 3 { None } else { Some(points) }
-}
-
-fn add_ring_to_path(builder: &mut lyon_path::path::Builder, ring: &[Pos2]) {
-    if ring.is_empty() {
-        return;
-    }
-    builder.begin(point(ring[0].x, ring[0].y));
-    for p in &ring[1..] {
-        builder.line_to(point(p.x, p.y));
-    }
-    builder.close();
 }
 
 #[cfg(test)]
