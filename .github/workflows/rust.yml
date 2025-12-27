@@ -27,9 +27,9 @@ jobs:
       - uses: arduino/setup-protoc@v3.0.0
         with:
           repo-token: ${{ secrets.GITHUB_TOKEN }}
-      - run: cargo check -p walkers --all-features
-      - run: cargo check -p demo
-      - run: env -C demo_native cargo build
+      - uses: extractions/setup-just@v3
+      - run: just check-all-features
+      - run: just check-demo
 
   wasm:
     runs-on: ubuntu-latest
@@ -68,8 +68,6 @@ jobs:
       - uses: arduino/setup-protoc@v3.0.0
         with:
           repo-token: ${{ secrets.GITHUB_TOKEN }}
+      - uses: extractions/setup-just@v3
       - run: cargo test --verbose
-      - run: cargo fmt --all --check
-      - run: cargo clippy --all-features -- -D warnings
-      - run: cargo doc --no-deps
-      - uses: crate-ci/typos@v1.30.2
+      - run: just lints
