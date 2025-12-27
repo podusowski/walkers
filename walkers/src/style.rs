@@ -183,11 +183,10 @@ impl Layout {
     pub fn text(&self, context: &Context) -> Option<String> {
         self.text_field
             .as_ref()
-            .map(|value| match context.evaluate(&value) {
+            .and_then(|value| match context.evaluate(value) {
                 Ok(Value::String(s)) => Some(s),
                 _ => None,
             })
-            .flatten()
     }
 }
 
