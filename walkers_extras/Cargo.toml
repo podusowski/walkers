@@ -5,16 +5,16 @@ rust-version.workspace = true
 edition.workspace = true
 repository = "https://github.com/podusowski/walkers"
 description = "extra functionalities for walkers crate"
-keywords = ["gis", "geography", "gui"]
+keywords = ["geography", "gis", "gui"]
 categories = ["gui", "science::geo"]
 authors = ["Piotr Podusowski <podusowski@gmail.com>"]
 license = "MIT"
 
 [dependencies]
-walkers.workspace = true
 egui.workspace = true
-rstar = "0.12"
-quick-xml = "0.37"
-thiserror = "2"
-lyon_tessellation = "1.0"
 lyon_path = "1.0"
+lyon_tessellation = "1.0"
+quick-xml = "0.37"
+rstar = "0.12"
+thiserror = "2"
+walkers = { workspace = true, features = ["mvt"] }

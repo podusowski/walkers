@@ -32,6 +32,10 @@ pub mod sources;
 mod tiles;
 mod zoom;
 
+// TODO: In future, I'd like to expose full drawing API instead of this.
+#[cfg(feature = "mvt")]
+pub use mvt::tessellate_polygon;
+
 pub use http_tiles::HttpTiles;
 pub use io::tiles_io::Stats;
 pub use io::{HeaderValue, MaxParallelDownloads, http::HttpOptions};
