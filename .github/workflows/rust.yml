@@ -10,12 +10,14 @@ env:
   CARGO_TERM_COLOR: always
 
 jobs:
+  # Separate job to see if works without Protoc.
   lean-build:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - uses: Swatinem/rust-cache@v2
-      - run: cargo check -p walkers
+      - uses: extractions/setup-just@v3
+      - run: just check-lean
 
   build:
     runs-on: ubuntu-latest
