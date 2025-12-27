@@ -69,5 +69,6 @@ jobs:
         with:
           repo-token: ${{ secrets.GITHUB_TOKEN }}
       - uses: extractions/setup-just@v3
+      - uses: crate-ci/typos@v1.40.0
       - run: cargo test --verbose
       - run: just lints
