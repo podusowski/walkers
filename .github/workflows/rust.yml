@@ -10,6 +10,13 @@ env:
   CARGO_TERM_COLOR: always
 
 jobs:
+  lean-build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: Swatinem/rust-cache@v2
+      - run: cargo check -p walkers
+
   build:
     runs-on: ubuntu-latest
     steps:
@@ -19,7 +26,6 @@ jobs:
         with:
           repo-token: ${{ secrets.GITHUB_TOKEN }}
       - run: cargo check -p walkers --all-features
-      - run: cargo check -p walkers --no-default-features
       - run: cargo check -p demo
       - run: env -C demo_native cargo build
 
@@ -60,13 +66,8 @@ jobs:
       - uses: arduino/setup-protoc@v3.0.0
         with:
           repo-token: ${{ secrets.GITHUB_TOKEN }}
-      - name: Tests
-        run: cargo test --verbose
-      - name: Formatting
-        run: cargo fmt --all --check
-      - name: Clippy
-        run: cargo clippy --all-features -- -D warnings
-      - name: Documentation
-        run: cargo doc --no-deps
-      - name: Typos
-        uses: crate-ci/typos@v1.30.2
+      - run: cargo test --verbose
+      - run: cargo fmt --all --check
+      - run: cargo clippy --all-features -- -D warnings
+      - run: cargo doc --no-deps
+      - uses: crate-ci/typos@v1.30.2
