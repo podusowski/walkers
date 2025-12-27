@@ -21,6 +21,9 @@ lints:
     cargo fmt --all --check
     cargo clippy --all-features -- -D warnings
     cargo doc --no-deps
+
+[group('develop')]
+typos:
     typos .
 
 [group('publish')]
