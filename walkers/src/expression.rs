@@ -31,6 +31,8 @@ pub enum Error {
     PropertyMissing(String, HashMap<String, MvtValue>),
     #[error("Value must be a number, got: {0}")]
     ExpectedNumber(Value),
+    #[error("Value must be a string, got: {0}")]
+    ExpectedString(Value),
     #[error("Number must be a float, got: {0}")]
     ExpectedFloat(Number),
     #[error("Could not serialize a float. Is it NaN?")]
@@ -145,8 +147,10 @@ impl<'a> Context<'a> {
                     }
                     "==" => {
                         let (left, right) = two_elements(arguments)?;
-                        let left = self.property_or_expression(left)?;
-                        Ok(Value::Bool(left == *right))
+                        Ok(Value::Bool(
+                            self.property_or_expression(left)?
+                                == self.property_or_expression(right)?,
+                        ))
                     }
                     "!=" => {
                         let (left, right) = two_elements(arguments)?;
@@ -228,11 +232,7 @@ impl<'a> Context<'a> {
                         let mut result = String::new();
                         for argument in arguments.chunks(2) {
                             let (input, _style_override) = two_elements(argument)?;
-                            result.push_str(
-                                self.evaluate(input)?
-                                    .as_str()
-                                    .ok_or(Error::InvalidExpression(value.clone()))?,
-                            );
+                            result.push_str(&string(&self.evaluate(input)?)?);
                         }
                         Ok(Value::String(result))
                     }
@@ -250,13 +250,13 @@ impl<'a> Context<'a> {
             Value::String(key) if key == "geometry-type" => {
                 Ok(Value::String(self.geometry_type.clone()))
             }
-            Value::String(key) => {
+            Value::String(key) if self.properties.contains_key(key) => {
                 Ok(mvt_value_to_json(self.properties.get(key).ok_or(
                     Error::PropertyMissing(key.clone(), self.properties.clone()),
                 )?))
             }
             Value::Array(_) => self.evaluate(value),
-            _ => Err(Error::ExpectedKeyOrExpression(value.clone())),
+            literal => Ok(literal.clone()),
         }
     }
 }
@@ -284,12 +284,21 @@ fn mvt_value_to_json(value: &MvtValue) -> Value {
     }
 }
 
-/// Expect a float Value.
+/// Expect a float value.
 fn float(v: &Value) -> Result<f64, Error> {
     if let Value::Number(n) = v {
         n.as_f64().ok_or(Error::ExpectedFloat(n.clone()))
     } else {
         Err(Error::ExpectedNumber(v.clone()))
+    }
+}
+
+/// Expect a string value.
+fn string(v: &Value) -> Result<String, Error> {
+    if let Value::String(s) = v {
+        Ok(s.clone())
+    } else {
+        Err(Error::ExpectedString(v.clone()))
     }
 }
 
@@ -610,6 +619,27 @@ mod tests {
                 .evaluate(&json!(["coalesce", Value::Null, Value::Null]))
                 .unwrap(),
             Value::Null
+        );
+    }
+
+    #[test]
+    fn test_eq_operator() {
+        let properties =
+            HashMap::from([("name".to_string(), MvtValue::String("Polska".to_string()))]);
+        let context = Context::new("Point".to_string(), &properties, 1);
+
+        assert_eq!(
+            context
+                .evaluate(&json!(["==", ["get", "name"], "Polska"]))
+                .unwrap(),
+            json!(true)
+        );
+
+        assert_eq!(
+            context
+                .evaluate(&json!(["==", "Polska", ["get", "name"]]))
+                .unwrap(),
+            json!(true)
         );
     }
 

@@ -181,16 +181,12 @@ pub struct Layout {
 
 impl Layout {
     pub fn text(&self, context: &Context) -> Option<String> {
-        match &self.text_field {
-            Some(value) => match context.evaluate(value) {
+        self.text_field
+            .as_ref()
+            .and_then(|value| match context.evaluate(value) {
                 Ok(Value::String(s)) => Some(s),
-                other => {
-                    warn!("Expected text-field to evaluate to a string, got: {other:?}");
-                    None
-                }
-            },
-            None => None,
-        }
+                _ => None,
+            })
     }
 }
 
