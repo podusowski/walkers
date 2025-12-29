@@ -1,3 +1,4 @@
+use crate::mvt::OrientedRect;
 #[cfg(feature = "mvt")]
 use crate::mvt::{self, ShapeOrText, Text};
 
@@ -195,6 +196,7 @@ impl Tile {
         occupied_text_areas: &mut OccupiedAreas,
     ) -> Shape {
         ctx.fonts_mut(|fonts| {
+            use crate::mvt::OrientedRect;
             use egui::{epaint::TextShape, vec2};
 
             let mut layout_job = egui::text::LayoutJob::default();
@@ -236,57 +238,6 @@ impl Tile {
                 Shape::Noop
             }
         })
-    }
-}
-
-struct OrientedRect {
-    corners: [egui::Pos2; 4],
-}
-
-impl OrientedRect {
-    fn from_corners(corners: [egui::Pos2; 4]) -> Self {
-        Self { corners }
-    }
-
-    fn edges(&self) -> [egui::Vec2; 2] {
-        // Two unique edge directions are enough for SAT for rectangles.
-        [
-            self.corners[1] - self.corners[0],
-            self.corners[3] - self.corners[0],
-        ]
-    }
-
-    fn project_onto_axis(points: &[egui::Pos2; 4], axis: egui::Vec2) -> (f32, f32) {
-        // No need to normalize axis for interval overlap test
-        let dot = |p: egui::Pos2| -> f32 { p.x * axis.x + p.y * axis.y };
-        let mut min = f32::INFINITY;
-        let mut max = f32::NEG_INFINITY;
-        for &p in points {
-            let d = dot(p);
-            if d < min {
-                min = d;
-            }
-            if d > max {
-                max = d;
-            }
-        }
-        (min, max)
-    }
-
-    fn intersects(&self, other: &OrientedRect) -> bool {
-        // Separating Axis Theorem on the 4 candidate axes (2 from self, 2 from other)
-        for axis in self.edges().into_iter().chain(other.edges()) {
-            if axis.length_sq() == 0.0 {
-                continue; // degenerate, skip
-            }
-            let (a_min, a_max) = OrientedRect::project_onto_axis(&self.corners, axis);
-            let (b_min, b_max) = OrientedRect::project_onto_axis(&other.corners, axis);
-            // If intervals don't overlap -> separating axis exists
-            if a_max < b_min || b_max < a_min {
-                return false;
-            }
-        }
-        true
     }
 }
 
