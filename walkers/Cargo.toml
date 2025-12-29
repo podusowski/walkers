@@ -3,64 +3,65 @@ name = "walkers"
 version.workspace = true
 repository = "https://github.com/podusowski/walkers"
 description = "slippy map widget for egui"
-keywords = ["gis", "geography", "gui"]
+keywords = ["geography", "gis", "gui"]
 categories = ["gui", "science::geo"]
 authors = ["Piotr Podusowski <podusowski@gmail.com>"]
 license = "MIT"
 edition.workspace = true
 
 [dependencies]
-log.workspace = true
+bytes = "1"
+color = { version = "0.3.2", features = ["serde"], optional = true }
 egui.workspace = true
 egui_extras.workspace = true
-lru = "0.16"
-thiserror = "2"
-image = { version = "0.25", default-features = false, features = [
-    "jpeg",
-    "png",
-] }
-geo-types = { version = "0.7" }
-reqwest = { version = "0.12", default-features = false, features = [
-    "rustls-tls",
-] }
-bytes = "1"
-futures = "0.3.31"
-reqwest-middleware = "0.4.2"
-
-# Optional dependencies
-serde = { version = "1", features = ["derive"], optional = true }
-pmtiles = { version = "0.18.0", default-features = false, features = [
-    "mmap-async-tokio",
-], optional = true }
-mvt-reader = { version = "2.1.0", optional = true }
 flate2 = { version = "1.1.4", optional = true }
-lyon_tessellation = { version = "1", optional = true }
+futures = "0.3.31"
+geo = { version = "0.32.0", default-features = false, optional = true }
+geo-types = { version = "0.7" }
+image = { version = "0.25", default-features = false, features = [
+  "jpeg",
+  "png",
+] }
+log.workspace = true
+lru = "0.16"
 lyon_path = { version = "1", optional = true }
-color = { version = "0.3.2", features = ["serde"], optional = true }
+lyon_tessellation = { version = "1", optional = true }
+mvt-reader = { version = "2.1.0", optional = true }
+pmtiles = { version = "0.18.0", default-features = false, features = [
+  "mmap-async-tokio",
+], optional = true }
+reqwest = { version = "0.12", default-features = false, features = [
+  "rustls-tls",
+] }
+reqwest-middleware = "0.4.2"
+serde = { version = "1", features = ["derive"], optional = true }
 serde_json = { version = "1.0.145", optional = true }
-
-[target.'cfg(target_family = "wasm")'.dependencies]
-wasm-bindgen-futures = "0.4"
-
-[target.'cfg(not(target_family = "wasm"))'.dependencies]
-tokio = "1"
-http-cache-reqwest = "0.16.0"
+thiserror = "2"
 
 [dev-dependencies]
+approx = "0.5"
 eframe.workspace = true
 env_logger = "0.11"
-approx = "0.5"
 hypermocker = { path = "../hypermocker" }
+
+[target.'cfg(not(target_family = "wasm"))'.dependencies]
+http-cache-reqwest = "0.16.0"
+tokio = "1"
+
+[target.'cfg(target_family = "wasm")'.dependencies]
+getrandom = { version = "0.2", features = ["js"] }
+wasm-bindgen-futures = "0.4"
 
 [features]
 default = []
-serde = ["dep:serde", "geo-types/serde", "egui/serde"]
 mvt = [
-    "dep:mvt-reader",
-    "dep:lyon_tessellation",
-    "dep:lyon_path",
-    "dep:serde",
-    "dep:serde_json",
-    "dep:color",
+  "dep:color",
+  "dep:geo",
+  "dep:lyon_path",
+  "dep:lyon_tessellation",
+  "dep:mvt-reader",
+  "dep:serde",
+  "dep:serde_json"
 ]
-pmtiles = ["dep:pmtiles", "dep:flate2"]
+pmtiles = ["dep:flate2", "dep:pmtiles"]
+serde = ["dep:serde", "egui/serde", "geo-types/serde"]
