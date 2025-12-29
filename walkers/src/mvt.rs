@@ -102,15 +102,13 @@ pub struct OrientedRect {
 }
 
 impl OrientedRect {
-    pub fn new(text: &Text, size: Vec2) -> Self {
+    pub fn new(center: Pos2, text: &Text, size: Vec2) -> Self {
         let (s, c) = text.angle.sin_cos();
         let half = size * 0.5;
 
         // Rotated basis vectors for half-width (ux) and half-height (uy)
         let ux = vec2(half.x * c, half.x * s);
         let uy = vec2(-half.y * s, half.y * c);
-
-        let center = text.position;
 
         let p0 = center - ux - uy; // top-left
         let p1 = center + ux - uy; // top-right
