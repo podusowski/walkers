@@ -167,6 +167,7 @@ pub fn render(data: &[u8], style: &Style, zoom: u8) -> Result<Vec<ShapeOrText>, 
         }
     }
 
+    log::trace!("Rendered {} shapes", shapes.len());
     Ok(shapes)
 }
 
