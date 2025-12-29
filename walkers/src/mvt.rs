@@ -106,7 +106,6 @@ impl OrientedRect {
         let (s, c) = text.angle.sin_cos();
         let half = size * 0.5;
 
-        // Rotated basis vectors for half-width (ux) and half-height (uy)
         let ux = vec2(half.x * c, half.x * s);
         let uy = vec2(-half.y * s, half.y * c);
 
