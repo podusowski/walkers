@@ -203,11 +203,26 @@ impl Tile {
         use crate::mvt::OrientedRect;
         use egui::epaint::TextShape;
 
-        let area = OrientedRect::new(text.position, text.angle, text.galley.size());
+        let mut layout_job = egui::text::LayoutJob::default();
+
+        layout_job.append(
+            &text.text,
+            0.0,
+            egui::TextFormat {
+                font_id: FontId::proportional(text.font_size),
+                color: text.text_color,
+                background: text.background_color,
+                ..Default::default()
+            },
+        );
+
+        let galley = ctx.fonts_mut(|fonts| fonts.layout_job(layout_job));
+
+        let area = OrientedRect::new(text.position, text.angle, galley.size());
         let top_left = area.top_left();
 
         if occupied_text_areas.try_occupy(area) {
-            TextShape::new(top_left, text.galley, text.text_color)
+            TextShape::new(top_left, galley, text.text_color)
                 .with_angle(text.angle)
                 .into()
         } else {

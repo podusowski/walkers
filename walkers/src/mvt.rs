@@ -95,12 +95,10 @@ pub struct Text {
     pub text_color: Color32,
     pub background_color: Color32,
     pub angle: f32,
-    pub galley: Arc<Galley>,
 }
 
 impl Text {
     pub fn new(
-        egui_ctx: &egui::Context,
         position: Pos2,
         text: String,
         font_size: f32,
@@ -108,21 +106,6 @@ impl Text {
         background_color: Color32,
         angle: f32,
     ) -> Self {
-        let mut layout_job = egui::text::LayoutJob::default();
-
-        layout_job.append(
-            &text,
-            0.0,
-            egui::TextFormat {
-                font_id: FontId::proportional(font_size),
-                color: text_color,
-                background: background_color,
-                ..Default::default()
-            },
-        );
-
-        let galley = egui_ctx.fonts_mut(|fonts| fonts.layout_job(layout_job));
-
         Self {
             position,
             text,
@@ -130,7 +113,6 @@ impl Text {
             text_color,
             background_color,
             angle,
-            galley,
         }
     }
 }
@@ -478,7 +460,6 @@ fn symbol_into_shape(
             if let Some(text) = &layout.text(&context) {
                 shapes.extend(multi_point.0.iter().map(|p| {
                     ShapeOrText::Text(Text::new(
-                        egui_ctx,
                         pos2(p.x(), p.y()),
                         text.clone(),
                         text_size,
@@ -541,7 +522,6 @@ fn symbol_into_shape(
                     let angle = line.slope().atan();
 
                     shapes.push(ShapeOrText::Text(Text::new(
-                        egui_ctx,
                         pos2(mid_point.x(), mid_point.y()),
                         text.clone(),
                         text_size,
