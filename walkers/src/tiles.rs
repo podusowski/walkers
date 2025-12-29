@@ -1,6 +1,8 @@
-use crate::mvt::OrientedRect;
 #[cfg(feature = "mvt")]
-use crate::mvt::{self, ShapeOrText, Text};
+use crate::mvt::{self, ShapeOrText};
+use crate::text::OrientedRect;
+#[cfg(feature = "mvt")]
+use crate::text::Text;
 
 use egui::{Color32, Context, Mesh, Rect, Vec2, pos2};
 use egui::{ColorImage, TextureHandle};
@@ -200,7 +202,6 @@ impl Tile {
         ctx: &Context,
         occupied_text_areas: &mut OccupiedAreas,
     ) -> Shape {
-        use crate::mvt::OrientedRect;
         use egui::epaint::TextShape;
 
         let mut layout_job = egui::text::LayoutJob::default();
