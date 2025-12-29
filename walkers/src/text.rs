@@ -75,10 +75,7 @@ impl OrientedRect {
             .exterior()
             .points()
             .nth(0)
-            .map(|p| Pos2 {
-                x: p.x() as f32,
-                y: p.y() as f32,
-            })
+            .map(|p| Pos2 { x: p.x(), y: p.y() })
             .expect("can not happen because polygon always has some points")
     }
 
