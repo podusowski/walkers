@@ -61,6 +61,8 @@ pub fn controls(
             ui.add_space(10.0);
             ui.heading("Debug");
 
+            ui.label(format!("Zoom: {}", app.map_memory.zoom()));
+
             if app.map_memory.animating() {
                 ui.label("Map is animating");
             } else {
