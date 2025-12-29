@@ -49,6 +49,7 @@ http-cache-reqwest = "0.16.0"
 tokio = "1"
 
 [target.'cfg(target_family = "wasm")'.dependencies]
+getrandom = { version = "0.2", features = ["js"] }
 wasm-bindgen-futures = "0.4"
 
 [features]
