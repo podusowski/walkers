@@ -1,9 +1,9 @@
 //! Renderer for Mapbox Vector Tiles.
 
-use std::{collections::HashMap, sync::Arc};
+use std::collections::HashMap;
 
 use egui::{
-    Color32, FontId, Galley, Mesh, Pos2, Rect, Shape, Stroke, Vec2,
+    Color32, Mesh, Rect, Shape, Stroke,
     emath::TSTransform,
     epaint::{Vertex, WHITE_UV},
     pos2, vec2,
@@ -89,12 +89,7 @@ impl ShapeOrText {
 }
 
 /// Render MVT data into a list of [`epaint::Shape`]s.
-pub fn render(
-    data: &[u8],
-    style: &Style,
-    zoom: u8,
-    egui_ctx: &egui::Context,
-) -> Result<Vec<ShapeOrText>, Error> {
+pub fn render(data: &[u8], style: &Style, zoom: u8) -> Result<Vec<ShapeOrText>, Error> {
     let data = mvt_reader::Reader::new(data.to_vec())?;
     let mut shapes = Vec::new();
 
@@ -149,15 +144,9 @@ pub fn render(
                 paint,
             } => {
                 for feature in get_layer_features(&data, source_layer)? {
-                    if let Err(err) = symbol_into_shape(
-                        egui_ctx,
-                        &feature,
-                        &mut shapes,
-                        filter,
-                        layout,
-                        paint,
-                        zoom,
-                    ) {
+                    if let Err(err) =
+                        symbol_into_shape(&feature, &mut shapes, filter, layout, paint, zoom)
+                    {
                         warn!("{err}");
                     }
                 }
@@ -310,7 +299,6 @@ fn polygon_feature_into_shape(
 
 /// Render a shape from symbol layer.
 fn symbol_into_shape(
-    egui_ctx: &egui::Context,
     feature: &Feature,
     shapes: &mut Vec<ShapeOrText>,
     filter: &Option<Filter>,

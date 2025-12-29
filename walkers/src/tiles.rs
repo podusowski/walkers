@@ -136,7 +136,7 @@ impl Tile {
             #[cfg(feature = "mvt")]
             {
                 log::debug!("Trying to decode tile as MVT vector tile.");
-                Ok(Self::from_mvt(image, style, zoom, ctx)?)
+                Ok(Self::from_mvt(image, style, zoom)?)
             }
             #[cfg(not(feature = "mvt"))]
             {
@@ -146,13 +146,8 @@ impl Tile {
     }
 
     #[cfg(feature = "mvt")]
-    pub fn from_mvt(
-        data: &[u8],
-        style: &Style,
-        zoom: u8,
-        ctx: &Context,
-    ) -> Result<Self, TileError> {
-        Ok(Self::Vector(mvt::render(data, style, zoom, ctx)?))
+    pub fn from_mvt(data: &[u8], style: &Style, zoom: u8) -> Result<Self, TileError> {
+        Ok(Self::Vector(mvt::render(data, style, zoom)?))
     }
 
     /// Load the texture from egui's [`ColorImage`].
