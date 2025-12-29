@@ -1,5 +1,5 @@
 use egui::{Color32, Pos2, Vec2, vec2};
-use geo::{BoundingRect, Intersects, bounding_rect};
+use geo::{BoundingRect, Coord, Intersects, LineString, Polygon};
 
 #[derive(Debug, Clone)]
 pub struct Text {
@@ -32,7 +32,7 @@ impl Text {
 }
 
 pub struct OrientedRect {
-    pub geometry: geo::Polygon<f32>,
+    polygon: Polygon<f32>,
     bbox: geo::Rect<f32>,
 }
 
@@ -49,13 +49,12 @@ impl OrientedRect {
         let p2 = center + ux + uy; // bottom-right
         let p3 = center - ux + uy; // bottom-left
 
-        let polygon = geo::Polygon::new(
-            geo::LineString::from(vec![
-                geo::Coordinate { x: p0.x, y: p0.y },
-                geo::Coordinate { x: p1.x, y: p1.y },
-                geo::Coordinate { x: p2.x, y: p2.y },
-                geo::Coordinate { x: p3.x, y: p3.y },
-                geo::Coordinate { x: p0.x, y: p0.y }, // close the loop
+        let polygon = Polygon::new(
+            LineString::from(vec![
+                Coord { x: p0.x, y: p0.y },
+                Coord { x: p1.x, y: p1.y },
+                Coord { x: p2.x, y: p2.y },
+                Coord { x: p3.x, y: p3.y },
             ]),
             vec![],
         );
@@ -63,13 +62,13 @@ impl OrientedRect {
         let bounding_rect = polygon.bounding_rect().unwrap();
 
         Self {
-            geometry: polygon,
+            polygon,
             bbox: bounding_rect,
         }
     }
 
     pub fn top_left(&self) -> Pos2 {
-        self.geometry
+        self.polygon
             .exterior()
             .points()
             .nth(0)
@@ -81,7 +80,7 @@ impl OrientedRect {
     }
 
     pub fn intersects(&self, other: &OrientedRect) -> bool {
-        self.bbox.intersects(&other.bbox) && self.geometry.intersects(&other.geometry)
+        self.bbox.intersects(&other.bbox) && self.polygon.intersects(&other.polygon)
     }
 }
 
