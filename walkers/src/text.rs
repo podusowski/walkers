@@ -80,6 +80,7 @@ impl OrientedRect {
     }
 
     pub fn intersects(&self, other: &OrientedRect) -> bool {
+        // Checking bbox first gives huge performance boost.
         self.bbox.intersects(&other.bbox) && self.polygon.intersects(&other.polygon)
     }
 }
