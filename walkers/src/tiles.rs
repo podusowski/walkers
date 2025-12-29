@@ -212,31 +212,24 @@ impl Tile {
 
             let galley = fonts.layout_job(layout_job);
 
-            // Voodoo to rotate text around its center, instead of top-left corner.
-            let half = galley.size() * 0.5;
             let (s, c) = text.angle.sin_cos();
-            let rotated_half = vec2(half.x * c - half.y * s, half.x * s + half.y * c);
-            let pivot = text.position - rotated_half;
+            let half = galley.size() * 0.5;
 
-            // Compute the corners of the rotated text quad (top-left pivot + rotation).
-            let w = galley.size().x;
-            let h = galley.size().y;
+            // Rotated basis vectors for half-width (ux) and half-height (uy)
+            let ux = vec2(half.x * c, half.x * s);
+            let uy = vec2(-half.y * s, half.y * c);
 
-            let rotate = |dx: f32, dy: f32| -> egui::Pos2 {
-                let rx = dx * c - dy * s;
-                let ry = dx * s + dy * c;
-                egui::Pos2::new(pivot.x + rx, pivot.y + ry)
-            };
+            let center = text.position;
 
-            let p0 = rotate(0.0, 0.0);
-            let p1 = rotate(w, 0.0);
-            let p2 = rotate(w, h);
-            let p3 = rotate(0.0, h);
+            let p0 = center - ux - uy; // top-left
+            let p1 = center + ux - uy; // top-right
+            let p2 = center + ux + uy; // bottom-right
+            let p3 = center - ux + uy; // bottom-left
 
             let area = OrientedRect::from_corners([p0, p1, p2, p3]);
 
             if occupied_text_areas.try_occupy(area) {
-                TextShape::new(pivot, galley, text.text_color)
+                TextShape::new(p0, galley, text.text_color)
                     .with_angle(text.angle)
                     .into()
             } else {
