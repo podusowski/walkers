@@ -3,7 +3,7 @@
 use std::collections::HashMap;
 
 use egui::{
-    Color32, Mesh, Pos2, Rect, Shape, Stroke,
+    Color32, Mesh, Pos2, Rect, Shape, Stroke, Vec2,
     emath::TSTransform,
     epaint::{Vertex, WHITE_UV},
     pos2, vec2,
@@ -102,6 +102,24 @@ pub struct OrientedRect {
 }
 
 impl OrientedRect {
+    pub fn new(text: &Text, size: Vec2) -> Self {
+        let (s, c) = text.angle.sin_cos();
+        let half = size * 0.5;
+
+        // Rotated basis vectors for half-width (ux) and half-height (uy)
+        let ux = vec2(half.x * c, half.x * s);
+        let uy = vec2(-half.y * s, half.y * c);
+
+        let center = text.position;
+
+        let p0 = center - ux - uy; // top-left
+        let p1 = center + ux - uy; // top-right
+        let p2 = center + ux + uy; // bottom-right
+        let p3 = center - ux + uy; // bottom-left
+
+        OrientedRect::from_corners([p0, p1, p2, p3])
+    }
+
     pub fn from_corners(corners: [egui::Pos2; 4]) -> Self {
         Self { corners }
     }

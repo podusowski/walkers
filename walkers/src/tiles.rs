@@ -228,7 +228,9 @@ impl Tile {
             let p2 = center + ux + uy; // bottom-right
             let p3 = center - ux + uy; // bottom-left
 
-            let area = OrientedRect::from_corners([p0, p1, p2, p3]);
+            //let area = OrientedRect::from_corners([p0, p1, p2, p3]);
+            let area = OrientedRect::new(&text, galley.size());
+            let p0 = area.corners[0];
 
             if occupied_text_areas.try_occupy(area) {
                 TextShape::new(p0, galley, text.text_color)
