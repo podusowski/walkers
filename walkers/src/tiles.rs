@@ -213,7 +213,7 @@ impl Tile {
             );
 
             let galley = fonts.layout_job(layout_job);
-            let area = OrientedRect::new(text.position, &text, galley.size());
+            let area = OrientedRect::new(text.position, text.angle, galley.size());
             let top_left = area.top_left();
 
             if occupied_text_areas.try_occupy(area) {

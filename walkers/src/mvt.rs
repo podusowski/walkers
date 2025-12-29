@@ -102,8 +102,8 @@ pub struct OrientedRect {
 }
 
 impl OrientedRect {
-    pub fn new(center: Pos2, text: &Text, size: Vec2) -> Self {
-        let (s, c) = text.angle.sin_cos();
+    pub fn new(center: Pos2, angle: f32, size: Vec2) -> Self {
+        let (s, c) = angle.sin_cos();
         let half = size * 0.5;
 
         let ux = vec2(half.x * c, half.x * s);
