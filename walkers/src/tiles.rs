@@ -1,5 +1,9 @@
 #[cfg(feature = "mvt")]
-use crate::mvt::{self, ShapeOrText, Text};
+use crate::mvt::{self, ShapeOrText};
+#[cfg(feature = "mvt")]
+use crate::text::Text;
+#[cfg(feature = "mvt")]
+use crate::text::{OccupiedAreas, OrientedRect};
 
 use egui::{Color32, Context, Mesh, Rect, Vec2, pos2};
 use egui::{ColorImage, TextureHandle};
@@ -194,125 +198,32 @@ impl Tile {
         ctx: &Context,
         occupied_text_areas: &mut OccupiedAreas,
     ) -> Shape {
-        ctx.fonts_mut(|fonts| {
-            use egui::{epaint::TextShape, vec2};
+        use egui::epaint::TextShape;
 
-            let mut layout_job = egui::text::LayoutJob::default();
+        let mut layout_job = egui::text::LayoutJob::default();
 
-            layout_job.append(
-                &text.text,
-                0.0,
-                egui::TextFormat {
-                    font_id: FontId::proportional(text.font_size),
-                    color: text.text_color,
-                    background: text.background_color,
-                    ..Default::default()
-                },
-            );
+        layout_job.append(
+            &text.text,
+            0.0,
+            egui::TextFormat {
+                font_id: FontId::proportional(text.font_size),
+                color: text.text_color,
+                background: text.background_color,
+                ..Default::default()
+            },
+        );
 
-            let galley = fonts.layout_job(layout_job);
+        let galley = ctx.fonts_mut(|fonts| fonts.layout_job(layout_job));
 
-            // Voodoo to rotate text around its center, instead of top-left corner.
-            let half = galley.size() * 0.5;
-            let (s, c) = text.angle.sin_cos();
-            let rotated_half = vec2(half.x * c - half.y * s, half.x * s + half.y * c);
-            let pivot = text.position - rotated_half;
+        let area = OrientedRect::new(text.position, text.angle, galley.size());
+        let top_left = area.top_left();
 
-            // Compute the corners of the rotated text quad (top-left pivot + rotation).
-            let w = galley.size().x;
-            let h = galley.size().y;
-
-            let rotate = |dx: f32, dy: f32| -> egui::Pos2 {
-                let rx = dx * c - dy * s;
-                let ry = dx * s + dy * c;
-                egui::Pos2::new(pivot.x + rx, pivot.y + ry)
-            };
-
-            let p0 = rotate(0.0, 0.0);
-            let p1 = rotate(w, 0.0);
-            let p2 = rotate(w, h);
-            let p3 = rotate(0.0, h);
-
-            let area = OrientedRect::from_corners([p0, p1, p2, p3]);
-
-            if occupied_text_areas.try_occupy(area) {
-                TextShape::new(pivot, galley, text.text_color)
-                    .with_angle(text.angle)
-                    .into()
-            } else {
-                Shape::Noop
-            }
-        })
-    }
-}
-
-struct OrientedRect {
-    corners: [egui::Pos2; 4],
-}
-
-impl OrientedRect {
-    fn from_corners(corners: [egui::Pos2; 4]) -> Self {
-        Self { corners }
-    }
-
-    fn edges(&self) -> [egui::Vec2; 2] {
-        // Two unique edge directions are enough for SAT for rectangles.
-        [
-            self.corners[1] - self.corners[0],
-            self.corners[3] - self.corners[0],
-        ]
-    }
-
-    fn project_onto_axis(points: &[egui::Pos2; 4], axis: egui::Vec2) -> (f32, f32) {
-        // No need to normalize axis for interval overlap test
-        let dot = |p: egui::Pos2| -> f32 { p.x * axis.x + p.y * axis.y };
-        let mut min = f32::INFINITY;
-        let mut max = f32::NEG_INFINITY;
-        for &p in points {
-            let d = dot(p);
-            if d < min {
-                min = d;
-            }
-            if d > max {
-                max = d;
-            }
-        }
-        (min, max)
-    }
-
-    fn intersects(&self, other: &OrientedRect) -> bool {
-        // Separating Axis Theorem on the 4 candidate axes (2 from self, 2 from other)
-        for axis in self.edges().into_iter().chain(other.edges()) {
-            if axis.length_sq() == 0.0 {
-                continue; // degenerate, skip
-            }
-            let (a_min, a_max) = OrientedRect::project_onto_axis(&self.corners, axis);
-            let (b_min, b_max) = OrientedRect::project_onto_axis(&other.corners, axis);
-            // If intervals don't overlap -> separating axis exists
-            if a_max < b_min || b_max < a_min {
-                return false;
-            }
-        }
-        true
-    }
-}
-
-// Tracks areas occupied by texts to avoid overlapping them.
-struct OccupiedAreas {
-    areas: Vec<OrientedRect>,
-}
-
-impl OccupiedAreas {
-    fn new() -> Self {
-        Self { areas: Vec::new() }
-    }
-
-    fn try_occupy(&mut self, rect: OrientedRect) -> bool {
-        if !self.areas.iter().any(|existing| existing.intersects(&rect)) {
-            self.areas.push(rect);
-            true
+        if occupied_text_areas.try_occupy(area) {
+            TextShape::new(top_left, galley, text.text_color)
+                .with_angle(text.angle)
+                .into()
         } else {
-            false
+            Shape::Noop
         }
     }
 }

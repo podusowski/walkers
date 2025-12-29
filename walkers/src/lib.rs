@@ -9,6 +9,8 @@ mod map;
 mod memory;
 #[cfg(feature = "mvt")]
 mod style;
+#[cfg(feature = "mvt")]
+mod text;
 
 #[cfg(not(feature = "mvt"))]
 mod style {
