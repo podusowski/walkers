@@ -118,7 +118,7 @@ impl Text {
 }
 
 pub struct OrientedRect {
-    pub corners: [egui::Pos2; 4],
+    pub corners: [Pos2; 4],
 }
 
 impl OrientedRect {
