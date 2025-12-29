@@ -100,8 +100,8 @@ impl Tiles for PmTiles {
 
 #[derive(Debug, Error)]
 enum PmTilesError {
-    #[error("Tile not found")]
-    TileNotFound,
+    #[error("Tile {0:?} not found in pmtiles file.")]
+    TileNotFound(TileId),
     #[error(transparent)]
     Decompression(#[from] io::Error),
     #[error(transparent)]
@@ -129,7 +129,7 @@ impl Fetch for PmTilesFetch {
         let bytes = reader
             .get_tile(TileCoord::new(tile_id.zoom, tile_id.x, tile_id.y)?)
             .await?
-            .ok_or(PmTilesError::TileNotFound)?;
+            .ok_or(PmTilesError::TileNotFound(tile_id))?;
 
         Ok(decompress(&bytes)?.into())
     }
