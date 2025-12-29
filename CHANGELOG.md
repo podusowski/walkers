@@ -2,6 +2,10 @@
 
 All notable changes to this project will be documented in this file.
 
+## Unreleased
+
+* Faster collision detection algorithm for texts in vector tiles.
+
 ## 0.51.0
 
 * `vector_tiles` Cargo feature is now split into `mvt` and `pmtiles`.
