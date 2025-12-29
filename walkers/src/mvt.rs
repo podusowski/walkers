@@ -117,11 +117,9 @@ impl OrientedRect {
         let p2 = center + ux + uy; // bottom-right
         let p3 = center - ux + uy; // bottom-left
 
-        OrientedRect::from_corners([p0, p1, p2, p3])
-    }
-
-    pub fn from_corners(corners: [egui::Pos2; 4]) -> Self {
-        Self { corners }
+        Self {
+            corners: [p0, p1, p2, p3],
+        }
     }
 
     pub fn intersects(&self, other: &OrientedRect) -> bool {

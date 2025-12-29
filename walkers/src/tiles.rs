@@ -197,7 +197,7 @@ impl Tile {
     ) -> Shape {
         ctx.fonts_mut(|fonts| {
             use crate::mvt::OrientedRect;
-            use egui::{epaint::TextShape, vec2};
+            use egui::epaint::TextShape;
 
             let mut layout_job = egui::text::LayoutJob::default();
 
