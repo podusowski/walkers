@@ -1,9 +1,9 @@
 //! Renderer for Mapbox Vector Tiles.
 
-use std::collections::HashMap;
+use std::{collections::HashMap, sync::Arc};
 
 use egui::{
-    Color32, Mesh, Pos2, Rect, Shape, Stroke, Vec2,
+    Color32, FontId, Galley, Mesh, Pos2, Rect, Shape, Stroke, Vec2,
     emath::TSTransform,
     epaint::{Vertex, WHITE_UV},
     pos2, vec2,
@@ -95,6 +95,7 @@ pub struct Text {
     pub text_color: Color32,
     pub background_color: Color32,
     pub angle: f32,
+    pub galley: Arc<Galley>,
 }
 
 impl Text {
@@ -107,6 +108,21 @@ impl Text {
         background_color: Color32,
         angle: f32,
     ) -> Self {
+        let mut layout_job = egui::text::LayoutJob::default();
+
+        layout_job.append(
+            &text,
+            0.0,
+            egui::TextFormat {
+                font_id: FontId::proportional(font_size),
+                color: text_color,
+                background: background_color,
+                ..Default::default()
+            },
+        );
+
+        let galley = egui_ctx.fonts_mut(|fonts| fonts.layout_job(layout_job));
+
         Self {
             position,
             text,
@@ -114,6 +130,7 @@ impl Text {
             text_color,
             background_color,
             angle,
+            galley,
         }
     }
 }
