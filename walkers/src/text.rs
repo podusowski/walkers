@@ -55,11 +55,14 @@ impl OrientedRect {
                 Coord { x: p1.x, y: p1.y },
                 Coord { x: p2.x, y: p2.y },
                 Coord { x: p3.x, y: p3.y },
+                Coord { x: p0.x, y: p0.y }, // Close the polygon
             ]),
             vec![],
         );
 
-        let bounding_rect = polygon.bounding_rect().unwrap();
+        let bounding_rect = polygon
+            .bounding_rect()
+            .expect("can not happen because polygon always has some points");
 
         Self {
             polygon,
@@ -76,7 +79,7 @@ impl OrientedRect {
                 x: p.x() as f32,
                 y: p.y() as f32,
             })
-            .unwrap()
+            .expect("can not happen because polygon always has some points")
     }
 
     pub fn intersects(&self, other: &OrientedRect) -> bool {
