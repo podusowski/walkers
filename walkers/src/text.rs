@@ -97,3 +97,23 @@ impl OrientedRect {
         (min, max)
     }
 }
+
+// Tracks areas occupied by texts to avoid overlapping them.
+pub struct OccupiedAreas {
+    areas: Vec<OrientedRect>,
+}
+
+impl OccupiedAreas {
+    pub fn new() -> Self {
+        Self { areas: Vec::new() }
+    }
+
+    pub fn try_occupy(&mut self, rect: OrientedRect) -> bool {
+        if !self.areas.iter().any(|existing| existing.intersects(&rect)) {
+            self.areas.push(rect);
+            true
+        } else {
+            false
+        }
+    }
+}

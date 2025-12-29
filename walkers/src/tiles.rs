@@ -1,8 +1,9 @@
 #[cfg(feature = "mvt")]
 use crate::mvt::{self, ShapeOrText};
-use crate::text::OrientedRect;
 #[cfg(feature = "mvt")]
 use crate::text::Text;
+#[cfg(feature = "mvt")]
+use crate::text::{OccupiedAreas, OrientedRect};
 
 use egui::{Color32, Context, Mesh, Rect, Vec2, pos2};
 use egui::{ColorImage, TextureHandle};
@@ -223,26 +224,6 @@ impl Tile {
                 .into()
         } else {
             Shape::Noop
-        }
-    }
-}
-
-// Tracks areas occupied by texts to avoid overlapping them.
-struct OccupiedAreas {
-    areas: Vec<OrientedRect>,
-}
-
-impl OccupiedAreas {
-    fn new() -> Self {
-        Self { areas: Vec::new() }
-    }
-
-    fn try_occupy(&mut self, rect: OrientedRect) -> bool {
-        if !self.areas.iter().any(|existing| existing.intersects(&rect)) {
-            self.areas.push(rect);
-            true
-        } else {
-            false
         }
     }
 }
