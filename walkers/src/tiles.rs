@@ -203,19 +203,6 @@ impl Tile {
         use crate::mvt::OrientedRect;
         use egui::epaint::TextShape;
 
-        let mut layout_job = egui::text::LayoutJob::default();
-
-        layout_job.append(
-            &text.text,
-            0.0,
-            egui::TextFormat {
-                font_id: FontId::proportional(text.font_size),
-                color: text.text_color,
-                background: text.background_color,
-                ..Default::default()
-            },
-        );
-
         let area = OrientedRect::new(text.position, text.angle, text.galley.size());
         let top_left = area.top_left();
 
