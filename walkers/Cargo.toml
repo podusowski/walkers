@@ -16,8 +16,7 @@ egui.workspace = true
 egui_extras.workspace = true
 flate2 = { version = "1.1.4", optional = true }
 futures = "0.3.31"
-# TODO: Make it optional.
-geo = "0.32.0"
+geo = { version = "0.32.0", default-features = false, optional = true }
 geo-types = { version = "0.7" }
 image = { version = "0.25", default-features = false, features = [
   "jpeg",
@@ -35,7 +34,6 @@ reqwest = { version = "0.12", default-features = false, features = [
   "rustls-tls",
 ] }
 reqwest-middleware = "0.4.2"
-# Optional dependencies
 serde = { version = "1", features = ["derive"], optional = true }
 serde_json = { version = "1.0.145", optional = true }
 thiserror = "2"
@@ -57,11 +55,12 @@ wasm-bindgen-futures = "0.4"
 default = []
 mvt = [
   "dep:color",
+  "dep:geo",
   "dep:lyon_path",
   "dep:lyon_tessellation",
   "dep:mvt-reader",
   "dep:serde",
-  "dep:serde_json",
+  "dep:serde_json"
 ]
 pmtiles = ["dep:flate2", "dep:pmtiles"]
 serde = ["dep:serde", "egui/serde", "geo-types/serde"]
