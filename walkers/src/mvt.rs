@@ -99,6 +99,7 @@ pub struct Text {
 
 impl Text {
     pub fn new(
+        egui_ctx: &egui::Context,
         position: Pos2,
         text: String,
         font_size: f32,
@@ -186,7 +187,12 @@ impl OrientedRect {
 }
 
 /// Render MVT data into a list of [`epaint::Shape`]s.
-pub fn render(data: &[u8], style: &Style, zoom: u8) -> Result<Vec<ShapeOrText>, Error> {
+pub fn render(
+    data: &[u8],
+    style: &Style,
+    zoom: u8,
+    egui_ctx: &egui::Context,
+) -> Result<Vec<ShapeOrText>, Error> {
     let data = mvt_reader::Reader::new(data.to_vec())?;
     let mut shapes = Vec::new();
 
@@ -241,9 +247,15 @@ pub fn render(data: &[u8], style: &Style, zoom: u8) -> Result<Vec<ShapeOrText>, 
                 paint,
             } => {
                 for feature in get_layer_features(&data, source_layer)? {
-                    if let Err(err) =
-                        symbol_into_shape(&feature, &mut shapes, filter, layout, paint, zoom)
-                    {
+                    if let Err(err) = symbol_into_shape(
+                        egui_ctx,
+                        &feature,
+                        &mut shapes,
+                        filter,
+                        layout,
+                        paint,
+                        zoom,
+                    ) {
                         warn!("{err}");
                     }
                 }
@@ -396,6 +408,7 @@ fn polygon_feature_into_shape(
 
 /// Render a shape from symbol layer.
 fn symbol_into_shape(
+    egui_ctx: &egui::Context,
     feature: &Feature,
     shapes: &mut Vec<ShapeOrText>,
     filter: &Option<Filter>,
@@ -448,6 +461,7 @@ fn symbol_into_shape(
             if let Some(text) = &layout.text(&context) {
                 shapes.extend(multi_point.0.iter().map(|p| {
                     ShapeOrText::Text(Text::new(
+                        egui_ctx,
                         pos2(p.x(), p.y()),
                         text.clone(),
                         text_size,
@@ -510,6 +524,7 @@ fn symbol_into_shape(
                     let angle = line.slope().atan();
 
                     shapes.push(ShapeOrText::Text(Text::new(
+                        egui_ctx,
                         pos2(mid_point.x(), mid_point.y()),
                         text.clone(),
                         text_size,
