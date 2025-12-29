@@ -122,6 +122,10 @@ impl OrientedRect {
         }
     }
 
+    pub fn top_left(&self) -> Pos2 {
+        self.corners[0]
+    }
+
     pub fn intersects(&self, other: &OrientedRect) -> bool {
         // Separating Axis Theorem on the 4 candidate axes (2 from self, 2 from other)
         for axis in self.edges().into_iter().chain(other.edges()) {

@@ -214,7 +214,7 @@ impl Tile {
 
             let galley = fonts.layout_job(layout_job);
             let area = OrientedRect::new(&text, galley.size());
-            let p0 = area.corners[0];
+            let p0 = area.top_left();
 
             if occupied_text_areas.try_occupy(area) {
                 TextShape::new(p0, galley, text.text_color)
