@@ -97,6 +97,26 @@ pub struct Text {
     pub angle: f32,
 }
 
+impl Text {
+    pub fn new(
+        position: Pos2,
+        text: String,
+        font_size: f32,
+        text_color: Color32,
+        background_color: Color32,
+        angle: f32,
+    ) -> Self {
+        Self {
+            position,
+            text,
+            font_size,
+            text_color,
+            background_color,
+            angle,
+        }
+    }
+}
+
 pub struct OrientedRect {
     pub corners: [egui::Pos2; 4],
 }
@@ -427,14 +447,14 @@ fn symbol_into_shape(
 
             if let Some(text) = &layout.text(&context) {
                 shapes.extend(multi_point.0.iter().map(|p| {
-                    ShapeOrText::Text(Text {
-                        position: pos2(p.x(), p.y()),
-                        text: text.clone(),
-                        font_size: text_size,
+                    ShapeOrText::Text(Text::new(
+                        pos2(p.x(), p.y()),
+                        text.clone(),
+                        text_size,
                         text_color,
-                        background_color: Color32::TRANSPARENT,
-                        angle: 0.0,
-                    })
+                        Color32::TRANSPARENT,
+                        0.0,
+                    ))
                 }))
             }
         }
@@ -489,15 +509,15 @@ fn symbol_into_shape(
                     let mid_point = midpoint(&line.start_point(), &line.end_point());
                     let angle = line.slope().atan();
 
-                    shapes.push(ShapeOrText::Text(Text {
-                        position: pos2(mid_point.x(), mid_point.y()),
-                        text: text.clone(),
-                        font_size: text_size,
+                    shapes.push(ShapeOrText::Text(Text::new(
+                        pos2(mid_point.x(), mid_point.y()),
+                        text.clone(),
+                        text_size,
                         text_color,
                         // TODO: Implement real halo rendering.
-                        background_color: text_halo_color.gamma_multiply(0.5),
+                        text_halo_color.gamma_multiply(0.5),
                         angle,
-                    }));
+                    )));
                 }
             }
         }
