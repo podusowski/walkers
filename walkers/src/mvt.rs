@@ -187,14 +187,9 @@ fn get_layer_features(
     }
     .into_iter()
     .filter_map(move |feature| {
-        let Some(properties) = feature.properties else {
-            warn!("Feature without properties. Skipping.");
-            return None;
-        };
-
         let context = Context::new(
             geometry_type_to_str(&feature.geometry).to_string(),
-            properties,
+            feature.properties.unwrap_or_default(),
             zoom,
         );
 
