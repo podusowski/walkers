@@ -203,11 +203,9 @@ fn get_layer_features(
             zoom,
         );
 
-        if filter.map_or(true, |filter| filter.matches(&context)) {
-            Some((feature.geometry, context))
-        } else {
-            None
-        }
+        filter
+            .map_or(true, |filter| filter.matches(&context))
+            .then_some((feature.geometry, context))
     });
 
     Ok(features)
