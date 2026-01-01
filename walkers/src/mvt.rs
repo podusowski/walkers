@@ -185,6 +185,17 @@ fn get_layer_features(reader: &Reader, name: &str) -> Result<Vec<Feature>, Error
     }
 }
 
+fn geometry_type_to_str(geometry: &Geometry<f32>) -> &'static str {
+    match geometry {
+        Geometry::Point(_) | Geometry::MultiPoint(_) => "Point",
+        Geometry::Line(_) | Geometry::LineString(_) | Geometry::MultiLineString(_) => "Line",
+        Geometry::Polygon(_) | Geometry::MultiPolygon(_) => "Polygon",
+        Geometry::GeometryCollection(_) => "GeometryCollection",
+        Geometry::Rect(_) => "Rect",
+        Geometry::Triangle(_) => "Triangle",
+    }
+}
+
 fn line_feature_into_shape(
     feature: &Feature,
     shapes: &mut Vec<ShapeOrText>,
@@ -197,7 +208,11 @@ fn line_feature_into_shape(
         .as_ref()
         .ok_or(Error::FeatureWithoutProperties)?;
 
-    let context = Context::new("Line".to_string(), properties, zoom);
+    let context = Context::new(
+        geometry_type_to_str(&feature.geometry).to_string(),
+        properties,
+        zoom,
+    );
 
     if let Some(filter) = filter
         && !filter.matches(&context)
