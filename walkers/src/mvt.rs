@@ -236,12 +236,6 @@ fn line_feature_into_shape(
         zoom,
     );
 
-    if let Some(filter) = filter
-        && !filter.matches(&context)
-    {
-        return Ok(());
-    }
-
     let width = if let Some(width) = &paint.line_width {
         // Align to the proportion of MVT extent and tile size.
         width.evaluate(&context) * 4.0
@@ -306,12 +300,6 @@ fn polygon_feature_into_shape(
     );
 
     if let Geometry::MultiPolygon(multi_polygon) = &feature.geometry {
-        if let Some(filter) = filter
-            && !filter.matches(&context)
-        {
-            return Ok(());
-        }
-
         let Some(fill_color) = &paint.fill_color else {
             warn!("Fill layer without fill color. Skipping.");
             return Ok(());
@@ -361,12 +349,6 @@ fn symbol_into_shape(
 
     match &feature.geometry {
         Geometry::MultiPoint(multi_point) => {
-            if let Some(filter) = filter
-                && !filter.matches(&context)
-            {
-                return Ok(());
-            }
-
             let text_size = layout
                 .text_size
                 .as_ref()
@@ -408,12 +390,6 @@ fn symbol_into_shape(
             }
         }
         Geometry::MultiLineString(multi_line_string) => {
-            if let Some(filter) = filter
-                && !filter.matches(&context)
-            {
-                return Ok(());
-            }
-
             let text_size = layout
                 .text_size
                 .as_ref()
