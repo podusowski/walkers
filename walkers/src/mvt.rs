@@ -97,7 +97,7 @@ pub fn render(data: &[u8], style: &Style, zoom: u8) -> Result<Vec<ShapeOrText>, 
         match layer {
             Layer::Background { paint } => {
                 let properties = HashMap::new();
-                let context = Context::new("Polygon".to_string(), &properties, zoom);
+                let context = Context::new("None".to_string(), &properties, zoom);
 
                 let bg_color = if let Some(color) = &paint.background_color {
                     color.evaluate(&context)
@@ -277,7 +277,11 @@ fn polygon_feature_into_shape(
         .as_ref()
         .ok_or(Error::FeatureWithoutProperties)?;
 
-    let context = Context::new("Polygon".to_string(), properties, zoom);
+    let context = Context::new(
+        geometry_type_to_str(&feature.geometry).to_string(),
+        properties,
+        zoom,
+    );
 
     if let Geometry::MultiPolygon(multi_polygon) = &feature.geometry {
         if let Some(filter) = filter
@@ -327,7 +331,11 @@ fn symbol_into_shape(
         .as_ref()
         .ok_or(Error::FeatureWithoutProperties)?;
 
-    let context = Context::new("Point".to_string(), properties, zoom);
+    let context = Context::new(
+        geometry_type_to_str(&feature.geometry).to_string(),
+        properties,
+        zoom,
+    );
 
     match &feature.geometry {
         Geometry::MultiPoint(multi_point) => {
