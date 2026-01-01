@@ -74,8 +74,9 @@ impl Tiles for PmTiles {
             return None;
         }
 
-        let tile_id_to_download = if tile_id.zoom > 16 {
-            interpolate_from_lower_zoom(tile_id, 16).0
+        // TODO: This is aligned with Protomaps, but it should be configurable.
+        let tile_id_to_download = if tile_id.zoom > 15 {
+            interpolate_from_lower_zoom(tile_id, 15).0
         } else {
             tile_id
         };
