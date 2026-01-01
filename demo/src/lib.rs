@@ -1,7 +1,7 @@
+mod kml;
 mod places;
 mod plugins;
 mod tiles;
-mod kml;
 mod windows;
 
 use egui::{Button, CentralPanel, Context, DragPanButtons, Frame, OpenUrl, Rect, Vec2};
@@ -58,8 +58,8 @@ impl eframe::App for MyApp {
             map = map
                 .with_plugin(plugins::places())
                 .with_plugin(plugins::CustomShapes {})
-                .with_plugin(kml::kml_layer())
-                .with_plugin(&mut self.click_watcher);
+                .with_plugin(&mut self.click_watcher)
+                .with_plugin(kml::kml_layer());
 
             // Multiple layers can be added.
             for (n, tiles) in tiles.iter_mut().enumerate() {
