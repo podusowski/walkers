@@ -96,8 +96,7 @@ pub fn render(data: &[u8], style: &Style, zoom: u8) -> Result<Vec<ShapeOrText>, 
     for layer in &style.layers {
         match layer {
             Layer::Background { paint } => {
-                let properties = HashMap::new();
-                let context = Context::new("None".to_string(), &properties, zoom);
+                let context = Context::new("None".to_string(), HashMap::new(), zoom);
 
                 let bg_color = if let Some(color) = &paint.background_color {
                     color.evaluate(&context)
@@ -116,10 +115,17 @@ pub fn render(data: &[u8], style: &Style, zoom: u8) -> Result<Vec<ShapeOrText>, 
                 filter,
                 paint,
             } => {
-                for feature in get_layer_features(&data, zoom, source_layer, filter.as_ref())? {
-                    if let Err(err) =
-                        polygon_feature_into_shape(&feature, &mut shapes, filter, paint, zoom)
-                    {
+                for (geometry, context) in
+                    get_layer_features(&data, zoom, source_layer, filter.as_ref())?
+                {
+                    if let Err(err) = polygon_feature_into_shape(
+                        &geometry,
+                        &context,
+                        &mut shapes,
+                        filter,
+                        paint,
+                        zoom,
+                    ) {
                         warn!("{err}");
                     }
                 }
@@ -129,10 +135,17 @@ pub fn render(data: &[u8], style: &Style, zoom: u8) -> Result<Vec<ShapeOrText>, 
                 filter,
                 paint,
             } => {
-                for feature in get_layer_features(&data, zoom, source_layer, filter.as_ref())? {
-                    if let Err(err) =
-                        line_feature_into_shape(&feature, &mut shapes, filter, paint, zoom)
-                    {
+                for (geometry, context) in
+                    get_layer_features(&data, zoom, source_layer, filter.as_ref())?
+                {
+                    if let Err(err) = line_feature_into_shape(
+                        &geometry,
+                        &context,
+                        &mut shapes,
+                        filter,
+                        paint,
+                        zoom,
+                    ) {
                         warn!("{err}");
                     }
                 }
@@ -143,10 +156,18 @@ pub fn render(data: &[u8], style: &Style, zoom: u8) -> Result<Vec<ShapeOrText>, 
                 layout,
                 paint,
             } => {
-                for feature in get_layer_features(&data, zoom, source_layer, filter.as_ref())? {
-                    if let Err(err) =
-                        symbol_into_shape(&feature, &mut shapes, filter, layout, paint, zoom)
-                    {
+                for (geometry, context) in
+                    get_layer_features(&data, zoom, source_layer, filter.as_ref())?
+                {
+                    if let Err(err) = symbol_into_shape(
+                        &geometry,
+                        &context,
+                        &mut shapes,
+                        filter,
+                        layout,
+                        paint,
+                        zoom,
+                    ) {
                         warn!("{err}");
                     }
                 }
@@ -181,7 +202,7 @@ fn get_layer_features(
     zoom: u8,
     name: &str,
     filter: Option<&Filter>,
-) -> Result<impl Iterator<Item = Feature>, Error> {
+) -> Result<impl Iterator<Item = (Geometry<f32>, Context)>, Error> {
     let features = if let Ok(layer_index) = find_layer(reader, name) {
         reader.get_features(layer_index)?
     } else {
@@ -189,10 +210,10 @@ fn get_layer_features(
         Vec::new()
     }
     .into_iter()
-    .filter(move |feature| {
-        let Some(properties) = &feature.properties else {
+    .filter_map(move |feature| {
+        let Some(properties) = feature.properties else {
             warn!("Feature without properties. Skipping.");
-            return false;
+            return None;
         };
 
         let context = Context::new(
@@ -201,7 +222,11 @@ fn get_layer_features(
             zoom,
         );
 
-        filter.map_or(true, |filter| filter.matches(&context))
+        if filter.map_or(true, |filter| filter.matches(&context)) {
+            Some((feature.geometry, context))
+        } else {
+            None
+        }
     });
 
     Ok(features)
@@ -219,23 +244,13 @@ fn geometry_type_to_str(geometry: &Geometry<f32>) -> &'static str {
 }
 
 fn line_feature_into_shape(
-    feature: &Feature,
+    geometry: &Geometry<f32>,
+    context: &Context,
     shapes: &mut Vec<ShapeOrText>,
     filter: &Option<Filter>,
     paint: &Paint,
     zoom: u8,
 ) -> Result<(), Error> {
-    let properties = feature
-        .properties
-        .as_ref()
-        .ok_or(Error::FeatureWithoutProperties)?;
-
-    let context = Context::new(
-        geometry_type_to_str(&feature.geometry).to_string(),
-        properties,
-        zoom,
-    );
-
     let width = if let Some(width) = &paint.line_width {
         // Align to the proportion of MVT extent and tile size.
         width.evaluate(&context) * 4.0
@@ -255,7 +270,7 @@ fn line_feature_into_shape(
         Color32::WHITE
     };
 
-    match &feature.geometry {
+    match geometry {
         Geometry::LineString(line_string) => {
             let stroke = Stroke::new(width, color);
             let points = line_string
@@ -282,24 +297,14 @@ fn line_feature_into_shape(
 }
 
 fn polygon_feature_into_shape(
-    feature: &Feature,
+    geometry: &Geometry<f32>,
+    context: &Context,
     shapes: &mut Vec<ShapeOrText>,
     filter: &Option<Filter>,
     paint: &Paint,
     zoom: u8,
 ) -> Result<(), Error> {
-    let properties = feature
-        .properties
-        .as_ref()
-        .ok_or(Error::FeatureWithoutProperties)?;
-
-    let context = Context::new(
-        geometry_type_to_str(&feature.geometry).to_string(),
-        properties,
-        zoom,
-    );
-
-    if let Geometry::MultiPolygon(multi_polygon) = &feature.geometry {
+    if let Geometry::MultiPolygon(multi_polygon) = geometry {
         let Some(fill_color) = &paint.fill_color else {
             warn!("Fill layer without fill color. Skipping.");
             return Ok(());
@@ -329,25 +334,15 @@ fn polygon_feature_into_shape(
 
 /// Render a shape from symbol layer.
 fn symbol_into_shape(
-    feature: &Feature,
+    geometry: &Geometry<f32>,
+    context: &Context,
     shapes: &mut Vec<ShapeOrText>,
     filter: &Option<Filter>,
     layout: &Layout,
     paint: &Option<Paint>,
     zoom: u8,
 ) -> Result<(), Error> {
-    let properties = feature
-        .properties
-        .as_ref()
-        .ok_or(Error::FeatureWithoutProperties)?;
-
-    let context = Context::new(
-        geometry_type_to_str(&feature.geometry).to_string(),
-        properties,
-        zoom,
-    );
-
-    match &feature.geometry {
+    match geometry {
         Geometry::MultiPoint(multi_point) => {
             let text_size = layout
                 .text_size

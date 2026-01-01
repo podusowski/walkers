@@ -44,14 +44,14 @@ pub enum Error {
 }
 
 /// Context in which style expressions are evaluated.
-pub struct Context<'a> {
+pub struct Context {
     geometry_type: String,
-    properties: &'a HashMap<String, MvtValue>,
+    properties: HashMap<String, MvtValue>,
     zoom: u8,
 }
 
-impl<'a> Context<'a> {
-    pub fn new(geometry_type: String, properties: &'a HashMap<String, MvtValue>, zoom: u8) -> Self {
+impl Context {
+    pub fn new(geometry_type: String, properties: HashMap<String, MvtValue>, zoom: u8) -> Self {
         Self {
             geometry_type,
             properties,
