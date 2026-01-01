@@ -17,10 +17,7 @@ use lyon_path::{
 use lyon_tessellation::{
     BuffersBuilder, FillOptions, FillTessellator, FillVertex, TessellationError, VertexBuffers,
 };
-use mvt_reader::{
-    Reader,
-    feature::{Feature, Value},
-};
+use mvt_reader::{Reader, feature::Value};
 
 use crate::{
     expression::Context,
@@ -118,14 +115,9 @@ pub fn render(data: &[u8], style: &Style, zoom: u8) -> Result<Vec<ShapeOrText>, 
                 for (geometry, context) in
                     get_layer_features(&data, zoom, source_layer, filter.as_ref())?
                 {
-                    if let Err(err) = polygon_feature_into_shape(
-                        &geometry,
-                        &context,
-                        &mut shapes,
-                        filter,
-                        paint,
-                        zoom,
-                    ) {
+                    if let Err(err) =
+                        polygon_feature_into_shape(&geometry, &context, &mut shapes, paint)
+                    {
                         warn!("{err}");
                     }
                 }
@@ -138,14 +130,9 @@ pub fn render(data: &[u8], style: &Style, zoom: u8) -> Result<Vec<ShapeOrText>, 
                 for (geometry, context) in
                     get_layer_features(&data, zoom, source_layer, filter.as_ref())?
                 {
-                    if let Err(err) = line_feature_into_shape(
-                        &geometry,
-                        &context,
-                        &mut shapes,
-                        filter,
-                        paint,
-                        zoom,
-                    ) {
+                    if let Err(err) =
+                        line_feature_into_shape(&geometry, &context, &mut shapes, paint)
+                    {
                         warn!("{err}");
                     }
                 }
@@ -159,15 +146,9 @@ pub fn render(data: &[u8], style: &Style, zoom: u8) -> Result<Vec<ShapeOrText>, 
                 for (geometry, context) in
                     get_layer_features(&data, zoom, source_layer, filter.as_ref())?
                 {
-                    if let Err(err) = symbol_into_shape(
-                        &geometry,
-                        &context,
-                        &mut shapes,
-                        filter,
-                        layout,
-                        paint,
-                        zoom,
-                    ) {
+                    if let Err(err) =
+                        symbol_into_shape(&geometry, &context, &mut shapes, layout, paint)
+                    {
                         warn!("{err}");
                     }
                 }
@@ -247,9 +228,7 @@ fn line_feature_into_shape(
     geometry: &Geometry<f32>,
     context: &Context,
     shapes: &mut Vec<ShapeOrText>,
-    filter: &Option<Filter>,
     paint: &Paint,
-    zoom: u8,
 ) -> Result<(), Error> {
     let width = if let Some(width) = &paint.line_width {
         // Align to the proportion of MVT extent and tile size.
@@ -300,9 +279,7 @@ fn polygon_feature_into_shape(
     geometry: &Geometry<f32>,
     context: &Context,
     shapes: &mut Vec<ShapeOrText>,
-    filter: &Option<Filter>,
     paint: &Paint,
-    zoom: u8,
 ) -> Result<(), Error> {
     if let Geometry::MultiPolygon(multi_polygon) = geometry {
         let Some(fill_color) = &paint.fill_color else {
@@ -337,10 +314,8 @@ fn symbol_into_shape(
     geometry: &Geometry<f32>,
     context: &Context,
     shapes: &mut Vec<ShapeOrText>,
-    filter: &Option<Filter>,
     layout: &Layout,
     paint: &Option<Paint>,
-    zoom: u8,
 ) -> Result<(), Error> {
     match geometry {
         Geometry::MultiPoint(multi_point) => {
