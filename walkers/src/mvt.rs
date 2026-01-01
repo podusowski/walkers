@@ -115,9 +115,7 @@ pub fn render(data: &[u8], style: &Style, zoom: u8) -> Result<Vec<ShapeOrText>, 
                 for (geometry, context) in
                     get_layer_features(&data, zoom, source_layer, filter.as_ref())?
                 {
-                    if let Err(err) =
-                        polygon_feature_into_shape(&geometry, &context, &mut shapes, paint)
-                    {
+                    if let Err(err) = render_polygon(&geometry, &context, &mut shapes, paint) {
                         warn!("{err}");
                     }
                 }
@@ -130,9 +128,7 @@ pub fn render(data: &[u8], style: &Style, zoom: u8) -> Result<Vec<ShapeOrText>, 
                 for (geometry, context) in
                     get_layer_features(&data, zoom, source_layer, filter.as_ref())?
                 {
-                    if let Err(err) =
-                        line_feature_into_shape(&geometry, &context, &mut shapes, paint)
-                    {
+                    if let Err(err) = render_line(&geometry, &context, &mut shapes, paint) {
                         warn!("{err}");
                     }
                 }
@@ -146,8 +142,7 @@ pub fn render(data: &[u8], style: &Style, zoom: u8) -> Result<Vec<ShapeOrText>, 
                 for (geometry, context) in
                     get_layer_features(&data, zoom, source_layer, filter.as_ref())?
                 {
-                    if let Err(err) =
-                        symbol_into_shape(&geometry, &context, &mut shapes, layout, paint)
+                    if let Err(err) = render_symbol(&geometry, &context, &mut shapes, layout, paint)
                     {
                         warn!("{err}");
                     }
@@ -222,7 +217,7 @@ fn geometry_type_to_str(geometry: &Geometry<f32>) -> &'static str {
     }
 }
 
-fn line_feature_into_shape(
+fn render_line(
     geometry: &Geometry<f32>,
     context: &Context,
     shapes: &mut Vec<ShapeOrText>,
@@ -273,7 +268,7 @@ fn line_feature_into_shape(
     Ok(())
 }
 
-fn polygon_feature_into_shape(
+fn render_polygon(
     geometry: &Geometry<f32>,
     context: &Context,
     shapes: &mut Vec<ShapeOrText>,
@@ -307,8 +302,7 @@ fn polygon_feature_into_shape(
     Ok(())
 }
 
-/// Render a shape from symbol layer.
-fn symbol_into_shape(
+fn render_symbol(
     geometry: &Geometry<f32>,
     context: &Context,
     shapes: &mut Vec<ShapeOrText>,
@@ -427,7 +421,7 @@ fn midpoint(p1: &geo_types::Point<f32>, p2: &geo_types::Point<f32>) -> geo_types
     geo_types::Point::new((p1.x() + p2.x()) / 2.0, (p1.y() + p2.y()) / 2.0)
 }
 
-fn find_layer(data: &mvt_reader::Reader, name: &str) -> Result<usize, Error> {
+fn find_layer(data: &Reader, name: &str) -> Result<usize, Error> {
     let layer = data
         .get_layer_metadata()?
         .into_iter()
