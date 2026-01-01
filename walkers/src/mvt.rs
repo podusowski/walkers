@@ -17,10 +17,7 @@ use lyon_path::{
 use lyon_tessellation::{
     BuffersBuilder, FillOptions, FillTessellator, FillVertex, TessellationError, VertexBuffers,
 };
-use mvt_reader::{
-    Reader,
-    feature::{Feature, Value},
-};
+use mvt_reader::{Reader, feature::Value};
 
 use crate::{
     expression::Context,
@@ -96,8 +93,7 @@ pub fn render(data: &[u8], style: &Style, zoom: u8) -> Result<Vec<ShapeOrText>, 
     for layer in &style.layers {
         match layer {
             Layer::Background { paint } => {
-                let properties = HashMap::new();
-                let context = Context::new("Polygon".to_string(), &properties, zoom);
+                let context = Context::new("None".to_string(), HashMap::new(), zoom);
 
                 let bg_color = if let Some(color) = &paint.background_color {
                     color.evaluate(&context)
@@ -116,10 +112,10 @@ pub fn render(data: &[u8], style: &Style, zoom: u8) -> Result<Vec<ShapeOrText>, 
                 filter,
                 paint,
             } => {
-                for feature in get_layer_features(&data, source_layer)? {
-                    if let Err(err) =
-                        polygon_feature_into_shape(&feature, &mut shapes, filter, paint, zoom)
-                    {
+                for (geometry, context) in
+                    get_layer_features(&data, zoom, source_layer, filter.as_ref())?
+                {
+                    if let Err(err) = render_polygon(&geometry, &context, &mut shapes, paint) {
                         warn!("{err}");
                     }
                 }
@@ -129,10 +125,10 @@ pub fn render(data: &[u8], style: &Style, zoom: u8) -> Result<Vec<ShapeOrText>, 
                 filter,
                 paint,
             } => {
-                for feature in get_layer_features(&data, source_layer)? {
-                    if let Err(err) =
-                        line_feature_into_shape(&feature, &mut shapes, filter, paint, zoom)
-                    {
+                for (geometry, context) in
+                    get_layer_features(&data, zoom, source_layer, filter.as_ref())?
+                {
+                    if let Err(err) = render_line(&geometry, &context, &mut shapes, paint) {
                         warn!("{err}");
                     }
                 }
@@ -143,9 +139,10 @@ pub fn render(data: &[u8], style: &Style, zoom: u8) -> Result<Vec<ShapeOrText>, 
                 layout,
                 paint,
             } => {
-                for feature in get_layer_features(&data, source_layer)? {
-                    if let Err(err) =
-                        symbol_into_shape(&feature, &mut shapes, filter, layout, paint, zoom)
+                for (geometry, context) in
+                    get_layer_features(&data, zoom, source_layer, filter.as_ref())?
+                {
+                    if let Err(err) = render_symbol(&geometry, &context, &mut shapes, layout, paint)
                     {
                         warn!("{err}");
                     }
@@ -176,55 +173,71 @@ pub fn transformed(shapes: &[ShapeOrText], rect: egui::Rect) -> Vec<ShapeOrText>
     result
 }
 
-fn get_layer_features(reader: &Reader, name: &str) -> Result<Vec<Feature>, Error> {
-    if let Ok(layer_index) = find_layer(reader, name) {
-        Ok(reader.get_features(layer_index)?)
+fn get_layer_features(
+    reader: &Reader,
+    zoom: u8,
+    name: &str,
+    filter: Option<&Filter>,
+) -> Result<impl Iterator<Item = (Geometry<f32>, Context)>, Error> {
+    let features = if let Ok(layer_index) = find_layer(reader, name) {
+        reader.get_features(layer_index)?
     } else {
         warn!("Source layer '{name}' not found. Skipping.");
-        Ok(Vec::new())
+        Vec::new()
+    }
+    .into_iter()
+    .filter_map(move |feature| {
+        let context = Context::new(
+            geometry_type_to_str(&feature.geometry).to_string(),
+            feature.properties.unwrap_or_default(),
+            zoom,
+        );
+
+        filter
+            .is_none_or(|filter| filter.matches(&context))
+            .then_some((feature.geometry, context))
+    });
+
+    Ok(features)
+}
+
+fn geometry_type_to_str(geometry: &Geometry<f32>) -> &'static str {
+    match geometry {
+        Geometry::Point(_) | Geometry::MultiPoint(_) => "Point",
+        Geometry::Line(_) | Geometry::LineString(_) | Geometry::MultiLineString(_) => "Line",
+        Geometry::Polygon(_) | Geometry::MultiPolygon(_) => "Polygon",
+        Geometry::GeometryCollection(_) => "GeometryCollection",
+        Geometry::Rect(_) => "Rect",
+        Geometry::Triangle(_) => "Triangle",
     }
 }
 
-fn line_feature_into_shape(
-    feature: &Feature,
+fn render_line(
+    geometry: &Geometry<f32>,
+    context: &Context,
     shapes: &mut Vec<ShapeOrText>,
-    filter: &Option<Filter>,
     paint: &Paint,
-    zoom: u8,
 ) -> Result<(), Error> {
-    let properties = feature
-        .properties
-        .as_ref()
-        .ok_or(Error::FeatureWithoutProperties)?;
-
-    let context = Context::new("Line".to_string(), properties, zoom);
-
-    if let Some(filter) = filter
-        && !filter.matches(&context)
-    {
-        return Ok(());
-    }
-
     let width = if let Some(width) = &paint.line_width {
         // Align to the proportion of MVT extent and tile size.
-        width.evaluate(&context) * 4.0
+        width.evaluate(context) * 4.0
     } else {
         2.0
     };
 
     let opacity = if let Some(opacity) = &paint.line_opacity {
-        opacity.evaluate(&context)
+        opacity.evaluate(context)
     } else {
         1.0
     };
 
     let color = if let Some(color) = &paint.line_color {
-        color.evaluate(&context).gamma_multiply(opacity)
+        color.evaluate(context).gamma_multiply(opacity)
     } else {
         Color32::WHITE
     };
 
-    match &feature.geometry {
+    match geometry {
         Geometry::LineString(line_string) => {
             let stroke = Stroke::new(width, color);
             let points = line_string
@@ -250,36 +263,22 @@ fn line_feature_into_shape(
     Ok(())
 }
 
-fn polygon_feature_into_shape(
-    feature: &Feature,
+fn render_polygon(
+    geometry: &Geometry<f32>,
+    context: &Context,
     shapes: &mut Vec<ShapeOrText>,
-    filter: &Option<Filter>,
     paint: &Paint,
-    zoom: u8,
 ) -> Result<(), Error> {
-    let properties = feature
-        .properties
-        .as_ref()
-        .ok_or(Error::FeatureWithoutProperties)?;
-
-    let context = Context::new("Polygon".to_string(), properties, zoom);
-
-    if let Geometry::MultiPolygon(multi_polygon) = &feature.geometry {
-        if let Some(filter) = filter
-            && !filter.matches(&context)
-        {
-            return Ok(());
-        }
-
+    if let Geometry::MultiPolygon(multi_polygon) = geometry {
         let Some(fill_color) = &paint.fill_color else {
             warn!("Fill layer without fill color. Skipping.");
             return Ok(());
         };
 
-        let fill_color = fill_color.evaluate(&context);
+        let fill_color = fill_color.evaluate(context);
 
         let fill_color = if let Some(fill_opacity) = &paint.fill_opacity {
-            let fill_opacity = fill_opacity.evaluate(&context);
+            let fill_opacity = fill_opacity.evaluate(context);
             fill_color.gamma_multiply(fill_opacity)
         } else {
             fill_color
@@ -298,35 +297,20 @@ fn polygon_feature_into_shape(
     Ok(())
 }
 
-/// Render a shape from symbol layer.
-fn symbol_into_shape(
-    feature: &Feature,
+fn render_symbol(
+    geometry: &Geometry<f32>,
+    context: &Context,
     shapes: &mut Vec<ShapeOrText>,
-    filter: &Option<Filter>,
     layout: &Layout,
     paint: &Option<Paint>,
-    zoom: u8,
 ) -> Result<(), Error> {
-    let properties = feature
-        .properties
-        .as_ref()
-        .ok_or(Error::FeatureWithoutProperties)?;
-
-    let context = Context::new("Point".to_string(), properties, zoom);
-
-    match &feature.geometry {
+    match geometry {
         Geometry::MultiPoint(multi_point) => {
-            if let Some(filter) = filter
-                && !filter.matches(&context)
-            {
-                return Ok(());
-            }
-
             let text_size = layout
                 .text_size
                 .as_ref()
                 .and_then(|text_size| {
-                    let size = text_size.evaluate(&context);
+                    let size = text_size.evaluate(context);
 
                     if size > 3.0 {
                         Some(size)
@@ -343,13 +327,13 @@ fn symbol_into_shape(
             let text_color = if let Some(paint) = paint
                 && let Some(color) = &paint.text_color
             {
-                color.evaluate(&context)
+                color.evaluate(context)
             } else {
                 // Default from MapLibre spec.
                 Color32::BLACK
             };
 
-            if let Some(text) = &layout.text(&context) {
+            if let Some(text) = &layout.text(context) {
                 shapes.extend(multi_point.0.iter().map(|p| {
                     ShapeOrText::Text(Text::new(
                         pos2(p.x(), p.y()),
@@ -363,17 +347,11 @@ fn symbol_into_shape(
             }
         }
         Geometry::MultiLineString(multi_line_string) => {
-            if let Some(filter) = filter
-                && !filter.matches(&context)
-            {
-                return Ok(());
-            }
-
             let text_size = layout
                 .text_size
                 .as_ref()
                 .and_then(|text_size| {
-                    let size = text_size.evaluate(&context);
+                    let size = text_size.evaluate(context);
 
                     if size > 3.0 {
                         Some(size)
@@ -390,7 +368,7 @@ fn symbol_into_shape(
             let text_color = if let Some(paint) = paint
                 && let Some(color) = &paint.text_color
             {
-                color.evaluate(&context)
+                color.evaluate(context)
             } else {
                 Color32::BLACK
             };
@@ -398,7 +376,7 @@ fn symbol_into_shape(
             let text_halo_color = if let Some(paint) = paint
                 && let Some(color) = &paint.text_halo_color
             {
-                color.evaluate(&context)
+                color.evaluate(context)
             } else {
                 Color32::TRANSPARENT
             };
@@ -406,7 +384,7 @@ fn symbol_into_shape(
             for line_string in multi_line_string {
                 let lines: Vec<_> = line_string.lines().collect();
 
-                if let Some(text) = &layout.text(&context)
+                if let Some(text) = &layout.text(context)
                 // Use the longest line to fit the label.
                 && let Some(line) = lines.into_iter().max_by_key(|line| length(line) as u32)
                 {
@@ -438,7 +416,7 @@ fn midpoint(p1: &geo_types::Point<f32>, p2: &geo_types::Point<f32>) -> geo_types
     geo_types::Point::new((p1.x() + p2.x()) / 2.0, (p1.y() + p2.y()) / 2.0)
 }
 
-fn find_layer(data: &mvt_reader::Reader, name: &str) -> Result<usize, Error> {
+fn find_layer(data: &Reader, name: &str) -> Result<usize, Error> {
     let layer = data
         .get_layer_metadata()?
         .into_iter()
