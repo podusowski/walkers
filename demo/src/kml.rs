@@ -1,7 +1,6 @@
 use egui::Color32;
 use walkers_extras::{KmlLayer, KmlVisualDefaults, parse_kml};
 
-
 /// Poland borders
 pub fn poland_borders() -> KmlLayer {
     let features = parse_kml(include_str!("../assets/Poland.kml")).unwrap();
