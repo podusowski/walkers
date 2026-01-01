@@ -225,19 +225,19 @@ fn render_line(
 ) -> Result<(), Error> {
     let width = if let Some(width) = &paint.line_width {
         // Align to the proportion of MVT extent and tile size.
-        width.evaluate(&context) * 4.0
+        width.evaluate(context) * 4.0
     } else {
         2.0
     };
 
     let opacity = if let Some(opacity) = &paint.line_opacity {
-        opacity.evaluate(&context)
+        opacity.evaluate(context)
     } else {
         1.0
     };
 
     let color = if let Some(color) = &paint.line_color {
-        color.evaluate(&context).gamma_multiply(opacity)
+        color.evaluate(context).gamma_multiply(opacity)
     } else {
         Color32::WHITE
     };
@@ -280,10 +280,10 @@ fn render_polygon(
             return Ok(());
         };
 
-        let fill_color = fill_color.evaluate(&context);
+        let fill_color = fill_color.evaluate(context);
 
         let fill_color = if let Some(fill_opacity) = &paint.fill_opacity {
-            let fill_opacity = fill_opacity.evaluate(&context);
+            let fill_opacity = fill_opacity.evaluate(context);
             fill_color.gamma_multiply(fill_opacity)
         } else {
             fill_color
@@ -315,7 +315,7 @@ fn render_symbol(
                 .text_size
                 .as_ref()
                 .and_then(|text_size| {
-                    let size = text_size.evaluate(&context);
+                    let size = text_size.evaluate(context);
 
                     if size > 3.0 {
                         Some(size)
@@ -332,13 +332,13 @@ fn render_symbol(
             let text_color = if let Some(paint) = paint
                 && let Some(color) = &paint.text_color
             {
-                color.evaluate(&context)
+                color.evaluate(context)
             } else {
                 // Default from MapLibre spec.
                 Color32::BLACK
             };
 
-            if let Some(text) = &layout.text(&context) {
+            if let Some(text) = &layout.text(context) {
                 shapes.extend(multi_point.0.iter().map(|p| {
                     ShapeOrText::Text(Text::new(
                         pos2(p.x(), p.y()),
@@ -356,7 +356,7 @@ fn render_symbol(
                 .text_size
                 .as_ref()
                 .and_then(|text_size| {
-                    let size = text_size.evaluate(&context);
+                    let size = text_size.evaluate(context);
 
                     if size > 3.0 {
                         Some(size)
@@ -373,7 +373,7 @@ fn render_symbol(
             let text_color = if let Some(paint) = paint
                 && let Some(color) = &paint.text_color
             {
-                color.evaluate(&context)
+                color.evaluate(context)
             } else {
                 Color32::BLACK
             };
@@ -381,7 +381,7 @@ fn render_symbol(
             let text_halo_color = if let Some(paint) = paint
                 && let Some(color) = &paint.text_halo_color
             {
-                color.evaluate(&context)
+                color.evaluate(context)
             } else {
                 Color32::TRANSPARENT
             };
@@ -389,7 +389,7 @@ fn render_symbol(
             for line_string in multi_line_string {
                 let lines: Vec<_> = line_string.lines().collect();
 
-                if let Some(text) = &layout.text(&context)
+                if let Some(text) = &layout.text(context)
                 // Use the longest line to fit the label.
                 && let Some(line) = lines.into_iter().max_by_key(|line| length(line) as u32)
                 {
