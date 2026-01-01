@@ -116,7 +116,7 @@ pub fn render(data: &[u8], style: &Style, zoom: u8) -> Result<Vec<ShapeOrText>, 
                 filter,
                 paint,
             } => {
-                for feature in get_layer_features(&data, source_layer)? {
+                for feature in get_layer_features(&data, zoom, source_layer, filter.as_ref())? {
                     if let Err(err) =
                         polygon_feature_into_shape(&feature, &mut shapes, filter, paint, zoom)
                     {
@@ -129,7 +129,7 @@ pub fn render(data: &[u8], style: &Style, zoom: u8) -> Result<Vec<ShapeOrText>, 
                 filter,
                 paint,
             } => {
-                for feature in get_layer_features(&data, source_layer)? {
+                for feature in get_layer_features(&data, zoom, source_layer, filter.as_ref())? {
                     if let Err(err) =
                         line_feature_into_shape(&feature, &mut shapes, filter, paint, zoom)
                     {
@@ -143,7 +143,7 @@ pub fn render(data: &[u8], style: &Style, zoom: u8) -> Result<Vec<ShapeOrText>, 
                 layout,
                 paint,
             } => {
-                for feature in get_layer_features(&data, source_layer)? {
+                for feature in get_layer_features(&data, zoom, source_layer, filter.as_ref())? {
                     if let Err(err) =
                         symbol_into_shape(&feature, &mut shapes, filter, layout, paint, zoom)
                     {
@@ -176,13 +176,35 @@ pub fn transformed(shapes: &[ShapeOrText], rect: egui::Rect) -> Vec<ShapeOrText>
     result
 }
 
-fn get_layer_features(reader: &Reader, name: &str) -> Result<Vec<Feature>, Error> {
-    if let Ok(layer_index) = find_layer(reader, name) {
-        Ok(reader.get_features(layer_index)?)
+fn get_layer_features(
+    reader: &Reader,
+    zoom: u8,
+    name: &str,
+    filter: Option<&Filter>,
+) -> Result<impl Iterator<Item = Feature>, Error> {
+    let features = if let Ok(layer_index) = find_layer(reader, name) {
+        reader.get_features(layer_index)?
     } else {
         warn!("Source layer '{name}' not found. Skipping.");
-        Ok(Vec::new())
+        Vec::new()
     }
+    .into_iter()
+    .filter(move |feature| {
+        let Some(properties) = &feature.properties else {
+            warn!("Feature without properties. Skipping.");
+            return false;
+        };
+
+        let context = Context::new(
+            geometry_type_to_str(&feature.geometry).to_string(),
+            properties,
+            zoom,
+        );
+
+        filter.map_or(true, |filter| filter.matches(&context))
+    });
+
+    Ok(features)
 }
 
 fn geometry_type_to_str(geometry: &Geometry<f32>) -> &'static str {
