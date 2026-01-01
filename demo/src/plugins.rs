@@ -72,7 +72,7 @@ impl Plugin for CustomShapes {
         ui.painter().circle_filled(
             position,
             radius,
-            Color32::BLACK.gamma_multiply(if hovered { 0.5 } else { 0.2 }),
+            Color32::YELLOW.gamma_multiply(if hovered { 0.5 } else { 0.2 }),
         );
     }
 }

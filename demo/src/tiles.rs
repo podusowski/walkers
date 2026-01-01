@@ -3,6 +3,7 @@ use std::{collections::BTreeMap, path::PathBuf};
 use egui::Context;
 #[cfg(feature = "pmtiles")]
 use walkers::PmTiles;
+#[cfg(feature = "mvt")]
 use walkers::Style;
 use walkers::{HttpOptions, HttpTiles, LocalTiles, Tiles};
 

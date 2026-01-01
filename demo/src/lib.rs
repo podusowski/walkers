@@ -1,3 +1,4 @@
+mod kml;
 mod places;
 mod plugins;
 mod tiles;
@@ -57,7 +58,9 @@ impl eframe::App for MyApp {
             map = map
                 .with_plugin(plugins::places())
                 .with_plugin(plugins::CustomShapes {})
-                .with_plugin(&mut self.click_watcher);
+                .with_plugin(&mut self.click_watcher)
+                .with_plugin(kml::poland_borders())
+                .with_plugin(kml::outgym_umea_layer());
 
             // Multiple layers can be added.
             for (n, tiles) in tiles.iter_mut().enumerate() {

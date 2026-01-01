@@ -20,7 +20,3 @@ pmtiles = ["walkers/pmtiles"]
 
 [target.'cfg(target_arch = "wasm32")'.dependencies]
 getrandom = { version = "0.3", features = ["wasm_js"] }
-
-# Native desktop only (exclude wasm and android)
-[target.'cfg(all(not(target_arch = "wasm32"), not(target_os = "android")))'.dependencies]
-rfd = "0.14"
