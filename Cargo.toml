@@ -24,7 +24,7 @@ image = { version = "0.25", default-features = false }
 log = "0.4"
 walkers = { path = "walkers", version = "0.51.0" }
 walkers_extras = { path = "walkers_extras", version = "0.51.0" }
-wgpu = { version = "27.0.1", default-features = true }
+wgpu = { version = "28.0.0", default-features = true }
 
 [patch.crates-io]
 # eframe = { git = "https://github.com/emilk/egui.git", branch = "main" }
