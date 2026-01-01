@@ -199,7 +199,7 @@ fn get_layer_features(
         );
 
         filter
-            .map_or(true, |filter| filter.matches(&context))
+            .is_none_or(|filter| filter.matches(&context))
             .then_some((feature.geometry, context))
     });
 
