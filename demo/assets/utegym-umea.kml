@@ -1,0 +1,262 @@
+<?xml version='1.0' encoding='utf-8'?>
+<kml xmlns="http://www.opengis.net/kml/2.2">
+  <Document>
+    <Schema name="utegym-umea" id="utegym-umea">
+      <SimpleField type="string" name="kommunkod">
+        <displayName>Kommunkod</displayName>
+      </SimpleField>
+      <SimpleField type="string" name="id">
+        <displayName>id</displayName>
+      </SimpleField>
+      <SimpleField type="string" name="namn">
+        <displayName>Namn</displayName>
+      </SimpleField>
+      <SimpleField type="double" name="lat">
+        <displayName>Latitud</displayName>
+      </SimpleField>
+      <SimpleField type="double" name="long">
+        <displayName>Longitud</displayName>
+      </SimpleField>
+      <SimpleField type="string" name="epost">
+        <displayName>epost</displayName>
+      </SimpleField>
+      <SimpleField type="string" name="webb">
+        <displayName>Besöksurl</displayName>
+      </SimpleField>
+      <SimpleField type="string" name="wikidata">
+        <displayName>wikidata</displayName>
+      </SimpleField>
+      <SimpleField type="string" name="beskrivning">
+        <displayName>Beskrivning</displayName>
+      </SimpleField>
+      <SimpleField type="string" name="uppdaterad">
+        <displayName>Uppdaterades</displayName>
+      </SimpleField>
+    </Schema>
+    <Placemark>
+      <name>2480</name>
+      <Point>
+        <coordinates>20.239809812773913,63.83253273564418</coordinates>
+      </Point>
+      <ExtendedData>
+        <SchemaData schemaUrl="https://opendataumea.aws-ec2-eu-central-1.opendatasoft.com/explore/dataset/utegym-umea/information/">
+          <SimpleData name="kommunkod">2480</SimpleData>
+          <SimpleData name="id">2480_Hedlundadungenutegym</SimpleData>
+          <SimpleData name="namn">Hedlundadungen utegym</SimpleData>
+          <SimpleData name="lat">63.83253273696</SimpleData>
+          <SimpleData name="long">20.2398098128467</SimpleData>
+          <SimpleData name="epost">gatorochparker@umea.sedrift</SimpleData>
+          <SimpleData name="webb">https://www.umea.se/upplevaochgora/idrottmotionochfriluftsliv/friluftslivochmotion/utegym/hedlundadungen.4.19a41f3a17567e789efbe8.html</SimpleData>
+          <SimpleData name="wikidata">Q107391513</SimpleData>
+          <SimpleData name="uppdaterad">2022-10-20 00:00:00+00:00</SimpleData>
+        </SchemaData>
+      </ExtendedData>
+    </Placemark>
+    <Placemark>
+      <name>2480</name>
+      <Point>
+        <coordinates>20.293191054212837,63.83956869497666</coordinates>
+      </Point>
+      <ExtendedData>
+        <SchemaData schemaUrl="https://opendataumea.aws-ec2-eu-central-1.opendatasoft.com/explore/dataset/utegym-umea/information/">
+          <SimpleData name="kommunkod">2480</SimpleData>
+          <SimpleData name="id">2480_StadslidenUtegym</SimpleData>
+          <SimpleData name="namn">Stadsliden Utegym</SimpleData>
+          <SimpleData name="lat">63.8395686936583</SimpleData>
+          <SimpleData name="long">20.2931910542115</SimpleData>
+          <SimpleData name="epost">umea.fritid@umea.se</SimpleData>
+          <SimpleData name="webb">https://www.umea.se/upplevaochgora/idrottmotionochfriluftsliv/friluftslivochmotion/utegym</SimpleData>
+          <SimpleData name="wikidata">Q107391541</SimpleData>
+          <SimpleData name="uppdaterad">2018-02-05 00:00:00+00:00</SimpleData>
+        </SchemaData>
+      </ExtendedData>
+    </Placemark>
+    <Placemark>
+      <name>2480</name>
+      <Point>
+        <coordinates>20.349640453596606,63.80713998348604</coordinates>
+      </Point>
+      <ExtendedData>
+        <SchemaData schemaUrl="https://opendataumea.aws-ec2-eu-central-1.opendatasoft.com/explore/dataset/utegym-umea/information/">
+          <SimpleData name="kommunkod">2480</SimpleData>
+          <SimpleData name="id">2480_Tomteboaventyrslekutegym</SimpleData>
+          <SimpleData name="namn">Tomtebo äventyrslek utegym</SimpleData>
+          <SimpleData name="lat">63.8071399823412</SimpleData>
+          <SimpleData name="long">20.3496404557737</SimpleData>
+          <SimpleData name="epost">gatorochparker@umea.sedrift</SimpleData>
+          <SimpleData name="webb">https://www.umea.se/upplevaochgora/idrottmotionochfriluftsliv/friluftslivochmotion/utegym/tomteboaventyrslekplats.4.19a41f3a17567e789efbbf.html</SimpleData>
+          <SimpleData name="wikidata">Q116270354</SimpleData>
+          <SimpleData name="uppdaterad">2022-10-20 00:00:00+00:00</SimpleData>
+        </SchemaData>
+      </ExtendedData>
+    </Placemark>
+    <Placemark>
+      <name>2480</name>
+      <Point>
+        <coordinates>20.220762880801725,63.82753358394225</coordinates>
+      </Point>
+      <ExtendedData>
+        <SchemaData schemaUrl="https://opendataumea.aws-ec2-eu-central-1.opendatasoft.com/explore/dataset/utegym-umea/information/">
+          <SimpleData name="kommunkod">2480</SimpleData>
+          <SimpleData name="id">2480_Kvarnlunden</SimpleData>
+          <SimpleData name="namn">Kvarnlunden</SimpleData>
+          <SimpleData name="lat">63.8275335846523</SimpleData>
+          <SimpleData name="long">20.2207628813248</SimpleData>
+          <SimpleData name="epost">gatorochparker@umea.sedrift</SimpleData>
+          <SimpleData name="webb">https://www.umea.se/upplevaochgora/idrottmotionochfriluftsliv/friluftslivochmotion/utegym/kvarnlunden.4.174670ac18f90cfab9ae17e.html</SimpleData>
+          <SimpleData name="uppdaterad">2024-06-14 00:00:00+00:00</SimpleData>
+        </SchemaData>
+      </ExtendedData>
+    </Placemark>
+    <Placemark>
+      <name>2480</name>
+      <Point>
+        <coordinates>20.331225806493503,63.859019215962654</coordinates>
+      </Point>
+      <ExtendedData>
+        <SchemaData schemaUrl="https://opendataumea.aws-ec2-eu-central-1.opendatasoft.com/explore/dataset/utegym-umea/information/">
+          <SimpleData name="kommunkod">2480</SimpleData>
+          <SimpleData name="id">2480_ErsbodaMilitaryfitnesshinderbana</SimpleData>
+          <SimpleData name="namn">Ersboda Military fitness hinderbana</SimpleData>
+          <SimpleData name="lat">63.8590192161544</SimpleData>
+          <SimpleData name="long">20.3312258079498</SimpleData>
+          <SimpleData name="epost">gatorochparker@umea.sedrift</SimpleData>
+          <SimpleData name="webb">https://www.umea.se/upplevaochgora/idrottmotionochfriluftsliv/friluftslivochmotion/utegym/ersbodamilitaryfitnesshinderbana.4.174670ac18f90cfab9ae249.html</SimpleData>
+          <SimpleData name="uppdaterad">2024-06-14 00:00:00+00:00</SimpleData>
+        </SchemaData>
+      </ExtendedData>
+    </Placemark>
+    <Placemark>
+      <name>2480</name>
+      <Point>
+        <coordinates>20.3539076566077,63.80778568421765</coordinates>
+      </Point>
+      <ExtendedData>
+        <SchemaData schemaUrl="https://opendataumea.aws-ec2-eu-central-1.opendatasoft.com/explore/dataset/utegym-umea/information/">
+          <SimpleData name="kommunkod">2480</SimpleData>
+          <SimpleData name="id">2480_Nydalasjonssydostraspets</SimpleData>
+          <SimpleData name="namn">Nydalasjöns sydöstra spets</SimpleData>
+          <SimpleData name="lat">63.807785684081</SimpleData>
+          <SimpleData name="long">20.3539076566529</SimpleData>
+          <SimpleData name="epost">gatorochparker@umea.sedrift</SimpleData>
+          <SimpleData name="webb">https://www.umea.se/upplevaochgora/idrottmotionochfriluftsliv/friluftslivochmotion/utegym/nydala.4.174670ac18f90cfab9ae215.html</SimpleData>
+          <SimpleData name="uppdaterad">2024-06-14 00:00:00+00:00</SimpleData>
+        </SchemaData>
+      </ExtendedData>
+    </Placemark>
+    <Placemark>
+      <name>2480</name>
+      <Point>
+        <coordinates>20.274354832163162,63.832422659132995</coordinates>
+      </Point>
+      <ExtendedData>
+        <SchemaData schemaUrl="https://opendataumea.aws-ec2-eu-central-1.opendatasoft.com/explore/dataset/utegym-umea/information/">
+          <SimpleData name="kommunkod">2480</SimpleData>
+          <SimpleData name="id">2480_VastraHagaparkenutegym</SimpleData>
+          <SimpleData name="namn">Västra Hagaparken utegym</SimpleData>
+          <SimpleData name="lat">63.8324226579853</SimpleData>
+          <SimpleData name="long">20.2743548329736</SimpleData>
+          <SimpleData name="epost">gatorochparker@umea.sedrift</SimpleData>
+          <SimpleData name="webb">https://www.umea.se/upplevaochgora/idrottmotionochfriluftsliv/friluftslivochmotion/utegym/hagaparken.4.19a41f3a17567e789efbad.html</SimpleData>
+          <SimpleData name="wikidata">Q107391537</SimpleData>
+          <SimpleData name="uppdaterad">2022-10-20 00:00:00+00:00</SimpleData>
+        </SchemaData>
+      </ExtendedData>
+    </Placemark>
+    <Placemark>
+      <name>2480</name>
+      <Point>
+        <coordinates>20.327628553037197,63.859177847394996</coordinates>
+      </Point>
+      <ExtendedData>
+        <SchemaData schemaUrl="https://opendataumea.aws-ec2-eu-central-1.opendatasoft.com/explore/dataset/utegym-umea/information/">
+          <SimpleData name="kommunkod">2480</SimpleData>
+          <SimpleData name="id">2480_Ersbodaaventyrslekutegym</SimpleData>
+          <SimpleData name="namn">Ersboda äventyrslek utegym</SimpleData>
+          <SimpleData name="lat">63.8591778487728</SimpleData>
+          <SimpleData name="long">20.3276285536931</SimpleData>
+          <SimpleData name="epost">gatorochparker@umea.sedrift</SimpleData>
+          <SimpleData name="webb">https://www.umea.se/upplevaochgora/idrottmotionochfriluftsliv/friluftslivochmotion/utegym/ersbodaaventyrslekplats.4.19a41f3a17567e789efb9b.html</SimpleData>
+          <SimpleData name="wikidata">Q107259289</SimpleData>
+          <SimpleData name="uppdaterad">2022-10-20 00:00:00+00:00</SimpleData>
+        </SchemaData>
+      </ExtendedData>
+    </Placemark>
+    <Placemark>
+      <name>2480</name>
+      <Point>
+        <coordinates>20.262053719863182,63.82081363678217</coordinates>
+      </Point>
+      <ExtendedData>
+        <SchemaData schemaUrl="https://opendataumea.aws-ec2-eu-central-1.opendatasoft.com/explore/dataset/utegym-umea/information/">
+          <SimpleData name="kommunkod">2480</SimpleData>
+          <SimpleData name="id">2480_Varvsparkenutegym</SimpleData>
+          <SimpleData name="namn">Varvsparken utegym</SimpleData>
+          <SimpleData name="lat">63.820813635892</SimpleData>
+          <SimpleData name="long">20.2620537209082</SimpleData>
+          <SimpleData name="epost">gatorochparker@umea.sedrift</SimpleData>
+          <SimpleData name="webb">https://www.umea.se/upplevaochgora/idrottmotionochfriluftsliv/friluftslivochmotion/utegym/varvsparken.4.19a41f3a17567e789efbd0.html</SimpleData>
+          <SimpleData name="wikidata">Q107391548</SimpleData>
+          <SimpleData name="uppdaterad">2022-10-20 00:00:00+00:00</SimpleData>
+        </SchemaData>
+      </ExtendedData>
+    </Placemark>
+    <Placemark>
+      <name>2480</name>
+      <Point>
+        <coordinates>20.319393945318183,63.80940347866397</coordinates>
+      </Point>
+      <ExtendedData>
+        <SchemaData schemaUrl="https://opendataumea.aws-ec2-eu-central-1.opendatasoft.com/explore/dataset/utegym-umea/information/">
+          <SimpleData name="kommunkod">2480</SimpleData>
+          <SimpleData name="id">2480_OstraSocionomparkenutegym</SimpleData>
+          <SimpleData name="namn">Östra Socionomparken utegym</SimpleData>
+          <SimpleData name="lat">63.8094034784372</SimpleData>
+          <SimpleData name="long">20.3193939459361</SimpleData>
+          <SimpleData name="epost">gatorochparker@umea.sedrift</SimpleData>
+          <SimpleData name="webb">https://www.umea.se/upplevaochgora/idrottmotionochfriluftsliv/friluftslivochmotion/utegym/alidhemutegymochfruktlund.4.6f09f76217563d7077c2e6.html</SimpleData>
+          <SimpleData name="wikidata">Q107248498</SimpleData>
+          <SimpleData name="uppdaterad">2022-10-20 00:00:00+00:00</SimpleData>
+        </SchemaData>
+      </ExtendedData>
+    </Placemark>
+    <Placemark>
+      <name>2480</name>
+      <Point>
+        <coordinates>20.223671185238576,63.81864382375526</coordinates>
+      </Point>
+      <ExtendedData>
+        <SchemaData schemaUrl="https://opendataumea.aws-ec2-eu-central-1.opendatasoft.com/explore/dataset/utegym-umea/information/">
+          <SimpleData name="kommunkod">2480</SimpleData>
+          <SimpleData name="id">2480_Boleangsparken</SimpleData>
+          <SimpleData name="namn">Böleängsparken</SimpleData>
+          <SimpleData name="lat">63.8186438237986</SimpleData>
+          <SimpleData name="long">20.2236711854282</SimpleData>
+          <SimpleData name="epost">gatorochparker@umea.sedrift</SimpleData>
+          <SimpleData name="webb">https://www.umea.se/upplevaochgora/idrottmotionochfriluftsliv/friluftslivochmotion/utegym/boleangsparken.4.174670ac18f90cfab9ae206.html</SimpleData>
+          <SimpleData name="uppdaterad">2024-06-14 00:00:00+00:00</SimpleData>
+        </SchemaData>
+      </ExtendedData>
+    </Placemark>
+    <Placemark>
+      <name>2480</name>
+      <Point>
+        <coordinates>20.311343999305958,63.84085499916189</coordinates>
+      </Point>
+      <ExtendedData>
+        <SchemaData schemaUrl="https://opendataumea.aws-ec2-eu-central-1.opendatasoft.com/explore/dataset/utegym-umea/information/">
+          <SimpleData name="kommunkod">2480</SimpleData>
+          <SimpleData name="id">2480_BrantbergetUtegym</SimpleData>
+          <SimpleData name="namn">Bräntberget Utegym</SimpleData>
+          <SimpleData name="lat">63.8408549996377</SimpleData>
+          <SimpleData name="long">20.3113439993079</SimpleData>
+          <SimpleData name="epost">umea.fritid@umea.se</SimpleData>
+          <SimpleData name="webb">https://www.umea.se/upplevaochgora/idrottmotionochfriluftsliv/friluftslivochmotion/utegym</SimpleData>
+          <SimpleData name="wikidata">Q107248603</SimpleData>
+          <SimpleData name="beskrivning">Invigdes 17 juni 2014.</SimpleData>
+          <SimpleData name="uppdaterad">2018-02-05 00:00:00+00:00</SimpleData>
+        </SchemaData>
+      </ExtendedData>
+    </Placemark>
+  </Document>
+</kml>
