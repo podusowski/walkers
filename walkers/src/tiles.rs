@@ -116,7 +116,7 @@ impl Tile {
     /// or vector tile (MVT) if the `mvt` feature is enabled.
     pub fn new(image: &[u8], style: &Style, zoom: u8, ctx: &Context) -> Result<Self, TileError> {
         #[cfg(not(feature = "mvt"))]
-        let _ = style;
+        let _ = (style, zoom);
 
         if image.is_empty() {
             return Err(TileError::Empty);
