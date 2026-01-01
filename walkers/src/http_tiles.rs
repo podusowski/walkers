@@ -75,9 +75,9 @@ impl HttpTiles {
         loop {
             let (zoomed_tile_id, uv) = interpolate_from_lower_zoom(tile_id, zoom_candidate);
 
-            if let Some(Some(texture)) = self.tiles_io.cache.get(&zoomed_tile_id) {
+            if let Some(Some(tile)) = self.tiles_io.cache.get(&zoomed_tile_id) {
                 break Some(TilePiece {
-                    texture: texture.clone(),
+                    tile: tile.clone(),
                     uv,
                 });
             }

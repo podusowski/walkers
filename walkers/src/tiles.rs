@@ -230,13 +230,13 @@ impl Tile {
 
 /// Clipped piece of a tile.
 pub struct TilePiece {
-    pub texture: Tile,
+    pub tile: Tile,
     pub uv: Rect,
 }
 
 impl TilePiece {
-    pub fn new(texture: Tile, uv: Rect) -> Self {
-        Self { texture, uv }
+    pub fn new(tile: Tile, uv: Rect) -> Self {
+        Self { tile, uv }
     }
 }
 
@@ -281,7 +281,7 @@ fn flood_fill_tiles(
         && meshes.insert(tile_id)
     {
         if let Some(tile) = tiles.at(tile_id) {
-            tile.texture.draw(
+            tile.tile.draw(
                 painter,
                 rect(tile_screen_position, corrected_tile_size),
                 tile.uv,
