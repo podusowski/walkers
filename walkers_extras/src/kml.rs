@@ -383,7 +383,32 @@ impl KmlLayerState {
             }
             kml::types::Geometry::LineString(line_string) => todo!(),
             kml::types::Geometry::LinearRing(linear_ring) => todo!(),
-            kml::types::Geometry::Polygon(polygon) => (),
+            kml::types::Geometry::Polygon(polygon) => {
+                let exterior = &polygon.outer.coords;
+                let holes: Vec<&Vec<kml::types::Coord>> = polygon
+                    .inner
+                    .iter()
+                    .map(|b| &b.coords)
+                    .collect();
+                let exterior_positions: Vec<Position> = exterior
+                    .iter()
+                    .map(|c| lon_lat(c.x, c.y))
+                    .collect();
+                let mut holes_positions: Vec<Vec<Position>> = Vec::new();
+                for hole in holes {
+                    let hole_positions: Vec<Position> =
+                        hole.iter().map(|c| lon_lat(c.x, c.y)).collect();
+                    holes_positions.push(hole_positions);
+                }
+                draw_polygon(
+                    painter,
+                    projector,
+                    &KmlFeature::default(),
+                    &exterior_positions,
+                    &holes_positions,
+                    &self.defaults,
+                );
+            },
             kml::types::Geometry::MultiGeometry(multi_geometry) => {
                 for geom in &multi_geometry.geometries {
                     self.draw_geometry(painter, response, projector, geom);
