@@ -111,6 +111,44 @@ impl KmlLayerState {
             }
         }
     }
+
+    fn draw_line_layer(
+        &self,
+        painter: &egui::Painter,
+        response: &Response,
+        projector: &Projector,
+        element: &kml::Kml,
+    ) {
+        match element {
+            kml::Kml::Placemark(placemark) => {
+                println!("Drawing placemark: {:?}", placemark);
+                if let Some(geometry) = &placemark.geometry {
+                    self.draw_geometry(&painter, response, projector, geometry);
+                }
+            }
+            kml::Kml::Document { elements, .. } => {
+                println!("Drawing document with {} elements", elements.len());
+                for child in elements {
+                    self.draw_line_layer(painter, response, projector, child);
+                }
+            }
+            kml::Kml::KmlDocument(KmlDocument { elements, .. }) => {
+                println!("Drawing kml document with {} elements", elements.len());
+                for child in elements {
+                    self.draw_line_layer(painter, response, projector, child);
+                }
+            }
+            kml::Kml::Folder(folder) => {
+                println!("Drawing folder with {} elements", folder.elements.len());
+                for child in &folder.elements {
+                    self.draw_line_layer(painter, response, projector, child);
+                }
+            }
+            _ => {
+                println!("Skipping unsupported KML element: {:?}", element);
+            }
+        }
+    }
 }
 
 /// Plugin that renders parsed KML features on top of a [`Map`](walkers::Map).
@@ -151,7 +189,14 @@ impl Plugin for KmlLayer {
                     source_layer,
                     filter,
                     paint,
-                } => todo!(),
+                } => {
+                    self.inner.draw_line_layer(
+                        &ui.painter_at(response.rect),
+                        response,
+                        projector,
+                        &self.inner.kml,
+                    );
+                }
                 walkers::Layer::Symbol {
                     source_layer,
                     filter,
