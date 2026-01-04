@@ -377,7 +377,9 @@ impl KmlLayerState {
         match geometry {
             kml::types::Geometry::Point(point) => {
                 let position = lon_lat(point.coord.x, point.coord.y);
-                let (radius, color) = resolve_point_style(&KmlFeature::default(), &self.defaults);
+                // TODO: Take this from style.
+                let radius = 5.0;
+                let color = Color32::RED;
                 let screen = projector.project(position).to_pos2();
                 painter.circle_filled(screen, radius, color);
             }
@@ -453,7 +455,6 @@ impl KmlLayerState {
         }
     }
 }
-
 
 /// Plugin that renders parsed KML features on top of a [`Map`](walkers::Map).
 #[derive(Clone)]
