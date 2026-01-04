@@ -357,6 +357,7 @@ impl Default for KmlVisualDefaults {
 
 #[derive(Clone)]
 struct KmlLayerState {
+    kml: kml::Kml,
     features: Vec<KmlFeature>,
     defaults: KmlVisualDefaults,
 }
@@ -406,9 +407,10 @@ pub struct KmlLayer {
 }
 
 impl KmlLayer {
-    pub fn new(features: Vec<KmlFeature>) -> Self {
+    pub fn new(kml: kml::Kml, features: Vec<KmlFeature>) -> Self {
         Self {
             inner: Arc::new(KmlLayerState {
+                kml,
                 features,
                 defaults: KmlVisualDefaults::default(),
             }),
