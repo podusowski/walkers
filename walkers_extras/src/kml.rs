@@ -6,7 +6,7 @@ use kml::KmlDocument;
 use lyon_path::geom::Point;
 use lyon_tessellation::math::point;
 use thiserror::Error;
-use walkers::{MapMemory, Plugin, Position, Projector, lon_lat, tessellate_polygon};
+use walkers::{MapMemory, Plugin, Position, Projector, Style, lon_lat, tessellate_polygon};
 
 #[derive(Debug, Error)]
 pub enum KmlError {
@@ -30,9 +30,9 @@ pub enum KmlError {
     ParseBool(String),
 }
 
-#[derive(Clone)]
 struct KmlLayerState {
     pub kml: kml::Kml,
+    pub style: Style,
 }
 
 impl KmlLayerState {
@@ -120,10 +120,11 @@ pub struct KmlLayer {
 }
 
 impl KmlLayer {
-    pub fn from_string(s: &str) -> Self {
+    pub fn from_string(s: &str, style: Style) -> Self {
         Self {
             inner: Arc::new(KmlLayerState {
                 kml: kml::Kml::from_str(s).unwrap(),
+                style,
             }),
         }
     }
@@ -137,7 +138,32 @@ impl Plugin for KmlLayer {
         projector: &Projector,
         _map_memory: &MapMemory,
     ) {
-        self.inner.draw(ui, response, projector, &self.inner.kml);
+        for layer in &self.inner.style.layers {
+            println!("KML Layer style layer: {:?}", layer);
+            match layer {
+                walkers::Layer::Background { paint } => todo!(),
+                walkers::Layer::Fill {
+                    source_layer,
+                    filter,
+                    paint,
+                } => todo!(),
+                walkers::Layer::Line {
+                    source_layer,
+                    filter,
+                    paint,
+                } => todo!(),
+                walkers::Layer::Symbol {
+                    source_layer,
+                    filter,
+                    layout,
+                    paint,
+                } => todo!(),
+                other => {
+                    log::warn!("Unsupported KML Layer style layer: {:?}", other);
+                }
+            }
+            self.inner.draw(ui, response, projector, &self.inner.kml);
+        }
     }
 }
 

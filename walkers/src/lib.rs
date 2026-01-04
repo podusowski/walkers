@@ -50,6 +50,6 @@ pub use position::{Position, lat_lon, lon_lat};
 pub use projector::Projector;
 pub use style::Style;
 #[cfg(feature = "mvt")]
-pub use style::{Color, Filter, Layer};
+pub use style::{Color, Filter, Float, Layer, Paint, Value, json};
 pub use tiles::{Tile, TileId, TilePiece, Tiles};
 pub use zoom::InvalidZoom;

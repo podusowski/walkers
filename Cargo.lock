@@ -5320,6 +5320,7 @@ version = "0.51.0"
 dependencies = [
  "egui",
  "kml",
+ "log",
  "lyon_path",
  "lyon_tessellation",
  "quick-xml 0.37.5",
