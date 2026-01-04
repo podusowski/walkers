@@ -100,7 +100,7 @@ impl KmlLayerState {
             kml::Kml::Placemark(placemark) => {
                 println!("Drawing placemark: {:?}", placemark);
                 if let Some(geometry) = &placemark.geometry {
-                    self.draw_geometry(&painter, response, projector, geometry);
+                    self.draw_line_geometry(&painter, response, projector, geometry);
                 }
             }
             kml::Kml::Document { elements, .. } => {
@@ -124,6 +124,69 @@ impl KmlLayerState {
             _ => {
                 println!("Skipping unsupported KML element: {:?}", element);
             }
+        }
+    }
+
+    fn draw_line_geometry(
+        &self,
+        painter: &egui::Painter,
+        response: &Response,
+        projector: &Projector,
+        geometry: &kml::types::Geometry,
+    ) {
+        match geometry {
+            kml::types::Geometry::LineString(_) => todo!(),
+            kml::types::Geometry::LinearRing(_) => todo!(),
+            kml::types::Geometry::Polygon(polygon) => {
+                let exterior = &polygon.outer.coords;
+                let holes: Vec<&Vec<kml::types::Coord>> =
+                    polygon.inner.iter().map(|b| &b.coords).collect();
+                let exterior_positions: Vec<Position> =
+                    exterior.iter().map(|c| lon_lat(c.x, c.y)).collect();
+
+                let mut holes_positions: Vec<Vec<Position>> = Vec::new();
+                for hole in &holes {
+                    let hole_positions: Vec<Position> =
+                        hole.iter().map(|c| lon_lat(c.x, c.y)).collect();
+                    holes_positions.push(hole_positions);
+                }
+
+
+                let Some(exterior_screen) = ring_to_screen_points(&exterior_positions, projector) else {
+                    return;
+                };
+
+                let mut hole_points: Vec<Vec<Point<f32>>> = Vec::with_capacity(holes.len());
+                for hole in holes_positions {
+                    if let Some(points) = ring_to_screen_points(&hole, projector) {
+                        hole_points.push(points);
+                    }
+                }
+
+
+                let line_width = 2.0;
+                let stroke = Stroke::new(line_width, Color32::BLACK);
+
+                painter.add(Shape::closed_line(
+                    exterior_screen
+                        .iter()
+                        .map(|p| egui::pos2(p.x, p.y))
+                        .collect(),
+                    stroke,
+                ));
+                for hole in &hole_points {
+                    painter.add(Shape::closed_line(
+                        hole.iter().map(|p| egui::pos2(p.x, p.y)).collect(),
+                        stroke,
+                    ));
+                }
+            }
+            kml::types::Geometry::MultiGeometry(multi_geometry) => {
+                for geom in &multi_geometry.geometries {
+                    self.draw_line_geometry(painter, response, projector, geom);
+                }
+            }
+            _ => todo!(),
         }
     }
 }
