@@ -387,15 +387,10 @@ impl KmlLayerState {
             kml::types::Geometry::LinearRing(linear_ring) => todo!(),
             kml::types::Geometry::Polygon(polygon) => {
                 let exterior = &polygon.outer.coords;
-                let holes: Vec<&Vec<kml::types::Coord>> = polygon
-                    .inner
-                    .iter()
-                    .map(|b| &b.coords)
-                    .collect();
-                let exterior_positions: Vec<Position> = exterior
-                    .iter()
-                    .map(|c| lon_lat(c.x, c.y))
-                    .collect();
+                let holes: Vec<&Vec<kml::types::Coord>> =
+                    polygon.inner.iter().map(|b| &b.coords).collect();
+                let exterior_positions: Vec<Position> =
+                    exterior.iter().map(|c| lon_lat(c.x, c.y)).collect();
                 let mut holes_positions: Vec<Vec<Position>> = Vec::new();
                 for hole in holes {
                     let hole_positions: Vec<Position> =
@@ -410,7 +405,7 @@ impl KmlLayerState {
                     &holes_positions,
                     &self.defaults,
                 );
-            },
+            }
             kml::types::Geometry::MultiGeometry(multi_geometry) => {
                 for geom in &multi_geometry.geometries {
                     self.draw_geometry(painter, response, projector, geom);
@@ -569,26 +564,30 @@ fn draw_polygon(
         }
     }
 
+    // TODO: Support this.
+    let fill_color = None;
+
     if let Some(fill_color) = fill_color {
         if let Ok(mesh) = tessellate_polygon(&exterior_screen, &hole_points, fill_color) {
             painter.add(Shape::mesh(mesh));
         }
     }
 
-    if let Some(stroke) = outline_stroke {
+    let line_width = 2.0;
+    let stroke = Stroke::new(line_width, Color32::BLACK);
+
+    painter.add(Shape::closed_line(
+        exterior_screen
+            .iter()
+            .map(|p| egui::pos2(p.x, p.y))
+            .collect(),
+        stroke,
+    ));
+    for hole in &hole_points {
         painter.add(Shape::closed_line(
-            exterior_screen
-                .iter()
-                .map(|p| egui::pos2(p.x, p.y))
-                .collect(),
+            hole.iter().map(|p| egui::pos2(p.x, p.y)).collect(),
             stroke,
         ));
-        for hole in &hole_points {
-            painter.add(Shape::closed_line(
-                hole.iter().map(|p| egui::pos2(p.x, p.y)).collect(),
-                stroke,
-            ));
-        }
     }
 }
 
