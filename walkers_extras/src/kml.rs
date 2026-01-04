@@ -425,7 +425,7 @@ impl KmlLayerState {
         match element {
             kml::Kml::Placemark(placemark) => {
                 println!("Drawing placemark: {:?}", placemark);
-                for geometry in &placemark.geometry {
+                if let Some(geometry) = &placemark.geometry {
                     self.draw_geometry(&painter, response, projector, geometry);
                 }
             }
@@ -451,41 +451,9 @@ impl KmlLayerState {
                 println!("Skipping unsupported KML element: {:?}", element);
             }
         }
-
-        //for feature in &self.features {
-        //    for geometry in &feature.geometries {
-        //        match geometry {
-        //            KmlGeometry::Point(position) => {
-        //                let (radius, color) = resolve_point_style(feature, &self.defaults);
-        //                let screen = projector.project(*position).to_pos2();
-        //                painter.circle_filled(screen, radius, color);
-        //            }
-        //            KmlGeometry::LineString(positions) => {
-        //                if positions.len() < 2 {
-        //                    continue;
-        //                }
-        //                let stroke = resolve_line_style(feature, &self.defaults);
-        //                let mut points = Vec::with_capacity(positions.len());
-        //                for position in positions {
-        //                    points.push(projector.project(*position).to_pos2());
-        //                }
-        //                painter.add(Shape::line(points, stroke));
-        //            }
-        //            KmlGeometry::Polygon { exterior, holes } => {
-        //                draw_polygon(
-        //                    &painter,
-        //                    projector,
-        //                    feature,
-        //                    exterior,
-        //                    holes,
-        //                    &self.defaults,
-        //                );
-        //            }
-        //        }
-        //    }
-        //}
     }
 }
+
 
 /// Plugin that renders parsed KML features on top of a [`Map`](walkers::Map).
 #[derive(Clone)]
