@@ -5,30 +5,7 @@ use egui::{self, Color32, Response, Shape, Stroke, Ui};
 use kml::KmlDocument;
 use lyon_path::geom::Point;
 use lyon_tessellation::math::point;
-use thiserror::Error;
 use walkers::{MapMemory, Plugin, Position, Projector, Style, lon_lat, tessellate_polygon};
-
-#[derive(Debug, Error)]
-pub enum KmlError {
-    #[error("XML error: {0}")]
-    Xml(#[from] quick_xml::Error),
-    #[error("Failed to parse integer: {0}")]
-    ParseInt(#[from] std::num::ParseIntError),
-    #[error("Invalid UTF-8 sequence: {0}")]
-    Utf8(#[from] std::str::Utf8Error),
-    #[error("Unexpected geometry context for coordinates")]
-    UnexpectedCoordinatesContext,
-    #[error("Polygon missing exterior ring")]
-    PolygonMissingExterior,
-    #[error("Invalid coordinate triple: {0}")]
-    InvalidCoordinate(String),
-    #[error("Failed to parse float: {0}")]
-    ParseFloat(#[from] std::num::ParseFloatError),
-    #[error("Unsupported empty geometry")]
-    EmptyGeometry,
-    #[error("Boolean parse error: {0}")]
-    ParseBool(String),
-}
 
 struct KmlLayerState {
     pub kml: kml::Kml,
