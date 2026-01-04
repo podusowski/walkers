@@ -16,7 +16,6 @@ impl KmlLayerState {
     fn draw_geometry(
         &self,
         painter: &egui::Painter,
-        response: &Response,
         projector: &Projector,
         geometry: &kml::types::Geometry,
     ) {
@@ -48,7 +47,7 @@ impl KmlLayerState {
             }
             kml::types::Geometry::MultiGeometry(multi_geometry) => {
                 for geom in &multi_geometry.geometries {
-                    self.draw_geometry(painter, response, projector, geom);
+                    self.draw_geometry(painter, projector, geom);
                 }
             }
             _ => todo!(),
@@ -62,7 +61,7 @@ impl KmlLayerState {
             kml::Kml::Placemark(placemark) => {
                 println!("Drawing placemark: {:?}", placemark);
                 if let Some(geometry) = &placemark.geometry {
-                    self.draw_geometry(&painter, response, projector, geometry);
+                    self.draw_geometry(&painter, projector, geometry);
                 }
             }
             kml::Kml::Document { elements, .. } => {
