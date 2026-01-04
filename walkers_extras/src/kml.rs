@@ -1,9 +1,8 @@
-use std::os::unix::raw::pthread_t;
 use std::str::FromStr;
 use std::sync::Arc;
 
 use egui::{self, Color32, Response, Shape, Stroke, Ui};
-use kml::{Kml, KmlDocument};
+use kml::{ KmlDocument};
 use lyon_path::geom::Point;
 use lyon_tessellation::math::point;
 use quick_xml::Reader;
@@ -383,8 +382,8 @@ impl KmlLayerState {
                 let screen = projector.project(position).to_pos2();
                 painter.circle_filled(screen, radius, color);
             }
-            kml::types::Geometry::LineString(line_string) => todo!(),
-            kml::types::Geometry::LinearRing(linear_ring) => todo!(),
+            kml::types::Geometry::LineString(_) => todo!(),
+            kml::types::Geometry::LinearRing(_) => todo!(),
             kml::types::Geometry::Polygon(polygon) => {
                 let exterior = &polygon.outer.coords;
                 let holes: Vec<&Vec<kml::types::Coord>> =
@@ -400,7 +399,6 @@ impl KmlLayerState {
                 draw_polygon(
                     painter,
                     projector,
-                    &KmlFeature::default(),
                     &exterior_positions,
                     &holes_positions,
                     &self.defaults,
@@ -411,7 +409,6 @@ impl KmlLayerState {
                     self.draw_geometry(painter, response, projector, geom);
                 }
             }
-            kml::types::Geometry::Element(element) => todo!(),
             _ => todo!(),
         }
     }
@@ -492,67 +489,14 @@ impl Plugin for KmlLayer {
     }
 }
 
-fn resolve_point_style(feature: &KmlFeature, defaults: &KmlVisualDefaults) -> (f32, Color32) {
-    let color = feature.style.icon_color.unwrap_or(defaults.point_color);
-    let scale = feature.style.icon_scale.unwrap_or(1.0).max(0.1);
-    let radius = defaults.point_radius * scale;
-    (radius, color)
-}
-
-fn resolve_line_style(feature: &KmlFeature, defaults: &KmlVisualDefaults) -> Stroke {
-    let color = feature.style.stroke_color.unwrap_or(defaults.line_color);
-    let width = feature
-        .style
-        .stroke_width
-        .unwrap_or(defaults.line_width)
-        .max(0.1);
-    Stroke::new(width, color)
-}
-
-fn resolve_polygon_style(
-    feature: &KmlFeature,
-    defaults: &KmlVisualDefaults,
-) -> (Option<Color32>, Option<Stroke>) {
-    let fill_allowed = feature.style.fill.unwrap_or(true);
-    let outline_allowed = feature.style.outline.unwrap_or(true);
-
-    let fill_color = if fill_allowed {
-        feature
-            .style
-            .fill_color
-            .or(Some(defaults.polygon_fill_color))
-    } else {
-        None
-    };
-
-    let outline = if outline_allowed {
-        let stroke_color = feature
-            .style
-            .stroke_color
-            .unwrap_or(defaults.polygon_outline_color);
-        let stroke_width = feature
-            .style
-            .stroke_width
-            .unwrap_or(defaults.polygon_outline_width)
-            .max(0.1);
-        Some(Stroke::new(stroke_width, stroke_color))
-    } else {
-        None
-    };
-
-    (fill_color, outline)
-}
 
 fn draw_polygon(
     painter: &egui::Painter,
     projector: &Projector,
-    feature: &KmlFeature,
     exterior: &[Position],
     holes: &[Vec<Position>],
     defaults: &KmlVisualDefaults,
 ) {
-    let (fill_color, outline_stroke) = resolve_polygon_style(feature, defaults);
-
     let Some(exterior_screen) = ring_to_screen_points(exterior, projector) else {
         return;
     };
