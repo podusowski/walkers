@@ -1,6 +1,9 @@
+use std::os::unix::raw::pthread_t;
+use std::str::FromStr;
 use std::sync::Arc;
 
 use egui::{self, Color32, Response, Shape, Stroke, Ui};
+use kml::{Kml, KmlDocument};
 use lyon_path::geom::Point;
 use lyon_tessellation::math::point;
 use quick_xml::Reader;
@@ -357,46 +360,105 @@ impl Default for KmlVisualDefaults {
 
 #[derive(Clone)]
 struct KmlLayerState {
-    kml: kml::Kml,
+    pub kml: kml::Kml,
     features: Vec<KmlFeature>,
     defaults: KmlVisualDefaults,
 }
 
 impl KmlLayerState {
-    fn draw(&self, ui: &mut Ui, response: &Response, projector: &Projector) {
-        let painter = ui.painter_at(response.rect);
-        for feature in &self.features {
-            for geometry in &feature.geometries {
-                match geometry {
-                    KmlGeometry::Point(position) => {
-                        let (radius, color) = resolve_point_style(feature, &self.defaults);
-                        let screen = projector.project(*position).to_pos2();
-                        painter.circle_filled(screen, radius, color);
-                    }
-                    KmlGeometry::LineString(positions) => {
-                        if positions.len() < 2 {
-                            continue;
-                        }
-                        let stroke = resolve_line_style(feature, &self.defaults);
-                        let mut points = Vec::with_capacity(positions.len());
-                        for position in positions {
-                            points.push(projector.project(*position).to_pos2());
-                        }
-                        painter.add(Shape::line(points, stroke));
-                    }
-                    KmlGeometry::Polygon { exterior, holes } => {
-                        draw_polygon(
-                            &painter,
-                            projector,
-                            feature,
-                            exterior,
-                            holes,
-                            &self.defaults,
-                        );
-                    }
+    fn draw_geometry(
+        &self,
+        painter: &egui::Painter,
+        response: &Response,
+        projector: &Projector,
+        geometry: &kml::types::Geometry,
+    ) {
+        println!("Drawing geometry: {:?}", geometry);
+        match geometry {
+            kml::types::Geometry::Point(point) => {
+                let position = lon_lat(point.coord.x, point.coord.y);
+                let (radius, color) = resolve_point_style(&KmlFeature::default(), &self.defaults);
+                let screen = projector.project(position).to_pos2();
+                painter.circle_filled(screen, radius, color);
+            }
+            kml::types::Geometry::LineString(line_string) => todo!(),
+            kml::types::Geometry::LinearRing(linear_ring) => todo!(),
+            kml::types::Geometry::Polygon(polygon) => (),
+            kml::types::Geometry::MultiGeometry(multi_geometry) => {
+                for geom in &multi_geometry.geometries {
+                    self.draw_geometry(painter, response, projector, geom);
                 }
             }
+            kml::types::Geometry::Element(element) => todo!(),
+            _ => todo!(),
         }
+    }
+
+    fn draw(&self, ui: &mut Ui, response: &Response, projector: &Projector, element: &kml::Kml) {
+        let painter = ui.painter_at(response.rect);
+
+        match element {
+            kml::Kml::Placemark(placemark) => {
+                println!("Drawing placemark: {:?}", placemark);
+                for geometry in &placemark.geometry {
+                    self.draw_geometry(&painter, response, projector, geometry);
+                }
+            }
+            kml::Kml::Document { elements, .. } => {
+                println!("Drawing document with {} elements", elements.len());
+                for child in elements {
+                    self.draw(ui, response, projector, child);
+                }
+            }
+            kml::Kml::KmlDocument(KmlDocument { elements, .. }) => {
+                println!("Drawing kml document with {} elements", elements.len());
+                for child in elements {
+                    self.draw(ui, response, projector, child);
+                }
+            }
+            kml::Kml::Folder(folder) => {
+                println!("Drawing folder with {} elements", folder.elements.len());
+                for child in &folder.elements {
+                    self.draw(ui, response, projector, child);
+                }
+            }
+            _ => {
+                println!("Skipping unsupported KML element: {:?}", element);
+            }
+        }
+
+        //for feature in &self.features {
+        //    for geometry in &feature.geometries {
+        //        match geometry {
+        //            KmlGeometry::Point(position) => {
+        //                let (radius, color) = resolve_point_style(feature, &self.defaults);
+        //                let screen = projector.project(*position).to_pos2();
+        //                painter.circle_filled(screen, radius, color);
+        //            }
+        //            KmlGeometry::LineString(positions) => {
+        //                if positions.len() < 2 {
+        //                    continue;
+        //                }
+        //                let stroke = resolve_line_style(feature, &self.defaults);
+        //                let mut points = Vec::with_capacity(positions.len());
+        //                for position in positions {
+        //                    points.push(projector.project(*position).to_pos2());
+        //                }
+        //                painter.add(Shape::line(points, stroke));
+        //            }
+        //            KmlGeometry::Polygon { exterior, holes } => {
+        //                draw_polygon(
+        //                    &painter,
+        //                    projector,
+        //                    feature,
+        //                    exterior,
+        //                    holes,
+        //                    &self.defaults,
+        //                );
+        //            }
+        //        }
+        //    }
+        //}
     }
 }
 
@@ -407,11 +469,11 @@ pub struct KmlLayer {
 }
 
 impl KmlLayer {
-    pub fn new(kml: kml::Kml, features: Vec<KmlFeature>) -> Self {
+    pub fn from_string(s: &str) -> Self {
         Self {
             inner: Arc::new(KmlLayerState {
-                kml,
-                features,
+                kml: kml::Kml::from_str(s).unwrap(),
+                features: Vec::new(),
                 defaults: KmlVisualDefaults::default(),
             }),
         }
@@ -437,7 +499,7 @@ impl Plugin for KmlLayer {
         projector: &Projector,
         _map_memory: &MapMemory,
     ) {
-        self.inner.draw(ui, response, projector);
+        self.inner.draw(ui, response, projector, &self.inner.kml);
     }
 }
 
