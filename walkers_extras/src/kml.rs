@@ -2,7 +2,7 @@ use std::str::FromStr;
 use std::sync::Arc;
 
 use egui::{self, Color32, Response, Shape, Stroke, Ui};
-use kml::KmlDocument;
+use kml::{KmlDocument, types::Folder};
 use lyon_path::geom::Point;
 use lyon_tessellation::math::point;
 use walkers::{MapMemory, Plugin, Position, Projector, Style, lon_lat, tessellate_polygon};
@@ -97,26 +97,14 @@ impl KmlLayerState {
     ) {
         match element {
             kml::Kml::Placemark(placemark) => {
-                println!("Drawing placemark: {:?}", placemark);
                 if let Some(geometry) = &placemark.geometry {
                     self.draw_line_geometry(&painter, response, projector, geometry);
                 }
             }
-            kml::Kml::Document { elements, .. } => {
-                println!("Drawing document with {} elements", elements.len());
+            kml::Kml::Document { elements, .. }
+            | kml::Kml::KmlDocument(KmlDocument { elements, .. })
+            | kml::Kml::Folder(Folder { elements, .. }) => {
                 for child in elements {
-                    self.draw_line_layer(painter, response, projector, child);
-                }
-            }
-            kml::Kml::KmlDocument(KmlDocument { elements, .. }) => {
-                println!("Drawing kml document with {} elements", elements.len());
-                for child in elements {
-                    self.draw_line_layer(painter, response, projector, child);
-                }
-            }
-            kml::Kml::Folder(folder) => {
-                println!("Drawing folder with {} elements", folder.elements.len());
-                for child in &folder.elements {
                     self.draw_line_layer(painter, response, projector, child);
                 }
             }
