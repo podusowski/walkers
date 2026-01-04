@@ -2,7 +2,7 @@ use std::str::FromStr;
 use std::sync::Arc;
 
 use egui::{self, Color32, Response, Shape, Stroke, Ui};
-use kml::{ KmlDocument};
+use kml::KmlDocument;
 use lyon_path::geom::Point;
 use lyon_tessellation::math::point;
 use quick_xml::Reader;
@@ -396,13 +396,7 @@ impl KmlLayerState {
                         hole.iter().map(|c| lon_lat(c.x, c.y)).collect();
                     holes_positions.push(hole_positions);
                 }
-                draw_polygon(
-                    painter,
-                    projector,
-                    &exterior_positions,
-                    &holes_positions,
-                    &self.defaults,
-                );
+                draw_polygon(painter, projector, &exterior_positions, &holes_positions);
             }
             kml::types::Geometry::MultiGeometry(multi_geometry) => {
                 for geom in &multi_geometry.geometries {
@@ -471,10 +465,6 @@ impl KmlLayer {
         self.inner = Arc::new(state);
         self
     }
-
-    pub fn features(&self) -> &[KmlFeature] {
-        &self.inner.features
-    }
 }
 
 impl Plugin for KmlLayer {
@@ -489,13 +479,11 @@ impl Plugin for KmlLayer {
     }
 }
 
-
 fn draw_polygon(
     painter: &egui::Painter,
     projector: &Projector,
     exterior: &[Position],
     holes: &[Vec<Position>],
-    defaults: &KmlVisualDefaults,
 ) {
     let Some(exterior_screen) = ring_to_screen_points(exterior, projector) else {
         return;
