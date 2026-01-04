@@ -360,7 +360,6 @@ impl Default for KmlVisualDefaults {
 #[derive(Clone)]
 struct KmlLayerState {
     pub kml: kml::Kml,
-    defaults: KmlVisualDefaults,
 }
 
 impl KmlLayerState {
@@ -452,16 +451,8 @@ impl KmlLayer {
         Self {
             inner: Arc::new(KmlLayerState {
                 kml: kml::Kml::from_str(s).unwrap(),
-                defaults: KmlVisualDefaults::default(),
             }),
         }
-    }
-
-    pub fn with_defaults(mut self, defaults: KmlVisualDefaults) -> Self {
-        let mut state = (*self.inner).clone();
-        state.defaults = defaults;
-        self.inner = Arc::new(state);
-        self
     }
 }
 
