@@ -14,6 +14,8 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: arduino/setup-protoc@v3.0.0
+        with:
+          repo-token: ${{ secrets.GITHUB_TOKEN }}
       - run: cargo install trunk@0.21.14 --locked
       - name: Build
         run: env -C demo_web trunk build --release --public-url .
