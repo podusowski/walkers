@@ -42,6 +42,7 @@ pub enum TileError {
 
 /// Identifies the tile in the tile grid.
 #[derive(Debug, PartialEq, Eq, Hash, Clone, Copy)]
+#[cfg_attr(feature = "serde", derive(::serde::Serialize, ::serde::Deserialize))]
 pub struct TileId {
     /// X number of the tile.
     pub x: u32,
