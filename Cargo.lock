@@ -3774,6 +3774,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "quick-xml"
+version = "0.39.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "f2e3bf4aa9d243beeb01a7b3bc30b77cfe2c44e24ec02d751a7104a53c2c49a1"
+dependencies = [
+ "memchr",
+]
+
+[[package]]
 name = "quinn"
 version = "0.11.9"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -5245,7 +5254,7 @@ dependencies = [
  "egui",
  "lyon_path",
  "lyon_tessellation",
- "quick-xml 0.37.5",
+ "quick-xml 0.39.0",
  "rstar 0.12.2",
  "thiserror 2.0.17",
  "walkers",
