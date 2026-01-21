@@ -5,6 +5,7 @@ All notable changes to this project will be documented in this file.
 ## Unreleased
 
 * Faster collision detection algorithm for texts in vector tiles.
+* `TileId` is now `Serialize` and `Deserialize` when `serde` feature is enabled.
 
 ## 0.51.0
 
