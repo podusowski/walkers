@@ -1,17 +1,24 @@
 use std::str::FromStr;
-use std::sync::Arc;
 
 use egui::{self, Color32, Response, Shape, Stroke, Ui};
 use kml::{KmlDocument, types::Folder};
 use log::debug;
 use walkers::{MapMemory, Plugin, Projector, Style, lon_lat};
 
-struct KmlLayerState {
-    pub kml: kml::Kml,
-    pub style: Style,
+/// Plugin that renders parsed KML features on top of a [`Map`](walkers::Map).
+pub struct KmlLayer {
+    kml: kml::Kml,
+    style: Style,
 }
 
-impl KmlLayerState {
+impl KmlLayer {
+    pub fn from_string(s: &str, style: Style) -> Self {
+        Self {
+            kml: kml::Kml::from_str(s).unwrap(),
+            style,
+        }
+    }
+
     fn draw_line_layer(
         &self,
         painter: &egui::Painter,
@@ -79,23 +86,6 @@ impl KmlLayerState {
     }
 }
 
-/// Plugin that renders parsed KML features on top of a [`Map`](walkers::Map).
-#[derive(Clone)]
-pub struct KmlLayer {
-    inner: Arc<KmlLayerState>,
-}
-
-impl KmlLayer {
-    pub fn from_string(s: &str, style: Style) -> Self {
-        Self {
-            inner: Arc::new(KmlLayerState {
-                kml: kml::Kml::from_str(s).unwrap(),
-                style,
-            }),
-        }
-    }
-}
-
 impl Plugin for KmlLayer {
     fn run(
         self: Box<Self>,
@@ -104,14 +94,14 @@ impl Plugin for KmlLayer {
         projector: &Projector,
         _map_memory: &MapMemory,
     ) {
-        for layer in &self.inner.style.layers {
+        for layer in &self.style.layers {
             match layer {
                 walkers::Layer::Line { .. } => {
-                    self.inner.draw_line_layer(
+                    self.draw_line_layer(
                         &ui.painter_at(response.rect),
                         response,
                         projector,
-                        &self.inner.kml,
+                        &self.kml,
                     );
                 }
                 other => {
