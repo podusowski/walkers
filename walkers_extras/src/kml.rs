@@ -3,6 +3,7 @@ use std::sync::Arc;
 
 use egui::{self, Color32, Response, Shape, Stroke, Ui};
 use kml::{KmlDocument, types::Folder};
+use log::debug;
 use lyon_path::geom::Point;
 use lyon_tessellation::math::point;
 use walkers::{MapMemory, Plugin, Position, Projector, Style, lon_lat, tessellate_polygon};
@@ -19,7 +20,6 @@ impl KmlLayerState {
         projector: &Projector,
         geometry: &kml::types::Geometry,
     ) {
-        println!("Drawing geometry: {:?}", geometry);
         match geometry {
             kml::types::Geometry::Point(point) => {
                 let position = lon_lat(point.coord.x, point.coord.y);
@@ -59,31 +59,27 @@ impl KmlLayerState {
 
         match element {
             kml::Kml::Placemark(placemark) => {
-                println!("Drawing placemark: {:?}", placemark);
                 if let Some(geometry) = &placemark.geometry {
                     self.draw_geometry(&painter, projector, geometry);
                 }
             }
             kml::Kml::Document { elements, .. } => {
-                println!("Drawing document with {} elements", elements.len());
                 for child in elements {
                     self.draw(ui, response, projector, child);
                 }
             }
             kml::Kml::KmlDocument(KmlDocument { elements, .. }) => {
-                println!("Drawing kml document with {} elements", elements.len());
                 for child in elements {
                     self.draw(ui, response, projector, child);
                 }
             }
             kml::Kml::Folder(folder) => {
-                println!("Drawing folder with {} elements", folder.elements.len());
                 for child in &folder.elements {
                     self.draw(ui, response, projector, child);
                 }
             }
             _ => {
-                println!("Skipping unsupported KML element: {:?}", element);
+                debug!("Skipping unsupported KML element: {:?}", element);
             }
         }
     }
@@ -109,7 +105,7 @@ impl KmlLayerState {
                 }
             }
             _ => {
-                println!("Skipping unsupported KML element: {:?}", element);
+                debug!("Skipping unsupported KML element: {:?}", element);
             }
         }
     }
@@ -183,7 +179,6 @@ impl Plugin for KmlLayer {
         _map_memory: &MapMemory,
     ) {
         for layer in &self.inner.style.layers {
-            println!("KML Layer style layer: {:?}", layer);
             match layer {
                 walkers::Layer::Background { paint } => todo!(),
                 walkers::Layer::Fill {
