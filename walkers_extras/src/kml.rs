@@ -23,7 +23,7 @@ impl KmlLayer {
         match element {
             kml::Kml::Placemark(placemark) => {
                 if let Some(geometry) = &placemark.geometry {
-                    self.draw_line_geometry(&painter, projector, geometry);
+                    self.draw_line_geometry(painter, projector, geometry);
                 }
             }
             kml::Kml::Document { elements, .. }
@@ -48,7 +48,7 @@ impl KmlLayer {
         match element {
             kml::Kml::Placemark(placemark) => {
                 if let Some(geometry) = &placemark.geometry {
-                    self.draw_circle_geometry(&painter, projector, geometry);
+                    self.draw_circle_geometry(painter, projector, geometry);
                 }
             }
             kml::Kml::Document { elements, .. }
