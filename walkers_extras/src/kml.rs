@@ -2,7 +2,7 @@ use std::str::FromStr;
 
 use egui::{self, Color32, Response, Shape, Stroke, Ui};
 use kml::{KmlDocument, types::Folder};
-use log::debug;
+use log::{debug, warn};
 use walkers::{MapMemory, Plugin, Projector, Style, lon_lat};
 
 /// Plugin that renders parsed KML features on top of a [`Map`](walkers::Map).
@@ -105,7 +105,7 @@ impl Plugin for KmlLayer {
                     );
                 }
                 other => {
-                    log::warn!("Unsupported KML Layer style layer: {:?}", other);
+                    warn!("Unsupported style layer: {:?}", other);
                 }
             }
         }

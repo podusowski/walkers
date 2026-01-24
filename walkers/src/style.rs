@@ -76,6 +76,10 @@ pub enum Layer {
         layout: Layout,
         paint: Option<Paint>,
     },
+    Circle {
+        source_layer: String,
+        filter: Option<Filter>,
+    },
     Raster,
     FillExtrusion,
 }
