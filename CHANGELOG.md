@@ -6,6 +6,9 @@ All notable changes to this project will be documented in this file.
 
 * Faster collision detection algorithm for texts in vector tiles.
 * `TileId` is now `Serialize` and `Deserialize` when `serde` feature is enabled.
+* `KmlLayer` now uses `kml` crate and for now its functionality is highly reduced. Please raise
+  issues if you need any specific feature from previous implementation and whether there is an
+  interest in the Kml support in general.
 
 ## 0.51.0
 
