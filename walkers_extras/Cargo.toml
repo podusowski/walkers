@@ -1,14 +1,13 @@
 [package]
 name = "walkers_extras"
 version.workspace = true
-rust-version.workspace = true
 edition.workspace = true
-repository = "https://github.com/podusowski/walkers"
+rust-version.workspace = true
 description = "extra functionalities for walkers crate"
-keywords = ["geography", "gis", "gui"]
-categories = ["gui", "science::geo"]
-authors = ["Piotr Podusowski <podusowski@gmail.com>"]
-license = "MIT"
+repository.workspace = true
+license.workspace = true
+keywords.workspace = true
+categories.workspace = true
 
 [dependencies]
 egui.workspace = true

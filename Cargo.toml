@@ -14,6 +14,10 @@ members = [
 version = "0.51.0"
 edition = "2024"
 rust-version = "1.88"  # Aligned to egui
+repository = "https://github.com/podusowski/walkers"
+license = "MIT"
+keywords = ["geography", "gis", "gui"]
+categories = ["gui", "science::geo"]
 
 [workspace.dependencies]
 eframe = "0.33"

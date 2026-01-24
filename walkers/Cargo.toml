@@ -1,13 +1,13 @@
 [package]
 name = "walkers"
 version.workspace = true
-repository = "https://github.com/podusowski/walkers"
-description = "slippy map widget for egui"
-keywords = ["geography", "gis", "gui"]
-categories = ["gui", "science::geo"]
-authors = ["Piotr Podusowski <podusowski@gmail.com>"]
-license = "MIT"
 edition.workspace = true
+rust-version.workspace = true
+description = "slippy map widget for egui"
+repository.workspace = true
+license.workspace = true
+keywords.workspace = true
+categories.workspace = true
 
 [dependencies]
 bytes = "1"
