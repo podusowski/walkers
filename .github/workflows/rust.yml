@@ -37,6 +37,8 @@ jobs:
       - uses: actions/checkout@v4
       - uses: Swatinem/rust-cache@v2
       - uses: arduino/setup-protoc@v3.0.0
+        with:
+          repo-token: ${{ secrets.GITHUB_TOKEN }}
       - run: cargo install trunk@0.21.14 --locked
       - name: Build Demo Web
         run: env -C demo_web trunk build
@@ -47,6 +49,8 @@ jobs:
       - uses: actions/checkout@v4
       - uses: Swatinem/rust-cache@v2
       - uses: arduino/setup-protoc@v3.0.0
+        with:
+          repo-token: ${{ secrets.GITHUB_TOKEN }}
       - name: Setup Java JDK
         uses: actions/setup-java@v4.5.0
         with:
