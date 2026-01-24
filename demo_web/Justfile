@@ -1,0 +1,8 @@
+help:
+    @just --list --unsorted
+
+build:
+    trunk build
+
+serve:
+    trunk serve

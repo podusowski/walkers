@@ -1,31 +1,33 @@
-use egui::Color32;
-use walkers_extras::{KmlLayer, KmlVisualDefaults, parse_kml};
+use walkers::{Color, Float, Layer, Paint, Style, json};
+use walkers_extras::KmlLayer;
 
 /// Poland borders
 pub fn poland_borders() -> KmlLayer {
-    let features = parse_kml(include_str!("../assets/Poland.kml")).unwrap();
-
-    let defaults = KmlVisualDefaults {
-        polygon_fill_color: Color32::from_rgba_unmultiplied(0, 0, 0, 0),
-        polygon_outline_color: Color32::from_rgb(0xFF, 0x00, 0x00),
-        polygon_outline_width: 3.0,
-        ..KmlVisualDefaults::default()
+    let style = Style {
+        layers: vec![Layer::Line {
+            // TODO: Actually, it does not matter.
+            source_layer: "borders".to_string(),
+            filter: None,
+            paint: Paint {
+                line_color: Some(Color(json!("#ff0000"))),
+                line_width: Some(Float(json!(2.0))),
+                ..Default::default()
+            },
+        }],
     };
 
-    KmlLayer::new(features.clone()).with_defaults(defaults)
+    KmlLayer::from_string(include_str!("../assets/Poland.kml"), style)
 }
 
 /// Outdoor gyms Umeå
 /// https://data.europa.eu/data/datasets/utegym-umea-opendata-umea-se
 pub fn outgym_umea_layer() -> KmlLayer {
-    let features = parse_kml(include_str!("../assets/utegym-umea.kml")).unwrap();
-
-    let defaults = KmlVisualDefaults {
-        polygon_fill_color: Color32::from_rgba_unmultiplied(0, 0, 0, 0),
-        polygon_outline_color: Color32::from_rgb(0x00, 0xFF, 0x00),
-        polygon_outline_width: 3.0,
-        ..KmlVisualDefaults::default()
+    let style = Style {
+        layers: vec![Layer::Circle {
+            source_layer: "".to_string(),
+            filter: None,
+        }],
     };
 
-    KmlLayer::new(features.clone()).with_defaults(defaults)
+    KmlLayer::from_string(include_str!("../assets/utegym-umea.kml"), style)
 }

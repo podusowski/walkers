@@ -4,7 +4,7 @@ mod kml;
 mod labeled_symbol;
 mod places;
 
-pub use kml::{KmlFeature, KmlGeometry, KmlLayer, KmlStyle, KmlVisualDefaults, parse_kml};
+pub use kml::KmlLayer;
 pub use labeled_symbol::{
     LabeledSymbol, LabeledSymbolGroup, LabeledSymbolGroupStyle, LabeledSymbolStyle, Symbol,
 };

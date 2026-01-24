@@ -2,7 +2,7 @@ use color::Rgba8;
 use egui::Color32;
 use log::warn;
 use serde::Deserialize;
-use serde_json::Value;
+pub use serde_json::{Value, json};
 use thiserror::Error;
 
 use crate::expression::Context;
@@ -76,11 +76,15 @@ pub enum Layer {
         layout: Layout,
         paint: Option<Paint>,
     },
+    Circle {
+        source_layer: String,
+        filter: Option<Filter>,
+    },
     Raster,
     FillExtrusion,
 }
 
-#[derive(Deserialize, Debug)]
+#[derive(Deserialize, Default, Debug)]
 #[serde(rename_all = "kebab-case")]
 pub struct Paint {
     pub background_color: Option<Color>,

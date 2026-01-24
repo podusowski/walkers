@@ -12,6 +12,8 @@ license = "MIT"
 
 [dependencies]
 egui.workspace = true
+kml = { version = "0.12.0", default-features = false }
+log.workspace = true
 lyon_path = "1.0"
 lyon_tessellation = "1.0"
 quick-xml = "0.37"
