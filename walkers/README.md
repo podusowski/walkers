@@ -95,8 +95,6 @@ doing that is to download an extract from
 pmtiles extract https://build.protomaps.com/20250928.pmtiles --bbox 16.802768,51.036355,17.209205,51.180686 wroclaw.pmtiles
 ```
 
-![Screenshot](widnet.png)
-
 ## Mapbox support
 
 To enable **mapbox** layers, you need to define `MAPBOX_ACCESS_TOKEN` environment
