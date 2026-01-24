@@ -18,49 +18,44 @@ impl KmlLayer {
             style,
         }
     }
+}
 
-    fn draw_line_layer(&self, painter: &egui::Painter, projector: &Projector, element: &kml::Kml) {
-        match element {
-            kml::Kml::Placemark(placemark) => {
-                if let Some(geometry) = &placemark.geometry {
-                    draw_line_geometry(painter, projector, geometry);
-                }
-            }
-            kml::Kml::Document { elements, .. }
-            | kml::Kml::KmlDocument(KmlDocument { elements, .. })
-            | kml::Kml::Folder(Folder { elements, .. }) => {
-                for child in elements {
-                    self.draw_line_layer(painter, projector, child);
-                }
-            }
-            _ => {
-                debug!("Skipping unsupported KML element: {element:?}");
+fn draw_line_layer(painter: &egui::Painter, projector: &Projector, element: &kml::Kml) {
+    match element {
+        kml::Kml::Placemark(placemark) => {
+            if let Some(geometry) = &placemark.geometry {
+                draw_line_geometry(painter, projector, geometry);
             }
         }
+        kml::Kml::Document { elements, .. }
+        | kml::Kml::KmlDocument(KmlDocument { elements, .. })
+        | kml::Kml::Folder(Folder { elements, .. }) => {
+            for child in elements {
+                draw_line_layer(painter, projector, child);
+            }
+        }
+        _ => {
+            debug!("Skipping unsupported KML element: {element:?}");
+        }
     }
+}
 
-    fn draw_circle_layer(
-        &self,
-        painter: &egui::Painter,
-        projector: &Projector,
-        element: &kml::Kml,
-    ) {
-        match element {
-            kml::Kml::Placemark(placemark) => {
-                if let Some(geometry) = &placemark.geometry {
-                    draw_circle_geometry(painter, projector, geometry);
-                }
+fn draw_circle_layer(painter: &egui::Painter, projector: &Projector, element: &kml::Kml) {
+    match element {
+        kml::Kml::Placemark(placemark) => {
+            if let Some(geometry) = &placemark.geometry {
+                draw_circle_geometry(painter, projector, geometry);
             }
-            kml::Kml::Document { elements, .. }
-            | kml::Kml::KmlDocument(KmlDocument { elements, .. })
-            | kml::Kml::Folder(Folder { elements, .. }) => {
-                for child in elements {
-                    self.draw_circle_layer(painter, projector, child);
-                }
+        }
+        kml::Kml::Document { elements, .. }
+        | kml::Kml::KmlDocument(KmlDocument { elements, .. })
+        | kml::Kml::Folder(Folder { elements, .. }) => {
+            for child in elements {
+                draw_circle_layer(painter, projector, child);
             }
-            _ => {
-                debug!("Skipping unsupported KML element: {element:?}");
-            }
+        }
+        _ => {
+            debug!("Skipping unsupported KML element: {element:?}");
         }
     }
 }
@@ -140,10 +135,10 @@ impl Plugin for KmlLayer {
         for layer in &self.style.layers {
             match layer {
                 Layer::Line { .. } => {
-                    self.draw_line_layer(&ui.painter_at(response.rect), projector, &self.kml);
+                    draw_line_layer(&ui.painter_at(response.rect), projector, &self.kml);
                 }
                 Layer::Circle { .. } => {
-                    self.draw_circle_layer(&ui.painter_at(response.rect), projector, &self.kml);
+                    draw_circle_layer(&ui.painter_at(response.rect), projector, &self.kml);
                 }
                 other => {
                     warn!("Unsupported style layer: {other:?}");
