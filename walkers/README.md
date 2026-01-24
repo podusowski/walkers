@@ -11,8 +11,7 @@ It compiles to native applications as well as WASM. See the **[online demo here]
 ![Screenshot](https://raw.githubusercontent.com/podusowski/walkers/main/screenshot.png)
 
 It supports [OpenStreetMap](https://www.openstreetmap.org), [mapbox](https://www.mapbox.com/), 
-and compatible tile servers. There is also experimental support for off-line vector tiles using
-the [PMTiles](https://protomaps.com/pmtiles/) format.
+and compatible tile servers as well as off-line tiles using the [PMTiles](https://protomaps.com/pmtiles/) format.
 
 Before deploying your application, please get yourself familiar with the
 [OpenStreetMap usage policy](https://operations.osmfoundation.org/policies/tiles/), 
@@ -58,7 +57,9 @@ impl App for MyApp {
 
 You can see a more complete example [here](https://github.com/podusowski/walkers/blob/main/demo/src/lib.rs).
 
-## Native
+## Running the demo
+
+### Native
 
 To run demo application locally, use a default cargo run target.
 
@@ -66,27 +67,14 @@ To run demo application locally, use a default cargo run target.
 cargo run
 ```
 
-To see **vector maps** support in action, you need to obtain some `.pmtiles`
-files and put them into the directory from where you run the demo. One way of
-doing that is to download an extract from
-[Protonmaps](https://docs.protomaps.com/guide/getting-started).
-
-```sh
-pmtiles extract https://build.protomaps.com/20250928.pmtiles --bbox 16.802768,51.036355,17.209205,51.180686 wroclaw.pmtiles
-```
-
-To enable **mapbox** layers, you need to define `MAPBOX_ACCESS_TOKEN` environment
-variable before building. You can get one by creating a
-[mapbox account](https://account.mapbox.com/).
-
-## Web / WASM
+### Web / WASM
 
 ```sh
 cd demo_web
 trunk serve --release
 ```
 
-## Android
+### Android
 
 You need to have [Android SDK](https://developer.android.com/) and
 [cargo-ndk](https://github.com/bbqsrc/cargo-ndk) installed.
@@ -95,3 +83,20 @@ You need to have [Android SDK](https://developer.android.com/) and
 cd demo_android
 make run-on-device
 ```
+
+## Vector and offline maps
+
+To see experimental **vector maps** support in action, you need to obtain some `.pmtiles`
+files and put them into the directory from where you run the native demo. One way of
+doing that is to download an extract from
+[Protomaps](https://docs.protomaps.com/guide/getting-started).
+
+```sh
+pmtiles extract https://build.protomaps.com/20250928.pmtiles --bbox 16.802768,51.036355,17.209205,51.180686 wroclaw.pmtiles
+```
+
+## Mapbox support
+
+To enable **mapbox** layers, you need to define `MAPBOX_ACCESS_TOKEN` environment
+variable before building. You can get one by creating a
+[mapbox account](https://account.mapbox.com/).
