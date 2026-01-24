@@ -23,7 +23,7 @@ impl KmlLayer {
         match element {
             kml::Kml::Placemark(placemark) => {
                 if let Some(geometry) = &placemark.geometry {
-                    self.draw_line_geometry(painter, projector, geometry);
+                    draw_line_geometry(painter, projector, geometry);
                 }
             }
             kml::Kml::Document { elements, .. }
@@ -48,7 +48,7 @@ impl KmlLayer {
         match element {
             kml::Kml::Placemark(placemark) => {
                 if let Some(geometry) = &placemark.geometry {
-                    self.draw_circle_geometry(painter, projector, geometry);
+                    draw_circle_geometry(painter, projector, geometry);
                 }
             }
             kml::Kml::Document { elements, .. }
@@ -63,71 +63,69 @@ impl KmlLayer {
             }
         }
     }
+}
 
-    fn draw_line_geometry(
-        &self,
-        painter: &egui::Painter,
-        projector: &Projector,
-        geometry: &kml::types::Geometry,
-    ) {
-        match geometry {
-            kml::types::Geometry::Polygon(polygon) => {
-                let line_width = 2.0;
-                let stroke = Stroke::new(line_width, Color32::BLACK);
+fn draw_line_geometry(
+    painter: &egui::Painter,
+    projector: &Projector,
+    geometry: &kml::types::Geometry,
+) {
+    match geometry {
+        kml::types::Geometry::Polygon(polygon) => {
+            let line_width = 2.0;
+            let stroke = Stroke::new(line_width, Color32::BLACK);
 
-                let exterior: Vec<_> = polygon
-                    .outer
+            let exterior: Vec<_> = polygon
+                .outer
+                .coords
+                .iter()
+                .map(|c| projector.project(lon_lat(c.x, c.y)).to_pos2())
+                .collect();
+
+            painter.add(Shape::closed_line(exterior, stroke));
+
+            for inner in &polygon.inner {
+                let hole: Vec<_> = inner
                     .coords
                     .iter()
                     .map(|c| projector.project(lon_lat(c.x, c.y)).to_pos2())
                     .collect();
 
-                painter.add(Shape::closed_line(exterior, stroke));
-
-                for inner in &polygon.inner {
-                    let hole: Vec<_> = inner
-                        .coords
-                        .iter()
-                        .map(|c| projector.project(lon_lat(c.x, c.y)).to_pos2())
-                        .collect();
-
-                    painter.add(Shape::closed_line(hole, stroke));
-                }
+                painter.add(Shape::closed_line(hole, stroke));
             }
-            kml::types::Geometry::MultiGeometry(multi_geometry) => {
-                for geom in &multi_geometry.geometries {
-                    self.draw_line_geometry(painter, projector, geom);
-                }
-            }
-            _ => todo!(),
         }
+        kml::types::Geometry::MultiGeometry(multi_geometry) => {
+            for geom in &multi_geometry.geometries {
+                draw_line_geometry(painter, projector, geom);
+            }
+        }
+        _ => todo!(),
     }
+}
 
-    fn draw_circle_geometry(
-        &self,
-        painter: &egui::Painter,
-        projector: &Projector,
-        geometry: &kml::types::Geometry,
-    ) {
-        match geometry {
-            kml::types::Geometry::Point(point) => {
-                let center = projector
-                    .project(lon_lat(point.coord.x, point.coord.y))
-                    .to_pos2();
-                let radius = 5.0;
-                let stroke = Stroke::new(1.0, Color32::BLACK);
-                let fill = Color32::from_rgb(0, 255, 0);
+fn draw_circle_geometry(
+    painter: &egui::Painter,
+    projector: &Projector,
+    geometry: &kml::types::Geometry,
+) {
+    match geometry {
+        kml::types::Geometry::Point(point) => {
+            let center = projector
+                .project(lon_lat(point.coord.x, point.coord.y))
+                .to_pos2();
+            let radius = 5.0;
+            let stroke = Stroke::new(1.0, Color32::BLACK);
+            let fill = Color32::from_rgb(0, 255, 0);
 
-                painter.add(Shape::circle_filled(center, radius, fill));
-                painter.add(Shape::circle_stroke(center, radius, stroke));
-            }
-            kml::types::Geometry::MultiGeometry(multi_geometry) => {
-                for geom in &multi_geometry.geometries {
-                    self.draw_circle_geometry(painter, projector, geom);
-                }
-            }
-            _ => todo!(),
+            painter.add(Shape::circle_filled(center, radius, fill));
+            painter.add(Shape::circle_stroke(center, radius, stroke));
         }
+        kml::types::Geometry::MultiGeometry(multi_geometry) => {
+            for geom in &multi_geometry.geometries {
+                draw_circle_geometry(painter, projector, geom);
+            }
+        }
+        _ => todo!(),
     }
 }
 
