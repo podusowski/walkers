@@ -19,28 +19,22 @@ impl KmlLayer {
         }
     }
 
-    fn draw_line_layer(
-        &self,
-        painter: &egui::Painter,
-        response: &Response,
-        projector: &Projector,
-        element: &kml::Kml,
-    ) {
+    fn draw_line_layer(&self, painter: &egui::Painter, projector: &Projector, element: &kml::Kml) {
         match element {
             kml::Kml::Placemark(placemark) => {
                 if let Some(geometry) = &placemark.geometry {
-                    self.draw_line_geometry(&painter, response, projector, geometry);
+                    self.draw_line_geometry(&painter, projector, geometry);
                 }
             }
             kml::Kml::Document { elements, .. }
             | kml::Kml::KmlDocument(KmlDocument { elements, .. })
             | kml::Kml::Folder(Folder { elements, .. }) => {
                 for child in elements {
-                    self.draw_line_layer(painter, response, projector, child);
+                    self.draw_line_layer(painter, projector, child);
                 }
             }
             _ => {
-                debug!("Skipping unsupported KML element: {:?}", element);
+                debug!("Skipping unsupported KML element: {element:?}");
             }
         }
     }
@@ -48,25 +42,24 @@ impl KmlLayer {
     fn draw_circle_layer(
         &self,
         painter: &egui::Painter,
-        response: &Response,
         projector: &Projector,
         element: &kml::Kml,
     ) {
         match element {
             kml::Kml::Placemark(placemark) => {
                 if let Some(geometry) = &placemark.geometry {
-                    self.draw_circle_geometry(&painter, response, projector, geometry);
+                    self.draw_circle_geometry(&painter, projector, geometry);
                 }
             }
             kml::Kml::Document { elements, .. }
             | kml::Kml::KmlDocument(KmlDocument { elements, .. })
             | kml::Kml::Folder(Folder { elements, .. }) => {
                 for child in elements {
-                    self.draw_circle_layer(painter, response, projector, child);
+                    self.draw_circle_layer(painter, projector, child);
                 }
             }
             _ => {
-                debug!("Skipping unsupported KML element: {:?}", element);
+                debug!("Skipping unsupported KML element: {element:?}");
             }
         }
     }
@@ -74,7 +67,6 @@ impl KmlLayer {
     fn draw_line_geometry(
         &self,
         painter: &egui::Painter,
-        response: &Response,
         projector: &Projector,
         geometry: &kml::types::Geometry,
     ) {
@@ -104,7 +96,7 @@ impl KmlLayer {
             }
             kml::types::Geometry::MultiGeometry(multi_geometry) => {
                 for geom in &multi_geometry.geometries {
-                    self.draw_line_geometry(painter, response, projector, geom);
+                    self.draw_line_geometry(painter, projector, geom);
                 }
             }
             _ => todo!(),
@@ -114,7 +106,6 @@ impl KmlLayer {
     fn draw_circle_geometry(
         &self,
         painter: &egui::Painter,
-        response: &Response,
         projector: &Projector,
         geometry: &kml::types::Geometry,
     ) {
@@ -132,7 +123,7 @@ impl KmlLayer {
             }
             kml::types::Geometry::MultiGeometry(multi_geometry) => {
                 for geom in &multi_geometry.geometries {
-                    self.draw_circle_geometry(painter, response, projector, geom);
+                    self.draw_circle_geometry(painter, projector, geom);
                 }
             }
             _ => todo!(),
@@ -151,23 +142,13 @@ impl Plugin for KmlLayer {
         for layer in &self.style.layers {
             match layer {
                 Layer::Line { .. } => {
-                    self.draw_line_layer(
-                        &ui.painter_at(response.rect),
-                        response,
-                        projector,
-                        &self.kml,
-                    );
+                    self.draw_line_layer(&ui.painter_at(response.rect), projector, &self.kml);
                 }
                 Layer::Circle { .. } => {
-                    self.draw_circle_layer(
-                        &ui.painter_at(response.rect),
-                        response,
-                        projector,
-                        &self.kml,
-                    );
+                    self.draw_circle_layer(&ui.painter_at(response.rect), projector, &self.kml);
                 }
                 other => {
-                    warn!("Unsupported style layer: {:?}", other);
+                    warn!("Unsupported style layer: {other:?}");
                 }
             }
         }
