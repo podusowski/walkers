@@ -11,7 +11,7 @@ members = [
 ]
 
 [workspace.package]
-version = "0.51.0"
+version = "0.52.0"
 edition = "2024"
 rust-version = "1.88"  # Aligned to egui
 repository = "https://github.com/podusowski/walkers"
@@ -26,8 +26,8 @@ egui_extras = { version = "0.33", features = ["svg"] }
 egui-winit = "0.33"
 image = { version = "0.25", default-features = false }
 log = "0.4"
-walkers = { path = "walkers", version = "0.51.0" }
-walkers_extras = { path = "walkers_extras", version = "0.51.0" }
+walkers = { path = "walkers", version = "0.52.0" }
+walkers_extras = { path = "walkers_extras", version = "0.52.0" }
 wgpu = { version = "27.0.1", default-features = true }
 
 [patch.crates-io]
