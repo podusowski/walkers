@@ -27,7 +27,7 @@ lru = "0.16"
 lyon_path = { version = "1", optional = true }
 lyon_tessellation = { version = "1", optional = true }
 mvt-reader = { version = "2.1.0", optional = true }
-pmtiles = { version = "0.18.0", default-features = false, features = [
+pmtiles = { version = "0.19.2", default-features = false, features = [
   "mmap-async-tokio",
 ], optional = true }
 reqwest = { version = "0.12", default-features = false, features = [
