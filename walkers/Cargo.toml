@@ -26,7 +26,7 @@ log.workspace = true
 lru = "0.16"
 lyon_path = { version = "1", optional = true }
 lyon_tessellation = { version = "1", optional = true }
-mvt-reader = { version = "2.1.0", optional = true }
+mvt-reader = { version = "2.2.0", optional = true }
 pmtiles = { version = "0.18.0", default-features = false, features = [
   "mmap-async-tokio",
 ], optional = true }
