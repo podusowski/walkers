@@ -11,6 +11,7 @@ categories.workspace = true
 
 [dependencies]
 egui.workspace = true
+geojson = "0.24.2"
 kml = { version = "0.12.0", default-features = false }
 log.workspace = true
 lyon_path = "1.0"

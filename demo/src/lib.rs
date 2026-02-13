@@ -6,7 +6,8 @@ mod windows;
 
 use egui::{Button, CentralPanel, Context, DragPanButtons, Frame, OpenUrl, Rect, Vec2};
 use tiles::{TilesKind, providers};
-use walkers::{Map, MapMemory};
+use walkers::{Color, Float, Layer, Map, MapMemory, Paint, Style, json};
+use walkers_extras::GeoJsonLayer;
 
 use crate::tiles::Providers;
 
@@ -62,6 +63,11 @@ impl eframe::App for MyApp {
                 .with_plugin(kml::poland_borders())
                 .with_plugin(kml::outgym_umea_layer());
 
+            // Add some GeoJSON layers from the current directory.
+            for layer in geojson_layers() {
+                map = map.with_plugin(layer);
+            }
+
             // Multiple layers can be added.
             for (n, tiles) in tiles.iter_mut().enumerate() {
                 // With a different transparency.
@@ -110,5 +116,40 @@ impl eframe::App for MyApp {
                 acknowledge(ui, attributions);
             }
         });
+    }
+}
+
+/// Find `.geojson` files in the current directory and build GeoJsonLayer out of them.
+fn geojson_layers() -> Vec<GeoJsonLayer> {
+    use std::fs;
+
+    let mut layers = Vec::new();
+
+    for entry in fs::read_dir(".").unwrap() {
+        let entry = entry.unwrap();
+        let path = entry.path();
+
+        if path.extension().and_then(|s| s.to_str()) == Some("geojson") {
+            let content = fs::read_to_string(path).unwrap();
+            let geojson = content.parse().unwrap();
+            layers.push(GeoJsonLayer::new(geojson, trails_style()));
+        }
+    }
+
+    layers
+}
+
+fn trails_style() -> Style {
+    Style {
+        layers: vec![Layer::Line {
+            // TODO: Actually, it does not matter.
+            source_layer: "borders".to_string(),
+            filter: None,
+            paint: Paint {
+                line_color: Some(Color(json!("#ff0000"))),
+                line_width: Some(Float(json!(2.0))),
+                ..Default::default()
+            },
+        }],
     }
 }
