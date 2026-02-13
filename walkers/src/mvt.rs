@@ -204,7 +204,8 @@ fn get_layer_features(
 fn geometry_type_to_str(geometry: &Geometry<f32>) -> &'static str {
     match geometry {
         Geometry::Point(_) | Geometry::MultiPoint(_) => "Point",
-        Geometry::Line(_) | Geometry::LineString(_) | Geometry::MultiLineString(_) => "Line",
+        Geometry::Line(_) => "Line",
+        Geometry::LineString(_) | Geometry::MultiLineString(_) => "LineString",
         Geometry::Polygon(_) | Geometry::MultiPolygon(_) => "Polygon",
         Geometry::GeometryCollection(_) => "GeometryCollection",
         Geometry::Rect(_) => "Rect",
