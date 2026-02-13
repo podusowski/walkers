@@ -2,6 +2,10 @@
 
 All notable changes to this project will be documented in this file.
 
+## Unreleased
+
+* Fix for line filters used by OpenFreeMap Bright style.
+
 ## 0.52.0
 
 * Faster collision detection algorithm for texts in vector tiles.
