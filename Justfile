@@ -30,3 +30,13 @@ typos:
 publish:
     cargo publish -p walkers
     cargo publish -p walkers_extras
+    
+# Bounding box roughly covering Dolnośląskie
+# (south, west, north, east)
+BBOX := "50.0,15.9,51.8,17.9"
+
+trails-dolnoslaskie:
+    curl -G https://overpass-api.de/api/interpreter \
+        --data-urlencode 'data=[out:json][timeout:60];(relation["route"="hiking"]({{BBOX}}););out geom;' \
+        -o trails.json
+    osmtogeojson trails.json > trails.geojson
