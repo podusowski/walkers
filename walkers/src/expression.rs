@@ -389,10 +389,10 @@ mod tests {
 
     #[test]
     fn test_eq_filter_matching() {
-        let park = HashMap::from([("type".to_string(), MvtValue::String("park".to_string()))]);
+        let park = HashMap::from([("type".to_string(), json!("park"))]);
         let park_context = Context::new("Point".to_string(), park, 1);
 
-        let forest = HashMap::from([("type".to_string(), MvtValue::String("forest".to_string()))]);
+        let forest = HashMap::from([("type".to_string(), json!("forest"))]);
         let forest_context = Context::new("Point".to_string(), forest, 1);
 
         let filter = Filter(json!(["==", "type", "park"]));
@@ -417,10 +417,10 @@ mod tests {
 
     #[test]
     fn test_in_filter() {
-        let park = HashMap::from([("type".to_string(), MvtValue::String("park".to_string()))]);
+        let park = HashMap::from([("type".to_string(), json!("park"))]);
         let park_context = Context::new("Point".to_string(), park, 1);
 
-        let road = HashMap::from([("type".to_string(), MvtValue::String("road".to_string()))]);
+        let road = HashMap::from([("type".to_string(), json!("road"))]);
         let road_context = Context::new("Point".to_string(), road, 1);
 
         let filter = Filter(json!(["in", "type", "park", "forest"]));
@@ -458,8 +458,7 @@ mod tests {
 
     #[test]
     fn test_get_operator() {
-        let properties =
-            HashMap::from([("name".to_string(), MvtValue::String("Polska".to_string()))]);
+        let properties = HashMap::from([("name".to_string(), json!("Polska"))]);
         let context = Context::new("Point".to_string(), properties, 1);
 
         assert_eq!(
@@ -475,8 +474,7 @@ mod tests {
 
     #[test]
     fn test_has_operator() {
-        let properties =
-            HashMap::from([("name".to_string(), MvtValue::String("Polska".to_string()))]);
+        let properties = HashMap::from([("name".to_string(), json!("Polska"))]);
         let context = Context::new("Point".to_string(), properties, 1);
 
         assert_eq!(
@@ -608,8 +606,7 @@ mod tests {
 
     #[test]
     fn test_eq_operator() {
-        let properties =
-            HashMap::from([("name".to_string(), MvtValue::String("Polska".to_string()))]);
+        let properties = HashMap::from([("name".to_string(), json!("Polska"))]);
         let context = Context::new("Point".to_string(), properties, 1);
 
         assert_eq!(
@@ -629,8 +626,7 @@ mod tests {
 
     #[test]
     fn test_in_operator() {
-        let properties =
-            HashMap::from([("name".to_string(), MvtValue::String("Polska".to_string()))]);
+        let properties = HashMap::from([("name".to_string(), json!("Polska"))]);
         let context = Context::new("Point".to_string(), properties, 1);
 
         assert_eq!(
@@ -696,7 +692,7 @@ mod tests {
 
     #[test]
     fn test_interpolate_operator_with_evaluated_stop() {
-        let properties = HashMap::from([("zoom".to_string(), MvtValue::Int(5))]);
+        let properties = HashMap::from([("zoom".to_string(), json!(5))]);
         let context = Context::new("Point".to_string(), properties, 1);
 
         assert_eq!(
