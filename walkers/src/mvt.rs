@@ -213,7 +213,7 @@ fn geometry_type_to_str(geometry: &Geometry<f32>) -> &'static str {
     }
 }
 
-fn render_line(
+pub fn render_line(
     geometry: &Geometry<f32>,
     context: &Context,
     shapes: &mut Vec<ShapeOrText>,
