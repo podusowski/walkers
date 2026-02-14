@@ -1,7 +1,7 @@
 use egui::{Response, Ui};
 use geojson::{Feature, GeoJson};
 use log::warn;
-use walkers::{Layer, MapMemory, Plugin, Projector, Style};
+use walkers::{Context, Layer, MapMemory, Plugin, Projector, Style};
 
 pub struct GeoJsonLayer {
     geojson: GeoJson,
@@ -27,8 +27,21 @@ impl Plugin for GeoJsonLayer {
                 Layer::Line { .. } => {
                     visit_features(&self.geojson, |feature| {
                         if let Some(geometry) = &feature.geometry {
-                            //render_line(geometry, Conte
-                            todo!();
+                            //let properties = feature
+                            //    .properties
+                            //    .as_ref()
+                            //    .map(|props| {
+                            //        props
+                            //            .iter()
+                            //            .map(|(k, v)| (k.clone(), v.to_string()))
+                            //            .collect()
+                            //    })
+                            //    .unwrap_or_default();
+                            //render_line(
+                            //    geometry,
+                            //    Context::new("geometry_type/TODO".to_string(), properties, zoom),
+                            //);
+                            //todo!();
                         }
                     });
                 }

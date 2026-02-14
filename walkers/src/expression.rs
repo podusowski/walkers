@@ -28,7 +28,7 @@ pub enum Error {
     #[error("At least two elemented expected, got: {0:?}")]
     AtLeastTwoElementsExpected(Vec<Value>),
     #[error("Property '{0}' missing in {1:?}")]
-    PropertyMissing(String, HashMap<String, MvtValue>),
+    PropertyMissing(String, HashMap<String, Value>),
     #[error("Value must be a number, got: {0}")]
     ExpectedNumber(Value),
     #[error("Value must be a string, got: {0}")]
@@ -46,12 +46,12 @@ pub enum Error {
 /// Context in which style expressions are evaluated.
 pub struct Context {
     geometry_type: String,
-    properties: HashMap<String, MvtValue>,
+    properties: HashMap<String, Value>,
     zoom: u8,
 }
 
 impl Context {
-    pub fn new(geometry_type: String, properties: HashMap<String, MvtValue>, zoom: u8) -> Self {
+    pub fn new(geometry_type: String, properties: HashMap<String, Value>, zoom: u8) -> Self {
         Self {
             geometry_type,
             properties,
@@ -78,10 +78,7 @@ impl Context {
                     },
                     "get" => {
                         let key = single_string(arguments)?;
-                        Ok(self
-                            .properties
-                            .get(key)
-                            .map_or(Value::Null, mvt_value_to_json))
+                        Ok(self.properties.get(key).cloned().unwrap_or(Value::Null))
                     }
                     "has" => Ok(Value::Bool(
                         self.properties.contains_key(single_string(arguments)?),
@@ -250,11 +247,11 @@ impl Context {
             Value::String(key) if key == "geometry-type" => {
                 Ok(Value::String(self.geometry_type.clone()))
             }
-            Value::String(key) if self.properties.contains_key(key) => {
-                Ok(mvt_value_to_json(self.properties.get(key).ok_or(
-                    Error::PropertyMissing(key.clone(), self.properties.clone()),
-                )?))
-            }
+            Value::String(key) if self.properties.contains_key(key) => Ok(self
+                .properties
+                .get(key)
+                .ok_or(Error::PropertyMissing(key.clone(), self.properties.clone()))?
+                .clone()),
             Value::Array(_) => self.evaluate(value),
             literal => Ok(literal.clone()),
         }
@@ -268,19 +265,6 @@ fn match_arm(input: &Value, arm_value: &Value) -> bool {
         arm_values.iter().any(|arm_value| arm_value == input)
     } else {
         input == arm_value
-    }
-}
-
-fn mvt_value_to_json(value: &MvtValue) -> Value {
-    match value {
-        MvtValue::String(s) => Value::String(s.clone()),
-        MvtValue::Int(i) | MvtValue::SInt(i) => Value::Number((*i).into()),
-        MvtValue::Bool(b) => Value::Bool(*b),
-        MvtValue::Null => Value::Null,
-        _ => {
-            warn!("Unsupported MVT value type: {value:?}");
-            Value::Null
-        }
     }
 }
 

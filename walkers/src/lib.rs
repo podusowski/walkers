@@ -52,4 +52,6 @@ pub use zoom::InvalidZoom;
 
 // TODO: In future, I'd like to expose full drawing API instead of this.
 #[cfg(feature = "mvt")]
+pub use expression::Context;
+#[cfg(feature = "mvt")]
 pub use mvt::{render_line, tessellate_polygon};
