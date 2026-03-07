@@ -12,16 +12,8 @@ impl GeoJsonLayer {
     pub fn new(geojson: GeoJson, style: Style) -> Self {
         Self { geojson, style }
     }
-}
 
-impl Plugin for GeoJsonLayer {
-    fn run(
-        self: Box<Self>,
-        ui: &mut Ui,
-        response: &Response,
-        projector: &Projector,
-        _map_memory: &MapMemory,
-    ) {
+    pub fn render(&self, ui: &mut Ui, projector: &Projector, zoom: u8) {
         let mut shapes = Vec::new();
 
         for layer in &self.style.layers {
@@ -38,11 +30,7 @@ impl Plugin for GeoJsonLayer {
                             render_line(
                                 &walkers::Geometry::<f32>::try_from(geometry.clone())
                                     .expect("invalid geometry"),
-                                &Context::new(
-                                    "geometry_type/TODO".to_string(),
-                                    properties,
-                                    _map_memory.zoom().round() as u8,
-                                ),
+                                &Context::new("geometry_type/TODO".to_string(), properties, zoom),
                                 &mut shapes,
                                 paint,
                             );

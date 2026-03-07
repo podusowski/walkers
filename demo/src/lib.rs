@@ -16,6 +16,7 @@ pub struct MyApp {
     map_memory: MapMemory,
     click_watcher: plugins::ClickWatcher,
     zoom_with_ctrl: bool,
+    geojson_layers: Vec<GeoJsonLayer>,
 }
 
 impl MyApp {
@@ -27,6 +28,7 @@ impl MyApp {
             map_memory: MapMemory::default(),
             click_watcher: Default::default(),
             zoom_with_ctrl: true,
+            geojson_layers: geojson_layers(),
         }
     }
 }
@@ -63,10 +65,10 @@ impl eframe::App for MyApp {
                 .with_plugin(kml::poland_borders())
                 .with_plugin(kml::outgym_umea_layer());
 
-            // Add some GeoJSON layers from the current directory.
-            for layer in geojson_layers() {
-                map = map.with_plugin(layer);
-            }
+            // // Add some GeoJSON layers from the current directory.
+            // for layer in &self.geojson_layers {
+            //     map = map.with_plugin(layer);
+            // }
 
             // Multiple layers can be added.
             for (n, tiles) in tiles.iter_mut().enumerate() {
@@ -76,7 +78,12 @@ impl eframe::App for MyApp {
             }
 
             // Draw the map widget.
-            let response = map.show(ui, |ui, _, projector, _| {
+            let response = map.show(ui, |ui, _, projector, map_memory| {
+                // Add some GeoJSON layers from the current directory.
+                for layer in &self.geojson_layers {
+                    layer.render(ui, projector, map_memory.zoom().round() as u8);
+                }
+
                 // You can add any additional contents to the map's UI here.
                 let bastion = projector.project(places::bastion_sakwowy()).to_pos2();
                 ui.put(
