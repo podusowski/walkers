@@ -1,7 +1,7 @@
 use egui::{Response, Ui};
 use geojson::{Feature, GeoJson};
 use log::warn;
-use walkers::{Context, Layer, MapMemory, Plugin, Projector, Style};
+use walkers::{Context, Layer, MapMemory, Plugin, Projector, Style, render_line};
 
 pub struct GeoJsonLayer {
     geojson: GeoJson,
@@ -22,26 +22,30 @@ impl Plugin for GeoJsonLayer {
         projector: &Projector,
         _map_memory: &MapMemory,
     ) {
+        let mut shapes = Vec::new();
+
         for layer in &self.style.layers {
             match layer {
-                Layer::Line { .. } => {
+                Layer::Line { paint, .. } => {
                     visit_features(&self.geojson, |feature| {
                         if let Some(geometry) = &feature.geometry {
-                            //let properties = feature
-                            //    .properties
-                            //    .as_ref()
-                            //    .map(|props| {
-                            //        props
-                            //            .iter()
-                            //            .map(|(k, v)| (k.clone(), v.to_string()))
-                            //            .collect()
-                            //    })
-                            //    .unwrap_or_default();
-                            //render_line(
-                            //    geometry,
-                            //    Context::new("geometry_type/TODO".to_string(), properties, zoom),
-                            //);
-                            //todo!();
+                            let properties = feature
+                                .properties
+                                .clone()
+                                .unwrap_or_default()
+                                .into_iter()
+                                .collect();
+                            render_line(
+                                &walkers::Geometry::<f32>::try_from(geometry.clone())
+                                    .expect("invalid geometry"),
+                                &Context::new(
+                                    "geometry_type/TODO".to_string(),
+                                    properties,
+                                    _map_memory.zoom().round() as u8,
+                                ),
+                                &mut shapes,
+                                paint,
+                            );
                         }
                     });
                 }
@@ -53,7 +57,7 @@ impl Plugin for GeoJsonLayer {
     }
 }
 
-fn visit_features(geojson: &GeoJson, visitor: impl Fn(&Feature)) {
+fn visit_features(geojson: &GeoJson, mut visitor: impl FnMut(&Feature)) {
     match geojson {
         GeoJson::Geometry(_) => warn!("Top-level Geometry is not supported"),
         GeoJson::Feature(feature) => visitor(feature),

@@ -8,7 +8,7 @@ use egui::{
     epaint::{Vertex, WHITE_UV},
     pos2, vec2,
 };
-use geo_types::{Coord, Geometry, Line};
+pub use geo_types::{Coord, Geometry, Line};
 use log::warn;
 use lyon_path::{
     Path, Polygon,
