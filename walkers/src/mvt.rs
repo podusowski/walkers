@@ -18,7 +18,7 @@ use lyon_tessellation::{
     BuffersBuilder, FillOptions, FillTessellator, FillVertex, TessellationError, VertexBuffers,
 };
 use mvt_reader::{Reader, feature::Value};
-use serde_json::Value as JsonValue;
+use serde_json::{Number, Value as JsonValue};
 
 use crate::{
     expression::Context,
@@ -216,7 +216,13 @@ fn mvt_properties_to_json_properties(
 fn mvt_value_to_json_value(value: &Value) -> JsonValue {
     match value {
         Value::String(s) => JsonValue::String(s.clone()),
-        Value::Int(i) | Value::SInt(i) => JsonValue::Number((*i).into()),
+        Value::Int(x) | Value::SInt(x) => JsonValue::Number((*x).into()),
+        Value::Double(x) => Number::from_f64(*x)
+            .map(JsonValue::Number)
+            .unwrap_or_else(|| {
+                warn!("Invalid f64 value: {x}");
+                JsonValue::Null
+            }),
         Value::Bool(b) => JsonValue::Bool(*b),
         Value::Null => JsonValue::Null,
         _ => {
