@@ -1,7 +1,9 @@
-use egui::{Response, Ui};
+use egui::Ui;
+use geo::MapCoords;
+use geo::geometry::Coord;
 use geojson::{Feature, GeoJson};
 use log::warn;
-use walkers::{Context, Layer, MapMemory, Plugin, Projector, Style, render_line};
+use walkers::{Context, Layer, Position, Projector, Style, render_line};
 
 pub struct GeoJsonLayer {
     geojson: GeoJson,
@@ -27,9 +29,15 @@ impl GeoJsonLayer {
                                 .unwrap_or_default()
                                 .into_iter()
                                 .collect();
-                            render_line(
-                                &walkers::Geometry::<f32>::try_from(geometry.clone())
-                                    .expect("invalid geometry"),
+
+                            let geometry =
+                                walkers::Geometry::<f32>::try_from(geometry.clone())
+                                    .expect("invalid geometry");
+
+                            let projected = project_geometry(&geometry, projector);
+
+                            let _ = render_line(
+                                &projected,
                                 &Context::new("geometry_type/TODO".to_string(), properties, zoom),
                                 &mut shapes,
                                 paint,
@@ -42,7 +50,33 @@ impl GeoJsonLayer {
                 }
             }
         }
+
+        let painter = ui.painter();
+        for shape in shapes {
+            match shape {
+                walkers::ShapeOrText::Shape(shape) => {
+                    painter.add(shape);
+                }
+                walkers::ShapeOrText::Text(_) => {
+                    // Text rendering not yet supported for GeoJSON layers.
+                }
+            }
+        }
     }
+}
+
+fn project_geometry(
+    geometry: &walkers::Geometry<f32>,
+    projector: &Projector,
+) -> walkers::Geometry<f32> {
+    geometry.map_coords(|coord| {
+        let position = Position::new(coord.x as f64, coord.y as f64);
+        let projected = projector.project(position);
+        Coord {
+            x: projected.x,
+            y: projected.y,
+        }
+    })
 }
 
 fn visit_features(geojson: &GeoJson, mut visitor: impl FnMut(&Feature)) {

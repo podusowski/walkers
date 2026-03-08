@@ -5266,6 +5266,7 @@ name = "walkers_extras"
 version = "0.52.0"
 dependencies = [
  "egui",
+ "geo",
  "geojson",
  "kml",
  "log",
