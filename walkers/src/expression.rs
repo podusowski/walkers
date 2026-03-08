@@ -2,8 +2,6 @@
 //! <https://maplibre.org/maplibre-style-spec/expressions/>
 
 use color::{AlphaColor, HueDirection, Srgb};
-use log::warn;
-use mvt_reader::feature::Value as MvtValue;
 use serde_json::{Number, Value};
 use std::collections::HashMap;
 
