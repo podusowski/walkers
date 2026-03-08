@@ -30,9 +30,8 @@ impl GeoJsonLayer {
                                 .into_iter()
                                 .collect();
 
-                            let geometry =
-                                walkers::Geometry::<f32>::try_from(geometry.clone())
-                                    .expect("invalid geometry");
+                            let geometry = walkers::Geometry::<f32>::try_from(geometry.clone())
+                                .expect("invalid geometry");
 
                             let projected = project_geometry(&geometry, projector);
 
