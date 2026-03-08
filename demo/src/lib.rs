@@ -65,11 +65,6 @@ impl eframe::App for MyApp {
                 .with_plugin(kml::poland_borders())
                 .with_plugin(kml::outgym_umea_layer());
 
-            // // Add some GeoJSON layers from the current directory.
-            // for layer in &self.geojson_layers {
-            //     map = map.with_plugin(layer);
-            // }
-
             // Multiple layers can be added.
             for (n, tiles) in tiles.iter_mut().enumerate() {
                 // With a different transparency.
@@ -77,9 +72,10 @@ impl eframe::App for MyApp {
                 map = map.with_layer(tiles.as_mut(), transparency);
             }
 
-            // Draw the map widget.
+            // Draw the map widget. The closure is a preferred place to add additional contents to the map,
+            // since it gives much more flexibility and performance than building a vector of `Plugin`s
+            // every frame.
             let response = map.show(ui, |ui, _, projector, map_memory| {
-                // Add some GeoJSON layers from the current directory.
                 for layer in &self.geojson_layers {
                     layer.render(ui, projector, map_memory.zoom().round() as u8);
                 }
