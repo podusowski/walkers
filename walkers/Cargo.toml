@@ -15,7 +15,7 @@ color = { version = "0.3.2", features = ["serde"], optional = true }
 egui.workspace = true
 egui_extras.workspace = true
 flate2 = { version = "1.1.8", optional = true }
-futures = "0.3.31"
+futures = "0.3.32"
 geo = { version = "0.32.0", default-features = false, optional = true }
 geo-types = { version = "0.7" }
 image = { version = "0.25", default-features = false, features = [

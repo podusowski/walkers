@@ -1,7 +1,7 @@
 use std::sync::{Arc, Mutex};
 
 use egui::Context;
-use futures::channel::mpsc::{Receiver, Sender, TrySendError, channel};
+use futures::channel::mpsc::{Receiver, Sender, TryRecvError, TrySendError, channel};
 use lru::LruCache;
 
 use crate::{
@@ -68,15 +68,15 @@ impl TilesIo {
     /// Takes a single fetched tile from the IO thread and puts it in the cache.
     pub fn put_single_fetched_tile_in_cache(&mut self) {
         // This is called every frame, so take just one at the time.
-        match self.tile_rx.try_next() {
-            Ok(Some((tile_id, tile))) => {
+        match self.tile_rx.try_recv() {
+            Ok((tile_id, tile)) => {
                 self.cache.put(tile_id, Some(tile));
             }
-            Err(_) => {
-                // Just ignore. It means that no new tile was downloaded.
+            Err(TryRecvError::Empty) => {
+                // No new tile was downloaded, just ignore.
             }
-            Ok(None) => {
-                log::error!("IO thread is dead")
+            Err(TryRecvError::Closed) => {
+                log::error!("IO thread is dead");
             }
         }
     }
