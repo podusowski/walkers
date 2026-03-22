@@ -3,22 +3,11 @@ use geo::MapCoords;
 use geo::geometry::Coord;
 use geojson::{Feature, GeoJson, JsonObject};
 use log::warn;
-use rstar::{AABB, RTree, RTreeObject};
+use rstar::primitives::{GeomWithData, Rectangle};
+use rstar::{AABB, RTree};
 use walkers::{Context, Layer, Position, Projector, Style, render_line};
 
-struct IndexedFeature {
-    properties: JsonObject,
-    geometry: walkers::Geometry<f32>,
-    envelope: AABB<[f64; 2]>,
-}
-
-impl RTreeObject for IndexedFeature {
-    type Envelope = AABB<[f64; 2]>;
-
-    fn envelope(&self) -> Self::Envelope {
-        self.envelope
-    }
-}
+type IndexedFeature = GeomWithData<Rectangle<[f64; 2]>, (JsonObject, walkers::Geometry<f32>)>;
 
 pub struct GeoJsonLayer {
     rtree: RTree<IndexedFeature>,
@@ -32,12 +21,9 @@ impl GeoJsonLayer {
         visit_features(&geojson, |feature| {
             if let Some(geom) = &feature.geometry {
                 if let Ok(geometry) = walkers::Geometry::<f32>::try_from(geom.clone()) {
-                    let envelope = compute_envelope(&geometry);
-                    indexed.push(IndexedFeature {
-                        properties: feature.properties.clone().unwrap_or_default(),
-                        geometry,
-                        envelope,
-                    });
+                    let rect = compute_rect(&geometry);
+                    let properties = feature.properties.clone().unwrap_or_default();
+                    indexed.push(GeomWithData::new(rect, (properties, geometry)));
                 }
             }
         });
@@ -57,9 +43,10 @@ impl GeoJsonLayer {
             match layer {
                 Layer::Line { paint, .. } => {
                     for entry in self.rtree.locate_in_envelope_intersecting(&viewport) {
-                        let properties = entry.properties.clone().into_iter().collect();
+                        let (properties, geometry) = &entry.data;
+                        let properties = properties.clone().into_iter().collect();
 
-                        let projected = project_geometry(&entry.geometry, projector);
+                        let projected = project_geometry(geometry, projector);
 
                         let _ = render_line(
                             &projected,
@@ -89,8 +76,8 @@ impl GeoJsonLayer {
     }
 }
 
-/// Compute the geographic bounding box of a geometry (coordinates are lon/lat).
-fn compute_envelope(geometry: &walkers::Geometry<f32>) -> AABB<[f64; 2]> {
+/// Compute the geographic bounding rectangle of a geometry (coordinates are lon/lat).
+fn compute_rect(geometry: &walkers::Geometry<f32>) -> Rectangle<[f64; 2]> {
     use geo::CoordsIter;
 
     let mut min_lon = f64::MAX;
@@ -107,7 +94,7 @@ fn compute_envelope(geometry: &walkers::Geometry<f32>) -> AABB<[f64; 2]> {
         max_lat = max_lat.max(lat);
     }
 
-    AABB::from_corners([min_lon, min_lat], [max_lon, max_lat])
+    Rectangle::from_corners([min_lon, min_lat], [max_lon, max_lat])
 }
 
 /// Compute the geographic envelope of the current viewport by unprojecting its corners.
