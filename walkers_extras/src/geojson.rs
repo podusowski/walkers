@@ -1,7 +1,9 @@
+use std::collections::HashMap;
+
 use egui::Ui;
 use geo::MapCoords;
 use geo::geometry::Coord;
-use geojson::{Feature as GeoJsonFeature, GeoJson, JsonObject};
+use geojson::{Feature as GeoJsonFeature, GeoJson};
 use log::warn;
 use rstar::primitives::{GeomWithData, Rectangle};
 use rstar::{AABB, RTree};
@@ -9,7 +11,7 @@ use walkers::{Context, Layer, Position, Projector, Style, render_line};
 
 struct Feature {
     geometry: walkers::Geometry<f32>,
-    properties: JsonObject,
+    properties: HashMap<String, walkers::Value>,
 }
 
 pub struct GeoJsonLayer {
@@ -30,7 +32,12 @@ impl GeoJsonLayer {
                     bounding_rect(&geometry),
                     Feature {
                         geometry,
-                        properties: feature.properties.clone().unwrap_or_default(),
+                        properties: feature
+                            .properties
+                            .clone()
+                            .unwrap_or_default()
+                            .into_iter()
+                            .collect(),
                     },
                 ));
             }
@@ -51,7 +58,7 @@ impl GeoJsonLayer {
             match layer {
                 Layer::Line { paint, filter, .. } => {
                     for entry in self.rtree.locate_in_envelope_intersecting(&viewport) {
-                        let properties = entry.data.properties.clone().into_iter().collect();
+                        let properties = entry.data.properties.clone();
                         let context =
                             Context::new("geometry_type/TODO".to_string(), properties, zoom);
 
