@@ -23,17 +23,16 @@ impl GeoJsonLayer {
         let mut indexed = Vec::new();
 
         visit_features(&geojson, |feature| {
-            if let Some(geom) = &feature.geometry {
-                if let Ok(geometry) = walkers::Geometry::<f32>::try_from(geom.clone()) {
-                    let properties = feature.properties.clone().unwrap_or_default();
-                    indexed.push(GeomWithData::new(
-                        bounding_rect(&geometry),
-                        Feature {
-                            geometry,
-                            properties,
-                        },
-                    ));
-                }
+            if let Some(geometry) = &feature.geometry
+                && let Ok(geometry) = walkers::Geometry::<f32>::try_from(geometry.clone())
+            {
+                indexed.push(GeomWithData::new(
+                    bounding_rect(&geometry),
+                    Feature {
+                        geometry,
+                        properties: feature.properties.clone().unwrap_or_default(),
+                    },
+                ));
             }
         });
 
