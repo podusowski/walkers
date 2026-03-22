@@ -38,14 +38,6 @@ BBOX := "50.0,15.9,51.8,17.9"
 
 trails-dolnoslaskie:
     curl -G https://overpass-api.de/api/interpreter \
-        --data-urlencode 'data=[out:json][timeout:60];(relation["route"="hiking"]({{ BBOX }}););out geom;' \
-        -o trails.json
-    osmtogeojson trails.json > trails.geojson
-
-    # [out:json][timeout:120];area["name"="województwo dolnośląskie"]->.a;relation(area.a)["type"="route"]["route"="hiking"];out tags;way(r);out geom;
-
-trails-dolnoslaskie2:
-    curl -G https://overpass-api.de/api/interpreter \
-        --data-urlencode 'data=[out:json][timeout:120];(relation["route"="hiking"]({{BBOX}});relation["route"="foot"]({{BBOX}});relation["network"~"^[rnli]wn$"]({{BBOX}}););out geom;' \
+        --data-urlencode 'data=[out:json][timeout:120];(relation["route"~"hiking|foot"]["colour"]({{ BBOX }}););out geom;' \
         -o trails.json
     osmtogeojson trails.json > trails.geojson
