@@ -53,13 +53,8 @@ impl GeoJsonLayer {
             match layer {
                 Layer::Line { paint, .. } => {
                     for entry in self.rtree.locate_in_envelope_intersecting(&viewport) {
-                        let Feature {
-                            properties,
-                            geometry,
-                        } = &entry.data;
-                        let properties = properties.clone().into_iter().collect();
-
-                        let projected = project_geometry(geometry, projector);
+                        let properties = entry.data.properties.clone().into_iter().collect();
+                        let projected = project_geometry(&entry.data.geometry, projector);
 
                         let _ = render_line(
                             &projected,
