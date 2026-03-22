@@ -1,14 +1,13 @@
 use egui::Ui;
 use geo::MapCoords;
 use geo::geometry::Coord;
-use geojson::{Feature, GeoJson};
+use geojson::{Feature, GeoJson, JsonObject};
 use log::warn;
 use rstar::{AABB, RTree, RTreeObject};
 use walkers::{Context, Layer, Position, Projector, Style, render_line};
 
-/// A pre-processed feature with its geometry and bounding box, ready for spatial indexing.
 struct IndexedFeature {
-    feature: Feature,
+    properties: JsonObject,
     geometry: walkers::Geometry<f32>,
     envelope: AABB<[f64; 2]>,
 }
@@ -35,7 +34,7 @@ impl GeoJsonLayer {
                 if let Ok(geometry) = walkers::Geometry::<f32>::try_from(geom.clone()) {
                     let envelope = compute_envelope(&geometry);
                     indexed.push(IndexedFeature {
-                        feature: feature.clone(),
+                        properties: feature.properties.clone().unwrap_or_default(),
                         geometry,
                         envelope,
                     });
@@ -58,13 +57,7 @@ impl GeoJsonLayer {
             match layer {
                 Layer::Line { paint, .. } => {
                     for entry in self.rtree.locate_in_envelope_intersecting(&viewport) {
-                        let properties = entry
-                            .feature
-                            .properties
-                            .clone()
-                            .unwrap_or_default()
-                            .into_iter()
-                            .collect();
+                        let properties = entry.properties.clone().into_iter().collect();
 
                         let projected = project_geometry(&entry.geometry, projector);
 
