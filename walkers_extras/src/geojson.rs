@@ -1,16 +1,20 @@
 use egui::Ui;
 use geo::MapCoords;
 use geo::geometry::Coord;
-use geojson::{Feature, GeoJson, JsonObject};
+use geojson::{Feature as GeoJsonFeature, GeoJson, JsonObject};
 use log::warn;
 use rstar::primitives::{GeomWithData, Rectangle};
 use rstar::{AABB, RTree};
 use walkers::{Context, Layer, Position, Projector, Style, render_line};
 
-type IndexedFeature = GeomWithData<Rectangle<[f64; 2]>, (JsonObject, walkers::Geometry<f32>)>;
+struct Feature {
+    geometry: walkers::Geometry<f32>,
+    properties: JsonObject,
+}
 
 pub struct GeoJsonLayer {
-    rtree: RTree<IndexedFeature>,
+    /// R-tree indexing the bounding rectangles of all features.
+    rtree: RTree<GeomWithData<Rectangle<[f64; 2]>, Feature>>,
     style: Style,
 }
 
@@ -21,9 +25,15 @@ impl GeoJsonLayer {
         visit_features(&geojson, |feature| {
             if let Some(geom) = &feature.geometry {
                 if let Ok(geometry) = walkers::Geometry::<f32>::try_from(geom.clone()) {
-                    let rect = compute_rect(&geometry);
+                    let rect = bounding_rect(&geometry);
                     let properties = feature.properties.clone().unwrap_or_default();
-                    indexed.push(GeomWithData::new(rect, (properties, geometry)));
+                    indexed.push(GeomWithData::new(
+                        rect,
+                        Feature {
+                            geometry,
+                            properties,
+                        },
+                    ));
                 }
             }
         });
@@ -43,7 +53,10 @@ impl GeoJsonLayer {
             match layer {
                 Layer::Line { paint, .. } => {
                     for entry in self.rtree.locate_in_envelope_intersecting(&viewport) {
-                        let (properties, geometry) = &entry.data;
+                        let Feature {
+                            properties,
+                            geometry,
+                        } = &entry.data;
                         let properties = properties.clone().into_iter().collect();
 
                         let projected = project_geometry(geometry, projector);
@@ -77,7 +90,7 @@ impl GeoJsonLayer {
 }
 
 /// Compute the geographic bounding rectangle of a geometry (coordinates are lon/lat).
-fn compute_rect(geometry: &walkers::Geometry<f32>) -> Rectangle<[f64; 2]> {
+fn bounding_rect(geometry: &walkers::Geometry<f32>) -> Rectangle<[f64; 2]> {
     use geo::CoordsIter;
 
     let mut min_lon = f64::MAX;
@@ -125,7 +138,7 @@ fn project_geometry(
     })
 }
 
-fn visit_features(geojson: &GeoJson, mut visitor: impl FnMut(&Feature)) {
+fn visit_features(geojson: &GeoJson, mut visitor: impl FnMut(&GeoJsonFeature)) {
     match geojson {
         GeoJson::Geometry(_) => warn!("Top-level Geometry is not supported"),
         GeoJson::Feature(feature) => visitor(feature),
