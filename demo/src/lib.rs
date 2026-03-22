@@ -157,11 +157,7 @@ fn trails_style() -> Style {
             },
             Layer::Line {
                 source_layer: "".to_string(),
-                filter: Some(Filter(json!([
-                    "any",
-                    ["==", ["get", "marked_trail_red"], "yes"],
-                    ["==", ["get", "colour"], "red"]
-                ]))),
+                filter: Some(Filter(json!(["==", ["get", "colour"], "red"]))),
                 paint: Paint {
                     line_color: Some(Color(json!("#7b0000"))),
                     line_width: Some(Float(json!(0.8))),
@@ -170,11 +166,7 @@ fn trails_style() -> Style {
             },
             Layer::Line {
                 source_layer: "".to_string(),
-                filter: Some(Filter(json!([
-                    "any",
-                    ["==", ["get", "marked_trail_blue"], "yes"],
-                    ["==", ["get", "colour"], "blue"]
-                ]))),
+                filter: Some(Filter(json!(["==", ["get", "colour"], "blue"]))),
                 paint: Paint {
                     line_color: Some(Color(json!("#0028ac"))),
                     line_width: Some(Float(json!(0.6))),
@@ -183,11 +175,7 @@ fn trails_style() -> Style {
             },
             Layer::Line {
                 source_layer: "".to_string(),
-                filter: Some(Filter(json!([
-                    "any",
-                    ["==", ["get", "marked_trail_green"], "yes"],
-                    ["==", ["get", "colour"], "green"]
-                ]))),
+                filter: Some(Filter(json!(["==", ["get", "colour"], "green"]))),
                 paint: Paint {
                     line_color: Some(Color(json!("#004907"))),
                     line_width: Some(Float(json!(0.4))),
@@ -196,11 +184,7 @@ fn trails_style() -> Style {
             },
             Layer::Line {
                 source_layer: "".to_string(),
-                filter: Some(Filter(json!([
-                    "any",
-                    ["==", ["get", "marked_trail_yellow"], "yes"],
-                    ["==", ["get", "colour"], "yellow"]
-                ]))),
+                filter: Some(Filter(json!(["==", ["get", "colour"], "yellow"]))),
                 paint: Paint {
                     line_color: Some(Color(json!("#b0a800"))),
                     line_width: Some(Float(json!(0.2))),
@@ -209,11 +193,7 @@ fn trails_style() -> Style {
             },
             Layer::Line {
                 source_layer: "".to_string(),
-                filter: Some(Filter(json!([
-                    "any",
-                    ["==", ["get", "marked_trail_black"], "yes"],
-                    ["==", ["get", "colour"], "black"]
-                ]))),
+                filter: Some(Filter(json!(["==", ["get", "colour"], "black"]))),
                 paint: Paint {
                     line_color: Some(Color(json!("#000000"))),
                     line_width: Some(Float(json!(0.1))),

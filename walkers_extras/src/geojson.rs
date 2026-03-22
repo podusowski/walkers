@@ -49,17 +49,20 @@ impl GeoJsonLayer {
 
         for layer in &self.style.layers {
             match layer {
-                Layer::Line { paint, .. } => {
+                Layer::Line { paint, filter, .. } => {
                     for entry in self.rtree.locate_in_envelope_intersecting(&viewport) {
                         let properties = entry.data.properties.clone().into_iter().collect();
-                        let projected = project_geometry(&entry.data.geometry, projector);
+                        let context =
+                            Context::new("geometry_type/TODO".to_string(), properties, zoom);
 
-                        let _ = render_line(
-                            &projected,
-                            &Context::new("geometry_type/TODO".to_string(), properties, zoom),
-                            &mut shapes,
-                            paint,
-                        );
+                        if let Some(filter) = filter
+                            && !filter.matches(&context)
+                        {
+                            continue;
+                        }
+
+                        let projected = project_geometry(&entry.data.geometry, projector);
+                        let _ = render_line(&projected, &context, &mut shapes, paint);
                     }
                 }
                 other => {
