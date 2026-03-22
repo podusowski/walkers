@@ -43,7 +43,7 @@ impl GeoJsonLayer {
     }
 
     pub fn render(&self, ui: &mut Ui, projector: &Projector, zoom: u8) {
-        let viewport = viewport_envelope(projector, ui.clip_rect());
+        let viewport = viewport(projector, ui.clip_rect());
 
         let mut shapes = Vec::new();
 
@@ -104,7 +104,7 @@ fn bounding_rect(geometry: &walkers::Geometry<f32>) -> Rectangle<[f64; 2]> {
 }
 
 /// Compute the geographic envelope of the current viewport by unprojecting its corners.
-fn viewport_envelope(projector: &Projector, clip_rect: egui::Rect) -> AABB<[f64; 2]> {
+fn viewport(projector: &Projector, clip_rect: egui::Rect) -> AABB<[f64; 2]> {
     let top_left = projector.unproject(clip_rect.min.to_vec2());
     let bottom_right = projector.unproject(clip_rect.max.to_vec2());
 
@@ -122,8 +122,7 @@ fn project_geometry(
     projector: &Projector,
 ) -> walkers::Geometry<f32> {
     geometry.map_coords(|coord| {
-        let position = Position::new(coord.x as f64, coord.y as f64);
-        let projected = projector.project(position);
+        let projected = projector.project(Position::new(coord.x as f64, coord.y as f64));
         Coord {
             x: projected.x,
             y: projected.y,
