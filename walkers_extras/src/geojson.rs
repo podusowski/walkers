@@ -25,10 +25,9 @@ impl GeoJsonLayer {
         visit_features(&geojson, |feature| {
             if let Some(geom) = &feature.geometry {
                 if let Ok(geometry) = walkers::Geometry::<f32>::try_from(geom.clone()) {
-                    let rect = bounding_rect(&geometry);
                     let properties = feature.properties.clone().unwrap_or_default();
                     indexed.push(GeomWithData::new(
-                        rect,
+                        bounding_rect(&geometry),
                         Feature {
                             geometry,
                             properties,
