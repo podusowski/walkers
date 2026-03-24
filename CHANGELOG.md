@@ -5,6 +5,7 @@ All notable changes to this project will be documented in this file.
 ## Unreleased
 
 * Fix for line filters used by OpenFreeMap Bright style.
+* Experimental support for `geojson`.
 
 ## 0.52.0
 
