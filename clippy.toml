@@ -1,0 +1,3 @@
+msrv = "1.92"
+
+allow-unwrap-in-tests = true

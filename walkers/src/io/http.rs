@@ -17,7 +17,7 @@ pub struct HttpOptions {
     /// User agent to be sent to the tile servers.
     ///
     /// This should be set only on native targets. The browser sets its own user agent on wasm
-    /// targets, and trying to set a different one may upset some servers (e.g. MapBox)
+    /// targets, and trying to set a different one may upset some servers (e.g. `MapBox`)
     pub user_agent: Option<HeaderValue>,
 
     /// Maximum number of parallel downloads.
@@ -115,6 +115,10 @@ mod web {
     }
 }
 
+#[expect(
+    clippy::expect_used,
+    reason = "reqwest client builder should not fail with default options"
+)]
 fn bare_client(http_options: &HttpOptions) -> reqwest::Client {
     let mut builder = reqwest::Client::builder();
 

@@ -17,10 +17,10 @@ pub(crate) enum TilesKind {
 impl AsMut<dyn Tiles> for TilesKind {
     fn as_mut(&mut self) -> &mut (dyn Tiles + 'static) {
         match self {
-            TilesKind::Http(tiles) => tiles,
-            TilesKind::Local(tiles) => tiles,
+            Self::Http(tiles) => tiles,
+            Self::Local(tiles) => tiles,
             #[cfg(feature = "pmtiles")]
-            TilesKind::PmTiles(tiles) => tiles,
+            Self::PmTiles(tiles) => tiles,
         }
     }
 }
@@ -28,10 +28,10 @@ impl AsMut<dyn Tiles> for TilesKind {
 impl AsRef<dyn Tiles> for TilesKind {
     fn as_ref(&self) -> &(dyn Tiles + 'static) {
         match self {
-            TilesKind::Http(tiles) => tiles,
-            TilesKind::Local(tiles) => tiles,
+            Self::Http(tiles) => tiles,
+            Self::Local(tiles) => tiles,
             #[cfg(feature = "pmtiles")]
-            TilesKind::PmTiles(tiles) => tiles,
+            Self::PmTiles(tiles) => tiles,
         }
     }
 }
@@ -56,70 +56,71 @@ pub struct Providers {
     pub have_some_pmtiles: bool,
 }
 
-pub(crate) fn providers(egui_ctx: Context) -> Providers {
+#[expect(clippy::too_many_lines)]
+pub(crate) fn providers(egui_ctx: &Context) -> Providers {
     let mut providers = Providers::default();
 
     providers.available.insert(
-        "OpenStreetMap".to_string(),
+        "OpenStreetMap".to_owned(),
         vec![TilesKind::Http(HttpTiles::with_options(
             walkers::sources::OpenStreetMap,
             http_options(),
-            egui_ctx.to_owned(),
+            egui_ctx.clone(),
         ))],
     );
-    providers.selected = "OpenStreetMap".to_string();
+    providers.selected = "OpenStreetMap".to_owned();
 
     #[cfg(feature = "mvt")]
     providers.available.insert(
-        "OpenFreeMap".to_string(),
+        "OpenFreeMap".to_owned(),
         vec![TilesKind::Http(HttpTiles::with_options_and_style(
             walkers::sources::OpenFreeMap,
             http_options(),
             Style::openfreemap_bright(),
-            egui_ctx.to_owned(),
+            egui_ctx.clone(),
         ))],
     );
 
     providers.available.insert(
-        "Geoportal".to_string(),
+        "Geoportal".to_owned(),
         vec![TilesKind::Http(HttpTiles::with_options(
             walkers::sources::Geoportal,
             http_options(),
-            egui_ctx.to_owned(),
+            egui_ctx.clone(),
         ))],
     );
 
     providers.available.insert(
-        "OpenStreetMapWithGeoportal".to_string(),
+        "OpenStreetMapWithGeoportal".to_owned(),
         vec![
             TilesKind::Http(HttpTiles::with_options(
                 walkers::sources::OpenStreetMap,
                 http_options(),
-                egui_ctx.to_owned(),
+                egui_ctx.clone(),
             )),
             TilesKind::Http(HttpTiles::with_options(
                 walkers::sources::Geoportal,
                 http_options(),
-                egui_ctx.to_owned(),
+                egui_ctx.clone(),
             )),
         ],
     );
 
     providers.available.insert(
-        "Geoportal".to_string(),
+        "Geoportal".to_owned(),
         vec![TilesKind::Http(HttpTiles::with_options(
             walkers::sources::Geoportal,
             http_options(),
-            egui_ctx.to_owned(),
+            egui_ctx.clone(),
         ))],
     );
 
-    #[allow(deprecated)]
+    #[expect(deprecated)]
     providers.available.insert(
-        "LocalTiles".to_string(),
+        "LocalTiles".to_owned(),
         vec![TilesKind::Local(LocalTiles::new(
             PathBuf::from_iter(&[env!("CARGO_MANIFEST_DIR"), "assets"]),
-            egui_ctx.to_owned(),
+            egui_ctx.clone(),
         ))],
     );
 
@@ -129,13 +130,15 @@ pub(crate) fn providers(egui_ctx: Context) -> Providers {
         providers.have_some_pmtiles = !pmtiles.is_empty();
 
         for path in pmtiles {
-            let name = path.file_stem().unwrap().to_string_lossy().to_string();
+            let Some(name) = path.file_stem().map(|s| s.to_string_lossy().to_string()) else {
+                continue;
+            };
             providers.available.insert(
                 name.clone(),
                 vec![TilesKind::PmTiles(PmTiles::with_style(
                     path.clone(),
                     Style::protomaps_dark(),
-                    egui_ctx.to_owned(),
+                    egui_ctx.clone(),
                 ))],
             );
             providers.selected = name.clone();
@@ -145,7 +148,7 @@ pub(crate) fn providers(egui_ctx: Context) -> Providers {
                 vec![TilesKind::PmTiles(PmTiles::with_style(
                     path.clone(),
                     Style::protomaps_dark_vis(),
-                    egui_ctx.to_owned(),
+                    egui_ctx.clone(),
                 ))],
             );
 
@@ -154,7 +157,7 @@ pub(crate) fn providers(egui_ctx: Context) -> Providers {
                 vec![TilesKind::PmTiles(PmTiles::with_style(
                     path.clone(),
                     Style::protomaps_light(),
-                    egui_ctx.to_owned(),
+                    egui_ctx.clone(),
                 ))],
             );
 
@@ -164,12 +167,12 @@ pub(crate) fn providers(egui_ctx: Context) -> Providers {
                     TilesKind::PmTiles(PmTiles::with_style(
                         path,
                         Style::protomaps_dark(),
-                        egui_ctx.to_owned(),
+                        egui_ctx.clone(),
                     )),
                     TilesKind::Http(HttpTiles::with_options(
                         walkers::sources::Geoportal,
                         http_options(),
-                        egui_ctx.to_owned(),
+                        egui_ctx.clone(),
                     )),
                 ],
             );
@@ -183,27 +186,27 @@ pub(crate) fn providers(egui_ctx: Context) -> Providers {
     // We only show the mapbox map if we have an access token
     if let Some(token) = mapbox_access_token {
         providers.available.insert(
-            "MapboxStreets".to_string(),
+            "MapboxStreets".to_owned(),
             vec![TilesKind::Http(HttpTiles::with_options(
                 walkers::sources::Mapbox {
                     style: walkers::sources::MapboxStyle::Streets,
-                    access_token: token.to_string(),
+                    access_token: token.to_owned(),
                     high_resolution: false,
                 },
                 http_options(),
-                egui_ctx.to_owned(),
+                egui_ctx.clone(),
             ))],
         );
         providers.available.insert(
-            "MapboxSatellite".to_string(),
+            "MapboxSatellite".to_owned(),
             vec![TilesKind::Http(HttpTiles::with_options(
                 walkers::sources::Mapbox {
                     style: walkers::sources::MapboxStyle::Satellite,
-                    access_token: token.to_string(),
+                    access_token: token.to_owned(),
                     high_resolution: true,
                 },
                 http_options(),
-                egui_ctx.to_owned(),
+                egui_ctx.clone(),
             ))],
         );
     }

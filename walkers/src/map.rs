@@ -233,7 +233,7 @@ impl<'a, 'b, 'c> Map<'a, 'b, 'c> {
 
 impl Map<'_, '_, '_> {
     /// Handle user inputs and recalculate everything accordingly. Returns whether something changed.
-    fn handle_gestures(&mut self, ui: &mut Ui, response: &Response) -> bool {
+    fn handle_gestures(&mut self, ui: &Ui, response: &Response) -> bool {
         let zoom_delta = self.zoom_delta(ui, response);
 
         // Zooming and dragging need to be exclusive, otherwise the map will get dragged when
@@ -302,22 +302,20 @@ impl Map<'_, '_, '_> {
     }
 
     /// Calculate the zoom delta based on the input.
-    fn zoom_delta(&self, ui: &mut Ui, response: &Response) -> f64 {
-        let mut zoom_delta = ui.input(|input| input.zoom_delta()) as f64;
-
-        if self.options.double_click_to_zoom
-            && ui.ui_contains_pointer()
-            && response.double_clicked_by(PointerButton::Primary)
-        {
-            zoom_delta = 2.0;
-        }
-
-        if self.options.double_click_to_zoom_out
+    fn zoom_delta(&self, ui: &Ui, response: &Response) -> f64 {
+        let mut zoom_delta = if self.options.double_click_to_zoom_out
             && ui.ui_contains_pointer()
             && response.double_clicked_by(PointerButton::Secondary)
         {
-            zoom_delta = 0.0;
-        }
+            0.0
+        } else if self.options.double_click_to_zoom
+            && ui.ui_contains_pointer()
+            && response.double_clicked_by(PointerButton::Primary)
+        {
+            2.0
+        } else {
+            ui.input(|input| input.zoom_delta()) as f64
+        };
 
         if !self.options.zoom_with_ctrl && zoom_delta == 1.0 {
             // We only use the raw scroll values, if we are zooming without ctrl,
@@ -328,7 +326,7 @@ impl Map<'_, '_, '_> {
                     input.smooth_scroll_delta.y * input.stable_dt.max(input.predicted_dt * 1.5)
                 }) as f64
                     / 4.0;
-        };
+        }
 
         zoom_delta
     }
@@ -346,7 +344,7 @@ impl Widget for Map<'_, '_, '_> {
 }
 
 /// Get the offset of the input (either mouse or touch) relative to the center.
-fn input_offset(ui: &mut Ui, response: &Response) -> Option<Vec2> {
+fn input_offset(ui: &Ui, response: &Response) -> Option<Vec2> {
     let mouse_offset = response.hover_pos();
     let touch_offset = ui
         .input(|input| input.multi_touch())

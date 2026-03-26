@@ -1,3 +1,5 @@
+//! Android entry point for the walkers demo.
+
 #[cfg(target_os = "android")]
 #[unsafe(no_mangle)]
 fn android_main(

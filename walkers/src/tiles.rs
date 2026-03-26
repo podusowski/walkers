@@ -16,7 +16,7 @@ use thiserror::Error;
 use crate::Position;
 use crate::io::TileFactory;
 use crate::mercator::{project, tile_id, total_tiles};
-use crate::position::{Pixels, PixelsExt};
+use crate::position::{Pixels, PixelsExt as _};
 use crate::sources::Attribution;
 use crate::style::Style;
 use crate::zoom::Zoom;
@@ -61,32 +61,32 @@ impl TileId {
         Pixels::new(self.x as f64 * tile_size, self.y as f64 * tile_size)
     }
 
-    pub fn east(&self) -> Option<TileId> {
-        (self.x < total_tiles(self.zoom) - 1).then_some(TileId {
+    pub fn east(&self) -> Option<Self> {
+        (self.x < total_tiles(self.zoom) - 1).then_some(Self {
             x: self.x + 1,
             y: self.y,
             zoom: self.zoom,
         })
     }
 
-    pub fn west(&self) -> Option<TileId> {
-        Some(TileId {
+    pub fn west(&self) -> Option<Self> {
+        Some(Self {
             x: self.x.checked_sub(1)?,
             y: self.y,
             zoom: self.zoom,
         })
     }
 
-    pub fn north(&self) -> Option<TileId> {
-        Some(TileId {
+    pub fn north(&self) -> Option<Self> {
+        Some(Self {
             x: self.x,
             y: self.y.checked_sub(1)?,
             zoom: self.zoom,
         })
     }
 
-    pub fn south(&self) -> Option<TileId> {
-        (self.y < total_tiles(self.zoom) - 1).then_some(TileId {
+    pub fn south(&self) -> Option<Self> {
+        (self.y < total_tiles(self.zoom) - 1).then_some(Self {
             x: self.x,
             y: self.y + 1,
             zoom: self.zoom,
@@ -115,6 +115,9 @@ pub enum Tile {
 impl Tile {
     /// Create a tile from raw image data. The data can be either raster image (PNG, JPEG, etc.)
     /// or vector tile (MVT) if the `mvt` feature is enabled.
+    ///
+    /// # Errors
+    /// Returns `TileError` if the data cannot be decoded.
     pub fn new(image: &[u8], style: &Style, zoom: u8, ctx: &Context) -> Result<Self, TileError> {
         #[cfg(not(feature = "mvt"))]
         let _ = (style, zoom);
@@ -147,6 +150,10 @@ impl Tile {
         }
     }
 
+    /// Create a tile from MVT data.
+    ///
+    /// # Errors
+    /// Returns `TileError` if the MVT data cannot be decoded.
     #[cfg(feature = "mvt")]
     pub fn from_mvt(data: &[u8], style: &Style, zoom: u8) -> Result<Self, TileError> {
         Ok(Self::Vector(mvt::render(data, style, zoom)?))
@@ -161,13 +168,13 @@ impl Tile {
     /// should be drawn on the `rect`.
     fn draw(&self, painter: &egui::Painter, rect: Rect, uv: Rect, transparency: f32) {
         match self {
-            Tile::Raster(texture_handle) => {
+            Self::Raster(texture_handle) => {
                 let mut mesh = Mesh::with_texture(texture_handle.id());
                 mesh.add_rect_with_uv(rect, uv, Color32::WHITE.gamma_multiply(transparency));
                 painter.add(egui::Shape::mesh(mesh));
             }
             #[cfg(feature = "mvt")]
-            Tile::Vector(shapes) => {
+            Self::Vector(shapes) => {
                 // Renderer needs to work on the full tile, before it was clipped with `uv`...
                 let full_rect = full_rect_of_clipped_tile(rect, uv);
 
@@ -182,7 +189,7 @@ impl Tile {
                     .map(|shape_or_text| match shape_or_text {
                         ShapeOrText::Shape(shape) => shape,
                         ShapeOrText::Text(text) => {
-                            self.draw_text(text, painter.ctx(), &mut occupied_text_areas)
+                            self.draw_text(&text, painter.ctx(), &mut occupied_text_areas)
                         }
                     })
                     .collect();
@@ -193,9 +200,10 @@ impl Tile {
     }
 
     #[cfg(feature = "mvt")]
+    #[expect(clippy::unused_self, reason = "method on Tile for logical grouping")]
     fn draw_text(
         &self,
-        text: Text,
+        text: &Text,
         ctx: &Context,
         occupied_text_areas: &mut OccupiedAreas,
     ) -> Shape {
@@ -287,7 +295,7 @@ fn flood_fill_tiles(
                 rect(tile_screen_position, corrected_tile_size),
                 tile.uv,
                 transparency,
-            )
+            );
         }
 
         for next_tile_id in [
@@ -314,7 +322,10 @@ fn flood_fill_tiles(
 
 /// Take a piece of a tile with lower zoom level and use it as a required tile.
 pub(crate) fn interpolate_from_lower_zoom(tile_id: TileId, available_zoom: u8) -> (TileId, Rect) {
-    assert!(tile_id.zoom >= available_zoom);
+    assert!(
+        tile_id.zoom >= available_zoom,
+        "tile zoom must be >= available zoom"
+    );
 
     let dzoom = 2u32.pow((tile_id.zoom - available_zoom) as u32);
 

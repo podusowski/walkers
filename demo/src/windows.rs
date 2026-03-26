@@ -23,12 +23,7 @@ pub fn acknowledge(ui: &Ui, attributions: Vec<Attribution>) {
         });
 }
 
-pub fn controls(
-    app: &mut MyApp,
-    ui: &Ui,
-    http_stats: Vec<walkers::Stats>,
-    frame: &mut eframe::Frame,
-) {
+pub fn controls(app: &mut MyApp, ui: &Ui, http_stats: Vec<walkers::Stats>, frame: &eframe::Frame) {
     Window::new("Controls")
         .collapsible(false)
         .resizable(false)
@@ -39,7 +34,7 @@ pub fn controls(
             ui.heading("Map");
 
             ComboBox::from_label("Tile Provider")
-                .selected_text(app.providers.selected.to_owned())
+                .selected_text(app.providers.selected.clone())
                 .show_ui(ui, |ui| {
                     for p in app.providers.available.keys() {
                         ui.selectable_value(&mut app.providers.selected, p.clone(), p);
@@ -92,11 +87,11 @@ pub fn zoom(ui: &Ui, map_memory: &mut MapMemory) {
         .show(ui.ctx(), |ui| {
             ui.horizontal(|ui| {
                 if ui.button(RichText::new("➕").heading()).clicked() {
-                    let _ = map_memory.zoom_in();
+                    map_memory.zoom_in().ok();
                 }
 
                 if ui.button(RichText::new("➖").heading()).clicked() {
-                    let _ = map_memory.zoom_out();
+                    map_memory.zoom_out().ok();
                 }
             });
         });

@@ -1,4 +1,4 @@
-use std::str::FromStr;
+use std::str::FromStr as _;
 
 use egui::{self, Color32, Response, Shape, Stroke, Ui};
 use kml::{KmlDocument, types::Folder};
@@ -12,11 +12,14 @@ pub struct KmlLayer {
 }
 
 impl KmlLayer {
-    pub fn from_string(s: &str, style: Style) -> Self {
-        Self {
-            kml: kml::Kml::from_str(s).unwrap(),
+    /// # Errors
+    ///
+    /// Returns an error if the KML string cannot be parsed.
+    pub fn from_string(s: &str, style: Style) -> Result<Self, kml::Error> {
+        Ok(Self {
+            kml: kml::Kml::from_str(s)?,
             style,
-        }
+        })
     }
 }
 
@@ -94,7 +97,9 @@ fn draw_line_geometry(
                 draw_line_geometry(painter, projector, geom);
             }
         }
-        _ => todo!(),
+        other => {
+            warn!("Unsupported geometry type for line drawing: {other:?}");
+        }
     }
 }
 
@@ -120,7 +125,9 @@ fn draw_circle_geometry(
                 draw_circle_geometry(painter, projector, geom);
             }
         }
-        _ => todo!(),
+        other => {
+            warn!("Unsupported geometry type for circle drawing: {other:?}");
+        }
     }
 }
 

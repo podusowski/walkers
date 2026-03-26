@@ -70,7 +70,7 @@ where
     }
 
     /// Handle user interactions. Returns whether group should be expanded.
-    fn interact(&self, position: Position, projector: &Projector, ui: &Ui, id: Id) -> bool {
+    fn interact(position: Position, projector: &Projector, ui: &Ui, id: Id) -> bool {
         let screen_position = projector.project(position);
         let rect = Rect::from_center_size(screen_position.to_pos2(), vec2(50., 50.));
         let response = ui.interact(rect, id, Sense::click());
@@ -104,7 +104,7 @@ where
         for (idx, places) in groups(&self.places, projector).iter().enumerate() {
             let id = ui.id().with(idx);
             let position = center(&places.iter().map(|p| p.position()).collect::<Vec<_>>());
-            let expand = self.interact(position, projector, ui, id);
+            let expand = Self::interact(position, projector, ui, id);
 
             if places.len() >= 2 && !expand {
                 self.group.draw(places, position, projector, ui);
@@ -281,7 +281,7 @@ impl<T: Place, G: Group> GroupedPlacesTree<T, G> {
         self.screen_positions.borrow_mut().clear();
     }
 
-    fn px_per_deg(&self, memory: &MapMemory, seed: [f64; 2]) -> (f64, f64) {
+    fn px_per_deg(memory: &MapMemory, seed: [f64; 2]) -> (f64, f64) {
         let zoom = memory.zoom();
         let pos = lon_lat(seed[0], seed[1]);
         let base = mercator::project(pos, zoom);
@@ -293,16 +293,16 @@ impl<T: Place, G: Group> GroupedPlacesTree<T, G> {
         (px_per_deg_lon, px_per_deg_lat)
     }
 
-    fn px_to_deg_at(&self, memory: &MapMemory, seed: [f64; 2], r_px: f32) -> f64 {
-        let (px_per_deg_lon, px_per_deg_lat) = self.px_per_deg(memory, seed);
+    fn px_to_deg_at(memory: &MapMemory, seed: [f64; 2], r_px: f32) -> f64 {
+        let (px_per_deg_lon, px_per_deg_lat) = Self::px_per_deg(memory, seed);
         let r_px = r_px as f64;
         let dlon = r_px / px_per_deg_lon;
         let dlat = r_px / px_per_deg_lat;
         dlon.hypot(dlat)
     }
 
-    fn deg_to_px_at(&self, memory: &MapMemory, seed: [f64; 2], r_deg: f64) -> f32 {
-        let (px_per_deg_lon, px_per_deg_lat) = self.px_per_deg(memory, seed);
+    fn deg_to_px_at(memory: &MapMemory, seed: [f64; 2], r_deg: f64) -> f32 {
+        let (px_per_deg_lon, px_per_deg_lat) = Self::px_per_deg(memory, seed);
         let px_lon = r_deg * px_per_deg_lon;
         let px_lat = r_deg * px_per_deg_lat;
         px_lon.hypot(px_lat) as f32
@@ -325,12 +325,12 @@ impl<T: Place, G: Group> GroupedPlacesTree<T, G> {
         let mut scratch: Vec<usize> = Vec::with_capacity(64);
 
         let mut screen_rect = response_rect;
-        if s.viewport_only {
-            if let Some(px) = s.screen_radius_px {
-                if s.include_offscreen_neighbors && px > 0.0 {
-                    screen_rect = screen_rect.expand(px);
-                }
-            }
+        if s.viewport_only
+            && let Some(px) = s.screen_radius_px
+            && s.include_offscreen_neighbors
+            && px > 0.0
+        {
+            screen_rect = screen_rect.expand(px);
         }
 
         for seed in rtree.iter() {
@@ -345,11 +345,11 @@ impl<T: Place, G: Group> GroupedPlacesTree<T, G> {
             }
 
             let (query_r_deg, r_px_check) = if let Some(px) = s.screen_radius_px {
-                (self.px_to_deg_at(memory, [seed.lon, seed.lat], px), px)
+                (Self::px_to_deg_at(memory, [seed.lon, seed.lat], px), px)
             } else {
                 (
                     s.geo_radius_deg,
-                    self.deg_to_px_at(memory, [seed.lon, seed.lat], s.geo_radius_deg),
+                    Self::deg_to_px_at(memory, [seed.lon, seed.lat], s.geo_radius_deg),
                 )
             };
 
@@ -369,10 +369,10 @@ impl<T: Place, G: Group> GroupedPlacesTree<T, G> {
                 scratch.push(n.idx);
             }
 
-            if let Some(cap) = s.max_group_size {
-                if scratch.len() > cap {
-                    scratch.truncate(cap);
-                }
+            if let Some(cap) = s.max_group_size
+                && scratch.len() > cap
+            {
+                scratch.truncate(cap);
             }
             if scratch.is_empty() {
                 continue;

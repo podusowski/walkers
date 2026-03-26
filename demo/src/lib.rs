@@ -1,3 +1,5 @@
+//! Demo application for the walkers crate.
+
 mod kml;
 mod places;
 mod plugins;
@@ -18,11 +20,11 @@ pub struct MyApp {
 }
 
 impl MyApp {
-    pub fn new(egui_ctx: Context) -> Self {
-        egui_extras::install_image_loaders(&egui_ctx);
+    pub fn new(egui_ctx: &Context) -> Self {
+        egui_extras::install_image_loaders(egui_ctx);
 
         Self {
-            providers: providers(egui_ctx.to_owned()),
+            providers: providers(egui_ctx),
             map_memory: MapMemory::default(),
             click_watcher: Default::default(),
             zoom_with_ctrl: true,
@@ -36,11 +38,9 @@ impl eframe::App for MyApp {
             // Typically this would be a GPS acquired position which is tracked by the map.
             let my_position = places::wroclaw_glowny();
 
-            let tiles = self
-                .providers
-                .available
-                .get_mut(&self.providers.selected)
-                .unwrap();
+            let Some(tiles) = self.providers.available.get_mut(&self.providers.selected) else {
+                return;
+            };
             let attributions: Vec<_> = tiles
                 .iter()
                 .map(|tile| tile.as_ref().attribution())
@@ -89,7 +89,7 @@ impl eframe::App for MyApp {
 
             // Draw utility windows.
             {
-                use windows::*;
+                use windows::{acknowledge, controls, go_to_my_position, zoom};
 
                 zoom(ui, &mut self.map_memory);
                 go_to_my_position(ui, &mut self.map_memory);

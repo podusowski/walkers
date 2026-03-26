@@ -19,3 +19,6 @@ quick-xml = "0.37"
 rstar = "0.12"
 thiserror = "2"
 walkers = { workspace = true, features = ["mvt"] }
+
+[lints]
+workspace = true

@@ -39,12 +39,12 @@ impl Place for LabeledSymbol {
             self.draw_label(painter, screen_position);
         }
 
-        match self.symbol {
-            Some(Symbol::Circle(ref text)) => {
-                self.draw_circle_symbol(text.clone(), painter, screen_position.to_pos2())
+        match &self.symbol {
+            Some(Symbol::Circle(text)) => {
+                self.draw_circle_symbol(text, painter, screen_position.to_pos2());
             }
-            Some(Symbol::TwoCorners(ref text)) => {
-                self.draw_two_corners_symbol(text.clone(), painter, screen_position.to_pos2())
+            Some(Symbol::TwoCorners(text)) => {
+                self.draw_two_corners_symbol(text, painter, screen_position.to_pos2());
             }
             None => {}
         }
@@ -52,12 +52,7 @@ impl Place for LabeledSymbol {
 }
 
 impl LabeledSymbol {
-    fn draw_circle_symbol(
-        &self,
-        text: String,
-        painter: &egui::Painter,
-        screen_position: egui::Pos2,
-    ) {
+    fn draw_circle_symbol(&self, text: &str, painter: &egui::Painter, screen_position: egui::Pos2) {
         painter.circle(
             screen_position,
             self.style.symbol_size / 2.,
@@ -76,7 +71,7 @@ impl LabeledSymbol {
 
     fn draw_two_corners_symbol(
         &self,
-        text: String,
+        text: &str,
         painter: &egui::Painter,
         screen_position: egui::Pos2,
     ) {
@@ -118,7 +113,7 @@ impl LabeledSymbol {
         painter.text(
             screen_position,
             Align2::CENTER_CENTER,
-            text.clone(),
+            text,
             self.style.symbol_font.clone(),
             self.style.symbol_color,
         );
@@ -126,7 +121,7 @@ impl LabeledSymbol {
 
     fn draw_label(&self, painter: &egui::Painter, screen_position: egui::Vec2) {
         let label = painter.layout_no_wrap(
-            self.label.to_owned(),
+            self.label.clone(),
             self.style.label_font.clone(),
             self.style.label_color,
         );

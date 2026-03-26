@@ -14,7 +14,7 @@ use std::{
 };
 use thiserror::Error;
 
-/// Provides tiles from a local PMTiles file.
+/// Provides tiles from a local `PMTiles` file.
 ///
 /// <https://docs.protomaps.com/guide/getting-started>
 pub struct PmTiles {
@@ -27,7 +27,7 @@ impl PmTiles {
         Self::with_style(path, Style::default(), egui_ctx)
     }
 
-    /// Construct new [`PmTiles`] with [`Style']. Style is relevant only for vector tile
+    /// Construct new [`PmTiles`] with [`Style`]. Style is relevant only for vector tile
     /// sources.
     pub fn with_style(path: impl AsRef<Path>, style: Style, egui_ctx: Context) -> Self {
         Self {
@@ -126,7 +126,7 @@ impl Fetch for PmTilesFetch {
 
     async fn fetch(&self, tile_id: TileId) -> Result<Bytes, Self::Error> {
         // TODO: Avoid reopening the file every time.
-        let reader = AsyncPmTilesReader::new_with_path(self.path.to_owned()).await?;
+        let reader = AsyncPmTilesReader::new_with_path(self.path.clone()).await?;
         let bytes = reader
             .get_tile(TileCoord::new(tile_id.zoom, tile_id.x, tile_id.y)?)
             .await?

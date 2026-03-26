@@ -14,7 +14,7 @@ pub fn places() -> impl Plugin {
             LabeledSymbol {
                 position: places::wroclaw_glowny(),
                 label: "Wrocław Główny\ntrain station".to_owned(),
-                symbol: Some(Symbol::Circle("🚆".to_string())),
+                symbol: Some(Symbol::Circle("🚆".to_owned())),
                 style: LabeledSymbolStyle {
                     symbol_size: 25.,
                     ..Default::default()

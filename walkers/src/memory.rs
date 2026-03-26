@@ -10,16 +10,25 @@ pub struct MapMemory {
 
 impl MapMemory {
     /// Try to zoom in, returning `Err(InvalidZoom)` if already at maximum.
+    ///
+    /// # Errors
+    /// Returns `InvalidZoom` if already at maximum zoom level.
     pub fn zoom_in(&mut self) -> Result<(), InvalidZoom> {
         self.zoom.zoom_in()
     }
 
     /// Try to zoom out, returning `Err(InvalidZoom)` if already at minimum.
+    ///
+    /// # Errors
+    /// Returns `InvalidZoom` if already at minimum zoom level.
     pub fn zoom_out(&mut self) -> Result<(), InvalidZoom> {
         self.zoom.zoom_out()
     }
 
-    /// Set exact zoom level
+    /// Set exact zoom level.
+    ///
+    /// # Errors
+    /// Returns `InvalidZoom` if the zoom level is out of range.
     pub fn set_zoom(&mut self, zoom: f64) -> Result<(), InvalidZoom> {
         self.zoom = Zoom::try_from(zoom)?;
         Ok(())

@@ -5,7 +5,7 @@ use crate::{
 use bytes::Bytes;
 use egui::Context;
 use futures::{
-    SinkExt, StreamExt,
+    SinkExt as _, StreamExt as _,
     channel::mpsc::{Receiver, Sender},
     future::{Either, select, select_all},
 };
@@ -36,16 +36,16 @@ pub enum Error {
 impl From<futures::channel::mpsc::SendError> for Error {
     fn from(error: futures::channel::mpsc::SendError) -> Self {
         if error.is_disconnected() {
-            Error::TileChannelClosed
+            Self::TileChannelClosed
         } else {
-            Error::TileChannelFull
+            Self::TileChannelFull
         }
     }
 }
 
 impl<T> From<std::sync::PoisonError<T>> for Error {
     fn from(_: std::sync::PoisonError<T>) -> Self {
-        Error::Poisoned
+        Self::Poisoned
     }
 }
 
@@ -84,7 +84,7 @@ async fn fetch_complete(
             // important right now.
             log::warn!("{e}");
         }
-    };
+    }
 
     Ok(())
 }
@@ -117,14 +117,14 @@ async fn fetch_continuously_impl(
                 }
                 // Ongoing fetch was completed.
                 Either::Right(((result, _, remaining), _)) => {
-                    fetch_complete(tile_tx.to_owned(), egui_ctx.to_owned(), result).await?;
+                    fetch_complete(tile_tx.clone(), egui_ctx.clone(), result).await?;
                     outstanding = remaining;
                 }
             }
         } else {
             // Only ongoing fetches might be completed.
             let (result, _, remaining) = select_all(outstanding.drain(..)).await;
-            fetch_complete(tile_tx.to_owned(), egui_ctx.to_owned(), result).await?;
+            fetch_complete(tile_tx.clone(), egui_ctx.clone(), result).await?;
             outstanding = remaining;
         }
 
@@ -144,7 +144,7 @@ pub(crate) async fn fetch_continuously(
     tile_factory: impl TileFactory,
 ) {
     match fetch_continuously_impl(fetch, stats, request_rx, tile_tx, tile_factory, egui_ctx).await {
-        Ok(()) | Err(Error::TileChannelClosed) | Err(Error::RequestChannelBroken) => {
+        Ok(()) | Err(Error::TileChannelClosed | Error::RequestChannelBroken) => {
             log::debug!("Tile fetch loop finished.");
         }
         Err(error) => {

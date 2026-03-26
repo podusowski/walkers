@@ -19,8 +19,8 @@ check: check-lean check-all-features check-demo
 [group('develop')]
 lints:
     cargo fmt --all --check
-    cargo clippy --all-features -- -D warnings
-    cargo doc --no-deps
+    cargo clippy --all-features --all-targets -- -D warnings
+    RUSTDOCFLAGS="-D warnings" cargo doc --all-features --no-deps
 
 [group('develop')]
 typos:

@@ -1,9 +1,11 @@
+//! Benchmark for cluster rendering performance.
+
 use std::rc::Rc;
 use std::sync::{Arc, Mutex};
 use std::time::{Duration, Instant};
 
 use egui::{self, Align2, Color32, Stroke};
-use rand::{Rng, SeedableRng, rngs::StdRng};
+use rand::{Rng as _, SeedableRng as _, rngs::StdRng};
 
 use walkers::sources;
 use walkers::{HttpOptions, HttpTiles, Map, MapMemory, Position, Projector, lon_lat};
@@ -30,11 +32,16 @@ struct StatsCell(Mutex<ClusterStats>);
 
 impl StatsCell {
     fn set(&self, value: ClusterStats) {
-        *self.0.lock().unwrap() = value;
+        if let Ok(mut guard) = self.0.lock() {
+            *guard = value;
+        }
     }
 
     fn get(&self) -> ClusterStats {
-        *self.0.lock().unwrap()
+        match self.0.lock() {
+            Ok(guard) => *guard,
+            Err(_) => ClusterStats::default(),
+        }
     }
 }
 
@@ -100,7 +107,7 @@ fn generate_poi(rng: &mut StdRng, center: Position) -> Vec<LabeledSymbol> {
         out.push(LabeledSymbol {
             position: lon_lat(lon, lat),
             label: format!("POI #{:04}", i + 1),
-            symbol: Some(Symbol::Circle("•".to_string())),
+            symbol: Some(Symbol::Circle("•".to_owned())),
             style: LabeledSymbolStyle {
                 symbol_size: 5.0,
                 ..LabeledSymbolStyle::default()
@@ -172,10 +179,10 @@ impl eframe::App for ClusterApp {
                 ui.separator();
                 ui.label(format!("Zoom: {:.1}", self.memory.zoom()));
                 if ui.button("Zoom +").clicked() {
-                    let _ = self.memory.zoom_in();
+                    self.memory.zoom_in().ok();
                 }
                 if ui.button("Zoom -").clicked() {
-                    let _ = self.memory.zoom_out();
+                    self.memory.zoom_out().ok();
                 }
                 if ui.button("Regenerate").clicked() {
                     self.regenerate_points();
@@ -200,9 +207,12 @@ impl eframe::App for ClusterApp {
                 map = map.with_layer(tiles, 1.0);
             }
 
+            let Some(plugin) = self.plugin.as_ref() else {
+                return;
+            };
             let stats_handle = StatsHandle {
-                inner: self.plugin.as_ref().expect("plugin ready").clone(),
-                stats: self.stats.clone(),
+                inner: Rc::clone(plugin),
+                stats: Arc::clone(&self.stats),
             };
 
             let t0 = Instant::now();
@@ -237,10 +247,10 @@ impl eframe::App for ClusterApp {
         }
 
         if ctx.input(|i| i.key_pressed(egui::Key::Equals)) {
-            let _ = self.memory.zoom_in();
+            self.memory.zoom_in().ok();
         }
         if ctx.input(|i| i.key_pressed(egui::Key::Minus)) {
-            let _ = self.memory.zoom_out();
+            self.memory.zoom_out().ok();
         }
     }
 }
