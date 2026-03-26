@@ -60,7 +60,7 @@ impl Context {
     }
 
     /// Evaluate a style expression.
-    /// https://maplibre.org/maplibre-style-spec/expressions/
+    /// <https://maplibre.org/maplibre-style-spec/expressions/>
     pub fn evaluate(&self, value: &Value) -> Result<Value, Error> {
         match value {
             Value::Array(values) => {
