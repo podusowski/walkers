@@ -161,8 +161,8 @@ impl ClusterApp {
 }
 
 impl eframe::App for ClusterApp {
-    fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
-        egui::TopBottomPanel::top("controls").show(ctx, |ui| {
+    fn ui(&mut self, ui: &mut egui::Ui, _frame: &mut eframe::Frame) {
+        egui::Panel::top("controls").show_inside(ui, |ui| {
             ui.horizontal(|ui| {
                 ui.heading("R-tree clustering");
                 ui.separator();
@@ -190,7 +190,7 @@ impl eframe::App for ClusterApp {
             ));
         });
 
-        egui::CentralPanel::default().show(ctx, |ui| {
+        egui::CentralPanel::default().show_inside(ui, |ui| {
             if self.plugin.is_none() {
                 self.rebuild_plugin();
             }
@@ -230,16 +230,16 @@ impl eframe::App for ClusterApp {
             );
         });
 
-        if ctx.input(|i| i.modifiers.alt) {
-            ctx.request_repaint();
+        if ui.input(|i| i.modifiers.alt) {
+            ui.request_repaint();
         } else {
-            ctx.request_repaint_after(Duration::from_millis(16));
+            ui.request_repaint_after(Duration::from_millis(16));
         }
 
-        if ctx.input(|i| i.key_pressed(egui::Key::Equals)) {
+        if ui.input(|i| i.key_pressed(egui::Key::Equals)) {
             let _ = self.memory.zoom_in();
         }
-        if ctx.input(|i| i.key_pressed(egui::Key::Minus)) {
+        if ui.input(|i| i.key_pressed(egui::Key::Minus)) {
             let _ = self.memory.zoom_out();
         }
     }

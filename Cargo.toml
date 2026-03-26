@@ -1,36 +1,36 @@
 [workspace]
 resolver = "2"
 members = [
-  "demo",
-  "demo_android/rust",
-  "demo_native",
-  "demo_web",
-  "hypermocker",
-  "walkers",
-  "walkers_extras",
+    "demo",
+    "demo_android/rust",
+    "demo_native",
+    "demo_web",
+    "hypermocker",
+    "walkers",
+    "walkers_extras",
 ]
 
 [workspace.package]
 version = "0.52.0"
 edition = "2024"
-rust-version = "1.88"  # Aligned to egui
+rust-version = "1.92"                                # Aligned to egui
 repository = "https://github.com/podusowski/walkers"
 license = "MIT"
 keywords = ["geography", "gis", "gui"]
 categories = ["gui", "science::geo"]
 
 [workspace.dependencies]
-eframe = "0.33"
-egui = "0.33"
-egui_extras = { version = "0.33", features = ["svg"] }
-egui-winit = "0.33"
+eframe = "0.34.0"
+egui = "0.34.0"
+egui_extras = { version = "0.34.0", features = ["svg"] }
+egui-winit = "0.34.0"
 image = { version = "0.25", default-features = false }
 log = "0.4"
 walkers = { path = "walkers", version = "0.52.0" }
 walkers_extras = { path = "walkers_extras", version = "0.52.0" }
-wgpu = { version = "27.0.1", default-features = true }
+wgpu = { version = "29.0.0", default-features = true }
 
-[patch.crates-io]
+# [patch.crates-io]
 # eframe = { git = "https://github.com/emilk/egui.git", branch = "main" }
 # egui = { git = "https://github.com/emilk/egui.git", branch = "main" }
 # egui_extras = { git = "https://github.com/emilk/egui.git", branch = "main" }

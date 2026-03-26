@@ -27,7 +27,7 @@ impl PmTiles {
         Self::with_style(path, Style::default(), egui_ctx)
     }
 
-    /// Construct new [`PmTiles`] with [`Style']. Style is relevant only for vector tile
+    /// Construct new [`PmTiles`] with [`Style`]. Style is relevant only for vector tile
     /// sources.
     pub fn with_style(path: impl AsRef<Path>, style: Style, egui_ctx: Context) -> Self {
         Self {
