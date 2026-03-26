@@ -65,3 +65,6 @@ mvt = [
 ]
 pmtiles = ["dep:flate2", "dep:pmtiles"]
 serde = ["dep:serde", "egui/serde", "geo-types/serde"]
+
+[lints]
+workspace = true
