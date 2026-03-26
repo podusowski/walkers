@@ -24,7 +24,7 @@ pub struct TilesIo {
     pub cache: LruCache<TileId, Option<Tile>>,
     pub stats: Arc<Mutex<Stats>>,
 
-    #[allow(dead_code)] // Significant Drop
+    #[expect(dead_code)] // Significant Drop
     runtime: Runtime,
 }
 
@@ -45,7 +45,7 @@ impl TilesIo {
         // This will run concurrently in a loop, handing downloads and talk with us via channels.
         let runtime = Runtime::new(fetch_continuously(
             fetch,
-            stats.clone(),
+            Arc::clone(&stats),
             request_rx,
             tile_tx,
             egui_ctx,
@@ -53,7 +53,7 @@ impl TilesIo {
         ));
 
         // Just arbitrary value which seemed right.
-        #[allow(clippy::unwrap_used)]
+        #[expect(clippy::unwrap_used)]
         let cache_size = std::num::NonZeroUsize::new(256).unwrap();
 
         Self {

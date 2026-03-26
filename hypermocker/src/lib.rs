@@ -1,4 +1,5 @@
-#![doc = include_str!("../README.md")]
+#![cfg_attr(doc, doc = include_str!("../README.md"))]
+#![expect(clippy::unwrap_used)] // This crate is only for tests
 
 use http_body_util::Full;
 use hyper::server::conn::http1;
@@ -45,20 +46,20 @@ pub struct Server {
 
 impl Server {
     /// Create new [`Server`], and bind it to a random port.
-    pub async fn bind() -> Server {
+    pub async fn bind() -> Self {
         let state = Arc::new(Mutex::new(State::default()));
 
         let addr = SocketAddr::from(([127, 0, 0, 1], 0));
         let listener = TcpListener::bind(addr).await.unwrap();
         let port = listener.local_addr().unwrap().port();
 
-        let state_clone = state.clone();
+        let state_clone = Arc::clone(&state);
         tokio::spawn(async move {
             loop {
                 let (stream, _) = listener.accept().await.unwrap();
                 let io = TokioIo::new(stream);
 
-                let state = state_clone.clone();
+                let state = Arc::clone(&state_clone);
                 tokio::task::spawn(async move {
                     http1::Builder::new()
                         .serve_connection(io, Service { state })
@@ -68,7 +69,7 @@ impl Server {
             }
         });
 
-        Server { port, state }
+        Self { port, state }
     }
 
     /// Returns the port, which this server listens on.
@@ -77,7 +78,7 @@ impl Server {
     }
 
     /// Anticipate a HTTP request, but do not respond to it yet, nor wait for it to happen.
-    pub async fn anticipate(&self, url: impl Into<String>) -> AnticipatedRequest {
+    pub fn anticipate(&self, url: impl Into<String>) -> AnticipatedRequest {
         let url = url.into();
         log::info!("Anticipating '{url}'.");
         let (payload_tx, payload_rx) = oneshot::channel();
@@ -88,7 +89,7 @@ impl Server {
             .unwrap()
             .expectations
             .insert(
-                url.to_owned(),
+                url.clone(),
                 Expectation {
                     payload_rx,
                     request_tx,
@@ -97,7 +98,7 @@ impl Server {
             .is_some()
         {
             panic!("already anticipating");
-        };
+        }
         AnticipatedRequest {
             url,
             payload_tx,
@@ -108,9 +109,10 @@ impl Server {
 
 impl Drop for Server {
     fn drop(&mut self) {
-        if !self.state.lock().unwrap().unexpected.is_empty() {
-            panic!("there are unexpected requests");
-        }
+        assert!(
+            self.state.lock().unwrap().unexpected.is_empty(),
+            "there are unexpected requests"
+        );
     }
 }
 
@@ -127,15 +129,15 @@ pub struct AnticipatedRequest {
 
 impl AnticipatedRequest {
     /// Respond to this request immediately if active, or save it for later.
-    pub async fn respond(self, payload: impl AsRef<[u8]>) {
+    pub fn respond(self, payload: impl AsRef<[u8]>) {
         log::info!("Saving response for '{}'.", self.url);
         let payload: hyper::body::Bytes = payload.as_ref().to_owned().into();
         let response = hyper::Response::new(Full::new(payload));
         self.payload_tx.send(response).unwrap();
     }
 
-    /// Similar to [AnticipatedRequest], but with status and empty body.
-    pub async fn respond_with_status(self, status: hyper::StatusCode) {
+    /// Similar to [`AnticipatedRequest`], but with status and empty body.
+    pub fn respond_with_status(self, status: hyper::StatusCode) {
         log::info!(
             "Saving response (with status: {}) for '{}'.",
             status,
@@ -170,7 +172,7 @@ impl hyper::service::Service<hyper::Request<hyper::body::Incoming>> for Service 
 
     fn call(&self, request: hyper::Request<hyper::body::Incoming>) -> Self::Future {
         log::info!("Incoming request '{}'.", request.uri());
-        let state = self.state.clone();
+        let state = Arc::clone(&self.state);
         Box::pin(async move {
             let expectation = state
                 .lock()
@@ -183,20 +185,15 @@ impl hyper::service::Service<hyper::Request<hyper::body::Incoming>> for Service 
 
                 // [`AnticipatedRequest`] might be dropped by now, and there is no one to receive it,
                 // but that is OK.
-                let _ = expectation.request_tx.send(request);
+                expectation.request_tx.send(request).ok();
 
-                match expectation.payload_rx.await {
-                    Ok(payload) => {
-                        log::info!("Responding to '{uri}' with {payload:?}.");
-                        Ok(payload)
-                    }
-                    Err(_) => {
-                        log::error!(
-                            "AnticipatedRequest for '{uri}' was dropped before responding."
-                        );
-                        // TODO: This panic will be ignored by hyper/tokio stack.
-                        panic!("AnticipatedRequest for '{uri}' was dropped before responding.");
-                    }
+                if let Ok(payload) = expectation.payload_rx.await {
+                    log::info!("Responding to '{uri}' with {payload:?}.");
+                    Ok(payload)
+                } else {
+                    log::error!("AnticipatedRequest for '{uri}' was dropped before responding.");
+                    // TODO: This panic will be ignored by hyper/tokio stack.
+                    panic!("AnticipatedRequest for '{uri}' was dropped before responding.");
                 }
             } else {
                 log::warn!("Unexpected '{}'.", request.uri());

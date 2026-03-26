@@ -11,8 +11,10 @@ pub fn lat_lon(lat: f64, lon: f64) -> Position {
     Position::new(lon, lat)
 }
 
-/// Construct `Position` from longitude and latitude. Note that it is common standard to write
-/// coordinates starting with the latitude instead (e.g. `51.104465719934176, 17.075169894118684` is
+/// Construct `Position` from longitude and latitude.
+///
+/// Note that it is common standard to write coordinates starting with the latitude instead
+/// (e.g. `51.104465719934176, 17.075169894118684` is
 /// the [Wrocław's zoo](https://zoo.wroclaw.pl/en/)).
 pub fn lon_lat(lon: f64, lat: f64) -> Position {
     Position::new(lon, lat)
@@ -80,7 +82,7 @@ impl PixelsExt for Pixels {
     }
 
     fn from_vec2(vec2: egui::Vec2) -> Self {
-        Pixels::new(vec2.x as f64, vec2.y as f64)
+        Self::new(vec2.x as f64, vec2.y as f64)
     }
 }
 

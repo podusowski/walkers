@@ -1,5 +1,5 @@
 use egui::{Color32, Pos2, Vec2, vec2};
-use geo::{BoundingRect, Coord, Intersects, LineString, Polygon};
+use geo::{BoundingRect as _, Coord, Intersects as _, LineString, Polygon};
 
 #[derive(Debug, Clone)]
 pub struct Text {
@@ -21,8 +21,8 @@ impl Text {
         angle: f32,
     ) -> Self {
         Self {
-            position,
             text,
+            position,
             font_size,
             text_color,
             background_color,
@@ -36,6 +36,10 @@ pub struct OrientedRect {
     bbox: geo::Rect<f32>,
 }
 
+#[expect(
+    clippy::expect_used,
+    reason = "polygon always has points, so bounding_rect is always Some"
+)]
 impl OrientedRect {
     pub fn new(center: Pos2, angle: f32, size: Vec2) -> Self {
         let (s, c) = angle.sin_cos();
@@ -79,7 +83,7 @@ impl OrientedRect {
             .expect("can not happen because polygon always has some points")
     }
 
-    pub fn intersects(&self, other: &OrientedRect) -> bool {
+    pub fn intersects(&self, other: &Self) -> bool {
         // Checking bbox first gives huge performance boost.
         self.bbox.intersects(&other.bbox) && self.polygon.intersects(&other.polygon)
     }

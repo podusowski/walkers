@@ -58,67 +58,67 @@ impl Center {
     }
 
     fn dragged_by(&mut self, my_position: Position, response: &Response) {
-        let from_detached = if let Center::Moving { from_detached, .. } = self {
+        let from_detached = if let Self::Moving { from_detached, .. } = self {
             *from_detached
         } else {
             // Only `MyPosition` state has no adjusted position.
             self.adjusted_position().is_some()
         };
 
-        *self = Center::Moving {
+        *self = Self::Moving {
             position: self
                 .adjusted_position()
-                .unwrap_or(AdjustedPosition::new(my_position)),
+                .unwrap_or_else(|| AdjustedPosition::new(my_position)),
             direction: response.drag_delta(),
             from_detached,
         };
     }
 
     fn drag_stopped(&mut self, pull_to_my_position_threshold: f32) {
-        if let Center::Moving {
+        if let Self::Moving {
             position,
             direction,
             from_detached,
         } = &self
         {
             if *from_detached || position.offset_length() > pull_to_my_position_threshold {
-                *self = Center::Inertia {
+                *self = Self::Inertia {
                     position: position.clone(),
                     direction: direction.normalized(),
                     amount: direction.length(),
                 };
             } else {
-                *self = Center::PulledToMyPosition(position.to_owned());
+                *self = Self::PulledToMyPosition(position.to_owned());
             }
         }
     }
 
     pub(crate) fn update_movement(&mut self, delta_time: f32, zoom: f64) -> bool {
         match &self {
-            Center::Moving {
+            Self::Moving {
                 position,
                 direction,
                 from_detached,
             } => {
-                *self = Center::Moving {
+                *self = Self::Moving {
                     position: position.clone().shift(*direction, zoom),
                     direction: *direction,
                     from_detached: *from_detached,
                 };
                 true
             }
-            Center::Inertia {
+            Self::Inertia {
                 position,
                 direction,
                 amount,
             } => {
                 *self = if amount < &mut 0.1 {
-                    Center::Exact(position.to_owned())
+                    Self::Exact(position.to_owned())
                 } else {
                     // Exponentially drive the `amount` value towards zero
                     let lp_factor = INERTIA_TAU / (delta_time + INERTIA_TAU);
 
-                    Center::Inertia {
+                    Self::Inertia {
                         position: position.clone().shift(*direction * *amount, zoom),
                         direction: *direction,
                         amount: *amount * lp_factor,
@@ -126,12 +126,12 @@ impl Center {
                 };
                 true
             }
-            Center::PulledToMyPosition(position) => {
+            Self::PulledToMyPosition(position) => {
                 let position = position.clone().half_offset();
                 *self = if position.offset_length() < 1.0 {
-                    Center::MyPosition
+                    Self::MyPosition
                 } else {
-                    Center::PulledToMyPosition(position)
+                    Self::PulledToMyPosition(position)
                 };
                 true
             }
@@ -146,16 +146,16 @@ impl Center {
     }
 
     pub fn animating(&self) -> bool {
-        matches!(self, Center::Inertia { .. } | Center::PulledToMyPosition(_))
+        matches!(self, Self::Inertia { .. } | Self::PulledToMyPosition(_))
     }
 
     fn adjusted_position(&self) -> Option<AdjustedPosition> {
         match self {
-            Center::MyPosition => None,
-            Center::Exact(position)
-            | Center::PulledToMyPosition(position)
-            | Center::Moving { position, .. }
-            | Center::Inertia { position, .. } => Some(position.to_owned()),
+            Self::MyPosition => None,
+            Self::Exact(position)
+            | Self::PulledToMyPosition(position)
+            | Self::Moving { position, .. }
+            | Self::Inertia { position, .. } => Some(position.to_owned()),
         }
     }
 
@@ -167,25 +167,25 @@ impl Center {
     /// Shift position by given number of pixels, if detached.
     pub(crate) fn shift(self, offset: Vec2, zoom: f64) -> Self {
         match self {
-            Center::MyPosition => Center::MyPosition,
-            Center::PulledToMyPosition(position) => {
-                Center::PulledToMyPosition(position.shift(offset, zoom))
+            Self::MyPosition => Self::MyPosition,
+            Self::PulledToMyPosition(position) => {
+                Self::PulledToMyPosition(position.shift(offset, zoom))
             }
-            Center::Exact(position) => Center::Exact(position.shift(offset, zoom)),
-            Center::Moving {
+            Self::Exact(position) => Self::Exact(position.shift(offset, zoom)),
+            Self::Moving {
                 position,
                 direction,
                 from_detached,
-            } => Center::Moving {
+            } => Self::Moving {
                 position: position.shift(offset, zoom),
                 direction,
                 from_detached,
             },
-            Center::Inertia {
+            Self::Inertia {
                 position,
                 direction,
                 amount,
-            } => Center::Inertia {
+            } => Self::Inertia {
                 position: position.shift(offset, zoom),
                 direction,
                 amount,

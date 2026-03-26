@@ -1,3 +1,5 @@
+//! Web entry point for the walkers demo.
+
 #[cfg(target_arch = "wasm32")]
 use eframe::wasm_bindgen::JsCast;
 
@@ -24,7 +26,7 @@ fn main() {
             .start(
                 canvas,
                 web_options,
-                Box::new(|cc| Ok(Box::new(demo::MyApp::new(cc.egui_ctx.clone())))),
+                Box::new(|cc| Ok(Box::new(demo::MyApp::new(&cc.egui_ctx)))),
             )
             .await
             .expect("failed to start eframe");
@@ -33,5 +35,5 @@ fn main() {
 
 #[cfg(not(target_arch = "wasm32"))]
 fn main() {
-    println!("This demo is only meant to be compiled for WASM.");
+    panic!("This demo is only meant to be compiled for WASM.");
 }

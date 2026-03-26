@@ -1,4 +1,4 @@
-//! Evaluate MapLibre style expressions.
+//! Evaluate `MapLibre` style expressions.
 //! <https://maplibre.org/maplibre-style-spec/expressions/>
 
 use color::{AlphaColor, HueDirection, Srgb};
@@ -61,6 +61,7 @@ impl Context {
 
     /// Evaluate a style expression.
     /// <https://maplibre.org/maplibre-style-spec/expressions/>
+    #[expect(clippy::too_many_lines)]
     pub fn evaluate(&self, value: &Value) -> Result<Value, Error> {
         match value {
             Value::Array(values) => {
@@ -112,7 +113,7 @@ impl Context {
                             match arm.iter().as_slice() {
                                 [condition, arm_result] => {
                                     let evaluated_condition = self.evaluate(condition)?;
-                                    if let Value::Bool(true) = evaluated_condition {
+                                    if evaluated_condition == Value::Bool(true) {
                                         return self.evaluate(arm_result);
                                     }
                                 }
@@ -127,7 +128,7 @@ impl Context {
                     "coalesce" => {
                         for argument in arguments {
                             match self.evaluate(argument)? {
-                                Value::Null => continue,
+                                Value::Null => {}
                                 non_null => return Ok(non_null),
                             }
                         }
@@ -251,8 +252,8 @@ impl Context {
                 Ok(Value::String(self.geometry_type.clone()))
             }
             Value::String(key) if self.properties.contains_key(key) => {
-                Ok(mvt_value_to_json(self.properties.get(key).ok_or(
-                    Error::PropertyMissing(key.clone(), self.properties.clone()),
+                Ok(mvt_value_to_json(self.properties.get(key).ok_or_else(
+                    || Error::PropertyMissing(key.clone(), self.properties.clone()),
                 )?))
             }
             Value::Array(_) => self.evaluate(value),
@@ -287,7 +288,7 @@ fn mvt_value_to_json(value: &MvtValue) -> Value {
 /// Expect a float value.
 fn float(v: &Value) -> Result<f64, Error> {
     if let Value::Number(n) = v {
-        n.as_f64().ok_or(Error::ExpectedFloat(n.clone()))
+        n.as_f64().ok_or_else(|| Error::ExpectedFloat(n.clone()))
     } else {
         Err(Error::ExpectedNumber(v.clone()))
     }
@@ -312,8 +313,8 @@ fn lerp(a: &Value, b: &Value, t: f64) -> Result<Value, Error> {
             Ok(Value::String(color.to_rgba8().to_string()))
         }
         (Value::Number(a), Value::Number(b)) => {
-            let a = a.as_f64().ok_or(Error::ExpectedFloat(a.clone()))?;
-            let b = b.as_f64().ok_or(Error::ExpectedFloat(b.clone()))?;
+            let a = a.as_f64().ok_or_else(|| Error::ExpectedFloat(a.clone()))?;
+            let b = b.as_f64().ok_or_else(|| Error::ExpectedFloat(b.clone()))?;
             Ok(Value::Number(
                 Number::from_f64(a + (b - a) * t).ok_or(Error::CouldNotSerializeFloat)?,
             ))
@@ -382,7 +383,7 @@ fn two_elements(slice: &[Value]) -> Result<(&Value, &Value), Error> {
 fn first_and_rest(slice: &[Value]) -> Result<(&Value, &[Value]), Error> {
     slice
         .split_first()
-        .ok_or(Error::AtLeastTwoElementsExpected(slice.to_vec()))
+        .ok_or_else(|| Error::AtLeastTwoElementsExpected(slice.to_vec()))
 }
 
 #[cfg(test)]
@@ -405,11 +406,11 @@ mod tests {
 
     #[test]
     fn test_eq_filter_matching() {
-        let park = HashMap::from([("type".to_string(), MvtValue::String("park".to_string()))]);
-        let park_context = Context::new("Point".to_string(), park, 1);
+        let park = HashMap::from([("type".to_owned(), MvtValue::String("park".to_owned()))]);
+        let park_context = Context::new("Point".to_owned(), park, 1);
 
-        let forest = HashMap::from([("type".to_string(), MvtValue::String("forest".to_string()))]);
-        let forest_context = Context::new("Point".to_string(), forest, 1);
+        let forest = HashMap::from([("type".to_owned(), MvtValue::String("forest".to_owned()))]);
+        let forest_context = Context::new("Point".to_owned(), forest, 1);
 
         let filter = Filter(json!(["==", "type", "park"]));
 
@@ -417,7 +418,7 @@ mod tests {
         assert!(!filter.matches(&forest_context));
     }
 
-    /// `$type` seems to be legacy from old Mapbox GL JS, but is still supported in MapLibre
+    /// `$type` seems to be legacy from old Mapbox GL JS, but is still supported in `MapLibre`
     /// and used in Protomap styles.
     #[test]
     fn test_eq_filter_matching_type() {
@@ -425,7 +426,7 @@ mod tests {
         let point_filter = Filter(json!(["==", "$type", "Point"]));
 
         let properties = HashMap::new();
-        let point_context = Context::new("Point".to_string(), properties, 1);
+        let point_context = Context::new("Point".to_owned(), properties, 1);
 
         assert!(point_filter.matches(&point_context));
         assert!(!line_filter.matches(&point_context));
@@ -433,11 +434,11 @@ mod tests {
 
     #[test]
     fn test_in_filter() {
-        let park = HashMap::from([("type".to_string(), MvtValue::String("park".to_string()))]);
-        let park_context = Context::new("Point".to_string(), park, 1);
+        let park = HashMap::from([("type".to_owned(), MvtValue::String("park".to_owned()))]);
+        let park_context = Context::new("Point".to_owned(), park, 1);
 
-        let road = HashMap::from([("type".to_string(), MvtValue::String("road".to_string()))]);
-        let road_context = Context::new("Point".to_string(), road, 1);
+        let road = HashMap::from([("type".to_owned(), MvtValue::String("road".to_owned()))]);
+        let road_context = Context::new("Point".to_owned(), road, 1);
 
         let filter = Filter(json!(["in", "type", "park", "forest"]));
 
@@ -448,15 +449,15 @@ mod tests {
     #[test]
     fn test_evaluate_color() {
         let properties = HashMap::new();
-        let context = Context::new("Point".to_string(), properties, 1);
+        let context = Context::new("Point".to_owned(), properties, 1);
 
         assert_eq!(
-            Color(Value::String("#ffffff".to_string())).evaluate(&context),
+            Color(Value::String("#ffffff".to_owned())).evaluate(&context),
             Color32::WHITE
         );
 
         assert_eq!(
-            Color(Value::String("red".to_string())).evaluate(&context),
+            Color(Value::String("red".to_owned())).evaluate(&context),
             Color32::RED
         );
     }
@@ -464,7 +465,7 @@ mod tests {
     #[test]
     fn test_literal_operator() {
         let properties = HashMap::new();
-        let context = Context::new("Point".to_string(), properties, 1);
+        let context = Context::new("Point".to_owned(), properties, 1);
 
         assert_eq!(
             context.evaluate(&json!(["literal", [1, 2, 3]])).unwrap(),
@@ -475,8 +476,8 @@ mod tests {
     #[test]
     fn test_get_operator() {
         let properties =
-            HashMap::from([("name".to_string(), MvtValue::String("Polska".to_string()))]);
-        let context = Context::new("Point".to_string(), properties, 1);
+            HashMap::from([("name".to_owned(), MvtValue::String("Polska".to_owned()))]);
+        let context = Context::new("Point".to_owned(), properties, 1);
 
         assert_eq!(
             context.evaluate(&json!(["get", "name"]),).unwrap(),
@@ -492,8 +493,8 @@ mod tests {
     #[test]
     fn test_has_operator() {
         let properties =
-            HashMap::from([("name".to_string(), MvtValue::String("Polska".to_string()))]);
-        let context = Context::new("Point".to_string(), properties, 1);
+            HashMap::from([("name".to_owned(), MvtValue::String("Polska".to_owned()))]);
+        let context = Context::new("Point".to_owned(), properties, 1);
 
         assert_eq!(
             context.evaluate(&json!(["has", "name"])).unwrap(),
@@ -504,7 +505,7 @@ mod tests {
     #[test]
     fn test_not_has_operator() {
         let properties = HashMap::new();
-        let context = Context::new("Point".to_string(), properties, 1);
+        let context = Context::new("Point".to_owned(), properties, 1);
 
         assert_eq!(
             context.evaluate(&json!(["!has", "name"])).unwrap(),
@@ -515,7 +516,7 @@ mod tests {
     #[test]
     fn test_match_operator() {
         let properties = HashMap::new();
-        let context = Context::new("Point".to_string(), properties, 1);
+        let context = Context::new("Point".to_owned(), properties, 1);
 
         assert_eq!(
             context
@@ -537,7 +538,7 @@ mod tests {
     #[test]
     fn test_match_operator_reaching_default() {
         let properties = HashMap::new();
-        let context = Context::new("Point".to_string(), properties, 1);
+        let context = Context::new("Point".to_owned(), properties, 1);
 
         assert_eq!(
             context
@@ -558,7 +559,7 @@ mod tests {
     #[test]
     fn test_match_when_arm_label_is_an_array() {
         let properties = HashMap::new();
-        let context = Context::new("Polygon".to_string(), properties, 1);
+        let context = Context::new("Polygon".to_owned(), properties, 1);
 
         assert_eq!(
             json!(true),
@@ -577,7 +578,7 @@ mod tests {
     #[test]
     fn test_case_operator() {
         let properties = HashMap::new();
-        let context = Context::new("Point".to_string(), properties, 1);
+        let context = Context::new("Point".to_owned(), properties, 1);
 
         assert_eq!(
             context
@@ -605,7 +606,7 @@ mod tests {
     #[test]
     fn test_coalesce_operator() {
         let properties = HashMap::new();
-        let context = Context::new("Point".to_string(), properties, 1);
+        let context = Context::new("Point".to_owned(), properties, 1);
 
         assert_eq!(
             context
@@ -625,8 +626,8 @@ mod tests {
     #[test]
     fn test_eq_operator() {
         let properties =
-            HashMap::from([("name".to_string(), MvtValue::String("Polska".to_string()))]);
-        let context = Context::new("Point".to_string(), properties, 1);
+            HashMap::from([("name".to_owned(), MvtValue::String("Polska".to_owned()))]);
+        let context = Context::new("Point".to_owned(), properties, 1);
 
         assert_eq!(
             context
@@ -646,8 +647,8 @@ mod tests {
     #[test]
     fn test_in_operator() {
         let properties =
-            HashMap::from([("name".to_string(), MvtValue::String("Polska".to_string()))]);
-        let context = Context::new("Point".to_string(), properties, 1);
+            HashMap::from([("name".to_owned(), MvtValue::String("Polska".to_owned()))]);
+        let context = Context::new("Point".to_owned(), properties, 1);
 
         assert_eq!(
             context
@@ -667,7 +668,7 @@ mod tests {
     #[test]
     fn test_any_operator() {
         let properties = HashMap::new();
-        let context = Context::new("Point".to_string(), properties, 1);
+        let context = Context::new("Point".to_owned(), properties, 1);
 
         assert_eq!(
             context.evaluate(&json!(["any", true, false])).unwrap(),
@@ -683,7 +684,7 @@ mod tests {
     #[test]
     fn test_all_operator() {
         let properties = HashMap::new();
-        let context = Context::new("Point".to_string(), properties, 1);
+        let context = Context::new("Point".to_owned(), properties, 1);
 
         assert_eq!(
             context.evaluate(&json!(["all", true, false])).unwrap(),
@@ -699,7 +700,7 @@ mod tests {
     #[test]
     fn test_interpolate_operator() {
         let properties = HashMap::new();
-        let context = Context::new("Point".to_string(), properties, 1);
+        let context = Context::new("Point".to_owned(), properties, 1);
 
         // https://maplibre.org/maplibre-style-spec/expressions/#interpolate
         assert_eq!(
@@ -712,8 +713,8 @@ mod tests {
 
     #[test]
     fn test_interpolate_operator_with_evaluated_stop() {
-        let properties = HashMap::from([("zoom".to_string(), MvtValue::Int(5))]);
-        let context = Context::new("Point".to_string(), properties, 1);
+        let properties = HashMap::from([("zoom".to_owned(), MvtValue::Int(5))]);
+        let context = Context::new("Point".to_owned(), properties, 1);
 
         assert_eq!(
             context
@@ -734,7 +735,7 @@ mod tests {
     #[test]
     fn test_negation_operator() {
         let properties = HashMap::new();
-        let context = Context::new("Point".to_string(), properties, 1);
+        let context = Context::new("Point".to_owned(), properties, 1);
 
         assert_eq!(context.evaluate(&json!(["!", false])).unwrap(), json!(true));
     }
@@ -742,7 +743,7 @@ mod tests {
     #[test]
     fn test_format_operator() {
         let properties = HashMap::new();
-        let context = Context::new("Point".to_string(), properties, 1);
+        let context = Context::new("Point".to_owned(), properties, 1);
 
         assert_eq!(
             context

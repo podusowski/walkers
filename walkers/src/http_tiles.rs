@@ -139,6 +139,7 @@ impl<S> HttpFetch<S>
 where
     S: TileSource + Sync + Send,
 {
+    #[expect(clippy::needless_pass_by_value, reason = "public API")]
     pub fn new(source: S, http_options: HttpOptions) -> Self {
         Self {
             source,
@@ -229,10 +230,10 @@ mod tests {
 
     #[tokio::test]
     async fn download_single_tile() {
-        let _ = env_logger::try_init();
+        env_logger::try_init().ok();
 
         let (server, source) = hypermocker_mock().await;
-        let mut anticipated = server.anticipate("/3/1/2.png").await;
+        let mut anticipated = server.anticipate("/3/1/2.png");
 
         let mut tiles = HttpTiles::new(source, Context::default());
 
@@ -250,15 +251,13 @@ mod tests {
         );
 
         // Eventually it gets downloaded and become available in cache.
-        anticipated
-            .respond(include_bytes!("../assets/blank-255-tile.png"))
-            .await;
+        anticipated.respond(include_bytes!("../assets/blank-255-tile.png"));
         assert_tile_to_become_available_eventually(&mut tiles, TILE_ID).await;
     }
 
     #[tokio::test]
     async fn download_is_not_started_when_tile_is_invalid() {
-        let _ = env_logger::try_init();
+        env_logger::try_init().ok();
 
         let (_server, source) = hypermocker_mock().await;
         let mut tiles = HttpTiles::new(source, Context::default());
@@ -277,10 +276,10 @@ mod tests {
 
     #[tokio::test]
     async fn custom_user_agent_header() {
-        let _ = env_logger::try_init();
+        env_logger::try_init().ok();
 
         let (server, source) = hypermocker_mock().await;
-        let mut anticipated = server.anticipate("/3/1/2.png").await;
+        let mut anticipated = server.anticipate("/3/1/2.png");
 
         let mut tiles = HttpTiles::with_options(
             source,
@@ -303,14 +302,14 @@ mod tests {
 
     #[tokio::test]
     async fn by_default_there_can_be_6_parallel_downloads_at_most() {
-        let _ = env_logger::try_init();
+        env_logger::try_init().ok();
 
         there_can_be_x_parallel_downloads_at_most(6, HttpOptions::default()).await;
     }
 
     #[tokio::test]
     async fn there_can_be_10_parallel_downloads_at_most() {
-        let _ = env_logger::try_init();
+        env_logger::try_init().ok();
 
         there_can_be_x_parallel_downloads_at_most(
             10,
@@ -324,13 +323,13 @@ mod tests {
     }
 
     async fn there_can_be_x_parallel_downloads_at_most(x: u32, http_options: HttpOptions) {
-        let _ = env_logger::try_init();
+        env_logger::try_init().ok();
 
         let (server, source) = hypermocker_mock().await;
         let mut tiles = HttpTiles::with_options(source, http_options, Context::default());
 
         // First download is started immediately.
-        let mut first = server.anticipate("/3/1/2.png".to_string()).await;
+        let mut first = server.anticipate("/3/1/2.png".to_owned());
         assert!(tiles.at(TILE_ID).is_none());
         first.expect().await;
 
@@ -338,7 +337,7 @@ mod tests {
         let mut active = Vec::new();
         for x in 0..x - 1 {
             let tile_id = TileId { x, y: 1, zoom: 10 };
-            let mut request = server.anticipate(format!("/10/{}/1.png", tile_id.x)).await;
+            let mut request = server.anticipate(format!("/10/{}/1.png", tile_id.x));
             assert!(tiles.at(tile_id).is_none());
             request.expect().await;
             active.push(request);
@@ -359,13 +358,11 @@ mod tests {
         tokio::time::sleep(Duration::from_secs(1)).await;
 
         // Last download will start as soon as one of the previous ones are responded to.
-        let mut awaiting_request = server.anticipate("/10/99/99.png".to_string()).await;
+        let mut awaiting_request = server.anticipate("/10/99/99.png".to_owned());
 
-        first
-            .respond(Bytes::from_static(include_bytes!(
-                "../assets/blank-255-tile.png"
-            )))
-            .await;
+        first.respond(Bytes::from_static(include_bytes!(
+            "../assets/blank-255-tile.png"
+        )));
 
         awaiting_request.expect().await;
     }
@@ -379,45 +376,39 @@ mod tests {
 
     #[tokio::test]
     async fn tile_is_empty_forever_if_http_returns_error() {
-        let _ = env_logger::try_init();
+        env_logger::try_init().ok();
 
         let (server, source) = hypermocker_mock().await;
         let mut tiles = HttpTiles::new(source, Context::default());
         server
             .anticipate("/3/1/2.png")
-            .await
-            .respond_with_status(StatusCode::NOT_FOUND)
-            .await;
+            .respond_with_status(StatusCode::NOT_FOUND);
 
         assert_tile_is_empty_forever(&mut tiles).await;
     }
 
     #[tokio::test]
     async fn tile_is_empty_forever_if_http_returns_no_body() {
-        let _ = env_logger::try_init();
+        env_logger::try_init().ok();
 
         let (server, source) = hypermocker_mock().await;
         let mut tiles = HttpTiles::new(source, Context::default());
         server
             .anticipate("/3/1/2.png")
-            .await
-            .respond_with_status(StatusCode::OK)
-            .await;
+            .respond_with_status(StatusCode::OK);
 
         assert_tile_is_empty_forever(&mut tiles).await;
     }
 
     #[tokio::test]
     async fn tile_is_empty_forever_if_http_returns_garbage() {
-        let _ = env_logger::try_init();
+        env_logger::try_init().ok();
 
         let (server, source) = hypermocker_mock().await;
         let mut tiles = HttpTiles::new(source, Context::default());
         server
             .anticipate("/3/1/2.png")
-            .await
-            .respond("definitely not an image")
-            .await;
+            .respond("definitely not an image");
 
         assert_tile_is_empty_forever(&mut tiles).await;
     }
@@ -427,7 +418,7 @@ mod tests {
 
     impl TileSource for GarbageSource {
         fn tile_url(&self, _: TileId) -> String {
-            "totally invalid url".to_string()
+            "totally invalid url".to_owned()
         }
 
         fn attribution(&self) -> Attribution {
@@ -442,7 +433,7 @@ mod tests {
 
     #[tokio::test]
     async fn tile_is_empty_forever_if_http_can_not_even_connect() {
-        let _ = env_logger::try_init();
+        env_logger::try_init().ok();
         let mut tiles = HttpTiles::new(GarbageSource, Context::default());
         assert_tile_is_empty_forever(&mut tiles).await;
     }

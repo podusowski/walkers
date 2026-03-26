@@ -9,10 +9,10 @@ use crate::expression::Context;
 
 /// Style for rendering vector maps.
 ///
-/// It is beased on MapLibre's style specification, but only a small subset is supported.
+/// It is beased on `MapLibre`'s style specification, but only a small subset is supported.
 /// Most notably, Walkers only read `layers` section of the style and applies it to the
 /// [`crate::Tiles`] it is used with. In spite that, it should be possible to deserialize most
-/// of the MapLibre's styles using `serde`, as unknown JSON/YAML fields are simply ignored.
+/// of the `MapLibre`'s styles using `serde`, as unknown JSON/YAML fields are simply ignored.
 ///
 /// <https://maplibre.org/maplibre-style-spec/>
 #[derive(Deserialize, Default)]
@@ -20,6 +20,10 @@ pub struct Style {
     pub layers: Vec<Layer>,
 }
 
+#[expect(
+    clippy::expect_used,
+    reason = "bundled JSON styles are known to be valid"
+)]
 impl Style {
     /// Style based on Protomaps Dark flavour. Requires Protomaps source.
     ///
@@ -185,12 +189,11 @@ pub struct Layout {
 
 impl Layout {
     pub fn text(&self, context: &Context) -> Option<String> {
-        self.text_field
-            .as_ref()
-            .and_then(|value| match context.evaluate(value) {
-                Ok(Value::String(s)) => Some(s),
-                _ => None,
-            })
+        let value = self.text_field.as_ref()?;
+        match context.evaluate(value) {
+            Ok(Value::String(s)) => Some(s),
+            _ => None,
+        }
     }
 }
 

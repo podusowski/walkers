@@ -20,7 +20,7 @@ impl TryFrom<f64> for Zoom {
 }
 
 // The reverse shouldn't be implemented, since we already have TryInto<f32>.
-#[allow(clippy::from_over_into)]
+#[expect(clippy::from_over_into)]
 impl Into<f64> for Zoom {
     fn into(self) -> f64 {
         self.0

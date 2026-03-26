@@ -36,6 +36,10 @@ mod native {
             let (quit_tx, mut quit_rx) = tokio::sync::mpsc::unbounded_channel();
 
             let join_handle = std::thread::spawn(move || {
+                #[expect(
+                    clippy::expect_used,
+                    reason = "fatal: cannot run without a Tokio runtime"
+                )]
                 let runtime = tokio::runtime::Builder::new_current_thread()
                     .enable_all()
                     .build()
@@ -55,12 +59,12 @@ mod native {
     impl Drop for Runtime {
         fn drop(&mut self) {
             // Tokio thread might be dead, nothing to do in this case.
-            let _ = self.quit_tx.send(());
+            self.quit_tx.send(()).ok();
 
             if let Some(join_handle) = self.join_handle.take() {
                 log::debug!("Waiting for the Tokio thread to exit.");
                 // Again, Tokio thread might be already dead, nothing to do in this case.
-                let _ = join_handle.join();
+                join_handle.join().ok();
             }
 
             log::debug!("Tokio thread is down.");

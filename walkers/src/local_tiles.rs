@@ -25,7 +25,7 @@ impl LocalTiles {
     )]
     pub fn new(path: impl AsRef<Path>, egui_ctx: egui::Context) -> Self {
         // Just arbitrary value which seemed right.
-        #[allow(clippy::unwrap_used)]
+        #[expect(clippy::unwrap_used)]
         let cache_size = std::num::NonZeroUsize::new(256).unwrap();
 
         Self {

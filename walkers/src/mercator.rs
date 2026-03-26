@@ -1,4 +1,5 @@
 //! Project the lat/lon coordinates into a 2D x/y using the Web Mercator.
+//!
 //! <https://en.wikipedia.org/wiki/Web_Mercator_projection>
 //! <https://wiki.openstreetmap.org/wiki/Slippy_map_tilenames>
 //! <https://www.netzwolf.info/osm/tilebrowser.html?lat=51.157800&lon=6.865500&zoom=14>
@@ -35,7 +36,7 @@ fn mercator_normalized(position: Position) -> (f64, f64) {
     let y = position.y().to_radians().tan().asinh();
 
     // Scale both x and y to 0-1 range.
-    let x = (1. + (x / PI)) / 2.;
+    let x = f64::midpoint(1., x / PI);
     let y = (1. - (y / PI)) / 2.;
 
     (x, y)

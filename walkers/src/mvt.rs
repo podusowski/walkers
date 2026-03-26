@@ -43,10 +43,10 @@ pub enum Error {
     Tessellation(#[from] TessellationError),
 }
 
-/// Custom conversion because mvt_reader::error::Error is not Send.
+/// Custom conversion because `mvt_reader::error::Error` is not Send.
 impl From<mvt_reader::error::ParserError> for Error {
     fn from(err: mvt_reader::error::ParserError) -> Self {
-        Error::Mvt(err.to_string())
+        Self::Mvt(err.to_string())
     }
 }
 
@@ -61,23 +61,23 @@ pub enum ShapeOrText {
 
 impl From<Shape> for ShapeOrText {
     fn from(shape: Shape) -> Self {
-        ShapeOrText::Shape(shape)
+        Self::Shape(shape)
     }
 }
 
 impl From<Mesh> for ShapeOrText {
     fn from(mesh: Mesh) -> Self {
-        ShapeOrText::Shape(Shape::Mesh(mesh.into()))
+        Self::Shape(Shape::Mesh(mesh.into()))
     }
 }
 
 impl ShapeOrText {
     pub fn transform(&mut self, transform: TSTransform) {
         match self {
-            ShapeOrText::Shape(shape) => {
+            Self::Shape(shape) => {
                 shape.transform(transform);
             }
-            ShapeOrText::Text(Text { position, .. }) => {
+            Self::Text(Text { position, .. }) => {
                 *position *= transform.scaling;
                 *position += transform.translation;
             }
@@ -93,7 +93,7 @@ pub fn render(data: &[u8], style: &Style, zoom: u8) -> Result<Vec<ShapeOrText>, 
     for layer in &style.layers {
         match layer {
             Layer::Background { paint } => {
-                let context = Context::new("None".to_string(), HashMap::new(), zoom);
+                let context = Context::new("None".to_owned(), HashMap::new(), zoom);
 
                 let bg_color = if let Some(color) = &paint.background_color {
                     color.evaluate(&context)
@@ -128,9 +128,7 @@ pub fn render(data: &[u8], style: &Style, zoom: u8) -> Result<Vec<ShapeOrText>, 
                 for (geometry, context) in
                     get_layer_features(&data, zoom, source_layer, filter.as_ref())?
                 {
-                    if let Err(err) = render_line(&geometry, &context, &mut shapes, paint) {
-                        warn!("{err}");
-                    }
+                    render_line(&geometry, &context, &mut shapes, paint);
                 }
             }
             Layer::Symbol {
@@ -142,15 +140,11 @@ pub fn render(data: &[u8], style: &Style, zoom: u8) -> Result<Vec<ShapeOrText>, 
                 for (geometry, context) in
                     get_layer_features(&data, zoom, source_layer, filter.as_ref())?
                 {
-                    if let Err(err) = render_symbol(&geometry, &context, &mut shapes, layout, paint)
-                    {
-                        warn!("{err}");
-                    }
+                    render_symbol(&geometry, &context, &mut shapes, layout, paint);
                 }
             }
             layer => {
                 log::warn!("Unsupported layer type in style: {layer:?}");
-                continue;
             }
         }
     }
@@ -167,7 +161,7 @@ pub fn transformed(shapes: &[ShapeOrText], rect: egui::Rect) -> Vec<ShapeOrText>
     };
 
     let mut result = shapes.to_vec();
-    for shape in result.iter_mut() {
+    for shape in &mut result {
         shape.transform(transform);
     }
     result
@@ -188,7 +182,7 @@ fn get_layer_features(
     .into_iter()
     .filter_map(move |feature| {
         let context = Context::new(
-            geometry_type_to_str(&feature.geometry).to_string(),
+            geometry_type_to_str(&feature.geometry).to_owned(),
             feature.properties.unwrap_or_default(),
             zoom,
         );
@@ -218,7 +212,7 @@ fn render_line(
     context: &Context,
     shapes: &mut Vec<ShapeOrText>,
     paint: &Paint,
-) -> Result<(), Error> {
+) {
     let width = if let Some(width) = &paint.line_width {
         // Align to the proportion of MVT extent and tile size.
         width.evaluate(context) * 4.0
@@ -261,7 +255,6 @@ fn render_line(
         }
         _ => (),
     }
-    Ok(())
 }
 
 fn render_polygon(
@@ -304,7 +297,7 @@ fn render_symbol(
     shapes: &mut Vec<ShapeOrText>,
     layout: &Layout,
     paint: &Option<Paint>,
-) -> Result<(), Error> {
+) {
     match geometry {
         Geometry::MultiPoint(multi_point) => {
             let text_size = layout
@@ -344,7 +337,7 @@ fn render_symbol(
                         Color32::TRANSPARENT,
                         0.0,
                     ))
-                }))
+                }));
             }
         }
         Geometry::MultiLineString(multi_line_string) => {
@@ -406,7 +399,6 @@ fn render_symbol(
         }
         _ => (),
     }
-    Ok(())
 }
 
 fn length(line: &Line<f32>) -> f32 {
@@ -414,7 +406,7 @@ fn length(line: &Line<f32>) -> f32 {
 }
 
 fn midpoint(p1: &geo_types::Point<f32>, p2: &geo_types::Point<f32>) -> geo_types::Point<f32> {
-    geo_types::Point::new((p1.x() + p2.x()) / 2.0, (p1.y() + p2.y()) / 2.0)
+    geo_types::Point::new(f32::midpoint(p1.x(), p2.x()), f32::midpoint(p1.y(), p2.y()))
 }
 
 fn find_layer(data: &Reader, name: &str) -> Result<usize, Error> {
@@ -425,19 +417,22 @@ fn find_layer(data: &Reader, name: &str) -> Result<usize, Error> {
 
     let Some(layer) = layer else {
         return Err(Error::LayerNotFound(
-            name.to_string(),
+            name.to_owned(),
             data.get_layer_names()?,
         ));
     };
 
     if layer.extent != ONLY_SUPPORTED_EXTENT {
-        return Err(Error::UnsupportedLayerExtent(name.to_string()));
+        return Err(Error::UnsupportedLayerExtent(name.to_owned()));
     }
 
     Ok(layer.layer_index)
 }
 
 /// Egui cannot tessellate complex polygons, so we use lyon for that.
+///
+/// # Errors
+/// Returns [`TessellationError`] if the polygon geometry cannot be tessellated.
 pub fn tessellate_polygon(
     exterior: &[Point<f32>],
     interiors: &[Vec<Point<f32>>],
@@ -462,7 +457,7 @@ pub fn tessellate_polygon(
     FillTessellator::new().tessellate_path(
         &builder.build(),
         &FillOptions::default(),
-        &mut BuffersBuilder::new(&mut buffers, |vertex: FillVertex| {
+        &mut BuffersBuilder::new(&mut buffers, |vertex: FillVertex<'_>| {
             let pos = vertex.position();
             Vertex {
                 pos: pos2(pos.x, pos.y),
