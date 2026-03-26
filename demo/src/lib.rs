@@ -4,7 +4,7 @@ mod plugins;
 mod tiles;
 mod windows;
 
-use egui::{Button, CentralPanel, Context, DragPanButtons, Frame, OpenUrl, Rect, Vec2};
+use egui::{Button, Context, DragPanButtons, OpenUrl, Rect, Vec2};
 use tiles::{TilesKind, providers};
 use walkers::{Map, MapMemory};
 
