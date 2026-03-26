@@ -4,6 +4,8 @@ All notable changes to this project will be documented in this file.
 
 ## Unreleased
 
+* `egui` updated to 0.34.
+* MSRV updated to 1.92.
 * Fix for line filters used by OpenFreeMap Bright style.
 
 ## 0.52.0
