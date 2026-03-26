@@ -77,14 +77,13 @@ where
 
         if response.clicked() {
             // Toggle the visibility of the group when clicked.
-            ui.ctx().memory_mut(|m| {
+            ui.memory_mut(|m| {
                 let expand = m.data.get_temp::<bool>(id).unwrap_or(false);
                 m.data.insert_temp(id, !expand);
                 expand
             })
         } else {
-            ui.ctx()
-                .memory(|m| m.data.get_temp::<bool>(id).unwrap_or(false))
+            ui.memory(|m| m.data.get_temp::<bool>(id).unwrap_or(false))
         }
     }
 }
@@ -213,14 +212,13 @@ fn interact_cluster(
     let resp = ui.interact(rect, cluster_id, egui::Sense::click());
 
     if resp.clicked() {
-        ui.ctx().memory_mut(|m| {
+        ui.memory_mut(|m| {
             let v = m.data.get_temp::<bool>(cluster_id).unwrap_or(false);
             m.data.insert_temp(cluster_id, !v);
             v
         })
     } else {
-        ui.ctx()
-            .memory(|m| m.data.get_temp::<bool>(cluster_id).unwrap_or(false))
+        ui.memory(|m| m.data.get_temp::<bool>(cluster_id).unwrap_or(false))
     }
 }
 
