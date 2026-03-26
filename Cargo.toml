@@ -20,18 +20,18 @@ keywords = ["geography", "gis", "gui"]
 categories = ["gui", "science::geo"]
 
 [workspace.dependencies]
-eframe = "0.33.3"
-egui = "0.33.3"
-egui_extras = { version = "0.33.3", features = ["svg"] }
-egui-winit = "0.33.3"
+eframe = "0.34.0"
+egui = "0.34.0"
+egui_extras = { version = "0.34.0", features = ["svg"] }
+egui-winit = "0.34.0"
 image = { version = "0.25", default-features = false }
 log = "0.4"
 walkers = { path = "walkers", version = "0.52.0" }
 walkers_extras = { path = "walkers_extras", version = "0.52.0" }
 wgpu = { version = "29.0.0", default-features = true }
 
-[patch.crates-io]
-eframe = { git = "https://github.com/emilk/egui.git", branch = "main" }
-egui = { git = "https://github.com/emilk/egui.git", branch = "main" }
-egui_extras = { git = "https://github.com/emilk/egui.git", branch = "main" }
-egui-winit = { git = "https://github.com/emilk/egui.git", branch = "main" }
+# [patch.crates-io]
+# eframe = { git = "https://github.com/emilk/egui.git", branch = "main" }
+# egui = { git = "https://github.com/emilk/egui.git", branch = "main" }
+# egui_extras = { git = "https://github.com/emilk/egui.git", branch = "main" }
+# egui-winit = { git = "https://github.com/emilk/egui.git", branch = "main" }

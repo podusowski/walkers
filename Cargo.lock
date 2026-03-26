@@ -1080,8 +1080,9 @@ checksum = "d8b14ccef22fc6f5a8f4d7d768562a182c04ce9a3b3157b91390b52ddfdf1a76"
 
 [[package]]
 name = "ecolor"
-version = "0.33.3"
-source = "git+https://github.com/emilk/egui.git?branch=main#1c9f74b8bdec0d68795cde4d7f2827209b5857b6"
+version = "0.34.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "bbb993f120d46ca077a18f166175b94c6edeb994d812cbd07a4a03cfced2713c"
 dependencies = [
  "bytemuck",
  "emath",
@@ -1090,8 +1091,9 @@ dependencies = [
 
 [[package]]
 name = "eframe"
-version = "0.33.3"
-source = "git+https://github.com/emilk/egui.git?branch=main#1c9f74b8bdec0d68795cde4d7f2827209b5857b6"
+version = "0.34.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "9fd6562766ec6b921232ceb960acdb405f91971f59c17604840fd9485fee0dc3"
 dependencies = [
  "ahash",
  "bytemuck",
@@ -1125,8 +1127,9 @@ dependencies = [
 
 [[package]]
 name = "egui"
-version = "0.33.3"
-source = "git+https://github.com/emilk/egui.git?branch=main#1c9f74b8bdec0d68795cde4d7f2827209b5857b6"
+version = "0.34.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "6b71aaacbe69e214aebf7b8d5eacd6256d0d2ca5ff9525c28d1dd7f377f430a9"
 dependencies = [
  "accesskit",
  "ahash",
@@ -1143,8 +1146,9 @@ dependencies = [
 
 [[package]]
 name = "egui-wgpu"
-version = "0.33.3"
-source = "git+https://github.com/emilk/egui.git?branch=main#1c9f74b8bdec0d68795cde4d7f2827209b5857b6"
+version = "0.34.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "111e54ac54bf9d767ce8970a454f720878875bca1f2e63f781c722e98f466971"
 dependencies = [
  "ahash",
  "bytemuck",
@@ -1162,8 +1166,9 @@ dependencies = [
 
 [[package]]
 name = "egui-winit"
-version = "0.33.3"
-source = "git+https://github.com/emilk/egui.git?branch=main#1c9f74b8bdec0d68795cde4d7f2827209b5857b6"
+version = "0.34.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "8ed6af7dad7dd045b77731fe6dc291b835489a104d3cd2428a945e71e2265df3"
 dependencies = [
  "accesskit_winit",
  "arboard",
@@ -1183,8 +1188,9 @@ dependencies = [
 
 [[package]]
 name = "egui_extras"
-version = "0.33.3"
-source = "git+https://github.com/emilk/egui.git?branch=main#1c9f74b8bdec0d68795cde4d7f2827209b5857b6"
+version = "0.34.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "8844ef47969c00cc186e06e9721ac952758c0e5cd5f579468037f19c7f49566d"
 dependencies = [
  "ahash",
  "egui",
@@ -1197,8 +1203,9 @@ dependencies = [
 
 [[package]]
 name = "egui_glow"
-version = "0.33.3"
-source = "git+https://github.com/emilk/egui.git?branch=main#1c9f74b8bdec0d68795cde4d7f2827209b5857b6"
+version = "0.34.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "91c5dea15932abd0a953fefc8d8490002204808a2e087147aac48608eea9ef79"
 dependencies = [
  "bytemuck",
  "egui",
@@ -1219,8 +1226,9 @@ checksum = "48c757948c5ede0e46177b7add2e67155f70e33c07fea8284df6576da70b3719"
 
 [[package]]
 name = "emath"
-version = "0.33.3"
-source = "git+https://github.com/emilk/egui.git?branch=main#1c9f74b8bdec0d68795cde4d7f2827209b5857b6"
+version = "0.34.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "8490360fc83eb3a2b20aba120457f7d91c3042d7c628e4f90b43a97b6adf1255"
 dependencies = [
  "bytemuck",
  "serde",
@@ -1340,8 +1348,9 @@ dependencies = [
 
 [[package]]
 name = "epaint"
-version = "0.33.3"
-source = "git+https://github.com/emilk/egui.git?branch=main#1c9f74b8bdec0d68795cde4d7f2827209b5857b6"
+version = "0.34.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "d76f9fdbf72eaf0dc3198d90e7bff267b45866f660f8cf49caeb9dcab93342e0"
 dependencies = [
  "ahash",
  "bytemuck",
@@ -1362,8 +1371,9 @@ dependencies = [
 
 [[package]]
 name = "epaint_default_fonts"
-version = "0.33.3"
-source = "git+https://github.com/emilk/egui.git?branch=main#1c9f74b8bdec0d68795cde4d7f2827209b5857b6"
+version = "0.34.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "3a1a65f42685d25419a67fd3175e11dfecdd268b0478aaba76785b0a896884e0"
 
 [[package]]
 name = "equivalent"
