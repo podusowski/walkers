@@ -1,19 +1,19 @@
 [workspace]
 resolver = "2"
 members = [
-  "demo",
-  "demo_android/rust",
-  "demo_native",
-  "demo_web",
-  "hypermocker",
-  "walkers",
-  "walkers_extras",
+    "demo",
+    "demo_android/rust",
+    "demo_native",
+    "demo_web",
+    "hypermocker",
+    "walkers",
+    "walkers_extras",
 ]
 
 [workspace.package]
 version = "0.52.0"
 edition = "2024"
-rust-version = "1.88"  # Aligned to egui
+rust-version = "1.92"                                # Aligned to egui
 repository = "https://github.com/podusowski/walkers"
 license = "MIT"
 keywords = ["geography", "gis", "gui"]
