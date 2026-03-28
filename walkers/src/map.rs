@@ -194,7 +194,7 @@ impl<'a, 'b, 'c> Map<'a, 'b, 'c> {
             ui.allocate_exact_size(ui.available_size(), Sense::click_and_drag());
 
         let mut changed = self.handle_gestures(ui, &response);
-        let delta_time = ui.ctx().input(|reader| reader.stable_dt);
+        let delta_time = ui.input(|reader| reader.stable_dt);
         let zoom = self.memory.zoom;
         changed |= self
             .memory
@@ -203,7 +203,7 @@ impl<'a, 'b, 'c> Map<'a, 'b, 'c> {
 
         if changed {
             response.mark_changed();
-            ui.ctx().request_repaint();
+            ui.request_repaint();
         }
 
         let map_center = self.position();

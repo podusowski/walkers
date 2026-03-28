@@ -36,7 +36,7 @@ impl HttpTiles {
         Self::with_options_and_style(source, http_options, Style::default(), egui_ctx)
     }
 
-    /// Construct new [`Tiles`] with supplied [`HttpOptions`] and [`Style']. Style is relevant
+    /// Construct new [`Tiles`] with supplied [`HttpOptions`] and [`Style`]. Style is relevant
     /// only for vector tile sources.
     pub fn with_options_and_style<S>(
         source: S,

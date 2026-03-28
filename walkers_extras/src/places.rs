@@ -77,14 +77,13 @@ where
 
         if response.clicked() {
             // Toggle the visibility of the group when clicked.
-            ui.ctx().memory_mut(|m| {
+            ui.memory_mut(|m| {
                 let expand = m.data.get_temp::<bool>(id).unwrap_or(false);
                 m.data.insert_temp(id, !expand);
                 expand
             })
         } else {
-            ui.ctx()
-                .memory(|m| m.data.get_temp::<bool>(id).unwrap_or(false))
+            ui.memory(|m| m.data.get_temp::<bool>(id).unwrap_or(false))
         }
     }
 }
@@ -213,14 +212,13 @@ fn interact_cluster(
     let resp = ui.interact(rect, cluster_id, egui::Sense::click());
 
     if resp.clicked() {
-        ui.ctx().memory_mut(|m| {
+        ui.memory_mut(|m| {
             let v = m.data.get_temp::<bool>(cluster_id).unwrap_or(false);
             m.data.insert_temp(cluster_id, !v);
             v
         })
     } else {
-        ui.ctx()
-            .memory(|m| m.data.get_temp::<bool>(cluster_id).unwrap_or(false))
+        ui.memory(|m| m.data.get_temp::<bool>(cluster_id).unwrap_or(false))
     }
 }
 
@@ -325,12 +323,12 @@ impl<T: Place, G: Group> GroupedPlacesTree<T, G> {
         let mut scratch: Vec<usize> = Vec::with_capacity(64);
 
         let mut screen_rect = response_rect;
-        if s.viewport_only {
-            if let Some(px) = s.screen_radius_px {
-                if s.include_offscreen_neighbors && px > 0.0 {
-                    screen_rect = screen_rect.expand(px);
-                }
-            }
+        if s.viewport_only
+            && let Some(px) = s.screen_radius_px
+            && s.include_offscreen_neighbors
+            && px > 0.0
+        {
+            screen_rect = screen_rect.expand(px);
         }
 
         for seed in rtree.iter() {
@@ -369,10 +367,10 @@ impl<T: Place, G: Group> GroupedPlacesTree<T, G> {
                 scratch.push(n.idx);
             }
 
-            if let Some(cap) = s.max_group_size {
-                if scratch.len() > cap {
-                    scratch.truncate(cap);
-                }
+            if let Some(cap) = s.max_group_size
+                && scratch.len() > cap
+            {
+                scratch.truncate(cap);
             }
             if scratch.is_empty() {
                 continue;

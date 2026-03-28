@@ -4,7 +4,7 @@ mod plugins;
 mod tiles;
 mod windows;
 
-use egui::{Button, CentralPanel, Context, DragPanButtons, Frame, OpenUrl, Rect, Vec2};
+use egui::{Button, Context, DragPanButtons, OpenUrl, Rect, Vec2};
 use tiles::{TilesKind, providers};
 use walkers::{Color, Filter, Float, Layer, Map, MapMemory, Paint, Style, json};
 use walkers_extras::GeoJsonLayer;
@@ -34,91 +34,87 @@ impl MyApp {
 }
 
 impl eframe::App for MyApp {
-    fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
-        CentralPanel::default().frame(Frame::NONE).show(ctx, |ui| {
-            // Typically this would be a GPS acquired position which is tracked by the map.
-            let my_position = places::wroclaw_glowny();
+    fn ui(&mut self, ui: &mut egui::Ui, _frame: &mut eframe::Frame) {
+        // Typically this would be a GPS acquired position which is tracked by the map.
+        let my_position = places::wroclaw_glowny();
 
-            let tiles = self
-                .providers
-                .available
-                .get_mut(&self.providers.selected)
-                .unwrap();
-            let attributions: Vec<_> = tiles
+        let tiles = self
+            .providers
+            .available
+            .get_mut(&self.providers.selected)
+            .unwrap();
+        let attributions: Vec<_> = tiles
+            .iter()
+            .map(|tile| tile.as_ref().attribution())
+            .collect();
+
+        // In egui, widgets are constructed and consumed in each frame.
+        let mut map = Map::new(None, &mut self.map_memory, my_position);
+
+        // Various aspects of the map can be configured.
+        map = map
+            .zoom_with_ctrl(self.zoom_with_ctrl)
+            .drag_pan_buttons(DragPanButtons::PRIMARY | DragPanButtons::SECONDARY);
+
+        // Optionally, plugins can be attached.
+        map = map
+            .with_plugin(plugins::places())
+            .with_plugin(plugins::CustomShapes {})
+            .with_plugin(&mut self.click_watcher)
+            .with_plugin(kml::poland_borders())
+            .with_plugin(kml::outgym_umea_layer());
+
+        // Multiple layers can be added.
+        for (n, tiles) in tiles.iter_mut().enumerate() {
+            // With a different transparency.
+            let transparency = if n == 0 { 1.0 } else { 0.25 };
+            map = map.with_layer(tiles.as_mut(), transparency);
+        }
+
+        // Draw the map widget.
+        let response = map.show(ui, |ui, _, projector, map_memory| {
+            for layer in &self.geojson_layers {
+                layer.render(ui, projector, map_memory.zoom().round() as u8);
+            }
+
+            // You can add any additional contents to the map's UI here.
+            let bastion = projector.project(places::bastion_sakwowy()).to_pos2();
+            ui.put(
+                Rect::from_center_size(bastion, Vec2::new(140., 20.)),
+                Button::new("Bastion Sakwowy"),
+            )
+            .on_hover_text("Click to see some information about this place.")
+            .clicked()
+            .then_some("https://www.wroclaw.pl/dla-mieszkanca/bastion-sakwowy-wroclaw-atrakcje")
+        });
+
+        // Could have done it in the closure, but this way you can see how to pass values outside.
+        if let Some(url) = response.inner {
+            ui.open_url(OpenUrl::new_tab(url));
+        }
+
+        // Draw utility windows.
+        {
+            use windows::*;
+
+            zoom(ui, &mut self.map_memory);
+            go_to_my_position(ui, &mut self.map_memory);
+            self.click_watcher.show_position(ui);
+
+            let http_stats = tiles
                 .iter()
-                .map(|tile| tile.as_ref().attribution())
+                .filter_map(|tiles| {
+                    if let TilesKind::Http(tiles) = tiles {
+                        Some(tiles.stats())
+                    } else {
+                        None
+                    }
+                })
                 .collect();
 
-            // In egui, widgets are constructed and consumed in each frame.
-            let mut map = Map::new(None, &mut self.map_memory, my_position);
-
-            // Various aspects of the map can be configured.
-            map = map
-                .zoom_with_ctrl(self.zoom_with_ctrl)
-                .drag_pan_buttons(DragPanButtons::PRIMARY | DragPanButtons::SECONDARY);
-
-            // Optionally, plugins can be attached.
-            map = map
-                .with_plugin(plugins::places())
-                .with_plugin(plugins::CustomShapes {})
-                .with_plugin(&mut self.click_watcher)
-                .with_plugin(kml::poland_borders())
-                .with_plugin(kml::outgym_umea_layer());
-
-            // Multiple layers can be added.
-            for (n, tiles) in tiles.iter_mut().enumerate() {
-                // With a different transparency.
-                let transparency = if n == 0 { 1.0 } else { 0.25 };
-                map = map.with_layer(tiles.as_mut(), transparency);
-            }
-
-            // Draw the map widget. The closure is a preferred place to add additional contents to the map,
-            // since it gives much more flexibility and performance than building a vector of `Plugin`s
-            // every frame.
-            let response = map.show(ui, |ui, _, projector, map_memory| {
-                for layer in &self.geojson_layers {
-                    layer.render(ui, projector, map_memory.zoom().round() as u8);
-                }
-
-                // You can add any additional contents to the map's UI here.
-                let bastion = projector.project(places::bastion_sakwowy()).to_pos2();
-                ui.put(
-                    Rect::from_center_size(bastion, Vec2::new(140., 20.)),
-                    Button::new("Bastion Sakwowy"),
-                )
-                .on_hover_text("Click to see some information about this place.")
-                .clicked()
-                .then_some("https://www.wroclaw.pl/dla-mieszkanca/bastion-sakwowy-wroclaw-atrakcje")
-            });
-
-            // Could have done it in the closure, but this way you can see how to pass values outside.
-            if let Some(url) = response.inner {
-                ctx.open_url(OpenUrl::new_tab(url));
-            }
-
-            // Draw utility windows.
-            {
-                use windows::*;
-
-                zoom(ui, &mut self.map_memory);
-                go_to_my_position(ui, &mut self.map_memory);
-                self.click_watcher.show_position(ui);
-
-                let http_stats = tiles
-                    .iter()
-                    .filter_map(|tiles| {
-                        if let TilesKind::Http(tiles) = tiles {
-                            Some(tiles.stats())
-                        } else {
-                            None
-                        }
-                    })
-                    .collect();
-
-                controls(self, ui, http_stats, _frame);
-                acknowledge(ui, attributions);
-            }
-        });
+            controls(self, ui, http_stats, _frame);
+            acknowledge(ui, attributions);
+        }
     }
 }
 

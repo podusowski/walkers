@@ -89,16 +89,16 @@ pub enum Layer {
 pub struct Paint {
     pub background_color: Option<Color>,
     pub fill_color: Option<Color>,
-    /// https://maplibre.org/maplibre-style-spec/layers/#fill-opacity
+    /// <https://maplibre.org/maplibre-style-spec/layers/>#fill-opacity
     pub fill_opacity: Option<Float>,
     pub line_width: Option<Float>,
-    /// https://maplibre.org/maplibre-style-spec/layers/#line-color
+    /// <https://maplibre.org/maplibre-style-spec/layers/>#line-color
     pub line_color: Option<Color>,
-    /// https://maplibre.org/maplibre-style-spec/layers/#line-opacity
+    /// <https://maplibre.org/maplibre-style-spec/layers/>#line-opacity
     pub line_opacity: Option<Float>,
-    /// https://maplibre.org/maplibre-style-spec/layers/#text-color
+    /// <https://maplibre.org/maplibre-style-spec/layers/>#text-color
     pub text_color: Option<Color>,
-    /// https://maplibre.org/maplibre-style-spec/layers/#text-halo-color
+    /// <https://maplibre.org/maplibre-style-spec/layers/>#text-halo-color
     pub text_halo_color: Option<Color>,
 }
 
