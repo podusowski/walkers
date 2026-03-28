@@ -144,7 +144,7 @@ pub struct Float(pub Value);
 impl Float {
     pub fn evaluate(&self, context: &Context) -> f32 {
         match self.try_evaluate(context) {
-            Ok(opacity) => opacity,
+            Ok(value) => value,
             Err(err) => {
                 warn!("{err}");
                 0.5
