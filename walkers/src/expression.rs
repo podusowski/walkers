@@ -682,9 +682,9 @@ mod tests {
         // https://maplibre.org/maplibre-style-spec/expressions/#interpolate
         assert_eq!(
             context
-                .evaluate(&json!(["interpolate", ["linear"], 5, 0, 0, 10, 10]))
+                .evaluate(&json!(["interpolate", ["linear"], 5, 0, 0, 10, 100]))
                 .unwrap(),
-            json!(5.0)
+            json!(50.0)
         );
     }
 
