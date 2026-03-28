@@ -329,7 +329,7 @@ fn numeric_difference(left: &Value, right: &Value) -> Result<f64, Error> {
 /// Less than comparison for Numbers and Strings.
 fn lt(left: &Value, right: &Value) -> bool {
     match (left, right) {
-        (Value::Number(l), Value::Number(r)) => l.as_i64() < r.as_i64(),
+        (Value::Number(l), Value::Number(r)) => l.as_f64() < r.as_f64(),
         (Value::String(l), Value::String(r)) => l < r,
         _ => false,
     }
@@ -338,7 +338,7 @@ fn lt(left: &Value, right: &Value) -> bool {
 /// Less than or equal comparison for Numbers and Strings.
 fn lte(left: &Value, right: &Value) -> bool {
     match (left, right) {
-        (Value::Number(l), Value::Number(r)) => l.as_i64() <= r.as_i64(),
+        (Value::Number(l), Value::Number(r)) => l.as_f64() <= r.as_f64(),
         (Value::String(l), Value::String(r)) => l <= r,
         _ => false,
     }
@@ -707,6 +707,30 @@ mod tests {
                 .evaluate(&json!(["interpolate", ["linear"], 5, 0, 0, 10, 10]))
                 .unwrap(),
             json!(5.0)
+        );
+
+        // Integers mixed with floats should be supported as well.
+        assert_eq!(
+            context
+                .evaluate(&json!([
+                    "interpolate",
+                    ["linear"],
+                    5,
+                    0.0,
+                    0.0,
+                    10.0,
+                    100.0
+                ]))
+                .unwrap(),
+            json!(50.0)
+        );
+
+        // After stop values should be equal to last stop.
+        assert_eq!(
+            context
+                .evaluate(&json!(["interpolate", ["linear"], 15, 0, 0, 10, 100]))
+                .unwrap(),
+            json!(100)
         );
     }
 
