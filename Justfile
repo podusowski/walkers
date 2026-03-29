@@ -36,7 +36,7 @@ publish:
 
 BBOX := "50.0,15.9,51.8,17.9"
 
-trails-dolnoslaskie:
+trails-dolnoslaskie-geojson:
     curl -G https://overpass-api.de/api/interpreter \
         --data-urlencode 'data=[out:json][timeout:120];(relation["route"~"hiking|foot"]["colour"]({{ BBOX }}););out geom;' \
         -o trails.json
