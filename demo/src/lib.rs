@@ -144,8 +144,8 @@ fn trails_style() -> Style {
             "interpolate",
             ["linear"],
             ["zoom"],
-            10.0,
-            0.1 * factor,
+            12.0,
+            0.3 * factor,
             26.0,
             10.0 * factor
         ]))
