@@ -4,6 +4,7 @@ All notable changes to this project will be documented in this file.
 
 ## Unreleased
 
+ * Experimental support for `geojson` with very limited capabilities.
  * Fix `interpolate` expression when inputs are expressed as integers and stops as floats.
 
 ## 0.53.0

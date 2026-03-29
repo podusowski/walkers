@@ -12,14 +12,21 @@ pub struct Projector {
     clip_rect: Rect,
     memory: MapMemory,
     my_position: Position,
+    map_center_projected_position: Position,
 }
 
 impl Projector {
     pub fn new(clip_rect: Rect, map_memory: &MapMemory, my_position: Position) -> Self {
+        let map_center_projected_position = project(
+            map_memory.center_mode.position(my_position),
+            map_memory.zoom(),
+        );
+
         Self {
             clip_rect,
             memory: map_memory.to_owned(),
             my_position,
+            map_center_projected_position,
         }
     }
 
@@ -28,15 +35,9 @@ impl Projector {
         // Turn that into a flat, mercator projection.
         let projected_position = project(position, self.memory.zoom());
 
-        // We also need to know where the map center is.
-        let map_center_projected_position = project(
-            self.memory.center_mode.position(self.my_position),
-            self.memory.zoom(),
-        );
-
         // From the two points above we can calculate the actual point on the screen.
         self.clip_rect.center().to_vec2()
-            + (projected_position - map_center_projected_position).to_vec2()
+            + (projected_position - self.map_center_projected_position).to_vec2()
     }
 
     /// Get coordinates from viewport's pixels position

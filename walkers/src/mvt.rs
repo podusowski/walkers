@@ -8,7 +8,7 @@ use egui::{
     epaint::{Vertex, WHITE_UV},
     pos2, vec2,
 };
-use geo_types::{Coord, Geometry, Line};
+pub use geo_types::{Coord, Geometry, Line};
 use log::warn;
 use lyon_path::{
     Path, Polygon,
@@ -18,6 +18,7 @@ use lyon_tessellation::{
     BuffersBuilder, FillOptions, FillTessellator, FillVertex, TessellationError, VertexBuffers,
 };
 use mvt_reader::{Reader, feature::Value};
+use serde_json::{Number, Value as JsonValue};
 
 use crate::{
     expression::Context,
@@ -189,7 +190,9 @@ fn get_layer_features(
     .filter_map(move |feature| {
         let context = Context::new(
             geometry_type_to_str(&feature.geometry).to_string(),
-            feature.properties.unwrap_or_default(),
+            feature
+                .properties
+                .map_or(Default::default(), mvt_properties_to_json_properties),
             zoom,
         );
 
@@ -199,6 +202,34 @@ fn get_layer_features(
     });
 
     Ok(features)
+}
+
+fn mvt_properties_to_json_properties(
+    properties: HashMap<String, mvt_reader::feature::Value>,
+) -> HashMap<String, serde_json::Value> {
+    properties
+        .into_iter()
+        .map(|(k, v)| (k, mvt_value_to_json_value(&v)))
+        .collect()
+}
+
+fn mvt_value_to_json_value(value: &Value) -> JsonValue {
+    match value {
+        Value::String(s) => JsonValue::String(s.clone()),
+        Value::Int(x) | Value::SInt(x) => JsonValue::Number((*x).into()),
+        Value::Double(x) => Number::from_f64(*x)
+            .map(JsonValue::Number)
+            .unwrap_or_else(|| {
+                warn!("Invalid f64 value: {x}");
+                JsonValue::Null
+            }),
+        Value::Bool(b) => JsonValue::Bool(*b),
+        Value::Null => JsonValue::Null,
+        _ => {
+            warn!("Unsupported MVT value type: {value:?}");
+            JsonValue::Null
+        }
+    }
 }
 
 fn geometry_type_to_str(geometry: &Geometry<f32>) -> &'static str {
@@ -213,7 +244,7 @@ fn geometry_type_to_str(geometry: &Geometry<f32>) -> &'static str {
     }
 }
 
-fn render_line(
+pub fn render_line(
     geometry: &Geometry<f32>,
     context: &Context,
     shapes: &mut Vec<ShapeOrText>,

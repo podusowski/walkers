@@ -34,10 +34,6 @@ pub mod sources;
 mod tiles;
 mod zoom;
 
-// TODO: In future, I'd like to expose full drawing API instead of this.
-#[cfg(feature = "mvt")]
-pub use mvt::tessellate_polygon;
-
 pub use http_tiles::HttpTiles;
 pub use io::tiles_io::Stats;
 pub use io::{HeaderValue, MaxParallelDownloads, http::HttpOptions};
@@ -53,3 +49,9 @@ pub use style::Style;
 pub use style::{Color, Filter, Float, Layer, Paint, Value, json};
 pub use tiles::{Tile, TileId, TilePiece, Tiles};
 pub use zoom::InvalidZoom;
+
+// TODO: In future, I'd like to expose full drawing API instead of this.
+#[cfg(feature = "mvt")]
+pub use expression::Context;
+#[cfg(feature = "mvt")]
+pub use mvt::{Geometry, ShapeOrText, render_line, tessellate_polygon};

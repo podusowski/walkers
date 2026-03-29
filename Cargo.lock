@@ -1777,6 +1777,19 @@ dependencies = [
 ]
 
 [[package]]
+name = "geojson"
+version = "0.24.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "e26f3c45b36fccc9cf2805e61d4da6bc4bbd5a3a9589b01afa3a40eff703bd79"
+dependencies = [
+ "geo-types",
+ "log",
+ "serde",
+ "serde_json",
+ "thiserror 2.0.18",
+]
+
+[[package]]
 name = "gethostname"
 version = "1.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -5438,6 +5451,8 @@ name = "walkers_extras"
 version = "0.53.0"
 dependencies = [
  "egui",
+ "geo",
+ "geojson",
  "kml",
  "log",
  "lyon_path",

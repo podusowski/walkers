@@ -6,7 +6,8 @@ mod windows;
 
 use egui::{Button, Context, DragPanButtons, OpenUrl, Rect, Vec2};
 use tiles::{TilesKind, providers};
-use walkers::{Map, MapMemory};
+use walkers::{Color, Filter, Float, Layer, Map, MapMemory, Paint, Style, json};
+use walkers_extras::GeoJsonLayer;
 
 use crate::tiles::Providers;
 
@@ -15,6 +16,7 @@ pub struct MyApp {
     map_memory: MapMemory,
     click_watcher: plugins::ClickWatcher,
     zoom_with_ctrl: bool,
+    geojson_layers: Vec<GeoJsonLayer>,
 }
 
 impl MyApp {
@@ -26,6 +28,7 @@ impl MyApp {
             map_memory: MapMemory::default(),
             click_watcher: Default::default(),
             zoom_with_ctrl: true,
+            geojson_layers: geojson_layers(),
         }
     }
 }
@@ -69,7 +72,11 @@ impl eframe::App for MyApp {
         }
 
         // Draw the map widget.
-        let response = map.show(ui, |ui, _, projector, _| {
+        let response = map.show(ui, |ui, _, projector, map_memory| {
+            for layer in &self.geojson_layers {
+                layer.render(ui, projector, map_memory.zoom().round() as u8);
+            }
+
             // You can add any additional contents to the map's UI here.
             let bastion = projector.project(places::bastion_sakwowy()).to_pos2();
             ui.put(
@@ -108,5 +115,116 @@ impl eframe::App for MyApp {
             controls(self, ui, http_stats, _frame);
             acknowledge(ui, attributions);
         }
+    }
+}
+
+/// Find `.geojson` files in the current directory and build GeoJsonLayer out of them.
+fn geojson_layers() -> Vec<GeoJsonLayer> {
+    use std::fs;
+
+    let mut layers = Vec::new();
+
+    for entry in fs::read_dir(".").unwrap() {
+        let entry = entry.unwrap();
+        let path = entry.path();
+
+        if path.extension().and_then(|s| s.to_str()) == Some("geojson") {
+            let content = fs::read_to_string(path).unwrap();
+            let geojson = content.parse().unwrap();
+            layers.push(GeoJsonLayer::new(geojson, trails_style()));
+        }
+    }
+
+    layers
+}
+
+fn trails_style() -> Style {
+    let width = |factor| {
+        Float(json!([
+            "interpolate",
+            ["linear"],
+            ["zoom"],
+            12.0,
+            0.3 * factor,
+            26.0,
+            10.0 * factor
+        ]))
+    };
+
+    Style {
+        layers: vec![
+            Layer::Line {
+                source_layer: "".to_string(),
+                filter: Some(Filter(json!([
+                    "any",
+                    ["==", ["get", "colour"], "red"],
+                    ["==", ["get", "colour"], "blue"],
+                    ["==", ["get", "colour"], "black"],
+                ]))),
+                paint: Paint {
+                    line_color: Some(Color(json!("#cdcdcd"))),
+                    line_width: Some(width(1.0)),
+                    ..Default::default()
+                },
+            },
+            Layer::Line {
+                source_layer: "".to_string(),
+                filter: Some(Filter(json!([
+                    "any",
+                    ["==", ["get", "colour"], "yellow"],
+                    ["==", ["get", "colour"], "green"]
+                ]))),
+                paint: Paint {
+                    line_color: Some(Color(json!("#000000"))),
+                    line_width: Some(width(1.0)),
+                    ..Default::default()
+                },
+            },
+            Layer::Line {
+                source_layer: "".to_string(),
+                filter: Some(Filter(json!(["==", ["get", "colour"], "red"]))),
+                paint: Paint {
+                    line_color: Some(Color(json!("#7b0000"))),
+                    line_width: Some(width(0.8)),
+                    ..Default::default()
+                },
+            },
+            Layer::Line {
+                source_layer: "".to_string(),
+                filter: Some(Filter(json!(["==", ["get", "colour"], "blue"]))),
+                paint: Paint {
+                    line_color: Some(Color(json!("#0028ac"))),
+                    line_width: Some(width(0.6)),
+                    ..Default::default()
+                },
+            },
+            Layer::Line {
+                source_layer: "".to_string(),
+                filter: Some(Filter(json!(["==", ["get", "colour"], "green"]))),
+                paint: Paint {
+                    line_color: Some(Color(json!("#005d09"))),
+                    line_width: Some(width(0.4)),
+                    ..Default::default()
+                },
+            },
+            Layer::Line {
+                source_layer: "".to_string(),
+                filter: Some(Filter(json!(["==", ["get", "colour"], "yellow"]))),
+                paint: Paint {
+                    line_color: Some(Color(json!("#bbbb00"))),
+                    line_width: Some(width(0.3)),
+                    ..Default::default()
+                },
+            },
+            Layer::Line {
+                source_layer: "".to_string(),
+                filter: Some(Filter(json!(["==", ["get", "colour"], "black"]))),
+                paint: Paint {
+                    line_color: Some(Color(json!("#000000"))),
+                    line_width: Some(width(0.2)),
+                    ..Default::default()
+                },
+            },
+        ],
     }
 }

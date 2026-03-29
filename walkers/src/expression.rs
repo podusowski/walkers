@@ -2,8 +2,6 @@
 //! <https://maplibre.org/maplibre-style-spec/expressions/>
 
 use color::{AlphaColor, HueDirection, Srgb};
-use log::warn;
-use mvt_reader::feature::Value as MvtValue;
 use serde_json::{Number, Value};
 use std::collections::HashMap;
 
@@ -28,7 +26,7 @@ pub enum Error {
     #[error("At least two elemented expected, got: {0:?}")]
     AtLeastTwoElementsExpected(Vec<Value>),
     #[error("Property '{0}' missing in {1:?}")]
-    PropertyMissing(String, HashMap<String, MvtValue>),
+    PropertyMissing(String, HashMap<String, Value>),
     #[error("Value must be a number, got: {0}")]
     ExpectedNumber(Value),
     #[error("Value must be a string, got: {0}")]
@@ -46,12 +44,12 @@ pub enum Error {
 /// Context in which style expressions are evaluated.
 pub struct Context {
     geometry_type: String,
-    properties: HashMap<String, MvtValue>,
+    properties: HashMap<String, Value>,
     zoom: u8,
 }
 
 impl Context {
-    pub fn new(geometry_type: String, properties: HashMap<String, MvtValue>, zoom: u8) -> Self {
+    pub fn new(geometry_type: String, properties: HashMap<String, Value>, zoom: u8) -> Self {
         Self {
             geometry_type,
             properties,
@@ -78,10 +76,7 @@ impl Context {
                     },
                     "get" => {
                         let key = single_string(arguments)?;
-                        Ok(self
-                            .properties
-                            .get(key)
-                            .map_or(Value::Null, mvt_value_to_json))
+                        Ok(self.properties.get(key).cloned().unwrap_or(Value::Null))
                     }
                     "has" => Ok(Value::Bool(
                         self.properties.contains_key(single_string(arguments)?),
@@ -250,11 +245,11 @@ impl Context {
             Value::String(key) if key == "geometry-type" => {
                 Ok(Value::String(self.geometry_type.clone()))
             }
-            Value::String(key) if self.properties.contains_key(key) => {
-                Ok(mvt_value_to_json(self.properties.get(key).ok_or(
-                    Error::PropertyMissing(key.clone(), self.properties.clone()),
-                )?))
-            }
+            Value::String(key) if self.properties.contains_key(key) => Ok(self
+                .properties
+                .get(key)
+                .ok_or(Error::PropertyMissing(key.clone(), self.properties.clone()))?
+                .clone()),
             Value::Array(_) => self.evaluate(value),
             literal => Ok(literal.clone()),
         }
@@ -268,19 +263,6 @@ fn match_arm(input: &Value, arm_value: &Value) -> bool {
         arm_values.iter().any(|arm_value| arm_value == input)
     } else {
         input == arm_value
-    }
-}
-
-fn mvt_value_to_json(value: &MvtValue) -> Value {
-    match value {
-        MvtValue::String(s) => Value::String(s.clone()),
-        MvtValue::Int(i) | MvtValue::SInt(i) => Value::Number((*i).into()),
-        MvtValue::Bool(b) => Value::Bool(*b),
-        MvtValue::Null => Value::Null,
-        _ => {
-            warn!("Unsupported MVT value type: {value:?}");
-            Value::Null
-        }
     }
 }
 
@@ -405,10 +387,10 @@ mod tests {
 
     #[test]
     fn test_eq_filter_matching() {
-        let park = HashMap::from([("type".to_string(), MvtValue::String("park".to_string()))]);
+        let park = HashMap::from([("type".to_string(), json!("park"))]);
         let park_context = Context::new("Point".to_string(), park, 1);
 
-        let forest = HashMap::from([("type".to_string(), MvtValue::String("forest".to_string()))]);
+        let forest = HashMap::from([("type".to_string(), json!("forest"))]);
         let forest_context = Context::new("Point".to_string(), forest, 1);
 
         let filter = Filter(json!(["==", "type", "park"]));
@@ -433,10 +415,10 @@ mod tests {
 
     #[test]
     fn test_in_filter() {
-        let park = HashMap::from([("type".to_string(), MvtValue::String("park".to_string()))]);
+        let park = HashMap::from([("type".to_string(), json!("park"))]);
         let park_context = Context::new("Point".to_string(), park, 1);
 
-        let road = HashMap::from([("type".to_string(), MvtValue::String("road".to_string()))]);
+        let road = HashMap::from([("type".to_string(), json!("road"))]);
         let road_context = Context::new("Point".to_string(), road, 1);
 
         let filter = Filter(json!(["in", "type", "park", "forest"]));
@@ -474,8 +456,7 @@ mod tests {
 
     #[test]
     fn test_get_operator() {
-        let properties =
-            HashMap::from([("name".to_string(), MvtValue::String("Polska".to_string()))]);
+        let properties = HashMap::from([("name".to_string(), json!("Polska"))]);
         let context = Context::new("Point".to_string(), properties, 1);
 
         assert_eq!(
@@ -491,8 +472,7 @@ mod tests {
 
     #[test]
     fn test_has_operator() {
-        let properties =
-            HashMap::from([("name".to_string(), MvtValue::String("Polska".to_string()))]);
+        let properties = HashMap::from([("name".to_string(), json!("Polska"))]);
         let context = Context::new("Point".to_string(), properties, 1);
 
         assert_eq!(
@@ -624,8 +604,7 @@ mod tests {
 
     #[test]
     fn test_eq_operator() {
-        let properties =
-            HashMap::from([("name".to_string(), MvtValue::String("Polska".to_string()))]);
+        let properties = HashMap::from([("name".to_string(), json!("Polska"))]);
         let context = Context::new("Point".to_string(), properties, 1);
 
         assert_eq!(
@@ -645,8 +624,7 @@ mod tests {
 
     #[test]
     fn test_in_operator() {
-        let properties =
-            HashMap::from([("name".to_string(), MvtValue::String("Polska".to_string()))]);
+        let properties = HashMap::from([("name".to_string(), json!("Polska"))]);
         let context = Context::new("Point".to_string(), properties, 1);
 
         assert_eq!(
@@ -704,9 +682,33 @@ mod tests {
         // https://maplibre.org/maplibre-style-spec/expressions/#interpolate
         assert_eq!(
             context
-                .evaluate(&json!(["interpolate", ["linear"], 5, 0, 0, 10, 10]))
+                .evaluate(&json!(["interpolate", ["linear"], 5, 0, 0, 10, 100]))
                 .unwrap(),
-            json!(5.0)
+            json!(50.0)
+        );
+
+        // Integers mixed with floats should be supported as well.
+        assert_eq!(
+            context
+                .evaluate(&json!([
+                    "interpolate",
+                    ["linear"],
+                    5,
+                    0.0,
+                    0.0,
+                    10.0,
+                    100.0
+                ]))
+                .unwrap(),
+            json!(50.0)
+        );
+
+        // After stop values should be equal to last stop.
+        assert_eq!(
+            context
+                .evaluate(&json!(["interpolate", ["linear"], 15, 0, 0, 10, 100]))
+                .unwrap(),
+            json!(100)
         );
 
         // Integers mixed with floats should be supported as well.
@@ -736,7 +738,7 @@ mod tests {
 
     #[test]
     fn test_interpolate_operator_with_evaluated_stop() {
-        let properties = HashMap::from([("zoom".to_string(), MvtValue::Int(5))]);
+        let properties = HashMap::from([("zoom".to_string(), json!(5))]);
         let context = Context::new("Point".to_string(), properties, 1);
 
         assert_eq!(
