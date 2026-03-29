@@ -710,6 +710,30 @@ mod tests {
                 .unwrap(),
             json!(100)
         );
+
+        // Integers mixed with floats should be supported as well.
+        assert_eq!(
+            context
+                .evaluate(&json!([
+                    "interpolate",
+                    ["linear"],
+                    5,
+                    0.0,
+                    0.0,
+                    10.0,
+                    100.0
+                ]))
+                .unwrap(),
+            json!(50.0)
+        );
+
+        // After stop values should be equal to last stop.
+        assert_eq!(
+            context
+                .evaluate(&json!(["interpolate", ["linear"], 15, 0, 0, 10, 100]))
+                .unwrap(),
+            json!(100)
+        );
     }
 
     #[test]

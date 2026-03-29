@@ -2,6 +2,10 @@
 
 All notable changes to this project will be documented in this file.
 
+## Unreleased
+
+ * Fix `interpolate` expression when inputs are expressed as integers and stops as floats.
+
 ## 0.53.0
 
 * `egui` updated to 0.34.
