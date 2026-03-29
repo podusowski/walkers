@@ -5457,7 +5457,7 @@ dependencies = [
  "log",
  "lyon_path",
  "lyon_tessellation",
- "quick-xml 0.37.5",
+ "quick-xml 0.39.2",
  "rstar 0.12.2",
  "thiserror 2.0.18",
  "walkers",
