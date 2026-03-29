@@ -4,6 +4,7 @@ All notable changes to this project will be documented in this file.
 
 ## Unreleased
 
+ * Experimental support for `geojson`.
  * Fix `interpolate` expression when inputs are expressed as integers and stops as floats.
 
 ## 0.53.0
@@ -11,7 +12,6 @@ All notable changes to this project will be documented in this file.
 * `egui` updated to 0.34.
 * MSRV updated to 1.92.
 * Fix for line filters used by OpenFreeMap Bright style.
-* Experimental support for `geojson`.
 
 ## 0.52.0
 
