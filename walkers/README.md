@@ -87,10 +87,10 @@ make run-on-device
 To see experimental **vector maps** support in action, you need to obtain some `.pmtiles`
 files and put them into the directory from where you run the native demo. One way of
 doing that is to download an extract from
-[Protomaps](https://docs.protomaps.com/guide/getting-started).
+[Protomaps](https://docs.protomaps.com/guide/getting-started) using:
 
 ```sh
-pmtiles extract https://build.protomaps.com/20250928.pmtiles --bbox 16.802768,51.036355,17.209205,51.180686 wroclaw.pmtiles
+just protomaps-dolnoslaskie
 ```
 
 ## Mapbox support
