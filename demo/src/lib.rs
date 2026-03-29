@@ -147,7 +147,7 @@ fn trails_style() -> Style {
             10.0,
             0.1 * factor,
             26.0,
-            15.0 * factor
+            10.0 * factor
         ]))
     };
 
@@ -155,9 +155,27 @@ fn trails_style() -> Style {
         layers: vec![
             Layer::Line {
                 source_layer: "".to_string(),
-                filter: None,
+                filter: Some(Filter(json!([
+                    "any",
+                    ["==", ["get", "colour"], "red"],
+                    ["==", ["get", "colour"], "blue"],
+                    ["==", ["get", "colour"], "black"],
+                ]))),
                 paint: Paint {
-                    line_color: Some(Color(json!("#888"))),
+                    line_color: Some(Color(json!("#cdcdcd"))),
+                    line_width: Some(width(1.0)),
+                    ..Default::default()
+                },
+            },
+            Layer::Line {
+                source_layer: "".to_string(),
+                filter: Some(Filter(json!([
+                    "any",
+                    ["==", ["get", "colour"], "yellow"],
+                    ["==", ["get", "colour"], "green"]
+                ]))),
+                paint: Paint {
+                    line_color: Some(Color(json!("#000000"))),
                     line_width: Some(width(1.0)),
                     ..Default::default()
                 },
@@ -184,7 +202,7 @@ fn trails_style() -> Style {
                 source_layer: "".to_string(),
                 filter: Some(Filter(json!(["==", ["get", "colour"], "green"]))),
                 paint: Paint {
-                    line_color: Some(Color(json!("#004907"))),
+                    line_color: Some(Color(json!("#005d09"))),
                     line_width: Some(width(0.4)),
                     ..Default::default()
                 },
@@ -193,8 +211,8 @@ fn trails_style() -> Style {
                 source_layer: "".to_string(),
                 filter: Some(Filter(json!(["==", ["get", "colour"], "yellow"]))),
                 paint: Paint {
-                    line_color: Some(Color(json!("#b0a800"))),
-                    line_width: Some(width(0.2)),
+                    line_color: Some(Color(json!("#bbbb00"))),
+                    line_width: Some(width(0.3)),
                     ..Default::default()
                 },
             },
@@ -203,7 +221,7 @@ fn trails_style() -> Style {
                 filter: Some(Filter(json!(["==", ["get", "colour"], "black"]))),
                 paint: Paint {
                     line_color: Some(Color(json!("#000000"))),
-                    line_width: Some(width(0.1)),
+                    line_width: Some(width(0.2)),
                     ..Default::default()
                 },
             },
