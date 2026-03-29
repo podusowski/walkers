@@ -17,6 +17,14 @@ Before deploying your application, please get yourself familiar with the
 [OpenStreetMap usage policy](https://operations.osmfoundation.org/policies/tiles/), 
 and consider donating to the [OpenStreetMap Foundation](https://supporting.openstreetmap.org/).
 
+## Features
+
+- Fetching tiles over HTTP from XYZ tile servers.
+- Reading tiles from local `.pmtiles` files.
+- Raster tiles rendering.
+- Vector tiles (MVT) rendering with styling similar to [MapLibre style](https://maplibre.org/maplibre-style-spec/).
+- Experimental local `.geojson` files support.
+
 ## Quick start
 
 Walkers has three main objects. `Tiles` downloads images from a tile map provider
