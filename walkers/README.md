@@ -17,6 +17,14 @@ Before deploying your application, please get yourself familiar with the
 [OpenStreetMap usage policy](https://operations.osmfoundation.org/policies/tiles/), 
 and consider donating to the [OpenStreetMap Foundation](https://supporting.openstreetmap.org/).
 
+## Features
+
+- Fetching tiles over HTTP from XYZ tile servers.
+- Reading tiles from local `.pmtiles` files.
+- Raster tiles rendering.
+- Vector tiles (MVT) rendering with styling similar to [MapLibre style](https://maplibre.org/maplibre-style-spec/).
+- Experimental local `.geojson` files support.
+
 ## Quick start
 
 Walkers has three main objects. `Tiles` downloads images from a tile map provider
@@ -82,15 +90,19 @@ cd demo_android
 make run-on-device
 ```
 
-## Vector and offline maps
+## Offline maps
 
-To see experimental **vector maps** support in action, you need to obtain some `.pmtiles`
-files and put them into the directory from where you run the native demo. One way of
-doing that is to download an extract from
-[Protomaps](https://docs.protomaps.com/guide/getting-started).
+To obtain offline maps in `.pmtiles` format, you can fetch Dolnośląskie region extract from
+[Protomaps](https://docs.protomaps.com/guide/getting-started) using:
 
 ```sh
-pmtiles extract https://build.protomaps.com/20250928.pmtiles --bbox 16.802768,51.036355,17.209205,51.180686 wroclaw.pmtiles
+just protomaps-dolnoslaskie
+```
+
+You can also use [Overpass API](https://overpass-api.de/) to fetch hiking trails in GeoJSON format:
+
+```sh
+just overpass-trails-dolnoslaskie
 ```
 
 ## Mapbox support
