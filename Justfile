@@ -32,19 +32,20 @@ publish:
     cargo publish -p walkers_extras
 
 # Bounding box roughly covering Dolnośląskie
-# (south, west, north, east)
+DOLNOSLASKIE_BBOX := "14.757385,50.069481,17.341919,51.248163"
 
-BBOX := "50.0,15.9,51.8,17.9"
+# It's the same bbox, but Overpass uses different order (:
+DOLNOSLASKIE_OVERPASS_BBOX := "50.069481,14.757385,51.248163,17.341919"
 
 # Download hiking trails for Dolnośląskie, Poland from OpenStreetMap using Overpass API and convert to GeoJSON
 [group('data')]
 overpass-trails-dolnoslaskie:
     curl -G https://overpass-api.de/api/interpreter \
-        --data-urlencode 'data=[out:json][timeout:120];(relation["route"~"hiking|foot"]["colour"]({{ BBOX }}););out geom;' \
+        --data-urlencode 'data=[out:json][timeout:120];(relation["route"~"hiking|foot"]["colour"]({{ DOLNOSLASKIE_OVERPASS_BBOX }}););out geom;' \
         -o trails.json
     osmtogeojson trails.json > trails.geojson
 
 # Download the latest PMTiles file for Dolnośląskie, Poland from Protomaps.
 [group('data')]
 protomaps-dolnoslaskie:
-    pmtiles extract https://build.protomaps.com/$(date -d 'yesterday' +%Y%m%d).pmtiles --bbox 16.802768,51.036355,17.209205,51.180686 dolnoslaskie.pmtiles
+    pmtiles extract https://build.protomaps.com/$(date -d 'yesterday' +%Y%m%d).pmtiles --bbox {{ DOLNOSLASKIE_BBOX }} dolnoslaskie.pmtiles
