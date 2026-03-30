@@ -2640,9 +2640,9 @@ checksum = "e2db585e1d738fc771bf08a151420d3ed193d9d895a36df7f6f8a9456b911ddc"
 
 [[package]]
 name = "kml"
-version = "0.12.0"
+version = "0.13.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "2212c0ecb1279d1733698a5fc736b9f3ab992021c7820c351108336a28358914"
+checksum = "9bc5b33f81c33cf4fde1581f3cd68244ce027023324266770d799345f9919611"
 dependencies = [
  "num-traits",
  "quick-xml 0.37.5",
