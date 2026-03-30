@@ -90,15 +90,19 @@ cd demo_android
 make run-on-device
 ```
 
-## Vector and offline maps
+## Offline maps
 
-To see experimental **vector maps** support in action, you need to obtain some `.pmtiles`
-files and put them into the directory from where you run the native demo. One way of
-doing that is to download an extract from
+To obtain offline maps in `.pmtiles` format, you can fetch Dolnośląskie region extract from
 [Protomaps](https://docs.protomaps.com/guide/getting-started) using:
 
 ```sh
 just protomaps-dolnoslaskie
+```
+
+You can also use [Overpass API](https://overpass-api.de/) to fetch hiking trails in GeoJSON format:
+
+```sh
+just overpass-trails-dolnoslaskie
 ```
 
 ## Mapbox support
