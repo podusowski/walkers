@@ -2,7 +2,9 @@ use egui::{Id, Rect, Response, Sense, Ui, vec2};
 use rstar::{PointDistance, RTree, RTreeObject};
 use std::cell::RefCell;
 use std::sync::Arc;
-use walkers::{MapMemory, Plugin, Position, Projection, ScreenProjector, lon_lat, mercator};
+use walkers::{
+    MapMemory, Plugin, Position, Projection, ScreenProjector, lon_lat,
+};
 
 /// [`Plugin`] which shows places on the map. Place can be any type that implements the [`Place`]
 /// trait.
@@ -232,17 +234,19 @@ fn interact_cluster(
 pub struct GroupedPlacesTree<T: Place, G: Group> {
     places: Arc<Vec<T>>,
     group: Arc<G>,
+    projection: &'static dyn Projection,
     settings: GroupedPlacesTreeSettings,
     rtree: Arc<RTree<Pt>>,
     screen_positions: RefCell<Vec<egui::Pos2>>,
 }
 
 impl<T: Place, G: Group> GroupedPlacesTree<T, G> {
-    pub fn new(places: Vec<T>, group: G) -> Self {
+    pub fn new(places: Vec<T>, group: G, projection: &'static dyn Projection) -> Self {
         let rtree = build_rtree(&places);
         Self {
             places: Arc::new(places),
             group: Arc::new(group),
+            projection,
             settings: GroupedPlacesTreeSettings::default(),
             rtree: Arc::new(rtree),
             screen_positions: RefCell::new(Vec::new()),
@@ -288,10 +292,14 @@ impl<T: Place, G: Group> GroupedPlacesTree<T, G> {
     fn px_per_deg(&self, memory: &MapMemory, seed: [f64; 2]) -> (f64, f64) {
         let zoom = memory.zoom();
         let pos = lon_lat(seed[0], seed[1]);
-        let base = mercator::project(pos, zoom);
+        let base = self.projection.position_to_pixels(pos, zoom);
         const D: f64 = 1e-4;
-        let lon_shift = mercator::project(lon_lat(seed[0] + D, seed[1]), zoom);
-        let lat_shift = mercator::project(lon_lat(seed[0], seed[1] + D), zoom);
+        let lon_shift = self
+            .projection
+            .position_to_pixels(lon_lat(seed[0] + D, seed[1]), zoom);
+        let lat_shift = self
+            .projection
+            .position_to_pixels(lon_lat(seed[0], seed[1] + D), zoom);
         let px_per_deg_lon = ((lon_shift.x() - base.x()).abs() / D).max(1e-9);
         let px_per_deg_lat = ((lat_shift.y() - base.y()).abs() / D).max(1e-9);
         (px_per_deg_lon, px_per_deg_lat)
@@ -552,7 +560,7 @@ mod tests {
             DummyPlace(lon_lat(0.0, 0.0)),
             DummyPlace(lon_lat(0.01, 0.0)),
         ];
-        let tree = GroupedPlacesTree::new(places, DummyGroup)
+        let tree = GroupedPlacesTree::new(places, DummyGroup, &MercatorProjection)
             .with_screen_radius_px(50.0)
             .viewport_only(false);
 
