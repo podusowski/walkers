@@ -21,8 +21,7 @@ mod style {
     pub struct Style;
 }
 
-// TODO: I don't want it to be public.
-pub mod mercator;
+mod mercator;
 
 #[cfg(feature = "mvt")]
 mod expression;
