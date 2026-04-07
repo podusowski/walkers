@@ -7,10 +7,10 @@ pub(crate) use web::*;
 
 #[cfg(target_arch = "wasm32")]
 mod web {
-    pub struct Runtime;
+    pub(crate) struct Runtime;
 
     impl Runtime {
-        pub fn new<F>(f: F) -> Self
+        pub(crate) fn new<F>(f: F) -> Self
         where
             F: std::future::Future<Output = ()> + 'static,
         {
@@ -22,13 +22,13 @@ mod web {
 
 #[cfg(not(target_arch = "wasm32"))]
 mod native {
-    pub struct Runtime {
+    pub(crate) struct Runtime {
         join_handle: Option<std::thread::JoinHandle<()>>,
         quit_tx: tokio::sync::mpsc::UnboundedSender<()>,
     }
 
     impl Runtime {
-        pub fn new<F>(f: F) -> Self
+        pub(crate) fn new<F>(f: F) -> Self
         where
             F: std::future::Future + Send + 'static,
             F::Output: Send,

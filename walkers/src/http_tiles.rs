@@ -127,14 +127,14 @@ impl Tiles for HttpTiles {
 }
 
 #[derive(Debug, thiserror::Error)]
-pub enum HttpFetchError {
+pub(crate) enum HttpFetchError {
     #[error(transparent)]
     HttpMiddleware(#[from] reqwest_middleware::Error),
     #[error(transparent)]
     Http(#[from] reqwest::Error),
 }
 
-pub struct HttpFetch<S>
+pub(crate) struct HttpFetch<S>
 where
     S: TileSource + Send + 'static,
 {
@@ -147,7 +147,7 @@ impl<S> HttpFetch<S>
 where
     S: TileSource + Sync + Send,
 {
-    pub fn new(source: S, http_options: HttpOptions) -> Self {
+    pub(crate) fn new(source: S, http_options: HttpOptions) -> Self {
         Self {
             source,
             max_concurrency: http_options.max_parallel_downloads.0,

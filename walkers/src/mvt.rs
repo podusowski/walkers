@@ -2,7 +2,14 @@
 
 use std::collections::HashMap;
 
-use egui::{Color32, Rect, Shape, emath::TSTransform, pos2, vec2};
+use egui::{
+    Color32, Mesh, Rect, Shape, Stroke,
+    emath::TSTransform,
+    epaint::{Vertex, WHITE_UV},
+    pos2, vec2,
+};
+pub use geo_types::Geometry;
+pub(crate) use geo_types::{Coord, Line};
 use log::warn;
 use mvt_reader::{Reader, feature::Value};
 use serde_json::{Number, Value as JsonValue};
@@ -11,7 +18,7 @@ use geo::MapCoords;
 
 use crate::{
     expression::Context,
-    render::{self, Coord, Geometry},
+    render,
     style::{Filter, Layer, SourceLayer, Style},
     text::Text,
 };

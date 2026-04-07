@@ -21,8 +21,7 @@ mod style {
     pub struct Style;
 }
 
-// TODO: I don't want it to be public.
-pub mod mercator;
+mod mercator;
 
 #[cfg(feature = "mvt")]
 mod expression;
@@ -51,13 +50,10 @@ pub use plugin::Plugin;
 #[cfg(feature = "pmtiles")]
 pub use pmtiles::PmTiles;
 pub use position::{Position, lat_lon, lon_lat};
-<<<<<<< HEAD
-pub use projector::Projector;
+
+pub use projector::{MercatorProjection, ProjectedProjection, Projection, ScreenProjector};
 #[cfg(feature = "mvt")]
 pub use render::{Geometry, render_line, render_symbol, tessellate_polygon};
-=======
-pub use projector::{MercatorProjection, ProjectedProjection, Projection, ScreenProjector};
->>>>>>> 0fa8584 (rebase on main)
 pub use style::Style;
 #[cfg(feature = "mvt")]
 pub use style::{

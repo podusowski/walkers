@@ -3,18 +3,11 @@ use egui::{
 };
 
 use crate::{
-<<<<<<< HEAD
-    MapMemory, Options, Plugin, Position, Projector, Tiles,
-    center::Center,
-    position::AdjustedPosition,
-    tiles::{Texts, draw_tiles},
-=======
     MapMemory, Options, Plugin, Position, Tiles,
     center::Center,
     position::AdjustedPosition,
     projector::{Projection, ScreenProjector},
-    tiles::draw_tiles,
->>>>>>> 0fa8584 (rebase on main)
+    tiles::{Texts, draw_tiles},
 };
 
 /// Specifies the base tile layer and projection for a [`Map`].
@@ -196,13 +189,8 @@ impl<'a, 'b, 'c> Map<'a, 'b, 'c> {
         let painter = ui.painter().with_clip_rect(rect);
         let mut texts = Texts::default();
 
-<<<<<<< HEAD
-        if let Some(tiles) = self.tiles {
-            draw_tiles(&painter, map_center, zoom, tiles, 1.0, &mut texts);
-=======
         if let MapTiles::Tiles(tiles) = &mut self.tiles {
-            draw_tiles(&painter, map_center, zoom, *tiles, 1.0);
->>>>>>> 0fa8584 (rebase on main)
+            draw_tiles(&painter, map_center, zoom, *tiles, 1.0, &mut texts);
         }
 
         for layer in self.layers {
@@ -235,19 +223,14 @@ impl<'a, 'b, 'c> Map<'a, 'b, 'c> {
 
 impl Map<'_, '_, '_> {
     /// Handle user inputs and recalculate everything accordingly. Returns whether something changed.
-<<<<<<< HEAD
-    fn handle_gestures(&mut self, ui: &mut Ui, response: &Response) -> bool {
-        let (zoom_delta, zoom_delta_from_scroll) = self.zoom_delta(ui, response);
-        let mut scroll_used = false;
-=======
     fn handle_gestures<P: Projection + ?Sized>(
         &mut self,
         ui: &mut Ui,
         response: &Response,
         projection: &P,
     ) -> bool {
-        let zoom_delta = self.zoom_delta(ui, response);
->>>>>>> 0fa8584 (rebase on main)
+        let (zoom_delta, zoom_delta_from_scroll) = self.zoom_delta(ui, response);
+        let mut scroll_used = false;
 
         // Zooming and dragging need to be exclusive, otherwise the map will get dragged when
         // pinch gesture is used.
