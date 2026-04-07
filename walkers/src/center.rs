@@ -135,7 +135,7 @@ impl Center {
         self.adjusted_position().map(|p| p.position(projection))
     }
 
-    pub fn animating(&self) -> bool {
+    pub(crate) fn animating(&self) -> bool {
         matches!(self, Center::Inertia { .. } | Center::PulledToMyPosition(_))
     }
 
@@ -150,7 +150,7 @@ impl Center {
     }
 
     /// Get the real position at the map's center.
-    pub fn position<P: Projection + ?Sized>(
+    pub(crate) fn position<P: Projection + ?Sized>(
         &self,
         my_position: Position,
         projection: &P,

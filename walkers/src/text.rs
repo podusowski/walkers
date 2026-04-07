@@ -94,7 +94,7 @@ pub struct OrientedRect {
 }
 
 impl OrientedRect {
-    pub fn new(center: Pos2, angle: f32, size: Vec2) -> Self {
+    pub(crate) fn new(center: Pos2, angle: f32, size: Vec2) -> Self {
         let (s, c) = angle.sin_cos();
         let half = size * 0.5;
 
@@ -127,7 +127,7 @@ impl OrientedRect {
         }
     }
 
-    pub fn top_left(&self) -> Pos2 {
+    pub(crate) fn top_left(&self) -> Pos2 {
         self.polygon
             .exterior()
             .points()
@@ -136,7 +136,7 @@ impl OrientedRect {
             .expect("can not happen because polygon always has some points")
     }
 
-    pub fn intersects(&self, other: &OrientedRect) -> bool {
+    pub(crate) fn intersects(&self, other: &OrientedRect) -> bool {
         // Checking bbox first gives huge performance boost.
         self.bbox.intersects(&other.bbox) && self.polygon.intersects(&other.polygon)
     }
