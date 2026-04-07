@@ -38,12 +38,12 @@ pub use http_tiles::HttpTiles;
 pub use io::tiles_io::Stats;
 pub use io::{HeaderValue, MaxParallelDownloads, http::HttpOptions};
 pub use local_tiles::LocalTiles;
-pub use map::{Map, Plugin};
+pub use map::{Map, MapTiles, Plugin};
 pub use memory::MapMemory;
 #[cfg(feature = "pmtiles")]
 pub use pmtiles::PmTiles;
 pub use position::{Position, lat_lon, lon_lat};
-pub use projector::Projector;
+pub use projector::{MercatorProjection, ProjectedProjection, Projection, ScreenProjector};
 pub use style::Style;
 #[cfg(feature = "mvt")]
 pub use style::{Color, Filter, Float, Layer, Paint, Value, json};

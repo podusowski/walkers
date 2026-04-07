@@ -5,6 +5,7 @@ use reqwest_middleware::ClientWithMiddleware;
 use crate::io::Fetch;
 use crate::io::http::http_client;
 use crate::io::tiles_io::TilesIo;
+use crate::projector::Projection;
 use crate::sources::{Attribution, TileSource};
 use crate::style::Style;
 use crate::tiles::{EguiTileFactory, interpolate_from_lower_zoom};
@@ -15,6 +16,7 @@ use crate::{Stats, TileId};
 pub struct HttpTiles {
     attribution: Attribution,
     tiles_io: TilesIo,
+    projection: &'static dyn Projection,
     tile_size: u32,
     max_zoom: u8,
 }
@@ -50,6 +52,7 @@ impl HttpTiles {
         let attribution = source.attribution();
         let tile_size = source.tile_size();
         let max_zoom = source.max_zoom();
+        let projection = source.projection();
 
         Self {
             attribution,
@@ -58,6 +61,7 @@ impl HttpTiles {
                 EguiTileFactory::new(egui_ctx.clone(), style),
                 egui_ctx,
             ),
+            projection,
             tile_size,
             max_zoom,
         }
@@ -115,6 +119,10 @@ impl Tiles for HttpTiles {
 
     fn tile_size(&self) -> u32 {
         self.tile_size
+    }
+
+    fn projection(&self) -> &'static dyn Projection {
+        self.projection
     }
 }
 

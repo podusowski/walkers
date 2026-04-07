@@ -367,6 +367,7 @@ fn first_and_rest(slice: &[Value]) -> Result<(&Value, &[Value]), Error> {
         .ok_or(Error::AtLeastTwoElementsExpected(slice.to_vec()))
 }
 
+#[allow(clippy::unwrap_used)]
 #[cfg(test)]
 mod tests {
     use super::*;
