@@ -6,7 +6,9 @@ mod windows;
 
 use egui::{Button, Context, DragPanButtons, OpenUrl, Rect, Vec2};
 use tiles::{TilesKind, providers};
-use walkers::{Color, Filter, Float, Layer, Map, MapMemory, Paint, Style, json};
+use walkers::{
+    Color, Filter, Float, Layer, Map, MapMemory, MapTiles, MercatorProjection, Paint, Style, json,
+};
 use walkers_extras::GeoJsonLayer;
 
 use crate::tiles::Providers;
@@ -49,7 +51,11 @@ impl eframe::App for MyApp {
             .collect();
 
         // In egui, widgets are constructed and consumed in each frame.
-        let mut map = Map::new(None, &mut self.map_memory, my_position);
+        let mut map = Map::new(
+            MapTiles::Projection(&MercatorProjection),
+            &mut self.map_memory,
+            my_position,
+        );
 
         // Various aspects of the map can be configured.
         map = map

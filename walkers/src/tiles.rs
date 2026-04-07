@@ -17,6 +17,7 @@ use crate::Position;
 use crate::io::TileFactory;
 use crate::mercator::{project, tile_id, total_tiles};
 use crate::position::{Pixels, PixelsExt};
+use crate::projector::{MercatorProjection, Projection};
 use crate::sources::Attribution;
 use crate::style::Style;
 use crate::zoom::Zoom;
@@ -103,6 +104,11 @@ pub trait Tiles {
     fn at(&mut self, tile_id: TileId) -> Option<TilePiece>;
     fn attribution(&self) -> Attribution;
     fn tile_size(&self) -> u32;
+
+    /// The projection used by this tile source.
+    fn projection(&self) -> &'static dyn Projection {
+        &MercatorProjection
+    }
 }
 
 #[derive(Clone)]

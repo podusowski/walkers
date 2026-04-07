@@ -6,7 +6,10 @@ use egui::{self, Align2, Color32, Stroke};
 use rand::{Rng, SeedableRng, rngs::StdRng};
 
 use walkers::sources;
-use walkers::{HttpOptions, HttpTiles, Map, MapMemory, Position, Projector, lon_lat};
+use walkers::{
+    HttpOptions, HttpTiles, Map, MapMemory, MapTiles, MercatorProjection, Position,
+    ScreenProjector, lon_lat,
+};
 use walkers_extras::{Group, GroupedPlacesTree, LabeledSymbol, LabeledSymbolStyle, Place, Symbol};
 
 const POI_COUNT: usize = 2_000;
@@ -195,7 +198,11 @@ impl eframe::App for ClusterApp {
                 self.rebuild_plugin();
             }
 
-            let mut map = Map::new(None, &mut self.memory, Self::map_center());
+            let mut map = Map::new(
+                MapTiles::Projection(&MercatorProjection),
+                &mut self.memory,
+                Self::map_center(),
+            );
             if let Some(tiles) = self.tiles.as_mut() {
                 map = map.with_layer(tiles, 1.0);
             }
@@ -256,7 +263,7 @@ impl walkers::Plugin for StatsHandle {
         self: Box<Self>,
         ui: &mut egui::Ui,
         response: &egui::Response,
-        projector: &walkers::Projector,
+        projector: &ScreenProjector,
         memory: &MapMemory,
     ) {
         let (clusters, max_size) = self.inner.draw_with_stats(ui, response, projector, memory);
@@ -272,7 +279,7 @@ impl Group for DemoClusterGroup {
         &self,
         places: &[&T],
         position: Position,
-        projector: &Projector,
+        projector: &ScreenProjector,
         ui: &mut egui::Ui,
     ) {
         let count = places.len();
