@@ -365,13 +365,13 @@ pub(crate) fn rect(screen_position: Vec2, tile_size: f64) -> Rect {
     Rect::from_min_size(screen_position.to_pos2(), Vec2::splat(tile_size as f32))
 }
 
-pub struct EguiTileFactory {
+pub(crate) struct EguiTileFactory {
     egui_ctx: Context,
     style: Style,
 }
 
 impl EguiTileFactory {
-    pub fn new(egui_ctx: Context, style: Style) -> Self {
+    pub(crate) fn new(egui_ctx: Context, style: Style) -> Self {
         Self { egui_ctx, style }
     }
 }

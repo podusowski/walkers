@@ -21,7 +21,7 @@ pub fn lon_lat(lon: f64, lat: f64) -> Position {
 /// Geographical [`Position`] shifted by a number of pixels on the screen.
 #[derive(Debug, Clone, PartialEq)]
 #[cfg_attr(feature = "serde", derive(::serde::Serialize, ::serde::Deserialize))]
-pub struct AdjustedPosition {
+pub(crate) struct AdjustedPosition {
     /// Base geographical position.
     position: Position,
     /// Offset in pixels.
@@ -31,7 +31,7 @@ pub struct AdjustedPosition {
 }
 
 impl AdjustedPosition {
-    pub fn new(position: Position) -> Self {
+    pub(crate) fn new(position: Position) -> Self {
         Self {
             position,
             offset: Pixels::new(0.0, 0.0),
@@ -40,14 +40,14 @@ impl AdjustedPosition {
     }
 
     /// Calculate the real position, i.e. including the offset.
-    pub fn position<P: Projection + ?Sized>(&self, projection: &P) -> Position {
+    pub(crate) fn position<P: Projection + ?Sized>(&self, projection: &P) -> Position {
         projection.pixels_to_position(
             projection.position_to_pixels(self.position, self.zoom) - self.offset,
             self.zoom,
         )
     }
 
-    pub fn shift(self, offset: Vec2, zoom: f64) -> Self {
+    pub(crate) fn shift(self, offset: Vec2, zoom: f64) -> Self {
         let changed_zoom_factor = 2.0_f64.powf(zoom - self.zoom);
         Self {
             position: self.position,
@@ -56,11 +56,11 @@ impl AdjustedPosition {
         }
     }
 
-    pub fn offset_length(&self) -> f32 {
+    pub(crate) fn offset_length(&self) -> f32 {
         self.offset.to_vec2().length()
     }
 
-    pub fn half_offset(self) -> Self {
+    pub(crate) fn half_offset(self) -> Self {
         Self {
             position: self.position,
             offset: self.offset / 2.0,
@@ -70,9 +70,9 @@ impl AdjustedPosition {
 }
 
 /// Location projected on the screen or an abstract bitmap.
-pub type Pixels = geo_types::Point;
+pub(crate) type Pixels = geo_types::Point;
 
-pub trait PixelsExt {
+pub(crate) trait PixelsExt {
     fn to_vec2(&self) -> egui::Vec2;
     fn from_vec2(_: egui::Vec2) -> Self;
 }

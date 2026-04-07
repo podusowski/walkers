@@ -13,7 +13,7 @@ use futures::{
 use std::sync::{Arc, Mutex};
 
 #[derive(Debug, thiserror::Error)]
-pub enum Error {
+pub(super) enum Error {
     #[error("Tile request channel from the main thread was broken.")]
     RequestChannelBroken,
 
@@ -49,7 +49,7 @@ impl<T> From<std::sync::PoisonError<T>> for Error {
     }
 }
 
-pub trait TileFactory {
+pub(crate) trait TileFactory {
     fn create_tile(&self, data: &Bytes, zoom: u8) -> Result<Tile, TileError>;
 }
 
@@ -153,7 +153,7 @@ pub(crate) async fn fetch_continuously(
     }
 }
 
-pub trait Fetch {
+pub(crate) trait Fetch {
     type Error: std::error::Error + Sync + Send;
 
     #[cfg(target_arch = "wasm32")]
