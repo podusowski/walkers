@@ -1,35 +1,34 @@
-use std::{collections::BTreeMap, path::PathBuf};
+use std::collections::BTreeMap;
+#[cfg(feature = "pmtiles")]
+use std::path::PathBuf;
 
 use egui::Context;
 #[cfg(feature = "pmtiles")]
 use walkers::PmTiles;
 #[cfg(feature = "mvt")]
 use walkers::Style;
-use walkers::{HttpOptions, HttpTiles, LocalTiles, Tiles, sources::TileSource};
+use walkers::{HttpOptions, HttpTiles, MercatorProjection, Tiles, sources::TileSource};
 
 pub(crate) enum TilesKind {
     Http(HttpTiles),
-    Local(LocalTiles),
     #[cfg(feature = "pmtiles")]
     PmTiles(PmTiles),
 }
 
-impl AsMut<dyn Tiles> for TilesKind {
-    fn as_mut(&mut self) -> &mut (dyn Tiles + 'static) {
+impl AsMut<dyn Tiles<Projection = MercatorProjection>> for TilesKind {
+    fn as_mut(&mut self) -> &mut (dyn Tiles<Projection = MercatorProjection> + 'static) {
         match self {
             TilesKind::Http(tiles) => tiles,
-            TilesKind::Local(tiles) => tiles,
             #[cfg(feature = "pmtiles")]
             TilesKind::PmTiles(tiles) => tiles,
         }
     }
 }
 
-impl AsRef<dyn Tiles> for TilesKind {
-    fn as_ref(&self) -> &(dyn Tiles + 'static) {
+impl AsRef<dyn Tiles<Projection = MercatorProjection>> for TilesKind {
+    fn as_ref(&self) -> &(dyn Tiles<Projection = MercatorProjection> + 'static) {
         match self {
             TilesKind::Http(tiles) => tiles,
-            TilesKind::Local(tiles) => tiles,
             #[cfg(feature = "pmtiles")]
             TilesKind::PmTiles(tiles) => tiles,
         }
@@ -63,7 +62,6 @@ pub(crate) fn basemaps(egui_ctx: Context) -> Basemaps {
     };
 
     insert_raster_basemaps(&mut basemaps, &egui_ctx);
-    insert_local_basemaps(&mut basemaps, &egui_ctx);
     insert_mapbox_basemaps(&mut basemaps, &egui_ctx);
     // Each of these overrides `selected`, so the last available one becomes the default.
     #[cfg(feature = "mvt")]
@@ -76,7 +74,7 @@ pub(crate) fn basemaps(egui_ctx: Context) -> Basemaps {
 
 fn http<S>(source: S, egui_ctx: &Context) -> TilesKind
 where
-    S: TileSource + Sync + Send + 'static,
+    S: TileSource<Projection = MercatorProjection> + Sync + Send + 'static,
 {
     TilesKind::Http(HttpTiles::with_options(
         source,
@@ -110,17 +108,6 @@ fn insert_raster_basemaps(basemaps: &mut Basemaps, egui_ctx: &Context) {
             http(walkers::sources::OpenStreetMap, egui_ctx),
             http(walkers::sources::Geoportal, egui_ctx),
         ],
-    );
-}
-
-fn insert_local_basemaps(basemaps: &mut Basemaps, egui_ctx: &Context) {
-    #[allow(deprecated)]
-    basemaps.available.insert(
-        "LocalTiles".to_string(),
-        vec![TilesKind::Local(LocalTiles::new(
-            PathBuf::from_iter(&[env!("CARGO_MANIFEST_DIR"), "assets"]),
-            egui_ctx.to_owned(),
-        ))],
     );
 }
 
@@ -163,6 +150,7 @@ fn insert_pmtiles_basemaps(basemaps: &mut Basemaps, egui_ctx: &Context) {
         let pmtiles = |style| {
             TilesKind::PmTiles(PmTiles::with_style(
                 path.clone(),
+                MercatorProjection,
                 style,
                 egui_ctx.to_owned(),
             ))

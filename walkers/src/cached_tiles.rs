@@ -3,7 +3,7 @@ use egui::Context;
 use crate::io::{Fetch, TileFactory, tiles_io::TilesIo};
 use crate::sources::Attribution;
 use crate::tiles::interpolate_from_lower_zoom;
-use crate::{Stats, TileId, TilePiece, Tiles};
+use crate::{Stats, TileId, TilePiece};
 
 /// Tiles fetched in the background and kept in a cache.
 pub(crate) struct CachedTiles {
@@ -53,10 +53,7 @@ impl CachedTiles {
             zoom_candidate = zoom_candidate.checked_sub(1)?;
         }
     }
-}
-
-impl Tiles for CachedTiles {
-    fn at(&mut self, tile_id: TileId) -> Option<TilePiece> {
+    pub(crate) fn at(&mut self, tile_id: TileId) -> Option<TilePiece> {
         self.io.put_single_fetched_tile_in_cache();
 
         if !tile_id.valid() {
@@ -73,11 +70,11 @@ impl Tiles for CachedTiles {
         self.best_available(tile_id)
     }
 
-    fn attribution(&self) -> Attribution {
+    pub(crate) fn attribution(&self) -> Attribution {
         self.attribution.clone()
     }
 
-    fn tile_size(&self) -> u32 {
+    pub(crate) fn tile_size(&self) -> u32 {
         self.tile_size
     }
 }

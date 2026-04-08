@@ -1,5 +1,5 @@
 use crate::{
-    TileId, TilePiece, Tiles, cached_tiles::CachedTiles, io::Fetch, sources::Attribution,
+    MercatorProjection, Projection, TileId, TilePiece, Tiles, cached_tiles::CachedTiles, io::Fetch, sources::Attribution,
     style::Style, tiles::EguiTileFactory,
 };
 use bytes::Bytes;
@@ -20,17 +20,25 @@ const DEFAULT_MAX_ZOOM: u8 = 15;
 /// Provides tiles from a local PMTiles file.
 ///
 /// <https://docs.protomaps.com/guide/getting-started>
-pub struct PmTiles(CachedTiles);
+pub struct PmTiles<P: Projection = MercatorProjection> {
+    cached_tiles: CachedTiles,
+    projection: P,
+}
 
-impl PmTiles {
-    pub fn new(path: impl AsRef<Path>, egui_ctx: Context) -> Self {
-        Self::with_style(path, Style::default(), egui_ctx)
+impl<P: Projection> PmTiles<P> {
+    pub fn new(path: impl AsRef<Path>, projection: P, egui_ctx: Context) -> Self {
+        Self::with_style(path, projection, Style::default(), egui_ctx)
     }
 
     /// Construct new [`PmTiles`] with [`Style`]. Style is relevant only for vector tile
     /// sources.
-    pub fn with_style(path: impl AsRef<Path>, style: Style, egui_ctx: Context) -> Self {
-        Self::with_style_and_tile_size(path, style, DEFAULT_TILE_SIZE, egui_ctx)
+    pub fn with_style(
+        path: impl AsRef<Path>,
+        projection: P,
+        style: Style,
+        egui_ctx: Context,
+    ) -> Self {
+        Self::with_style_and_tile_size(path, projection, style, DEFAULT_TILE_SIZE, egui_ctx)
     }
 
     /// Tiles are rendered for `tile_size`, which is the size they are drawn at when the map is
@@ -38,11 +46,13 @@ impl PmTiles {
     /// it, so it has to be known before the first tile is decoded.
     pub fn with_style_and_tile_size(
         path: impl AsRef<Path>,
+        projection: P,
         style: Style,
         tile_size: u32,
         egui_ctx: Context,
     ) -> Self {
-        Self(CachedTiles::new(
+        Self {
+            cached_tiles: CachedTiles::new(
             PmTilesFetch::new(path.as_ref()),
             EguiTileFactory::new(egui_ctx.clone(), style, tile_size),
             Attribution {
@@ -54,21 +64,28 @@ impl PmTiles {
             tile_size,
             DEFAULT_MAX_ZOOM,
             egui_ctx,
-        ))
+            ),
+            projection,
+        }
+    }
+
+    pub fn projection(&self) -> &P {
+        &self.projection
     }
 }
 
-impl Tiles for PmTiles {
+impl<P: Projection> Tiles for PmTiles<P> {
+    type Projection = P;
     fn at(&mut self, tile_id: TileId) -> Option<TilePiece> {
-        self.0.at(tile_id)
+        self.cached_tiles.at(tile_id)
     }
 
     fn attribution(&self) -> Attribution {
-        self.0.attribution()
+        self.cached_tiles.attribution()
     }
 
     fn tile_size(&self) -> u32 {
-        self.0.tile_size()
+        self.cached_tiles.tile_size()
     }
 }
 

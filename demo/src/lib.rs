@@ -9,8 +9,7 @@ use std::io;
 use basemaps::{TilesKind, basemaps};
 use egui::{Button, DragPanButtons, OpenUrl, Rect, Vec2};
 use walkers::{
-    Color, Filter, Float, Layer, Layout, Map, MapMemory, MapTiles, MercatorProjection, Paint,
-    Style, json,
+    Color, Filter, Float, Layer, Layout, Map, MapMemory, MercatorProjection, Paint, Style, json,
 };
 use walkers_extras::GeoJsonLayer;
 
@@ -55,11 +54,7 @@ impl eframe::App for MyApp {
             .collect();
 
         // In egui, widgets are constructed and consumed in each frame.
-        let mut map = Map::new(
-            MapTiles::Projection(&MercatorProjection),
-            &mut self.map_memory,
-            my_position,
-        );
+        let mut map = Map::new(MercatorProjection, &mut self.map_memory, my_position);
 
         // Various aspects of the map can be configured.
         map = map
@@ -88,7 +83,7 @@ impl eframe::App for MyApp {
             }
 
             // You can add any additional contents to the map's UI here.
-            let bastion = projector.project(places::bastion_sakwowy()).to_pos2();
+            let bastion = projector.project(places::bastion_sakwowy());
             ui.put(
                 Rect::from_center_size(bastion, Vec2::new(140., 20.)),
                 Button::new("Bastion Sakwowy"),

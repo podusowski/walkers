@@ -1,4 +1,5 @@
 use super::{Attribution, TileSource};
+use crate::projector::MercatorProjection;
 use crate::tiles::TileId;
 
 #[derive(Debug, Clone, Copy)]
@@ -22,6 +23,12 @@ impl std::fmt::Display for OpenTopoServer {
 pub struct OpenTopoMap(pub OpenTopoServer);
 
 impl TileSource for OpenTopoMap {
+    type Projection = MercatorProjection;
+
+    fn projection(&self) -> MercatorProjection {
+        MercatorProjection
+    }
+
     fn tile_url(&self, tile_id: TileId) -> String {
         format!(
             "https://{}.tile.opentopomap.org/{}/{}/{}.png",
@@ -36,5 +43,9 @@ impl TileSource for OpenTopoMap {
             logo_light: None,
             logo_dark: None,
         }
+    }
+
+    fn max_zoom(&self) -> u8 {
+        17
     }
 }

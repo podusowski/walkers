@@ -5,7 +5,7 @@ use reqwest_middleware::ClientWithMiddleware;
 use crate::cached_tiles::CachedTiles;
 use crate::io::Fetch;
 use crate::io::http::http_client;
-use crate::projector::Projection;
+use crate::projector::{MercatorProjection, Projection};
 use crate::sources::{Attribution, TileSource};
 use crate::style::Style;
 use crate::tiles::EguiTileFactory;
@@ -13,16 +13,16 @@ use crate::{HttpOptions, TilePiece, Tiles};
 use crate::{Stats, TileId};
 
 /// Downloads the tiles via HTTP. It must persist between frames.
-pub struct HttpTiles {
+pub struct HttpTiles<P: Projection = MercatorProjection> {
     cached_tiles: CachedTiles,
-    projection: &'static dyn Projection,
+    projection: P,
 }
 
-impl HttpTiles {
+impl<P: Projection> HttpTiles<P> {
     /// Construct new [`Tiles`] with default [`HttpOptions`].
     pub fn new<S>(source: S, egui_ctx: Context) -> Self
     where
-        S: TileSource + Sync + Send + 'static,
+        S: TileSource<Projection = P> + Sync + Send + 'static,
     {
         Self::with_options(source, HttpOptions::default(), egui_ctx)
     }
@@ -30,7 +30,7 @@ impl HttpTiles {
     /// Construct new [`Tiles`] with supplied [`HttpOptions`].
     pub fn with_options<S>(source: S, http_options: HttpOptions, egui_ctx: Context) -> Self
     where
-        S: TileSource + Sync + Send + 'static,
+        S: TileSource<Projection = P> + Sync + Send + 'static,
     {
         Self::with_options_and_style(source, http_options, Style::default(), egui_ctx)
     }
@@ -44,7 +44,7 @@ impl HttpTiles {
         egui_ctx: Context,
     ) -> Self
     where
-        S: TileSource + Sync + Send + 'static,
+        S: TileSource<Projection = P> + Sync + Send + 'static,
     {
         let attribution = source.attribution();
         let tile_size = source.tile_size();
@@ -64,12 +64,17 @@ impl HttpTiles {
         }
     }
 
+    pub fn projection(&self) -> &P {
+        &self.projection
+    }
+
     pub fn stats(&self) -> Stats {
         self.cached_tiles.stats()
     }
 }
 
-impl Tiles for HttpTiles {
+impl<P: Projection> Tiles for HttpTiles<P> {
+    type Projection = P;
     fn at(&mut self, tile_id: TileId) -> Option<TilePiece> {
         self.cached_tiles.at(tile_id)
     }
@@ -80,10 +85,6 @@ impl Tiles for HttpTiles {
 
     fn tile_size(&self) -> u32 {
         self.cached_tiles.tile_size()
-    }
-
-    fn projection(&self) -> &'static dyn Projection {
-        self.projection
     }
 }
 
@@ -139,6 +140,7 @@ where
 #[cfg(test)]
 mod tests {
     use crate::MaxParallelDownloads;
+    use crate::projector::MercatorProjection;
 
     use super::*;
     use hypermocker::{
@@ -164,6 +166,12 @@ mod tests {
     }
 
     impl TileSource for TestSource {
+        type Projection = MercatorProjection;
+
+        fn projection(&self) -> MercatorProjection {
+            MercatorProjection
+        }
+
         fn tile_url(&self, tile_id: TileId) -> String {
             format!(
                 "{}/{}/{}/{}.png",
@@ -188,7 +196,10 @@ mod tests {
         (server, TestSource::new(url))
     }
 
-    async fn assert_tile_to_become_available_eventually(tiles: &mut HttpTiles, tile_id: TileId) {
+    async fn assert_tile_to_become_available_eventually(
+        tiles: &mut HttpTiles<MercatorProjection>,
+        tile_id: TileId,
+    ) {
         log::info!("Waiting for {tile_id:?} to become available.");
         while tiles.at(tile_id).is_none() {
             // Need to yield to the runtime for things to move.
@@ -339,7 +350,7 @@ mod tests {
         awaiting_request.expect().await;
     }
 
-    async fn assert_tile_is_empty_forever(tiles: &mut HttpTiles) {
+    async fn assert_tile_is_empty_forever(tiles: &mut HttpTiles<MercatorProjection>) {
         // Should be None now, and forever.
         assert!(tiles.at(TILE_ID).is_none());
         tokio::time::sleep(Duration::from_secs(1)).await;
@@ -395,6 +406,12 @@ mod tests {
     struct GarbageSource;
 
     impl TileSource for GarbageSource {
+        type Projection = MercatorProjection;
+
+        fn projection(&self) -> MercatorProjection {
+            MercatorProjection
+        }
+
         fn tile_url(&self, _: TileId) -> String {
             "totally invalid url".to_string()
         }

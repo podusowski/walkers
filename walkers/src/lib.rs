@@ -5,7 +5,6 @@ mod cached_tiles;
 mod center;
 mod http_tiles;
 mod io;
-mod local_tiles;
 mod map;
 mod memory;
 mod options;
@@ -17,7 +16,7 @@ mod text;
 
 #[cfg(not(feature = "mvt"))]
 mod style {
-    /// Dummy style, used when `mtv` feature is not enabled.
+    /// Dummy style, used when `mvt` feature is not enabled.
     #[derive(Default)]
     pub struct Style;
 }
@@ -51,8 +50,7 @@ pub use geo_types;
 pub use http_tiles::HttpTiles;
 pub use io::tiles_io::Stats;
 pub use io::{HeaderValue, MaxParallelDownloads, http::HttpOptions};
-pub use local_tiles::LocalTiles;
-pub use map::{Map, MapTiles};
+pub use map::Map;
 pub use memory::MapMemory;
 pub use options::Options;
 pub use plugin::Plugin;

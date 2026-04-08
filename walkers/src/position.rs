@@ -93,8 +93,8 @@ mod tests {
     use crate::projector::MercatorProjection;
     use approx::assert_relative_eq;
 
-    fn proj() -> &'static dyn Projection {
-        &MercatorProjection
+    fn proj() -> MercatorProjection {
+        MercatorProjection
     }
 
     fn base_adjusted_position() -> AdjustedPosition {
@@ -104,13 +104,13 @@ mod tests {
     #[test]
     fn shifting_adjusted_position() {
         let position = base_adjusted_position().shift(Pixels::new(10.0, 20.0).to_vec2(), 10.0);
-        assert_relative_eq!(position.position(proj()).x(), 16.98626708984377);
-        assert_relative_eq!(position.position(proj()).y(), 51.017281581280216);
+        assert_relative_eq!(position.position(&proj()).x(), 16.98626708984377);
+        assert_relative_eq!(position.position(&proj()).y(), 51.017281581280216);
 
         // When zoom is lower, the offset expressed as screen pixels will be larger.
         let position = base_adjusted_position().shift(Pixels::new(10.0, 20.0).to_vec2(), 2.0);
-        assert_relative_eq!(position.position(proj()).x(), 13.48437500000002);
-        assert_relative_eq!(position.position(proj()).y(), 55.21655462355652);
+        assert_relative_eq!(position.position(&proj()).x(), 13.48437500000002);
+        assert_relative_eq!(position.position(&proj()).y(), 55.21655462355652);
     }
 
     #[test]
@@ -118,8 +118,8 @@ mod tests {
         let position = base_adjusted_position()
             .shift(Pixels::new(10.0, 20.0).to_vec2(), 2.0)
             .shift(Pixels::new(0.0, 0.0).to_vec2(), 10.0);
-        assert_relative_eq!(position.position(proj()).x(), 13.48437500000002);
-        assert_relative_eq!(position.position(proj()).y(), 55.21655462355652);
+        assert_relative_eq!(position.position(&proj()).x(), 13.48437500000002);
+        assert_relative_eq!(position.position(&proj()).y(), 55.21655462355652);
     }
 
     #[test]
@@ -128,8 +128,8 @@ mod tests {
             .shift(Pixels::new(5.0, 10.0).to_vec2(), 10.0)
             .shift(Pixels::new(10.0, 20.0).to_vec2(), 11.0);
 
-        assert_relative_eq!(position.position(proj()).x(), 16.98626708984377);
-        assert_relative_eq!(position.position(proj()).y(), 51.017281581280216);
+        assert_relative_eq!(position.position(&proj()).x(), 16.98626708984377);
+        assert_relative_eq!(position.position(&proj()).y(), 51.017281581280216);
     }
 
     #[test]
