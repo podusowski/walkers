@@ -7,7 +7,7 @@ mod openfreemap;
 mod openstreetmap;
 mod opentopomap;
 
-use crate::{MercatorProjection, Projection, TileId};
+use crate::TileId;
 pub use geoportal::Geoportal;
 pub use mapbox::{Mapbox, MapboxStyle};
 #[cfg(feature = "mvt")]
@@ -35,9 +35,5 @@ pub trait TileSource {
 
     fn max_zoom(&self) -> u8 {
         19
-    }
-
-    fn projection(&self) -> &'static dyn Projection {
-        &MercatorProjection
     }
 }

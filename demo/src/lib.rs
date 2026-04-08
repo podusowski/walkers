@@ -7,7 +7,7 @@ mod windows;
 use egui::{Button, Context, DragPanButtons, OpenUrl, Rect, Vec2};
 use tiles::{TilesKind, providers};
 use walkers::{
-    Color, Filter, Float, Layer, Map, MapMemory, MapTiles, MercatorProjection, Paint, Style, json,
+    Color, Filter, Float, Layer, Map, MapMemory, MercatorProjection, Paint, Style, json,
 };
 use walkers_extras::GeoJsonLayer;
 
@@ -52,7 +52,7 @@ impl eframe::App for MyApp {
 
         // In egui, widgets are constructed and consumed in each frame.
         let mut map = Map::new(
-            MapTiles::Projection(&MercatorProjection),
+            MercatorProjection,
             &mut self.map_memory,
             my_position,
         );
@@ -84,7 +84,7 @@ impl eframe::App for MyApp {
             }
 
             // You can add any additional contents to the map's UI here.
-            let bastion = projector.project(places::bastion_sakwowy()).to_pos2();
+            let bastion = projector.project(places::bastion_sakwowy());
             ui.put(
                 Rect::from_center_size(bastion, Vec2::new(140., 20.)),
                 Button::new("Bastion Sakwowy"),

@@ -1,6 +1,7 @@
 use crate::{
     TileId, TilePiece, Tiles,
     io::{Fetch, tiles_io::TilesIo},
+    projector::Projection,
     sources::Attribution,
     style::Style,
     tiles::{EguiTileFactory, interpolate_from_lower_zoom},
@@ -17,19 +18,25 @@ use thiserror::Error;
 /// Provides tiles from a local PMTiles file.
 ///
 /// <https://docs.protomaps.com/guide/getting-started>
-pub struct PmTiles {
+pub struct PmTiles<P: Projection> {
     tiles_io: TilesIo,
     tile_size: u32,
+    projection: P,
 }
 
-impl PmTiles {
-    pub fn new(path: impl AsRef<Path>, egui_ctx: Context) -> Self {
-        Self::with_style(path, Style::default(), egui_ctx)
+impl<P: Projection> PmTiles<P> {
+    pub fn new(path: impl AsRef<Path>, projection: P, egui_ctx: Context) -> Self {
+        Self::with_style(path, projection, Style::default(), egui_ctx)
     }
 
     /// Construct new [`PmTiles`] with [`Style`]. Style is relevant only for vector tile
     /// sources.
-    pub fn with_style(path: impl AsRef<Path>, style: Style, egui_ctx: Context) -> Self {
+    pub fn with_style(
+        path: impl AsRef<Path>,
+        projection: P,
+        style: Style,
+        egui_ctx: Context,
+    ) -> Self {
         Self {
             tiles_io: TilesIo::new(
                 PmTilesFetch::new(path.as_ref()),
@@ -37,12 +44,17 @@ impl PmTiles {
                 egui_ctx,
             ),
             tile_size: 1024,
+            projection,
         }
     }
 
     pub fn with_tile_size(mut self, tile_size: u32) -> Self {
         self.tile_size = tile_size;
         self
+    }
+
+    pub fn projection(&self) -> &P {
+        &self.projection
     }
 
     /// Get at tile, or interpolate it from lower zoom levels. This function does not start any
@@ -66,7 +78,8 @@ impl PmTiles {
     }
 }
 
-impl Tiles for PmTiles {
+impl<P: Projection> Tiles for PmTiles<P> {
+    type Projection = P;
     fn at(&mut self, tile_id: TileId) -> Option<TilePiece> {
         self.tiles_io.put_single_fetched_tile_in_cache();
 
