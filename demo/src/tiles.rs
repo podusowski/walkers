@@ -5,31 +5,28 @@ use egui::Context;
 use walkers::PmTiles;
 #[cfg(feature = "mvt")]
 use walkers::Style;
-use walkers::{HttpOptions, HttpTiles, LocalTiles, Tiles};
+use walkers::{HttpOptions, HttpTiles, MercatorProjection, Tiles};
 
 pub(crate) enum TilesKind {
-    Http(HttpTiles),
-    Local(LocalTiles),
+    Http(HttpTiles<MercatorProjection>),
     #[cfg(feature = "pmtiles")]
-    PmTiles(PmTiles),
+    PmTiles(PmTiles<MercatorProjection>),
 }
 
-impl AsMut<dyn Tiles> for TilesKind {
-    fn as_mut(&mut self) -> &mut (dyn Tiles + 'static) {
+impl AsMut<dyn Tiles<Projection = MercatorProjection>> for TilesKind {
+    fn as_mut(&mut self) -> &mut (dyn Tiles<Projection = MercatorProjection> + 'static) {
         match self {
             TilesKind::Http(tiles) => tiles,
-            TilesKind::Local(tiles) => tiles,
             #[cfg(feature = "pmtiles")]
             TilesKind::PmTiles(tiles) => tiles,
         }
     }
 }
 
-impl AsRef<dyn Tiles> for TilesKind {
-    fn as_ref(&self) -> &(dyn Tiles + 'static) {
+impl AsRef<dyn Tiles<Projection = MercatorProjection>> for TilesKind {
+    fn as_ref(&self) -> &(dyn Tiles<Projection = MercatorProjection> + 'static) {
         match self {
             TilesKind::Http(tiles) => tiles,
-            TilesKind::Local(tiles) => tiles,
             #[cfg(feature = "pmtiles")]
             TilesKind::PmTiles(tiles) => tiles,
         }
@@ -63,6 +60,7 @@ pub(crate) fn providers(egui_ctx: Context) -> Providers {
         "OpenStreetMap".to_string(),
         vec![TilesKind::Http(HttpTiles::with_options(
             walkers::sources::OpenStreetMap,
+            MercatorProjection,
             http_options(),
             egui_ctx.to_owned(),
         ))],
@@ -73,6 +71,7 @@ pub(crate) fn providers(egui_ctx: Context) -> Providers {
         "OpenTopoMap".to_string(),
         vec![TilesKind::Http(HttpTiles::with_options_and_style(
             walkers::sources::OpenTopoMap(walkers::sources::OpenTopoServer::A),
+            MercatorProjection,
             http_options(),
             Style::openfreemap_bright(),
             egui_ctx.to_owned(),
@@ -84,6 +83,7 @@ pub(crate) fn providers(egui_ctx: Context) -> Providers {
         "OpenFreeMap".to_string(),
         vec![TilesKind::Http(HttpTiles::with_options_and_style(
             walkers::sources::OpenFreeMap,
+            MercatorProjection,
             http_options(),
             Style::openfreemap_bright(),
             egui_ctx.to_owned(),
@@ -94,6 +94,7 @@ pub(crate) fn providers(egui_ctx: Context) -> Providers {
         "Geoportal".to_string(),
         vec![TilesKind::Http(HttpTiles::with_options(
             walkers::sources::Geoportal,
+            MercatorProjection,
             http_options(),
             egui_ctx.to_owned(),
         ))],
@@ -104,11 +105,13 @@ pub(crate) fn providers(egui_ctx: Context) -> Providers {
         vec![
             TilesKind::Http(HttpTiles::with_options(
                 walkers::sources::OpenStreetMap,
+            MercatorProjection,
                 http_options(),
                 egui_ctx.to_owned(),
             )),
             TilesKind::Http(HttpTiles::with_options(
                 walkers::sources::Geoportal,
+            MercatorProjection,
                 http_options(),
                 egui_ctx.to_owned(),
             )),
@@ -119,16 +122,8 @@ pub(crate) fn providers(egui_ctx: Context) -> Providers {
         "Geoportal".to_string(),
         vec![TilesKind::Http(HttpTiles::with_options(
             walkers::sources::Geoportal,
+            MercatorProjection,
             http_options(),
-            egui_ctx.to_owned(),
-        ))],
-    );
-
-    #[allow(deprecated)]
-    providers.available.insert(
-        "LocalTiles".to_string(),
-        vec![TilesKind::Local(LocalTiles::new(
-            PathBuf::from_iter(&[env!("CARGO_MANIFEST_DIR"), "assets"]),
             egui_ctx.to_owned(),
         ))],
     );
@@ -144,6 +139,7 @@ pub(crate) fn providers(egui_ctx: Context) -> Providers {
                 name.clone(),
                 vec![TilesKind::PmTiles(PmTiles::with_style(
                     path.clone(),
+                    MercatorProjection,
                     Style::protomaps_dark(),
                     egui_ctx.to_owned(),
                 ))],
@@ -154,6 +150,7 @@ pub(crate) fn providers(egui_ctx: Context) -> Providers {
                 format!("{} (Protomaps Dark Vis)", name.clone()),
                 vec![TilesKind::PmTiles(PmTiles::with_style(
                     path.clone(),
+                    MercatorProjection,
                     Style::protomaps_dark_vis(),
                     egui_ctx.to_owned(),
                 ))],
@@ -163,6 +160,7 @@ pub(crate) fn providers(egui_ctx: Context) -> Providers {
                 format!("{} (Protomaps Light)", name.clone()),
                 vec![TilesKind::PmTiles(PmTiles::with_style(
                     path.clone(),
+                    MercatorProjection,
                     Style::protomaps_light(),
                     egui_ctx.to_owned(),
                 ))],
@@ -173,11 +171,13 @@ pub(crate) fn providers(egui_ctx: Context) -> Providers {
                 vec![
                     TilesKind::PmTiles(PmTiles::with_style(
                         path,
+                        MercatorProjection,
                         Style::protomaps_dark(),
                         egui_ctx.to_owned(),
                     )),
                     TilesKind::Http(HttpTiles::with_options(
                         walkers::sources::Geoportal,
+            MercatorProjection,
                         http_options(),
                         egui_ctx.to_owned(),
                     )),
@@ -200,6 +200,7 @@ pub(crate) fn providers(egui_ctx: Context) -> Providers {
                     access_token: token.to_string(),
                     high_resolution: false,
                 },
+            MercatorProjection,
                 http_options(),
                 egui_ctx.to_owned(),
             ))],
@@ -212,6 +213,7 @@ pub(crate) fn providers(egui_ctx: Context) -> Providers {
                     access_token: token.to_string(),
                     high_resolution: true,
                 },
+            MercatorProjection,
                 http_options(),
                 egui_ctx.to_owned(),
             ))],

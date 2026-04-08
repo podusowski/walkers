@@ -13,35 +13,41 @@ use crate::{HttpOptions, TilePiece, Tiles};
 use crate::{Stats, TileId};
 
 /// Downloads the tiles via HTTP. It must persist between frames.
-pub struct HttpTiles {
+pub struct HttpTiles<P: Projection> {
     attribution: Attribution,
     tiles_io: TilesIo,
-    projection: &'static dyn Projection,
+    projection: P,
     tile_size: u32,
     max_zoom: u8,
 }
 
-impl HttpTiles {
+impl<P: Projection> HttpTiles<P> {
     /// Construct new [`Tiles`] with default [`HttpOptions`].
-    pub fn new<S>(source: S, egui_ctx: Context) -> Self
+    pub fn new<S>(source: S, projection: P, egui_ctx: Context) -> Self
     where
         S: TileSource + Sync + Send + 'static,
     {
-        Self::with_options(source, HttpOptions::default(), egui_ctx)
+        Self::with_options(source, projection, HttpOptions::default(), egui_ctx)
     }
 
     /// Construct new [`Tiles`] with supplied [`HttpOptions`].
-    pub fn with_options<S>(source: S, http_options: HttpOptions, egui_ctx: Context) -> Self
+    pub fn with_options<S>(
+        source: S,
+        projection: P,
+        http_options: HttpOptions,
+        egui_ctx: Context,
+    ) -> Self
     where
         S: TileSource + Sync + Send + 'static,
     {
-        Self::with_options_and_style(source, http_options, Style::default(), egui_ctx)
+        Self::with_options_and_style(source, projection, http_options, Style::default(), egui_ctx)
     }
 
     /// Construct new [`Tiles`] with supplied [`HttpOptions`] and [`Style`]. Style is relevant
     /// only for vector tile sources.
     pub fn with_options_and_style<S>(
         source: S,
+        projection: P,
         http_options: HttpOptions,
         style: Style,
         egui_ctx: Context,
@@ -52,7 +58,6 @@ impl HttpTiles {
         let attribution = source.attribution();
         let tile_size = source.tile_size();
         let max_zoom = source.max_zoom();
-        let projection = source.projection();
 
         Self {
             attribution,
@@ -69,6 +74,10 @@ impl HttpTiles {
 
     pub fn stats(&self) -> Stats {
         self.tiles_io.stats()
+    }
+
+    pub fn projection(&self) -> &P {
+        &self.projection
     }
 
     /// Get at tile, or interpolate it from lower zoom levels. This function does not start any
@@ -92,7 +101,8 @@ impl HttpTiles {
     }
 }
 
-impl Tiles for HttpTiles {
+impl<P: Projection> Tiles for HttpTiles<P> {
+    type Projection = P;
     /// Attribution of the source this tile cache pulls images from. Typically,
     /// this should be displayed somewhere on the top of the map widget.
     fn attribution(&self) -> Attribution {
@@ -119,10 +129,6 @@ impl Tiles for HttpTiles {
 
     fn tile_size(&self) -> u32 {
         self.tile_size
-    }
-
-    fn projection(&self) -> &'static dyn Projection {
-        self.projection
     }
 }
 
@@ -178,6 +184,7 @@ where
 #[cfg(test)]
 mod tests {
     use crate::MaxParallelDownloads;
+    use crate::projector::MercatorProjection;
 
     use super::*;
     use hypermocker::{
@@ -227,7 +234,10 @@ mod tests {
         (server, TestSource::new(url))
     }
 
-    async fn assert_tile_to_become_available_eventually(tiles: &mut HttpTiles, tile_id: TileId) {
+    async fn assert_tile_to_become_available_eventually(
+        tiles: &mut HttpTiles<MercatorProjection>,
+        tile_id: TileId,
+    ) {
         log::info!("Waiting for {tile_id:?} to become available.");
         while tiles.at(tile_id).is_none() {
             // Need to yield to the runtime for things to move.
@@ -242,7 +252,7 @@ mod tests {
         let (server, source) = hypermocker_mock().await;
         let mut anticipated = server.anticipate("/3/1/2.png").await;
 
-        let mut tiles = HttpTiles::new(source, Context::default());
+        let mut tiles = HttpTiles::new(source, MercatorProjection, Context::default());
 
         // First query start the download, but it will always return None.
         assert!(tiles.at(TILE_ID).is_none());
@@ -269,7 +279,7 @@ mod tests {
         let _ = env_logger::try_init();
 
         let (_server, source) = hypermocker_mock().await;
-        let mut tiles = HttpTiles::new(source, Context::default());
+        let mut tiles = HttpTiles::new(source, MercatorProjection, Context::default());
 
         let invalid_tile_id = TileId {
             x: 2,
@@ -292,6 +302,7 @@ mod tests {
 
         let mut tiles = HttpTiles::with_options(
             source,
+            MercatorProjection,
             HttpOptions {
                 user_agent: Some(crate::HeaderValue::from_static("MyApp")),
                 ..Default::default()
@@ -335,7 +346,8 @@ mod tests {
         let _ = env_logger::try_init();
 
         let (server, source) = hypermocker_mock().await;
-        let mut tiles = HttpTiles::with_options(source, http_options, Context::default());
+        let mut tiles =
+            HttpTiles::with_options(source, MercatorProjection, http_options, Context::default());
 
         // First download is started immediately.
         let mut first = server.anticipate("/3/1/2.png".to_string()).await;
@@ -378,7 +390,7 @@ mod tests {
         awaiting_request.expect().await;
     }
 
-    async fn assert_tile_is_empty_forever(tiles: &mut HttpTiles) {
+    async fn assert_tile_is_empty_forever(tiles: &mut HttpTiles<MercatorProjection>) {
         // Should be None now, and forever.
         assert!(tiles.at(TILE_ID).is_none());
         tokio::time::sleep(Duration::from_secs(1)).await;
@@ -390,7 +402,7 @@ mod tests {
         let _ = env_logger::try_init();
 
         let (server, source) = hypermocker_mock().await;
-        let mut tiles = HttpTiles::new(source, Context::default());
+        let mut tiles = HttpTiles::new(source, MercatorProjection, Context::default());
         server
             .anticipate("/3/1/2.png")
             .await
@@ -405,7 +417,7 @@ mod tests {
         let _ = env_logger::try_init();
 
         let (server, source) = hypermocker_mock().await;
-        let mut tiles = HttpTiles::new(source, Context::default());
+        let mut tiles = HttpTiles::new(source, MercatorProjection, Context::default());
         server
             .anticipate("/3/1/2.png")
             .await
@@ -420,7 +432,7 @@ mod tests {
         let _ = env_logger::try_init();
 
         let (server, source) = hypermocker_mock().await;
-        let mut tiles = HttpTiles::new(source, Context::default());
+        let mut tiles = HttpTiles::new(source, MercatorProjection, Context::default());
         server
             .anticipate("/3/1/2.png")
             .await
@@ -451,7 +463,7 @@ mod tests {
     #[tokio::test]
     async fn tile_is_empty_forever_if_http_can_not_even_connect() {
         let _ = env_logger::try_init();
-        let mut tiles = HttpTiles::new(GarbageSource, Context::default());
+        let mut tiles = HttpTiles::new(GarbageSource, MercatorProjection, Context::default());
         assert_tile_is_empty_forever(&mut tiles).await;
     }
 }

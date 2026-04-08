@@ -1,4 +1,4 @@
-use egui::{Rect, Vec2};
+use egui::{Pos2, Rect};
 
 use crate::{
     MapMemory, Position, mercator,
@@ -19,6 +19,9 @@ pub trait Projection {
 
     /// Scale factor: how many pixels correspond to one meter at this position and zoom level.
     fn scale_pixel_per_meter(&self, position: Position, zoom: f64) -> f32;
+
+    /// If it is gps or not
+    fn is_mercator(&self) -> bool;
 }
 
 /// Web Mercator projection for GPS (lat/lon) coordinates.
@@ -40,6 +43,10 @@ impl Projection for MercatorProjection {
         let latitude_rad = position.y().abs().to_radians();
         (pixel_per_meter_equator / latitude_rad.cos()) as f32
     }
+
+    fn is_mercator(&self) -> bool {
+        true
+    }
 }
 
 /// Linear projection for pre-projected coordinates (e.g., meters).
@@ -47,22 +54,42 @@ impl Projection for MercatorProjection {
 /// Positions are treated as (x, y) coordinates in a projected system.
 /// The y-axis is flipped for screen rendering (positive y goes up in world space,
 /// down in screen space).
-pub struct ProjectedProjection;
+pub struct ProjectedProjection {
+    /// Center of the projection in world coordinates.
+    pub center: Position,
+    /// Base scale factor (pixels per world-unit at zoom 0).
+    pub scale: f64,
+}
+
+impl ProjectedProjection {
+    pub fn new(center: Position, scale: f64) -> Self {
+        Self { center, scale }
+    }
+}
 
 impl Projection for ProjectedProjection {
     fn position_to_pixels(&self, position: Position, zoom: f64) -> Pixels {
-        let scale = 2f64.powf(zoom);
-        Pixels::new(position.x() * scale, -position.y() * scale)
+        let scale = self.scale * 2f64.powf(zoom);
+        let dx = position.x() - self.center.x();
+        let dy = position.y() - self.center.y();
+        Pixels::new(dx * scale, -dy * scale)
     }
 
     fn pixels_to_position(&self, pixels: Pixels, zoom: f64) -> Position {
-        let scale = 2f64.powf(zoom);
-        Position::new(pixels.x() / scale, -pixels.y() / scale)
+        let scale = self.scale * 2f64.powf(zoom);
+        Position::new(
+            self.center.x() + pixels.x() / scale,
+            self.center.y() - pixels.y() / scale,
+        )
     }
 
     fn scale_pixel_per_meter(&self, _position: Position, zoom: f64) -> f32 {
         // For projected coordinates assumed to be in meters, scale is uniform.
-        2f32.powf(zoom as f32)
+        (self.scale * 2f64.powf(zoom)) as f32
+    }
+
+    fn is_mercator(&self) -> bool {
+        false
     }
 }
 
@@ -73,10 +100,10 @@ impl Projection for ProjectedProjection {
 /// to convert between world coordinates and screen pixels.
 #[derive(Clone)]
 pub struct ScreenProjector<'a, P: Projection + ?Sized = dyn Projection> {
-    projection: &'a P,
-    clip_rect: Rect,
-    memory: MapMemory,
-    center_projected: Pixels,
+    pub projection: &'a P,
+    pub clip_rect: Rect,
+    pub memory: MapMemory,
+    pub center_projected: Pixels,
 }
 
 impl<'a, P: Projection + ?Sized> ScreenProjector<'a, P> {
@@ -96,14 +123,15 @@ impl<'a, P: Projection + ?Sized> ScreenProjector<'a, P> {
         }
     }
 
-    pub fn project(&self, position: Position) -> Vec2 {
+    pub fn project(&self, position: Position) -> Pos2 {
         let projected = self
             .projection
             .position_to_pixels(position, self.memory.zoom());
-        self.clip_rect.center().to_vec2() + (projected - self.center_projected).to_vec2()
+        (self.clip_rect.center().to_vec2() + (projected - self.center_projected).to_vec2())
+            .to_pos2()
     }
 
-    pub fn unproject(&self, screen_position: Vec2) -> Position {
+    pub fn unproject(&self, screen_position: Pos2) -> Position {
         let zoom = self.memory.zoom();
         let x = self.center_projected.x() + (screen_position.x as f64)
             - (self.clip_rect.center().x as f64);
@@ -123,7 +151,7 @@ impl<'a, P: Projection + ?Sized> ScreenProjector<'a, P> {
 mod tests {
     use super::*;
     use crate::lon_lat;
-    use egui::Pos2;
+    use egui::{Pos2, Vec2};
 
     fn assert_approx_eq(a: f64, b: f64) {
         let diff = (a - b).abs();
@@ -197,8 +225,9 @@ mod tests {
         let mut map_memory = MapMemory::default();
         map_memory.set_zoom(10.).unwrap();
 
+        let projection = ProjectedProjection::new(original, 1.0);
         let projector = ScreenProjector::new(
-            &ProjectedProjection,
+            &projection,
             Rect::from_min_size(Pos2::ZERO, Vec2::splat(100.)),
             &map_memory,
             original,

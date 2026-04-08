@@ -115,8 +115,8 @@ fn bounding_rect(geometry: &walkers::Geometry<f32>) -> Rectangle<[f64; 2]> {
 
 /// Compute the geographic envelope of the current viewport by unprojecting its corners.
 fn viewport(projector: &ScreenProjector, clip_rect: egui::Rect) -> AABB<[f64; 2]> {
-    let top_left = projector.unproject(clip_rect.min.to_vec2());
-    let bottom_right = projector.unproject(clip_rect.max.to_vec2());
+    let top_left = projector.unproject(clip_rect.min);
+    let bottom_right = projector.unproject(clip_rect.max);
 
     // Position is geo_types::Point where x() = longitude, y() = latitude.
     let min_lon = top_left.x().min(bottom_right.x());

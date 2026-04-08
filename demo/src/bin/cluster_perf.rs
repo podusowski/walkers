@@ -7,7 +7,7 @@ use rand::{Rng, SeedableRng, rngs::StdRng};
 
 use walkers::sources;
 use walkers::{
-    HttpOptions, HttpTiles, Map, MapMemory, MapTiles, MercatorProjection, Position,
+    HttpOptions, HttpTiles, Map, MapMemory, MercatorProjection, Position,
     ScreenProjector, lon_lat,
 };
 use walkers_extras::{Group, GroupedPlacesTree, LabeledSymbol, LabeledSymbolStyle, Place, Symbol};
@@ -117,9 +117,9 @@ struct ClusterApp {
     memory: MapMemory,
     rng: StdRng,
     points: Vec<LabeledSymbol>,
-    tiles: Option<HttpTiles>,
+    tiles: Option<HttpTiles<MercatorProjection>>,
     avg_frame_ms: RollingAvg<120>,
-    plugin: Option<Rc<GroupedPlacesTree<LabeledSymbol, DemoClusterGroup>>>,
+    plugin: Option<Rc<GroupedPlacesTree<LabeledSymbol, DemoClusterGroup, MercatorProjection>>>,
     stats: Arc<StatsCell>,
 }
 
@@ -131,6 +131,7 @@ impl ClusterApp {
             points: Vec::new(),
             tiles: Some(HttpTiles::with_options(
                 sources::OpenStreetMap,
+                MercatorProjection,
                 HttpOptions::default(),
                 ctx.clone(),
             )),
@@ -155,7 +156,7 @@ impl ClusterApp {
 
     fn rebuild_plugin(&mut self) {
         let plugin =
-            GroupedPlacesTree::new(self.points.clone(), DemoClusterGroup, &MercatorProjection)
+            GroupedPlacesTree::new(self.points.clone(), DemoClusterGroup, MercatorProjection)
                 .with_screen_radius_px(RADIUS_PX)
                 .viewport_only(true)
                 .include_offscreen_neighbors(true)
@@ -200,7 +201,7 @@ impl eframe::App for ClusterApp {
             }
 
             let mut map = Map::new(
-                MapTiles::Projection(&MercatorProjection),
+                MercatorProjection,
                 &mut self.memory,
                 Self::map_center(),
             );
@@ -255,7 +256,7 @@ impl eframe::App for ClusterApp {
 
 #[derive(Clone)]
 struct StatsHandle {
-    inner: Rc<GroupedPlacesTree<LabeledSymbol, DemoClusterGroup>>,
+    inner: Rc<GroupedPlacesTree<LabeledSymbol, DemoClusterGroup, MercatorProjection>>,
     stats: Arc<StatsCell>,
 }
 
@@ -265,9 +266,8 @@ impl walkers::Plugin for StatsHandle {
         ui: &mut egui::Ui,
         response: &egui::Response,
         projector: &ScreenProjector,
-        memory: &MapMemory,
     ) {
-        let (clusters, max_size) = self.inner.draw_with_stats(ui, response, projector, memory);
+        let (clusters, max_size) = self.inner.draw_with_stats(ui, response, projector);
         self.stats.set(ClusterStats::new(clusters, max_size));
     }
 }
@@ -284,7 +284,7 @@ impl Group for DemoClusterGroup {
         ui: &mut egui::Ui,
     ) {
         let count = places.len();
-        let screen = projector.project(position).to_pos2();
+        let screen = projector.project(position);
         let painter = ui.painter();
 
         let (fill, stroke_color) = cluster_palette(count);
