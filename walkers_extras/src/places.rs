@@ -2,9 +2,7 @@ use egui::{Id, Rect, Response, Sense, Ui, vec2};
 use rstar::{PointDistance, RTree, RTreeObject};
 use std::cell::RefCell;
 use std::sync::Arc;
-use walkers::{
-    MapMemory, Plugin, Position, Projection, ScreenProjector, lon_lat,
-};
+use walkers::{MapMemory, Plugin, Position, Projection, ScreenProjector, lon_lat};
 
 /// [`Plugin`] which shows places on the map. Place can be any type that implements the [`Place`]
 /// trait.
@@ -28,13 +26,7 @@ impl<T> Plugin for Places<T>
 where
     T: Place + 'static,
 {
-    fn run(
-        self: Box<Self>,
-        ui: &mut Ui,
-        _response: &Response,
-        projector: &ScreenProjector,
-        _map_memory: &MapMemory,
-    ) {
+    fn run(self: Box<Self>, ui: &mut Ui, _response: &Response, projector: &ScreenProjector) {
         for place in &self.places {
             place.draw(ui, projector);
         }
@@ -80,7 +72,7 @@ where
     /// Handle user interactions. Returns whether group should be expanded.
     fn interact(&self, position: Position, projector: &ScreenProjector, ui: &Ui, id: Id) -> bool {
         let screen_position = projector.project(position);
-        let rect = Rect::from_center_size(screen_position.to_pos2(), vec2(50., 50.));
+        let rect = Rect::from_center_size(screen_position, vec2(50., 50.));
         let response = ui.interact(rect, id, Sense::click());
 
         if response.clicked() {
@@ -101,13 +93,7 @@ where
     T: Place,
     G: Group,
 {
-    fn run(
-        self: Box<Self>,
-        ui: &mut Ui,
-        _response: &Response,
-        projector: &ScreenProjector,
-        _map_memory: &MapMemory,
-    ) {
+    fn run(self: Box<Self>, ui: &mut Ui, _response: &Response, projector: &ScreenProjector) {
         for (idx, places) in groups(&self.places, projector).iter().enumerate() {
             let id = ui.id().with(idx);
             let position = center(&places.iter().map(|p| p.position()).collect::<Vec<_>>());
@@ -147,8 +133,8 @@ where
 
 /// Calculate the distance between two positions after being projected onto the screen.
 fn distance_projected(p1: Position, p2: Position, projector: &ScreenProjector) -> f32 {
-    let screen_p1 = projector.project(p1).to_pos2();
-    let screen_p2 = projector.project(p2).to_pos2();
+    let screen_p1 = projector.project(p1);
+    let screen_p2 = projector.project(p2);
     (screen_p1 - screen_p2).length()
 }
 
@@ -215,7 +201,7 @@ fn interact_cluster(
     cluster_id: egui::Id,
     hitbox_px: f32,
 ) -> bool {
-    let screen = projector.project(center).to_pos2();
+    let screen = projector.project(center);
     let rect = egui::Rect::from_center_size(screen, egui::vec2(hitbox_px, hitbox_px));
     let resp = ui.interact(rect, cluster_id, egui::Sense::click());
 
@@ -231,17 +217,17 @@ fn interact_cluster(
 }
 
 #[derive(Clone)]
-pub struct GroupedPlacesTree<T: Place, G: Group> {
+pub struct GroupedPlacesTree<T: Place, G: Group, P: Projection> {
     places: Arc<Vec<T>>,
     group: Arc<G>,
-    projection: &'static dyn Projection,
+    projection: P,
     settings: GroupedPlacesTreeSettings,
     rtree: Arc<RTree<Pt>>,
     screen_positions: RefCell<Vec<egui::Pos2>>,
 }
 
-impl<T: Place, G: Group> GroupedPlacesTree<T, G> {
-    pub fn new(places: Vec<T>, group: G, projection: &'static dyn Projection) -> Self {
+impl<T: Place, G: Group, P: Projection> GroupedPlacesTree<T, G, P> {
+    pub fn new(places: Vec<T>, group: G, projection: P) -> Self {
         let rtree = build_rtree(&places);
         Self {
             places: Arc::new(places),
@@ -406,14 +392,8 @@ impl<T: Place, G: Group> GroupedPlacesTree<T, G> {
         }
     }
 
-    pub fn draw_once(
-        &self,
-        ui: &mut Ui,
-        response: &Response,
-        projector: &ScreenProjector,
-        memory: &MapMemory,
-    ) {
-        self.draw_with_stats(ui, response, projector, memory);
+    pub fn draw_once(&self, ui: &mut Ui, response: &Response, projector: &ScreenProjector) {
+        self.draw_with_stats(ui, response, projector);
     }
 
     pub fn draw_with_stats(
@@ -421,7 +401,6 @@ impl<T: Place, G: Group> GroupedPlacesTree<T, G> {
         ui: &mut Ui,
         response: &Response,
         projector: &ScreenProjector,
-        memory: &MapMemory,
     ) -> (usize, usize) {
         let mut clusters = 0usize;
         let mut max_size = 0usize;
@@ -430,11 +409,11 @@ impl<T: Place, G: Group> GroupedPlacesTree<T, G> {
             cache.resize(self.places.len(), egui::Pos2::new(0.0, 0.0));
         }
         for (pos, place) in cache.iter_mut().zip(self.places.iter()) {
-            *pos = projector.project(place.position()).to_pos2();
+            *pos = projector.project(place.position());
         }
         self.visit_clusters_with_cache(
             response.rect,
-            memory,
+            &projector.memory,
             &cache,
             |seed_idx, members, center| {
                 const HITBOX_PX: f32 = 50.0;
@@ -457,10 +436,10 @@ impl<T: Place, G: Group> GroupedPlacesTree<T, G> {
         (clusters, max_size)
     }
 
-    pub fn cluster_stats<P: Projection + ?Sized>(
+    pub fn cluster_stats<Q: Projection + ?Sized>(
         &self,
         rect: egui::Rect,
-        projector: &ScreenProjector<'_, P>,
+        projector: &ScreenProjector<'_, Q>,
         memory: &MapMemory,
     ) -> (usize, usize) {
         let mut clusters = 0usize;
@@ -470,7 +449,7 @@ impl<T: Place, G: Group> GroupedPlacesTree<T, G> {
             cache.resize(self.places.len(), egui::Pos2::new(0.0, 0.0));
         }
         for (pos, place) in cache.iter_mut().zip(self.places.iter()) {
-            *pos = projector.project(place.position()).to_pos2();
+            *pos = projector.project(place.position());
         }
         self.visit_clusters_with_cache(rect, memory, &cache, |_, members, _| {
             clusters += 1;
@@ -480,15 +459,9 @@ impl<T: Place, G: Group> GroupedPlacesTree<T, G> {
     }
 }
 
-impl<T: Place, G: Group> Plugin for GroupedPlacesTree<T, G> {
-    fn run(
-        self: Box<Self>,
-        ui: &mut Ui,
-        response: &Response,
-        projector: &ScreenProjector,
-        memory: &MapMemory,
-    ) {
-        self.draw_once(ui, response, projector, memory);
+impl<T: Place, G: Group, P: Projection> Plugin for GroupedPlacesTree<T, G, P> {
+    fn run(self: Box<Self>, ui: &mut Ui, response: &Response, projector: &ScreenProjector) {
+        self.draw_once(ui, response, projector);
     }
 }
 
@@ -560,7 +533,7 @@ mod tests {
             DummyPlace(lon_lat(0.0, 0.0)),
             DummyPlace(lon_lat(0.01, 0.0)),
         ];
-        let tree = GroupedPlacesTree::new(places, DummyGroup, &MercatorProjection)
+        let tree = GroupedPlacesTree::new(places, DummyGroup, MercatorProjection)
             .with_screen_radius_px(50.0)
             .viewport_only(false);
 

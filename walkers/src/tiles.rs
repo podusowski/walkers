@@ -13,7 +13,7 @@ use crate::Position;
 use crate::io::TileFactory;
 use crate::mercator::{TILE_SIZE, project, tile_id, total_tiles};
 use crate::position::{Pixels, PixelsExt};
-use crate::projector::{MercatorProjection, Projection};
+use crate::projector::Projection;
 use crate::sources::Attribution;
 use crate::style::Style;
 use crate::zoom::Zoom;
@@ -97,17 +97,15 @@ impl TileId {
 
 /// Source of tiles to be put together to render the map.
 pub trait Tiles {
+    /// The projection this tile source uses.
+    type Projection: Projection;
+
     fn at(&mut self, tile_id: TileId) -> Option<TilePiece>;
     fn attribution(&self) -> Attribution;
 
     /// Size of each tile, in pixels. Walkers works with 256px tiles internally, so this
     /// should be 256 multiplied or divided by a power of two, for example 128, 256 or 512.
     fn tile_size(&self) -> u32;
-
-    /// The projection used by this tile source.
-    fn projection(&self) -> &'static dyn Projection {
-        &MercatorProjection
-    }
 }
 
 #[derive(Clone)]
@@ -249,11 +247,11 @@ impl TilePiece {
     }
 }
 
-pub(crate) fn draw_tiles(
+pub(crate) fn draw_tiles<P: Projection>(
     painter: &egui::Painter,
     map_center: Position,
     zoom: Zoom,
-    tiles: &mut dyn Tiles,
+    tiles: &mut dyn Tiles<Projection = P>,
     transparency: f32,
     texts: &mut Texts,
 ) {
@@ -281,10 +279,10 @@ struct Spread<'a> {
 }
 
 /// Use simple [flood fill algorithm](https://en.wikipedia.org/wiki/Flood_fill) to draw tiles on the map.
-fn flood_fill_tiles(
+fn flood_fill_tiles<P: Projection>(
     spread: &Spread,
     tile_id: TileId,
-    tiles: &mut dyn Tiles,
+    tiles: &mut dyn Tiles<Projection = P>,
     meshes: &mut HashSet<TileId>,
     texts: &mut Texts,
 ) {
@@ -421,7 +419,8 @@ mod tests {
         }
     }
 
-    impl Tiles for RecordingTiles {
+    impl<P: Projection> Tiles for RecordingTiles<P> {
+        type Projection = P;
         fn at(&mut self, tile_id: TileId) -> Option<TilePiece> {
             self.requested.push(tile_id);
             None
@@ -552,7 +551,8 @@ mod tests {
     struct LabelAtBothEdges;
 
     #[cfg(feature = "mvt")]
-    impl Tiles for LabelAtBothEdges {
+    impl<P: Projection> Tiles for LabelAtBothEdges {
+        type Projection = P;
         fn at(&mut self, _tile_id: TileId) -> Option<TilePiece> {
             let label = |x: f32| {
                 crate::text::Text::new(

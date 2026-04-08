@@ -50,7 +50,8 @@ impl LocalTiles {
     }
 }
 
-impl Tiles for LocalTiles {
+impl<P: Projection> Tiles for LocalTiles<P> {
+    type Projection = P;
     fn at(&mut self, tile_id: TileId) -> Option<TilePiece> {
         (0..=tile_id.zoom).rev().find_map(|zoom_candidate| {
             let (donor_tile_id, uv) = interpolate_from_lower_zoom(tile_id, zoom_candidate);
