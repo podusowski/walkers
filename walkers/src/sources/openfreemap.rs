@@ -1,9 +1,16 @@
 use super::{Attribution, TileSource};
 use crate::TileId;
+use crate::projector::MercatorProjection;
 
 pub struct OpenFreeMap;
 
 impl TileSource for OpenFreeMap {
+    type Projection = MercatorProjection;
+
+    fn projection(&self) -> MercatorProjection {
+        MercatorProjection
+    }
+
     fn tile_url(&self, tile_id: TileId) -> String {
         format!(
             "https://tiles.openfreemap.org/planet/20251217_001001_pt/{}/{}/{}.pbf",

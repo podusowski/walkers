@@ -60,7 +60,6 @@ pub(crate) fn providers(egui_ctx: Context) -> Providers {
         "OpenStreetMap".to_string(),
         vec![TilesKind::Http(HttpTiles::with_options(
             walkers::sources::OpenStreetMap,
-            MercatorProjection,
             http_options(),
             egui_ctx.to_owned(),
         ))],
@@ -71,7 +70,6 @@ pub(crate) fn providers(egui_ctx: Context) -> Providers {
         "OpenTopoMap".to_string(),
         vec![TilesKind::Http(HttpTiles::with_options_and_style(
             walkers::sources::OpenTopoMap(walkers::sources::OpenTopoServer::A),
-            MercatorProjection,
             http_options(),
             Style::openfreemap_bright(),
             egui_ctx.to_owned(),
@@ -83,7 +81,6 @@ pub(crate) fn providers(egui_ctx: Context) -> Providers {
         "OpenFreeMap".to_string(),
         vec![TilesKind::Http(HttpTiles::with_options_and_style(
             walkers::sources::OpenFreeMap,
-            MercatorProjection,
             http_options(),
             Style::openfreemap_bright(),
             egui_ctx.to_owned(),
@@ -94,7 +91,6 @@ pub(crate) fn providers(egui_ctx: Context) -> Providers {
         "Geoportal".to_string(),
         vec![TilesKind::Http(HttpTiles::with_options(
             walkers::sources::Geoportal,
-            MercatorProjection,
             http_options(),
             egui_ctx.to_owned(),
         ))],
@@ -105,13 +101,11 @@ pub(crate) fn providers(egui_ctx: Context) -> Providers {
         vec![
             TilesKind::Http(HttpTiles::with_options(
                 walkers::sources::OpenStreetMap,
-            MercatorProjection,
                 http_options(),
                 egui_ctx.to_owned(),
             )),
             TilesKind::Http(HttpTiles::with_options(
                 walkers::sources::Geoportal,
-            MercatorProjection,
                 http_options(),
                 egui_ctx.to_owned(),
             )),
@@ -122,7 +116,6 @@ pub(crate) fn providers(egui_ctx: Context) -> Providers {
         "Geoportal".to_string(),
         vec![TilesKind::Http(HttpTiles::with_options(
             walkers::sources::Geoportal,
-            MercatorProjection,
             http_options(),
             egui_ctx.to_owned(),
         ))],
@@ -177,7 +170,6 @@ pub(crate) fn providers(egui_ctx: Context) -> Providers {
                     )),
                     TilesKind::Http(HttpTiles::with_options(
                         walkers::sources::Geoportal,
-            MercatorProjection,
                         http_options(),
                         egui_ctx.to_owned(),
                     )),
@@ -200,7 +192,6 @@ pub(crate) fn providers(egui_ctx: Context) -> Providers {
                     access_token: token.to_string(),
                     high_resolution: false,
                 },
-            MercatorProjection,
                 http_options(),
                 egui_ctx.to_owned(),
             ))],
@@ -213,7 +204,6 @@ pub(crate) fn providers(egui_ctx: Context) -> Providers {
                     access_token: token.to_string(),
                     high_resolution: true,
                 },
-            MercatorProjection,
                 http_options(),
                 egui_ctx.to_owned(),
             ))],
