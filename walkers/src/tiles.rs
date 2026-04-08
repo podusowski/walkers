@@ -17,7 +17,7 @@ use crate::Position;
 use crate::io::TileFactory;
 use crate::mercator::{project, tile_id, total_tiles};
 use crate::position::{Pixels, PixelsExt};
-use crate::projector::{MercatorProjection, Projection};
+use crate::projector::Projection;
 use crate::sources::Attribution;
 use crate::style::Style;
 use crate::zoom::Zoom;
@@ -101,14 +101,12 @@ impl TileId {
 
 /// Source of tiles to be put together to render the map.
 pub trait Tiles {
+    /// The projection this tile source uses.
+    type Projection: Projection;
+
     fn at(&mut self, tile_id: TileId) -> Option<TilePiece>;
     fn attribution(&self) -> Attribution;
     fn tile_size(&self) -> u32;
-
-    /// The projection used by this tile source.
-    fn projection(&self) -> &'static dyn Projection {
-        &MercatorProjection
-    }
 }
 
 #[derive(Clone)]
@@ -247,11 +245,11 @@ impl TilePiece {
     }
 }
 
-pub(crate) fn draw_tiles(
+pub(crate) fn draw_tiles<P: Projection>(
     painter: &egui::Painter,
     map_center: Position,
     zoom: Zoom,
-    tiles: &mut dyn Tiles,
+    tiles: &mut dyn Tiles<Projection = P>,
     transparency: f32,
 ) {
     let mut meshes = Default::default();
@@ -267,12 +265,12 @@ pub(crate) fn draw_tiles(
 }
 
 /// Use simple [flood fill algorithm](https://en.wikipedia.org/wiki/Flood_fill) to draw tiles on the map.
-fn flood_fill_tiles(
+fn flood_fill_tiles<P: Projection>(
     painter: &egui::Painter,
     tile_id: TileId,
     map_center_projected_position: Pixels,
     zoom: f64,
-    tiles: &mut dyn Tiles,
+    tiles: &mut dyn Tiles<Projection = P>,
     transparency: f32,
     meshes: &mut HashSet<TileId>,
 ) {

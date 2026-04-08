@@ -4,7 +4,6 @@
 mod center;
 mod http_tiles;
 mod io;
-mod local_tiles;
 mod map;
 mod memory;
 mod options;
@@ -38,7 +37,6 @@ mod zoom;
 pub use http_tiles::HttpTiles;
 pub use io::tiles_io::Stats;
 pub use io::{HeaderValue, MaxParallelDownloads, http::HttpOptions};
-pub use local_tiles::LocalTiles;
 pub use map::{Map, MapTiles};
 pub use memory::MapMemory;
 pub use options::Options;
