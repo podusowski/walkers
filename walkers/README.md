@@ -44,7 +44,7 @@ struct MyApp {
 impl MyApp {
     fn new(egui_ctx: Context) -> Self {
         Self {
-            tiles: HttpTiles::new(OpenStreetMap, MercatorProjection, egui_ctx),
+            tiles: HttpTiles::new(OpenStreetMap, egui_ctx),
             map_memory: MapMemory::default(),
         }
     }
