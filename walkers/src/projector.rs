@@ -25,6 +25,7 @@ pub trait Projection {
 }
 
 /// Web Mercator projection for GPS (lat/lon) coordinates.
+#[derive(Debug, Clone)]
 pub struct MercatorProjection;
 
 impl Projection for MercatorProjection {
@@ -54,6 +55,7 @@ impl Projection for MercatorProjection {
 /// Positions are treated as (x, y) coordinates in a projected system.
 /// The y-axis is flipped for screen rendering (positive y goes up in world space,
 /// down in screen space).
+#[derive(Debug, Clone)]
 pub struct ProjectedProjection {
     /// Center of the projection in world coordinates.
     pub center: Position,
@@ -98,7 +100,7 @@ impl Projection for ProjectedProjection {
 /// This is the standard [`Projector`] implementation used by the map widget.
 /// It combines a raw [`Projection`] with the current clip rectangle and map memory
 /// to convert between world coordinates and screen pixels.
-#[derive(Clone)]
+#[derive(Debug, Clone)]
 pub struct ScreenProjector<'a, P: Projection + ?Sized = dyn Projection> {
     pub projection: &'a P,
     pub clip_rect: Rect,
