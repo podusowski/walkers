@@ -1,4 +1,5 @@
 use crate::TileId;
+use crate::projector::MercatorProjection;
 
 use super::{Attribution, TileSource};
 
@@ -45,6 +46,12 @@ pub struct Mapbox {
 }
 
 impl TileSource for Mapbox {
+    type Projection = MercatorProjection;
+
+    fn projection(&self) -> MercatorProjection {
+        MercatorProjection
+    }
+
     fn tile_url(&self, tile_id: TileId) -> String {
         format!(
             "https://api.mapbox.com/styles/v1/mapbox/{}/tiles/512/{}/{}/{}{}?access_token={}",

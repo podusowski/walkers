@@ -131,7 +131,6 @@ impl ClusterApp {
             points: Vec::new(),
             tiles: Some(HttpTiles::with_options(
                 sources::OpenStreetMap,
-                MercatorProjection,
                 HttpOptions::default(),
                 ctx.clone(),
             )),

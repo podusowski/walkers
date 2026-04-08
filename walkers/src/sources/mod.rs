@@ -8,6 +8,7 @@ mod openstreetmap;
 mod opentopomap;
 
 use crate::TileId;
+use crate::projector::Projection;
 pub use geoportal::Geoportal;
 pub use mapbox::{Mapbox, MapboxStyle};
 #[cfg(feature = "mvt")]
