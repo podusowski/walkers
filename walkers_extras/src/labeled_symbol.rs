@@ -1,6 +1,6 @@
 use super::places::{Group, Place};
 use egui::{Align2, Color32, FontId, Stroke, Ui, vec2};
-use walkers::{Position, Projector};
+use walkers::{Position, ScreenProjector};
 
 #[derive(Clone)]
 /// Type of the symbol of a [`LabeledSymbol`].
@@ -31,7 +31,7 @@ impl Place for LabeledSymbol {
         self.position
     }
 
-    fn draw(&self, ui: &Ui, projector: &Projector) {
+    fn draw(&self, ui: &Ui, projector: &ScreenProjector) {
         let screen_position = projector.project(self.position);
         let painter = ui.painter();
 
@@ -41,10 +41,10 @@ impl Place for LabeledSymbol {
 
         match self.symbol {
             Some(Symbol::Circle(ref text)) => {
-                self.draw_circle_symbol(text.clone(), painter, screen_position.to_pos2())
+                self.draw_circle_symbol(text.clone(), painter, screen_position)
             }
             Some(Symbol::TwoCorners(ref text)) => {
-                self.draw_two_corners_symbol(text.clone(), painter, screen_position.to_pos2())
+                self.draw_two_corners_symbol(text.clone(), painter, screen_position)
             }
             None => {}
         }
@@ -124,7 +124,7 @@ impl LabeledSymbol {
         );
     }
 
-    fn draw_label(&self, painter: &egui::Painter, screen_position: egui::Vec2) {
+    fn draw_label(&self, painter: &egui::Painter, screen_position: egui::Pos2) {
         let label = painter.layout_no_wrap(
             self.label.to_owned(),
             self.style.label_font.clone(),
@@ -138,14 +138,14 @@ impl LabeledSymbol {
         painter.rect_filled(
             label
                 .rect
-                .translate(screen_position)
+                .translate(screen_position.to_vec2())
                 .translate(offset)
                 .expand(5.),
             self.style.label_corner_radius,
             self.style.label_background,
         );
 
-        painter.galley((screen_position + offset).to_pos2(), label, Color32::BLACK);
+        painter.galley(screen_position + offset, label, Color32::BLACK);
     }
 }
 
@@ -188,21 +188,21 @@ impl Group for LabeledSymbolGroup {
         &self,
         places: &[&T],
         position: Position,
-        projector: &Projector,
+        projector: &ScreenProjector,
         ui: &mut Ui,
     ) {
         let screen_position = projector.project(position);
         let painter = ui.painter();
 
         painter.circle(
-            screen_position.to_pos2(),
+            screen_position,
             10.,
             self.style.background,
             self.style.stroke,
         );
 
         painter.text(
-            screen_position.to_pos2(),
+            screen_position,
             Align2::CENTER_CENTER,
             format!("{}", places.len()),
             self.style.font.clone(),

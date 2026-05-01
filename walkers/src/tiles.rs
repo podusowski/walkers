@@ -17,6 +17,7 @@ use crate::Position;
 use crate::io::TileFactory;
 use crate::mercator::{project, tile_id, total_tiles};
 use crate::position::{Pixels, PixelsExt};
+use crate::projector::Projection;
 use crate::sources::Attribution;
 use crate::style::Style;
 use crate::zoom::Zoom;
@@ -100,6 +101,9 @@ impl TileId {
 
 /// Source of tiles to be put together to render the map.
 pub trait Tiles {
+    /// The projection this tile source uses.
+    type Projection: Projection;
+
     fn at(&mut self, tile_id: TileId) -> Option<TilePiece>;
     fn attribution(&self) -> Attribution;
     fn tile_size(&self) -> u32;
@@ -241,11 +245,11 @@ impl TilePiece {
     }
 }
 
-pub(crate) fn draw_tiles(
+pub(crate) fn draw_tiles<P: Projection>(
     painter: &egui::Painter,
     map_center: Position,
     zoom: Zoom,
-    tiles: &mut dyn Tiles,
+    tiles: &mut dyn Tiles<Projection = P>,
     transparency: f32,
 ) {
     let mut meshes = Default::default();
@@ -261,12 +265,12 @@ pub(crate) fn draw_tiles(
 }
 
 /// Use simple [flood fill algorithm](https://en.wikipedia.org/wiki/Flood_fill) to draw tiles on the map.
-fn flood_fill_tiles(
+fn flood_fill_tiles<P: Projection>(
     painter: &egui::Painter,
     tile_id: TileId,
     map_center_projected_position: Pixels,
     zoom: f64,
-    tiles: &mut dyn Tiles,
+    tiles: &mut dyn Tiles<Projection = P>,
     transparency: f32,
     meshes: &mut HashSet<TileId>,
 ) {
@@ -359,13 +363,13 @@ pub(crate) fn rect(screen_position: Vec2, tile_size: f64) -> Rect {
     Rect::from_min_size(screen_position.to_pos2(), Vec2::splat(tile_size as f32))
 }
 
-pub struct EguiTileFactory {
+pub(crate) struct EguiTileFactory {
     egui_ctx: Context,
     style: Style,
 }
 
 impl EguiTileFactory {
-    pub fn new(egui_ctx: Context, style: Style) -> Self {
+    pub(crate) fn new(egui_ctx: Context, style: Style) -> Self {
         Self { egui_ctx, style }
     }
 }
