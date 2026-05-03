@@ -13,7 +13,7 @@ categories.workspace = true
 egui.workspace = true
 geo = { version = "0.32.0", default-features = false }
 geojson = "0.24.2"
-kml = { version = "0.12.0", default-features = false }
+kml = { version = "0.13.0", default-features = false }
 log.workspace = true
 lyon_path = "1.0"
 lyon_tessellation = "1.0"
