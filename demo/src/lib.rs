@@ -4,6 +4,8 @@ mod plugins;
 mod tiles;
 mod windows;
 
+use std::io;
+
 use egui::{Button, Context, DragPanButtons, OpenUrl, Rect, Vec2};
 use tiles::{TilesKind, providers};
 use walkers::{Color, Filter, Float, Layer, Map, MapMemory, Paint, Style, json};
@@ -28,7 +30,7 @@ impl MyApp {
             map_memory: MapMemory::default(),
             click_watcher: Default::default(),
             zoom_with_ctrl: true,
-            geojson_layers: geojson_layers(),
+            geojson_layers: geojson_layers().unwrap_or_default(),
         }
     }
 }
@@ -119,23 +121,23 @@ impl eframe::App for MyApp {
 }
 
 /// Find `.geojson` files in the current directory and build GeoJsonLayer out of them.
-fn geojson_layers() -> Vec<GeoJsonLayer> {
+fn geojson_layers() -> Result<Vec<GeoJsonLayer>, io::Error> {
     use std::fs;
 
     let mut layers = Vec::new();
 
-    for entry in fs::read_dir(".").unwrap() {
-        let entry = entry.unwrap();
+    for entry in fs::read_dir(".")? {
+        let entry = entry?;
         let path = entry.path();
 
         if path.extension().and_then(|s| s.to_str()) == Some("geojson") {
-            let content = fs::read_to_string(path).unwrap();
+            let content = fs::read_to_string(path)?;
             let geojson = content.parse().unwrap();
             layers.push(GeoJsonLayer::new(geojson, trails_style()));
         }
     }
 
-    layers
+    Ok(layers)
 }
 
 fn trails_style() -> Style {
