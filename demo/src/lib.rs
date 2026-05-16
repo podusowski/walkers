@@ -127,8 +127,7 @@ fn geojson_layers() -> Result<Vec<GeoJsonLayer>, io::Error> {
     let mut layers = Vec::new();
 
     for entry in fs::read_dir(".")? {
-        let entry = entry?;
-        let path = entry.path();
+        let path = entry?.path();
 
         if path.extension().and_then(|s| s.to_str()) == Some("geojson") {
             let content = fs::read_to_string(path)?;
