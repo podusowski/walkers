@@ -20,9 +20,9 @@ keywords = ["geography", "gis", "gui"]
 categories = ["gui", "science::geo"]
 
 [workspace.dependencies]
-eframe = "0.34.0"
+eframe = "0.34.2"
 egui = "0.34.0"
-egui_extras = { version = "0.34.0", features = ["svg"] }
+egui_extras = { version = "0.34.2", features = ["svg"] }
 egui-winit = "0.34.0"
 image = { version = "0.25", default-features = false }
 log = "0.4"
