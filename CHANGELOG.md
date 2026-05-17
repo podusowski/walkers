@@ -4,6 +4,18 @@ All notable changes to this project will be documented in this file.
 
 ## Unreleased
 
+ * The map now has a generic `Projection` parameter. `Map::new` takes a projection as its first argument instead of an optional tile source. Use `Map::with_layer` to add tile layers.
+ * New `Projection` trait with two built-in implementations: `MercatorProjection` (for GPS/WGS84 coordinates) and `ProjectedProjection` (for coordinates in a projected (flat) coordinate system).
+ * The old `Projector` is renamed to `ScreenProjector`. A new `Projection` trait replaces raw mercator projection calls.
+ * `Plugin::run` no longer receives `&MapMemory`; it receives `&ScreenProjector` instead.
+ * `Tiles` trait now has an associated type `Projection`, ensuring tile sources match the map's projection at compile time.
+ * `TileSource` trait now has an associated type `Projection` and a `projection()` method.
+ * `HttpTiles` and `PmTiles` are now generic over `P: Projection`. `PmTiles::new` and `PmTiles::with_style` take an additional `projection` parameter.
+ * `LocalTiles` has been removed. Use `PmTiles` with a local `.pmtiles` file instead.
+ * `MapMemory::detached` now requires a `&dyn Projection` argument.
+ * New `OpenTopoMap` tile source.
+ * `mercator` module is no longer public.
+ * Several internal types made `pub(crate)`: `AdjustedPosition`, `Pixels`, `PixelsExt`, `Zoom` methods, `EguiTileFactory`, `HttpFetchError`, `HttpFetch`.
  * Experimental support for `geojson` with very limited capabilities.
  * Fix `interpolate` expression when inputs are expressed as integers and stops as floats.
 
