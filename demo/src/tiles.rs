@@ -68,10 +68,9 @@ pub(crate) fn providers(egui_ctx: Context) -> Providers {
 
     providers.available.insert(
         "OpenTopoMap".to_string(),
-        vec![TilesKind::Http(HttpTiles::with_options_and_style(
+        vec![TilesKind::Http(HttpTiles::with_options(
             walkers::sources::OpenTopoMap(walkers::sources::OpenTopoServer::A),
             http_options(),
-            Style::openfreemap_bright(),
             egui_ctx.to_owned(),
         ))],
     );

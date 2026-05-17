@@ -10,26 +10,6 @@ use crate::{
     tiles::draw_tiles,
 };
 
-/// Specifies the base tile layer and projection for a [`Map`].
-///
-/// When tiles are provided, the projection is taken from the tile source.
-/// When no tiles are needed, a projection must be given directly.
-pub enum MapTiles<'a, P: Projection> {
-    /// Use a tile source which carries its own projection.
-    Tiles(&'a mut dyn Tiles<Projection = P>),
-    /// No tiles — just a bare projection for coordinate conversion.
-    Projection(&'static dyn Projection),
-}
-
-impl<'a> MapTiles<'a, P> {
-    fn projection(&self) -> &'static dyn Projection {
-        match self {
-            MapTiles::Tiles(tiles) => tiles.projection(),
-            MapTiles::Projection(p) => *p,
-        }
-    }
-}
-
 struct Layer<'a, P> {
     tiles: &'a mut dyn Tiles<Projection = P>,
     transparency: f32,

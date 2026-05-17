@@ -1,9 +1,9 @@
 use egui::{Response, Ui};
 
-use crate::{MapMemory, ScreenProjector};
+use crate::ScreenProjector;
 
 /// Plugins allow drawing custom shapes on the map. After implementing this trait for your type,
-/// you can add it to the map with [`Map::with_plugin`]
+/// you can add it to the map with [`crate::Map::with_plugin`]
 pub trait Plugin {
     /// Function called at each frame.
     ///
@@ -14,11 +14,5 @@ pub trait Plugin {
     ///
     /// The provided [`Response`] is the response of the map widget itself and can be used to test
     /// if the mouse is hovering or clicking on the map.
-    fn run(
-        self: Box<Self>,
-        ui: &mut Ui,
-        response: &Response,
-        projector: &ScreenProjector,
-        map_memory: &MapMemory,
-    );
+    fn run(self: Box<Self>, ui: &mut Ui, response: &Response, projector: &ScreenProjector);
 }

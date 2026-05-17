@@ -15,7 +15,7 @@ mod text;
 
 #[cfg(not(feature = "mvt"))]
 mod style {
-    /// Dummy style, used when `mtv` feature is not enabled.
+    /// Dummy style, used when `mvt` feature is not enabled.
     #[derive(Default)]
     pub struct Style;
 }
@@ -37,7 +37,7 @@ mod zoom;
 pub use http_tiles::HttpTiles;
 pub use io::tiles_io::Stats;
 pub use io::{HeaderValue, MaxParallelDownloads, http::HttpOptions};
-pub use map::{Map, MapTiles};
+pub use map::Map;
 pub use memory::MapMemory;
 pub use options::Options;
 pub use plugin::Plugin;

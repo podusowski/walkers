@@ -97,7 +97,7 @@ impl Projection for ProjectedProjection {
 
 /// Screen projector that wraps a [`Projection`] with viewport state.
 ///
-/// This is the standard [`Projector`] implementation used by the map widget.
+/// This is the standard projector implementation used by the map widget.
 /// It combines a raw [`Projection`] with the current clip rectangle and map memory
 /// to convert between world coordinates and screen pixels.
 #[derive(Debug, Clone)]
