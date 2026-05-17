@@ -3,7 +3,7 @@ use egui::{Response, Ui};
 use crate::{MapMemory, Projector};
 
 /// Plugins allow drawing custom shapes on the map. After implementing this trait for your type,
-/// you can add it to the map with [`Map::with_plugin`]
+/// you can add it to the map with [`crate::Map::with_plugin`]
 pub trait Plugin {
     /// Function called at each frame.
     ///
