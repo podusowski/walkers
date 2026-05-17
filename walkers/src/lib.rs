@@ -13,7 +13,7 @@ mod text;
 
 #[cfg(not(feature = "mvt"))]
 mod style {
-    /// Dummy style, used when `mtv` feature is not enabled.
+    /// Dummy style, used when `mvt` feature is not enabled.
     #[derive(Default)]
     pub struct Style;
 }

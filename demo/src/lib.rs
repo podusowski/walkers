@@ -53,11 +53,7 @@ impl eframe::App for MyApp {
             .collect();
 
         // In egui, widgets are constructed and consumed in each frame.
-        let mut map = Map::new(
-            MercatorProjection,
-            &mut self.map_memory,
-            my_position,
-        );
+        let mut map = Map::new(MercatorProjection, &mut self.map_memory, my_position);
 
         // Various aspects of the map can be configured.
         map = map

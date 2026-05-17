@@ -7,8 +7,7 @@ use rand::{Rng, SeedableRng, rngs::StdRng};
 
 use walkers::sources;
 use walkers::{
-    HttpOptions, HttpTiles, Map, MapMemory, MercatorProjection, Position,
-    ScreenProjector, lon_lat,
+    HttpOptions, HttpTiles, Map, MapMemory, MercatorProjection, Position, ScreenProjector, lon_lat,
 };
 use walkers_extras::{Group, GroupedPlacesTree, LabeledSymbol, LabeledSymbolStyle, Place, Symbol};
 
@@ -199,11 +198,7 @@ impl eframe::App for ClusterApp {
                 self.rebuild_plugin();
             }
 
-            let mut map = Map::new(
-                MercatorProjection,
-                &mut self.memory,
-                Self::map_center(),
-            );
+            let mut map = Map::new(MercatorProjection, &mut self.memory, Self::map_center());
             if let Some(tiles) = self.tiles.as_mut() {
                 map = map.with_layer(tiles, 1.0);
             }
