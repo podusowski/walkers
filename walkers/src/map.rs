@@ -3,7 +3,10 @@ use egui::{
 };
 
 use crate::{
-    MapMemory, Position, Projector, Tiles, center::Center, position::AdjustedPosition,
+    MapMemory, Position, Tiles,
+    center::Center,
+    position::AdjustedPosition,
+    projector::{Projection, ScreenProjector},
     tiles::draw_tiles,
 };
 
@@ -13,23 +16,17 @@ pub trait Plugin {
     /// Function called at each frame.
     ///
     /// The provided [`Ui`] has its [`Ui::max_rect`] set to the full rect that was allocated
-    /// by the map widget. Implementations should typically use the provided [`Projector`] to
+    /// by the map widget. Implementations should typically use the provided [`ScreenProjector`] to
     /// compute target screen coordinates and use one of the various egui methods to draw at these
     /// coordinates instead of relying on [`Ui`] layout system.
     ///
     /// The provided [`Response`] is the response of the map widget itself and can be used to test
     /// if the mouse is hovering or clicking on the map.
-    fn run(
-        self: Box<Self>,
-        ui: &mut Ui,
-        response: &Response,
-        projector: &Projector,
-        map_memory: &MapMemory,
-    );
+    fn run(self: Box<Self>, ui: &mut Ui, response: &Response, projector: &ScreenProjector);
 }
 
-struct Layer<'a> {
-    tiles: &'a mut dyn Tiles,
+struct Layer<'a, P: Projection> {
+    tiles: &'a mut dyn Tiles<Projection = P>,
     transparency: f32,
 }
 
@@ -65,37 +62,32 @@ impl Default for Options {
 /// # Examples
 ///
 /// ```
-/// # use walkers::{Map, Tiles, MapMemory, Position, lon_lat};
+/// # use walkers::{Map, Tiles, MapMemory, Position, lon_lat, MercatorProjection, HttpTiles};
 ///
-/// fn update(ui: &mut egui::Ui, tiles: &mut dyn Tiles, map_memory: &mut MapMemory) {
-///     ui.add(Map::new(
-///         Some(tiles), // `None`, if you don't want to show any tiles.
-///         map_memory,
-///         lon_lat(17.03664, 51.09916)
-///     ));
+/// fn update(ui: &mut egui::Ui, tiles: &mut HttpTiles<MercatorProjection>, map_memory: &mut MapMemory) {
+///     ui.add(
+///         Map::new(MercatorProjection, map_memory, lon_lat(17.03664, 51.09916))
+///             .with_layer(tiles, 1.0)
+///     );
 /// }
 /// ```
 ///
 /// Initially, the map follows `my_position` argument which is typically fed by a GPS sensor or
 /// other geo-localization method. If user drags the map, it enters a "detached state". You can use
 /// [`MapMemory`]'s methods to change the state programmatically.
-pub struct Map<'a, 'b, 'c> {
-    tiles: Option<&'b mut dyn Tiles>,
-    layers: Vec<Layer<'b>>,
+pub struct Map<'a, 'b, 'c, P: Projection + 'static> {
+    projection: P,
+    layers: Vec<Layer<'b, P>>,
     memory: &'a mut MapMemory,
     my_position: Position,
     plugins: Vec<Box<dyn Plugin + 'c>>,
     options: Options,
 }
 
-impl<'a, 'b, 'c> Map<'a, 'b, 'c> {
-    pub fn new(
-        tiles: Option<&'b mut dyn Tiles>,
-        memory: &'a mut MapMemory,
-        my_position: Position,
-    ) -> Self {
+impl<'a, 'b, 'c, P: Projection + 'static> Map<'a, 'b, 'c, P> {
+    pub fn new(projection: P, memory: &'a mut MapMemory, my_position: Position) -> Self {
         Self {
-            tiles,
+            projection,
             layers: Vec::default(),
             memory,
             my_position,
@@ -111,12 +103,23 @@ impl<'a, 'b, 'c> Map<'a, 'b, 'c> {
     }
 
     /// Add a tile layer. All layers are drawn on top of each other with given transparency.
-    pub fn with_layer(mut self, tiles: &'b mut dyn Tiles, transparency: f32) -> Self {
+    ///
+    /// The tile source must use the same projection as the map, enforced at compile time
+    /// via the [`Tiles::Projection`] associated type.
+    pub fn with_layer(
+        mut self,
+        tiles: &'b mut dyn Tiles<Projection = P>,
+        transparency: f32,
+    ) -> Self {
         self.layers.push(Layer {
             tiles,
             transparency,
         });
         self
+    }
+
+    pub fn projection(&self) -> &P {
+        &self.projection
     }
 
     /// Set whether map should perform zoom gesture.
@@ -188,7 +191,7 @@ impl<'a, 'b, 'c> Map<'a, 'b, 'c> {
     pub fn show<R>(
         mut self,
         ui: &mut Ui,
-        add_contents: impl FnOnce(&mut Ui, &Response, &Projector, &MapMemory) -> R,
+        add_contents: impl FnOnce(&mut Ui, &Response, &ScreenProjector, &MapMemory) -> R,
     ) -> InnerResponse<R> {
         let (rect, mut response) =
             ui.allocate_exact_size(ui.available_size(), Sense::click_and_drag());
@@ -206,22 +209,23 @@ impl<'a, 'b, 'c> Map<'a, 'b, 'c> {
             ui.request_repaint();
         }
 
-        let map_center = self.position();
+        let map_center = self
+            .memory
+            .center_mode
+            .position(self.my_position, &self.projection);
         let painter = ui.painter().with_clip_rect(rect);
-
-        if let Some(tiles) = self.tiles {
-            draw_tiles(&painter, map_center, zoom, tiles, 1.0);
-        }
 
         for layer in self.layers {
             draw_tiles(&painter, map_center, zoom, layer.tiles, layer.transparency);
         }
 
         // Run plugins.
-        let projector = Projector::new(response.rect, self.memory, self.my_position);
+        let projection: &dyn Projection = &self.projection;
+        let projector =
+            ScreenProjector::new(projection, response.rect, self.memory, self.my_position);
         for (idx, plugin) in self.plugins.into_iter().enumerate() {
             let mut child_ui = ui.new_child(UiBuilder::new().max_rect(rect).id_salt(idx));
-            plugin.run(&mut child_ui, &response, &projector, self.memory);
+            plugin.run(&mut child_ui, &response, &projector);
         }
 
         let mut child_ui = ui.new_child(UiBuilder::new().max_rect(rect).id_salt("inner"));
@@ -231,7 +235,7 @@ impl<'a, 'b, 'c> Map<'a, 'b, 'c> {
     }
 }
 
-impl Map<'_, '_, '_> {
+impl<P: Projection + 'static> Map<'_, '_, '_, P> {
     /// Handle user inputs and recalculate everything accordingly. Returns whether something changed.
     fn handle_gestures(&mut self, ui: &mut Ui, response: &Response) -> bool {
         let zoom_delta = self.zoom_delta(ui, response);
@@ -251,7 +255,7 @@ impl Map<'_, '_, '_> {
             // position.
             if let Some(offset) = offset {
                 // If map is tracking `my_position` and the input offset is close, just let it be.
-                if self.memory.detached().is_some()
+                if self.memory.detached(&self.projection).is_some()
                     || offset.length() > self.options.pull_to_my_position_threshold
                 {
                     self.memory.center_mode = Center::Exact(
@@ -335,11 +339,13 @@ impl Map<'_, '_, '_> {
 
     /// Get the real position at the map's center.
     fn position(&self) -> Position {
-        self.memory.center_mode.position(self.my_position)
+        self.memory
+            .center_mode
+            .position(self.my_position, &self.projection)
     }
 }
 
-impl Widget for Map<'_, '_, '_> {
+impl<P: Projection + 'static> Widget for Map<'_, '_, '_, P> {
     fn ui(self, ui: &mut Ui) -> Response {
         self.show(ui, |_, _, _, _| ()).response
     }
