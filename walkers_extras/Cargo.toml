@@ -11,7 +11,7 @@ categories.workspace = true
 
 [dependencies]
 egui.workspace = true
-geo = { version = "0.32.0", default-features = false }
+geo = { version = "0.33.1", default-features = false }
 geojson = "1.0.0"
 kml = { version = "0.13.0", default-features = false }
 log.workspace = true
