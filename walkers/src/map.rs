@@ -3,60 +3,13 @@ use egui::{
 };
 
 use crate::{
-    MapMemory, Position, Projector, Tiles, center::Center, position::AdjustedPosition,
-    tiles::draw_tiles,
+    MapMemory, Options, Plugin, Position, Projector, Tiles, center::Center,
+    position::AdjustedPosition, tiles::draw_tiles,
 };
-
-/// Plugins allow drawing custom shapes on the map. After implementing this trait for your type,
-/// you can add it to the map with [`Map::with_plugin`]
-pub trait Plugin {
-    /// Function called at each frame.
-    ///
-    /// The provided [`Ui`] has its [`Ui::max_rect`] set to the full rect that was allocated
-    /// by the map widget. Implementations should typically use the provided [`Projector`] to
-    /// compute target screen coordinates and use one of the various egui methods to draw at these
-    /// coordinates instead of relying on [`Ui`] layout system.
-    ///
-    /// The provided [`Response`] is the response of the map widget itself and can be used to test
-    /// if the mouse is hovering or clicking on the map.
-    fn run(
-        self: Box<Self>,
-        ui: &mut Ui,
-        response: &Response,
-        projector: &Projector,
-        map_memory: &MapMemory,
-    );
-}
 
 struct Layer<'a> {
     tiles: &'a mut dyn Tiles,
     transparency: f32,
-}
-
-struct Options {
-    zoom_gesture_enabled: bool,
-    drag_pan_buttons: DragPanButtons,
-    zoom_speed: f64,
-    double_click_to_zoom: bool,
-    double_click_to_zoom_out: bool,
-    zoom_with_ctrl: bool,
-    panning: bool,
-    pull_to_my_position_threshold: f32,
-}
-
-impl Default for Options {
-    fn default() -> Self {
-        Self {
-            zoom_gesture_enabled: true,
-            drag_pan_buttons: DragPanButtons::PRIMARY,
-            zoom_speed: 2.0,
-            double_click_to_zoom: false,
-            double_click_to_zoom_out: false,
-            zoom_with_ctrl: true,
-            panning: true,
-            pull_to_my_position_threshold: 0.0,
-        }
-    }
 }
 
 /// The actual map widget. Instances are to be created on each frame, as all necessary state is

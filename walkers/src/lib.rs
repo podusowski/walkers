@@ -7,6 +7,8 @@ mod io;
 mod local_tiles;
 mod map;
 mod memory;
+mod options;
+mod plugin;
 #[cfg(feature = "mvt")]
 mod style;
 #[cfg(feature = "mvt")]
@@ -38,8 +40,10 @@ pub use http_tiles::HttpTiles;
 pub use io::tiles_io::Stats;
 pub use io::{HeaderValue, MaxParallelDownloads, http::HttpOptions};
 pub use local_tiles::LocalTiles;
-pub use map::{Map, Plugin};
+pub use map::Map;
 pub use memory::MapMemory;
+pub use options::Options;
+pub use plugin::Plugin;
 #[cfg(feature = "pmtiles")]
 pub use pmtiles::PmTiles;
 pub use position::{Position, lat_lon, lon_lat};
