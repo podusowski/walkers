@@ -2915,13 +2915,14 @@ dependencies = [
 
 [[package]]
 name = "mvt-reader"
-version = "2.3.0"
+version = "2.4.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "5057362d82a08bc3c84e420c42939463aff5c3e21a91a41d8b7af94c8f061189"
+checksum = "b21d02c206b092ea347b673caf17f15fcc7eb45fff0668adfc484306ee6f2a1a"
 dependencies = [
  "geo-types",
  "num-traits",
  "prost",
+ "thiserror 2.0.18",
 ]
 
 [[package]]
