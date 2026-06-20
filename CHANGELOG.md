@@ -2,6 +2,10 @@
 
 All notable changes to this project will be documented in this file.
 
+## Unreleased
+
+ * Use `pmtiles` internal decompression handling instead of hand-rolled one.
+
 ## 0.54.0
 
  * Experimental support for `geojson` with very limited capabilities.
