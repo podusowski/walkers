@@ -128,11 +128,11 @@ impl Fetch for PmTilesFetch {
         // TODO: Avoid reopening the file every time.
         let reader = AsyncPmTilesReader::new_with_path(self.path.to_owned()).await?;
         let bytes = reader
-            .get_tile(TileCoord::new(tile_id.zoom, tile_id.x, tile_id.y)?)
+            .get_tile_decompressed(TileCoord::new(tile_id.zoom, tile_id.x, tile_id.y)?)
             .await?
             .ok_or(PmTilesError::TileNotFound(tile_id))?;
 
-        Ok(decompress(&bytes)?.into())
+        Ok(bytes.into())
     }
 
     fn max_concurrency(&self) -> usize {
