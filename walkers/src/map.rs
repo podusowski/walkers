@@ -278,7 +278,10 @@ impl Map<'_, '_, '_> {
             // These values seem to correspond to the same values as one would get in `zoom_delta()`
             zoom_delta = 1f64
                 + ui.input(|input| {
-                    input.smooth_scroll_delta.y * input.stable_dt.max(input.predicted_dt * 1.5)
+                    input.smooth_scroll_delta.y
+                        * input
+                            .stable_dt
+                            .clamp(input.predicted_dt * 0.5, input.predicted_dt * 2.0)
                 }) as f64
                     / 4.0;
         };
