@@ -14,7 +14,6 @@ bytes = "1"
 color = { version = "0.3.2", features = ["serde"], optional = true }
 egui.workspace = true
 egui_extras.workspace = true
-flate2 = { version = "1.1.8", optional = true }
 futures = "0.3.32"
 geo = { version = "0.33.1", default-features = false, optional = true }
 geo-types = { version = "0.7" }
@@ -63,5 +62,5 @@ mvt = [
   "dep:serde",
   "dep:serde_json"
 ]
-pmtiles = ["dep:flate2", "dep:pmtiles"]
+pmtiles = ["dep:pmtiles"]
 serde = ["dep:serde", "egui/serde", "geo-types/serde"]

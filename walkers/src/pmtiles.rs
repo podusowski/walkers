@@ -9,7 +9,7 @@ use bytes::Bytes;
 use egui::Context;
 use pmtiles::{AsyncPmTilesReader, TileCoord};
 use std::{
-    io::{self, Read as _},
+    io::{self},
     path::{Path, PathBuf},
 };
 use thiserror::Error;
@@ -127,12 +127,11 @@ impl Fetch for PmTilesFetch {
     async fn fetch(&self, tile_id: TileId) -> Result<Bytes, Self::Error> {
         // TODO: Avoid reopening the file every time.
         let reader = AsyncPmTilesReader::new_with_path(self.path.to_owned()).await?;
-        let bytes = reader
-            .get_tile(TileCoord::new(tile_id.zoom, tile_id.x, tile_id.y)?)
-            .await?
-            .ok_or(PmTilesError::TileNotFound(tile_id))?;
 
-        Ok(decompress(&bytes)?.into())
+        Ok(reader
+            .get_tile_decompressed(TileCoord::new(tile_id.zoom, tile_id.x, tile_id.y)?)
+            .await?
+            .ok_or(PmTilesError::TileNotFound(tile_id))?)
     }
 
     fn max_concurrency(&self) -> usize {
@@ -141,15 +140,4 @@ impl Fetch for PmTilesFetch {
         // follow this value as well.
         6
     }
-}
-
-/// Decompress the tile.
-///
-/// This function assumes the input is gzip compressed data, but this might not always be the case.
-/// You can use `pmtiles info <file>` to check the compression type.
-fn decompress(data: &[u8]) -> io::Result<Vec<u8>> {
-    let mut decoder = flate2::read::GzDecoder::new(data);
-    let mut buf = Vec::new();
-    decoder.read_to_end(&mut buf)?;
-    Ok(buf)
 }
