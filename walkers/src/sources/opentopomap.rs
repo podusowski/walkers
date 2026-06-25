@@ -44,4 +44,8 @@ impl TileSource for OpenTopoMap {
             logo_dark: None,
         }
     }
+
+    fn max_zoom(&self) -> u8 {
+        17
+    }
 }
