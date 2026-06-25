@@ -3,9 +3,32 @@ use egui::{
 };
 
 use crate::{
-    MapMemory, Options, Plugin, Position, Projector, Tiles, center::Center,
-    position::AdjustedPosition, tiles::draw_tiles,
+    MapMemory, Options, Plugin, Position, Tiles,
+    center::Center,
+    position::AdjustedPosition,
+    projector::{Projection, ScreenProjector},
+    tiles::draw_tiles,
 };
+
+/// Specifies the base tile layer and projection for a [`Map`].
+///
+/// When tiles are provided, the projection is taken from the tile source.
+/// When no tiles are needed, a projection must be given directly.
+pub enum MapTiles<'a> {
+    /// Use a tile source which carries its own projection.
+    Tiles(&'a mut dyn Tiles),
+    /// No tiles — just a bare projection for coordinate conversion.
+    Projection(&'static dyn Projection),
+}
+
+impl<'a> MapTiles<'a> {
+    fn projection(&self) -> &'static dyn Projection {
+        match self {
+            MapTiles::Tiles(tiles) => tiles.projection(),
+            MapTiles::Projection(p) => *p,
+        }
+    }
+}
 
 struct Layer<'a> {
     tiles: &'a mut dyn Tiles,
@@ -18,11 +41,11 @@ struct Layer<'a> {
 /// # Examples
 ///
 /// ```
-/// # use walkers::{Map, Tiles, MapMemory, Position, lon_lat};
+/// # use walkers::{Map, MapTiles, Tiles, MapMemory, Position, lon_lat, MercatorProjection};
 ///
 /// fn update(ui: &mut egui::Ui, tiles: &mut dyn Tiles, map_memory: &mut MapMemory) {
 ///     ui.add(Map::new(
-///         Some(tiles), // `None`, if you don't want to show any tiles.
+///         MapTiles::Tiles(tiles),
 ///         map_memory,
 ///         lon_lat(17.03664, 51.09916)
 ///     ));
@@ -33,7 +56,7 @@ struct Layer<'a> {
 /// other geo-localization method. If user drags the map, it enters a "detached state". You can use
 /// [`MapMemory`]'s methods to change the state programmatically.
 pub struct Map<'a, 'b, 'c> {
-    tiles: Option<&'b mut dyn Tiles>,
+    tiles: MapTiles<'b>,
     layers: Vec<Layer<'b>>,
     memory: &'a mut MapMemory,
     my_position: Position,
@@ -42,11 +65,7 @@ pub struct Map<'a, 'b, 'c> {
 }
 
 impl<'a, 'b, 'c> Map<'a, 'b, 'c> {
-    pub fn new(
-        tiles: Option<&'b mut dyn Tiles>,
-        memory: &'a mut MapMemory,
-        my_position: Position,
-    ) -> Self {
+    pub fn new(tiles: MapTiles<'b>, memory: &'a mut MapMemory, my_position: Position) -> Self {
         Self {
             tiles,
             layers: Vec::default(),
@@ -141,12 +160,16 @@ impl<'a, 'b, 'c> Map<'a, 'b, 'c> {
     pub fn show<R>(
         mut self,
         ui: &mut Ui,
-        add_contents: impl FnOnce(&mut Ui, &Response, &Projector, &MapMemory) -> R,
+        add_contents: impl FnOnce(&mut Ui, &Response, &ScreenProjector, &MapMemory) -> R,
     ) -> InnerResponse<R> {
+        // Extract the projection up front. This is &'static so it doesn't
+        // borrow self.tiles, allowing mutable tile access later.
+        let projection = self.tiles.projection();
+
         let (rect, mut response) =
             ui.allocate_exact_size(ui.available_size(), Sense::click_and_drag());
 
-        let mut changed = self.handle_gestures(ui, &response);
+        let mut changed = self.handle_gestures(ui, &response, projection);
         let delta_time = ui.input(|reader| reader.stable_dt);
         let zoom = self.memory.zoom;
         changed |= self
@@ -159,11 +182,14 @@ impl<'a, 'b, 'c> Map<'a, 'b, 'c> {
             ui.request_repaint();
         }
 
-        let map_center = self.position();
+        let map_center = self
+            .memory
+            .center_mode
+            .position(self.my_position, projection);
         let painter = ui.painter().with_clip_rect(rect);
 
-        if let Some(tiles) = self.tiles {
-            draw_tiles(&painter, map_center, zoom, tiles, 1.0);
+        if let MapTiles::Tiles(tiles) = &mut self.tiles {
+            draw_tiles(&painter, map_center, zoom, *tiles, 1.0);
         }
 
         for layer in self.layers {
@@ -171,7 +197,8 @@ impl<'a, 'b, 'c> Map<'a, 'b, 'c> {
         }
 
         // Run plugins.
-        let projector = Projector::new(response.rect, self.memory, self.my_position);
+        let projector =
+            ScreenProjector::new(projection, response.rect, self.memory, self.my_position);
         for (idx, plugin) in self.plugins.into_iter().enumerate() {
             let mut child_ui = ui.new_child(UiBuilder::new().max_rect(rect).id_salt(idx));
             plugin.run(&mut child_ui, &response, &projector, self.memory);
@@ -186,7 +213,12 @@ impl<'a, 'b, 'c> Map<'a, 'b, 'c> {
 
 impl Map<'_, '_, '_> {
     /// Handle user inputs and recalculate everything accordingly. Returns whether something changed.
-    fn handle_gestures(&mut self, ui: &mut Ui, response: &Response) -> bool {
+    fn handle_gestures<P: Projection + ?Sized>(
+        &mut self,
+        ui: &mut Ui,
+        response: &Response,
+        projection: &P,
+    ) -> bool {
         let zoom_delta = self.zoom_delta(ui, response);
 
         // Zooming and dragging need to be exclusive, otherwise the map will get dragged when
@@ -204,11 +236,12 @@ impl Map<'_, '_, '_> {
             // position.
             if let Some(offset) = offset {
                 // If map is tracking `my_position` and the input offset is close, just let it be.
-                if self.memory.detached().is_some()
+                if self.memory.detached(projection).is_some()
                     || offset.length() > self.options.pull_to_my_position_threshold
                 {
                     self.memory.center_mode = Center::Exact(
-                        AdjustedPosition::new(self.position()).shift(-offset, self.memory.zoom()),
+                        AdjustedPosition::new(self.position(projection))
+                            .shift(-offset, self.memory.zoom()),
                     );
                 }
             }
@@ -246,7 +279,8 @@ impl Map<'_, '_, '_> {
             let scroll_delta = ui.input(|i| i.smooth_scroll_delta);
             if scroll_delta != Vec2::ZERO {
                 self.memory.center_mode = Center::Exact(
-                    AdjustedPosition::new(self.position()).shift(scroll_delta, self.memory.zoom()),
+                    AdjustedPosition::new(self.position(projection))
+                        .shift(scroll_delta, self.memory.zoom()),
                 );
             }
         }
@@ -290,8 +324,10 @@ impl Map<'_, '_, '_> {
     }
 
     /// Get the real position at the map's center.
-    fn position(&self) -> Position {
-        self.memory.center_mode.position(self.my_position)
+    fn position<P: Projection + ?Sized>(&self, projection: &P) -> Position {
+        self.memory
+            .center_mode
+            .position(self.my_position, projection)
     }
 }
 

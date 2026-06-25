@@ -3,7 +3,7 @@ use std::str::FromStr;
 use egui::{self, Color32, Response, Shape, Stroke, Ui};
 use kml::{KmlDocument, types::Folder};
 use log::{debug, warn};
-use walkers::{Layer, MapMemory, Plugin, Projector, Style, lon_lat};
+use walkers::{Layer, MapMemory, Plugin, ScreenProjector, Style, lon_lat};
 
 /// Plugin that renders parsed KML features on top of a [`Map`](walkers::Map).
 pub struct KmlLayer {
@@ -20,7 +20,7 @@ impl KmlLayer {
     }
 }
 
-fn draw_line_layer(painter: &egui::Painter, projector: &Projector, element: &kml::Kml) {
+fn draw_line_layer(painter: &egui::Painter, projector: &ScreenProjector, element: &kml::Kml) {
     match element {
         kml::Kml::Placemark(placemark) => {
             if let Some(geometry) = &placemark.geometry {
@@ -40,7 +40,7 @@ fn draw_line_layer(painter: &egui::Painter, projector: &Projector, element: &kml
     }
 }
 
-fn draw_circle_layer(painter: &egui::Painter, projector: &Projector, element: &kml::Kml) {
+fn draw_circle_layer(painter: &egui::Painter, projector: &ScreenProjector, element: &kml::Kml) {
     match element {
         kml::Kml::Placemark(placemark) => {
             if let Some(geometry) = &placemark.geometry {
@@ -62,7 +62,7 @@ fn draw_circle_layer(painter: &egui::Painter, projector: &Projector, element: &k
 
 fn draw_line_geometry(
     painter: &egui::Painter,
-    projector: &Projector,
+    projector: &ScreenProjector,
     geometry: &kml::types::Geometry,
 ) {
     match geometry {
@@ -100,7 +100,7 @@ fn draw_line_geometry(
 
 fn draw_circle_geometry(
     painter: &egui::Painter,
-    projector: &Projector,
+    projector: &ScreenProjector,
     geometry: &kml::types::Geometry,
 ) {
     match geometry {
@@ -129,7 +129,7 @@ impl Plugin for KmlLayer {
         self: Box<Self>,
         ui: &mut Ui,
         response: &Response,
-        projector: &Projector,
+        projector: &ScreenProjector,
         _map_memory: &MapMemory,
     ) {
         for layer in &self.style.layers {
