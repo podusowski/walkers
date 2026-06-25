@@ -5,6 +5,7 @@ use reqwest_middleware::ClientWithMiddleware;
 use crate::cached_tiles::CachedTiles;
 use crate::io::Fetch;
 use crate::io::http::http_client;
+use crate::projector::Projection;
 use crate::sources::{Attribution, TileSource};
 use crate::style::Style;
 use crate::tiles::EguiTileFactory;
@@ -12,7 +13,10 @@ use crate::{HttpOptions, TilePiece, Tiles};
 use crate::{Stats, TileId};
 
 /// Downloads the tiles via HTTP. It must persist between frames.
-pub struct HttpTiles(CachedTiles);
+pub struct HttpTiles {
+    cached_tiles: CachedTiles,
+    projection: &'static dyn Projection,
+}
 
 impl HttpTiles {
     /// Construct new [`Tiles`] with default [`HttpOptions`].
@@ -45,33 +49,41 @@ impl HttpTiles {
         let attribution = source.attribution();
         let tile_size = source.tile_size();
         let max_zoom = source.max_zoom();
+        let projection = source.projection();
 
-        Self(CachedTiles::new(
-            HttpFetch::new(source, http_options),
-            EguiTileFactory::new(egui_ctx.clone(), style, tile_size),
-            attribution,
-            tile_size,
-            max_zoom,
-            egui_ctx,
-        ))
+        Self {
+            cached_tiles: CachedTiles::new(
+                HttpFetch::new(source, http_options),
+                EguiTileFactory::new(egui_ctx.clone(), style, tile_size),
+                attribution,
+                tile_size,
+                max_zoom,
+                egui_ctx,
+            ),
+            projection,
+        }
     }
 
     pub fn stats(&self) -> Stats {
-        self.0.stats()
+        self.cached_tiles.stats()
     }
 }
 
 impl Tiles for HttpTiles {
     fn at(&mut self, tile_id: TileId) -> Option<TilePiece> {
-        self.0.at(tile_id)
+        self.cached_tiles.at(tile_id)
     }
 
     fn attribution(&self) -> Attribution {
-        self.0.attribution()
+        self.cached_tiles.attribution()
     }
 
     fn tile_size(&self) -> u32 {
-        self.0.tile_size()
+        self.cached_tiles.tile_size()
+    }
+
+    fn projection(&self) -> &'static dyn Projection {
+        self.projection
     }
 }
 

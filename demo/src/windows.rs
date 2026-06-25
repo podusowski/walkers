@@ -1,6 +1,6 @@
 use crate::MyApp;
 use egui::{Align2, ComboBox, Image, RichText, Ui, Window};
-use walkers::{MapMemory, sources::Attribution};
+use walkers::{MapMemory, MercatorProjection, sources::Attribution};
 
 pub fn acknowledge(ui: &Ui, attributions: Vec<Attribution>) {
     Window::new("Acknowledge")
@@ -104,7 +104,7 @@ pub fn zoom(ui: &Ui, map_memory: &mut MapMemory) {
 
 /// When map is "detached", show a windows with an option to go back to my position.
 pub fn go_to_my_position(ui: &Ui, map_memory: &mut MapMemory) {
-    if let Some(position) = map_memory.detached() {
+    if let Some(position) = map_memory.detached(&MercatorProjection) {
         Window::new("Center")
             .collapsible(false)
             .resizable(false)
