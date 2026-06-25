@@ -1,14 +1,14 @@
 use egui::{Response, Ui};
 
-use crate::{MapMemory, Projector};
+use crate::{MapMemory, ScreenProjector};
 
 /// Plugins allow drawing custom shapes on the map. After implementing this trait for your type,
-/// you can add it to the map with [`crate::Map::with_plugin`]
+/// you can add it to the map with [`Map::with_plugin`]
 pub trait Plugin {
     /// Function called at each frame.
     ///
     /// The provided [`Ui`] has its [`Ui::max_rect`] set to the full rect that was allocated
-    /// by the map widget. Implementations should typically use the provided [`Projector`] to
+    /// by the map widget. Implementations should typically use the provided [`ScreenProjector`] to
     /// compute target screen coordinates and use one of the various egui methods to draw at these
     /// coordinates instead of relying on [`Ui`] layout system.
     ///
@@ -18,7 +18,7 @@ pub trait Plugin {
         self: Box<Self>,
         ui: &mut Ui,
         response: &Response,
-        projector: &Projector,
+        projector: &ScreenProjector,
         map_memory: &MapMemory,
     );
 }

@@ -13,6 +13,7 @@ use crate::Position;
 use crate::io::TileFactory;
 use crate::mercator::{TILE_SIZE, project, tile_id, total_tiles};
 use crate::position::{Pixels, PixelsExt};
+use crate::projector::{MercatorProjection, Projection};
 use crate::sources::Attribution;
 use crate::style::Style;
 use crate::zoom::Zoom;
@@ -102,6 +103,11 @@ pub trait Tiles {
     /// Size of each tile, in pixels. Walkers works with 256px tiles internally, so this
     /// should be 256 multiplied or divided by a power of two, for example 128, 256 or 512.
     fn tile_size(&self) -> u32;
+
+    /// The projection used by this tile source.
+    fn projection(&self) -> &'static dyn Projection {
+        &MercatorProjection
+    }
 }
 
 #[derive(Clone)]

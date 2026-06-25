@@ -44,16 +44,20 @@ pub use http_tiles::HttpTiles;
 pub use io::tiles_io::Stats;
 pub use io::{HeaderValue, MaxParallelDownloads, http::HttpOptions};
 pub use local_tiles::LocalTiles;
-pub use map::Map;
+pub use map::{Map, MapTiles};
 pub use memory::MapMemory;
 pub use options::Options;
 pub use plugin::Plugin;
 #[cfg(feature = "pmtiles")]
 pub use pmtiles::PmTiles;
 pub use position::{Position, lat_lon, lon_lat};
+<<<<<<< HEAD
 pub use projector::Projector;
 #[cfg(feature = "mvt")]
 pub use render::{Geometry, render_line, render_symbol, tessellate_polygon};
+=======
+pub use projector::{MercatorProjection, ProjectedProjection, Projection, ScreenProjector};
+>>>>>>> 0fa8584 (rebase on main)
 pub use style::Style;
 #[cfg(feature = "mvt")]
 pub use style::{

@@ -1,4 +1,7 @@
-use crate::{InvalidZoom, Position, center::Center, position::AdjustedPosition, zoom::Zoom};
+use crate::{
+    InvalidZoom, Position, center::Center, position::AdjustedPosition, projector::Projection,
+    zoom::Zoom,
+};
 
 /// State of the map widget which must persist between frames.
 #[derive(Debug, Default, Clone)]
@@ -33,8 +36,8 @@ impl MapMemory {
     /// If the map is in detached state, returns the geographical position
     /// of the center. `None` if the map is not detached, i.e. following
     /// `my_position`.
-    pub fn detached(&self) -> Option<Position> {
-        self.center_mode.detached()
+    pub fn detached<P: Projection + ?Sized>(&self, projection: &P) -> Option<Position> {
+        self.center_mode.detached(projection)
     }
 
     /// Whether the map is currently animating. Dragging, zooming and `my_position` changes are not

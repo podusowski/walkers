@@ -1,5 +1,5 @@
 use egui::{Color32, Response, Ui};
-use walkers::{MapMemory, Plugin, Position, Projector};
+use walkers::{MapMemory, Plugin, Position, ScreenProjector};
 use walkers_extras::{
     GroupedPlaces, LabeledSymbol, LabeledSymbolGroup, LabeledSymbolGroupStyle, LabeledSymbolStyle,
     Symbol,
@@ -52,7 +52,7 @@ impl Plugin for CustomShapes {
         self: Box<Self>,
         ui: &mut Ui,
         response: &Response,
-        projector: &Projector,
+        projector: &ScreenProjector,
         _map_memory: &MapMemory,
     ) {
         // Position of the point we want to put our shapes.
@@ -103,7 +103,7 @@ impl Plugin for &mut ClickWatcher {
         self: Box<Self>,
         ui: &mut Ui,
         response: &Response,
-        projector: &Projector,
+        projector: &ScreenProjector,
         _map_memory: &MapMemory,
     ) {
         if !response.changed() && response.clicked_by(egui::PointerButton::Primary) {
