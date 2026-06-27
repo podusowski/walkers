@@ -2,7 +2,7 @@
 
 All notable changes to this project will be documented in this file.
 
-## Unreleased
+## 0.55.0
 
  * Use `pmtiles` internal decompression handling instead of hand-rolled one.
  * Fix scroll zoom overshooting on slow frames when `zoom_with_ctrl` is disabled.
