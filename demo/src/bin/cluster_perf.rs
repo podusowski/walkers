@@ -162,7 +162,7 @@ impl ClusterApp {
 
 impl eframe::App for ClusterApp {
     fn ui(&mut self, ui: &mut egui::Ui, _frame: &mut eframe::Frame) {
-        egui::Panel::top("controls").show_inside(ui, |ui| {
+        egui::Panel::top("controls").show(ui, |ui| {
             ui.horizontal(|ui| {
                 ui.heading("R-tree clustering");
                 ui.separator();
@@ -190,7 +190,7 @@ impl eframe::App for ClusterApp {
             ));
         });
 
-        egui::CentralPanel::default().show_inside(ui, |ui| {
+        egui::CentralPanel::default().show(ui, |ui| {
             if self.plugin.is_none() {
                 self.rebuild_plugin();
             }
