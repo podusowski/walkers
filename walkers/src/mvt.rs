@@ -8,7 +8,8 @@ use egui::{
     epaint::{Vertex, WHITE_UV},
     pos2, vec2,
 };
-pub use geo_types::{Coord, Geometry, Line};
+pub use geo_types::Geometry;
+pub(crate) use geo_types::{Coord, Line};
 use log::warn;
 use lyon_path::{
     Path, Polygon,
@@ -87,7 +88,7 @@ impl ShapeOrText {
 }
 
 /// Render MVT data into a list of [`epaint::Shape`]s.
-pub fn render(data: &[u8], style: &Style, zoom: u8) -> Result<Vec<ShapeOrText>, Error> {
+pub(crate) fn render(data: &[u8], style: &Style, zoom: u8) -> Result<Vec<ShapeOrText>, Error> {
     let data = mvt_reader::Reader::new(data.to_vec())?;
     let mut shapes = Vec::new();
 
@@ -161,7 +162,7 @@ pub fn render(data: &[u8], style: &Style, zoom: u8) -> Result<Vec<ShapeOrText>, 
 }
 
 /// Transform shapes from MVT space to screen space.
-pub fn transformed(shapes: &[ShapeOrText], rect: egui::Rect) -> Vec<ShapeOrText> {
+pub(crate) fn transformed(shapes: &[ShapeOrText], rect: egui::Rect) -> Vec<ShapeOrText> {
     let transform = TSTransform {
         scaling: rect.width() / ONLY_SUPPORTED_EXTENT as f32,
         translation: rect.min.to_vec2(),

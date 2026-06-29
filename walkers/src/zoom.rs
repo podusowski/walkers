@@ -34,28 +34,29 @@ impl Default for Zoom {
 }
 
 impl Zoom {
-    pub fn round(&self) -> u8 {
+    pub(crate) fn round(&self) -> u8 {
         self.0.round() as u8
     }
 
-    pub fn zoom_in(&mut self) -> Result<(), InvalidZoom> {
+    pub(crate) fn zoom_in(&mut self) -> Result<(), InvalidZoom> {
         *self = Self::try_from(self.0 + 1.)?;
         Ok(())
     }
 
-    pub fn zoom_out(&mut self) -> Result<(), InvalidZoom> {
+    pub(crate) fn zoom_out(&mut self) -> Result<(), InvalidZoom> {
         *self = Self::try_from(self.0 - 1.)?;
         Ok(())
     }
 
     /// Zoom using a relative value.
-    pub fn zoom_by(&mut self, value: f64) {
+    pub(crate) fn zoom_by(&mut self, value: f64) {
         if let Ok(new_self) = Self::try_from(self.0 + value) {
             *self = new_self;
         }
     }
 }
 
+#[allow(clippy::unwrap_used)]
 #[cfg(test)]
 mod tests {
     use super::*;
