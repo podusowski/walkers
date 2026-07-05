@@ -180,14 +180,23 @@ fn get_layer_features(
     name: &str,
     filter: Option<&Filter>,
 ) -> Result<impl Iterator<Item = (Geometry<f32>, Context)>, Error> {
-    let features = if let Ok(layer_index) = find_layer(reader, name) {
+    // An empty source layer matches features from all layers. Intended for sparse
+    // overlay tiles; pointing dense basemap rules at "" would scan every layer.
+    let raw = if name.is_empty() {
+        reader
+            .get_layer_metadata()?
+            .into_iter()
+            .filter(|layer| layer.extent == ONLY_SUPPORTED_EXTENT)
+            .flat_map(|layer| reader.get_features(layer.layer_index).unwrap_or_default())
+            .collect()
+    } else if let Ok(layer_index) = find_layer(reader, name) {
         reader.get_features(layer_index)?
     } else {
         warn!("Source layer '{name}' not found. Skipping.");
         Vec::new()
-    }
-    .into_iter()
-    .filter_map(move |feature| {
+    };
+
+    let features = raw.into_iter().filter_map(move |feature| {
         let context = Context::new(
             geometry_type_to_str(&feature.geometry).to_string(),
             feature
