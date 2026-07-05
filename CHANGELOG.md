@@ -2,6 +2,10 @@
 
 All notable changes to this project will be documented in this file.
 
+## Unreleased
+
+* An empty `source_layer` now matches features from all layers of a vector tile.
+
 ## 0.56.0
 
 * `egui` updated to 0.35.
