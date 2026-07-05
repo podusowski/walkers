@@ -196,9 +196,7 @@ fn get_layer_features(
         Vec::new()
     };
 
-    let features = raw
-        .into_iter()
-        .filter_map(move |feature| {
+    let features = raw.into_iter().filter_map(move |feature| {
         let context = Context::new(
             geometry_type_to_str(&feature.geometry).to_string(),
             feature
