@@ -15,7 +15,7 @@ use thiserror::Error;
 
 use crate::Position;
 use crate::io::TileFactory;
-use crate::mercator::{project, tile_id, total_tiles};
+use crate::mercator::{TILE_SIZE, project, tile_id, total_tiles};
 use crate::position::{Pixels, PixelsExt};
 use crate::sources::Attribution;
 use crate::style::Style;
@@ -270,8 +270,10 @@ fn flood_fill_tiles(
     transparency: f32,
     meshes: &mut HashSet<TileId>,
 ) {
-    // We need to make up the difference between integer and floating point zoom levels.
-    let corrected_tile_size = tiles.tile_size() as f64 * 2f64.powf(zoom - zoom.round());
+    // The tile's zoom level can differ from the map's: it is rounded to an integer, adjusted
+    // for sources with tiles larger than 256px, and clamped at 0. Scale the tile so that it
+    // covers the right amount of the map regardless.
+    let corrected_tile_size = TILE_SIZE as f64 * 2f64.powf(zoom - tile_id.zoom as f64);
     let tile_projected = tile_id.project(corrected_tile_size);
     let tile_screen_position = painter.clip_rect().center().to_vec2()
         + (tile_projected - map_center_projected_position).to_vec2();

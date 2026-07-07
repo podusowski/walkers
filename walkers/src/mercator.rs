@@ -26,7 +26,7 @@ pub(crate) fn total_tiles(zoom: u8) -> u32 {
 }
 
 /// Size of a single tile in pixels. Walkers uses 256px tiles as most of the tile sources do.
-const TILE_SIZE: u32 = 256;
+pub(crate) const TILE_SIZE: u32 = 256;
 
 /// Project the position into the Mercator projection and normalize it to 0-1 range.
 fn mercator_normalized(position: Position) -> (f64, f64) {
@@ -42,12 +42,13 @@ fn mercator_normalized(position: Position) -> (f64, f64) {
 }
 
 /// Calculate the tile coordinated for the given position.
-pub(crate) fn tile_id(position: Position, mut zoom: u8, source_tile_size: u32) -> TileId {
+pub(crate) fn tile_id(position: Position, zoom: u8, source_tile_size: u32) -> TileId {
     let (x, y) = mercator_normalized(position);
 
     // Some sources provide larger tiles, effectively bundling e.g. 4 256px tiles in one
     // 512px one. Walkers uses 256px internally, so we need to adjust the zoom level.
-    zoom -= (source_tile_size as f64 / TILE_SIZE as f64).log2() as u8;
+    // Saturate, since there is nothing below the single tile covering the whole world.
+    let zoom = zoom.saturating_sub((source_tile_size as f64 / TILE_SIZE as f64).log2() as u8);
 
     // Map that into a big bitmap made out of web tiles.
     let number_of_tiles = 2u32.pow(zoom as u32) as f64;
@@ -125,6 +126,30 @@ mod tests {
         let citadel_proj = Pixels::new(585455. * 256. + 184., 345104. * 256. + 116.5);
         approx::assert_relative_eq!(calculated.x(), citadel_proj.x(), max_relative = 0.5);
         approx::assert_relative_eq!(calculated.y(), citadel_proj.y(), max_relative = 0.5);
+    }
+
+    #[test]
+    fn zoomed_out_further_than_source_tile_size_allows() {
+        let citadel = lon_lat(21.00027, 52.26470);
+
+        // Large tiles mean lower zoom levels, but there is nothing below the single tile
+        // covering the whole world.
+        assert_eq!(
+            TileId {
+                x: 0,
+                y: 0,
+                zoom: 0
+            },
+            tile_id(citadel, 0, 512)
+        );
+        assert_eq!(
+            TileId {
+                x: 0,
+                y: 0,
+                zoom: 0
+            },
+            tile_id(citadel, 1, 1024)
+        );
     }
 
     #[test]
