@@ -96,6 +96,8 @@ pub struct Paint {
     pub line_color: Option<Color>,
     /// <https://maplibre.org/maplibre-style-spec/layers/>#line-opacity
     pub line_opacity: Option<Float>,
+    /// <https://maplibre.org/maplibre-style-spec/layers/>#line-dasharray
+    pub line_dasharray: Option<Dasharray>,
     /// <https://maplibre.org/maplibre-style-spec/layers/>#text-color
     pub text_color: Option<Color>,
     /// <https://maplibre.org/maplibre-style-spec/layers/>#text-halo-color
@@ -160,6 +162,41 @@ impl Float {
     }
 }
 
+/// A dash/gap pattern for lines. Values are in units of the line's width, per the
+/// MapLibre spec, e.g. `[2, 1]` draws a dash twice as long as the gap.
+#[derive(Deserialize, Debug)]
+pub struct Dasharray(pub Value);
+
+impl Dasharray {
+    pub fn evaluate(&self, context: &Context) -> Option<Vec<f32>> {
+        match self.try_evaluate(context) {
+            Ok(pattern) => Some(pattern),
+            Err(err) => {
+                warn!("{err}");
+                None
+            }
+        }
+    }
+
+    fn try_evaluate(&self, context: &Context) -> Result<Vec<f32>, StyleError> {
+        // A plain array of numbers, e.g. `[2, 1]`, is not a valid expression on its own
+        // (expressions are arrays starting with an operator string), so it must be
+        // recognized before falling back to `Context::evaluate`.
+        let value = match &self.0 {
+            Value::Array(values) if values.first().is_some_and(Value::is_number) => self.0.clone(),
+            other => context.evaluate(other)?,
+        };
+
+        match value {
+            Value::Array(values) => values
+                .iter()
+                .map(|v| v.as_f64().map(|f| f as f32).ok_or(StyleError::InvalidType))
+                .collect(),
+            _ => Err(StyleError::InvalidType),
+        }
+    }
+}
+
 #[derive(Deserialize, Debug)]
 pub struct Filter(pub Value);
 
@@ -197,10 +234,41 @@ impl Layout {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use std::collections::HashMap;
 
     #[test]
     fn test_style_parsing() {
         Style::protomaps_dark();
         Style::protomaps_light();
+    }
+
+    #[test]
+    fn rail_layer_dasharray_evaluates() {
+        let rail_context = Context::new(
+            "LineString".to_string(),
+            HashMap::from([("kind".to_string(), Value::String("rail".to_string()))]),
+            10,
+        );
+
+        let rail_layer = Style::protomaps_dark()
+            .layers
+            .into_iter()
+            .find(|layer| {
+                matches!(layer, Layer::Line { source_layer, filter: Some(filter), .. }
+                    if source_layer == "roads" && filter.matches(&rail_context))
+            })
+            .expect("a roads layer filtering on kind == rail should be present");
+
+        let Layer::Line { paint, .. } = rail_layer else {
+            unreachable!()
+        };
+
+        let dasharray = paint
+            .line_dasharray
+            .expect("roads_rail paint should have a line-dasharray")
+            .evaluate(&rail_context)
+            .expect("plain number array should evaluate without needing an expression");
+
+        assert_eq!(dasharray, vec![0.3, 0.75]);
     }
 }
