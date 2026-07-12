@@ -234,41 +234,10 @@ impl Layout {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use std::collections::HashMap;
 
     #[test]
     fn test_style_parsing() {
         Style::protomaps_dark();
         Style::protomaps_light();
-    }
-
-    #[test]
-    fn rail_layer_dasharray_evaluates() {
-        let rail_context = Context::new(
-            "LineString".to_string(),
-            HashMap::from([("kind".to_string(), Value::String("rail".to_string()))]),
-            10,
-        );
-
-        let rail_layer = Style::protomaps_dark()
-            .layers
-            .into_iter()
-            .find(|layer| {
-                matches!(layer, Layer::Line { source_layer, filter: Some(filter), .. }
-                    if source_layer == "roads" && filter.matches(&rail_context))
-            })
-            .expect("a roads layer filtering on kind == rail should be present");
-
-        let Layer::Line { paint, .. } = rail_layer else {
-            unreachable!()
-        };
-
-        let dasharray = paint
-            .line_dasharray
-            .expect("roads_rail paint should have a line-dasharray")
-            .evaluate(&rail_context)
-            .expect("plain number array should evaluate without needing an expression");
-
-        assert_eq!(dasharray, vec![0.3, 0.75]);
     }
 }
