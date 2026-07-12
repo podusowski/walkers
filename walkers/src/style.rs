@@ -96,6 +96,8 @@ pub struct Paint {
     pub line_color: Option<Color>,
     /// <https://maplibre.org/maplibre-style-spec/layers/>#line-opacity
     pub line_opacity: Option<Float>,
+    /// <https://maplibre.org/maplibre-style-spec/layers/>#line-dasharray
+    pub line_dasharray: Option<Dasharray>,
     /// <https://maplibre.org/maplibre-style-spec/layers/>#text-color
     pub text_color: Option<Color>,
     /// <https://maplibre.org/maplibre-style-spec/layers/>#text-halo-color
@@ -155,6 +157,41 @@ impl Float {
     fn try_evaluate(&self, context: &Context) -> Result<f32, StyleError> {
         match context.evaluate(&self.0)? {
             Value::Number(num) => Ok(num.as_f64().ok_or(StyleError::InvalidType)? as f32),
+            _ => Err(StyleError::InvalidType),
+        }
+    }
+}
+
+/// A dash/gap pattern for lines. Values are in units of the line's width, per the
+/// MapLibre spec, e.g. `[2, 1]` draws a dash twice as long as the gap.
+#[derive(Deserialize, Debug)]
+pub struct Dasharray(pub Value);
+
+impl Dasharray {
+    pub fn evaluate(&self, context: &Context) -> Option<Vec<f32>> {
+        match self.try_evaluate(context) {
+            Ok(pattern) => Some(pattern),
+            Err(err) => {
+                warn!("{err}");
+                None
+            }
+        }
+    }
+
+    fn try_evaluate(&self, context: &Context) -> Result<Vec<f32>, StyleError> {
+        // A plain array of numbers, e.g. `[2, 1]`, is not a valid expression on its own
+        // (expressions are arrays starting with an operator string), so it must be
+        // recognized before falling back to `Context::evaluate`.
+        let value = match &self.0 {
+            Value::Array(values) if values.first().is_some_and(Value::is_number) => self.0.clone(),
+            other => context.evaluate(other)?,
+        };
+
+        match value {
+            Value::Array(values) => values
+                .iter()
+                .map(|v| v.as_f64().map(|f| f as f32).ok_or(StyleError::InvalidType))
+                .collect(),
             _ => Err(StyleError::InvalidType),
         }
     }

@@ -6,6 +6,7 @@ All notable changes to this project will be documented in this file.
 
 * An empty `source_layer` now matches features from all layers of a vector tile.
 * Fix crash when zooming out close to zoom 0 with tile sources serving tiles larger than 256px.
+* Support `line-dasharray` in vector tile styles.
 
 ## 0.56.0
 
