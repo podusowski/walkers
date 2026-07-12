@@ -306,6 +306,7 @@ pub fn render_line(
         }
         _ => (),
     }
+
     Ok(())
 }
 
