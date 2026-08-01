@@ -187,7 +187,8 @@ impl<'a, 'b, 'c> Map<'a, 'b, 'c> {
 impl Map<'_, '_, '_> {
     /// Handle user inputs and recalculate everything accordingly. Returns whether something changed.
     fn handle_gestures(&mut self, ui: &mut Ui, response: &Response) -> bool {
-        let zoom_delta = self.zoom_delta(ui, response);
+        let (zoom_delta, zoom_delta_from_scroll) = self.zoom_delta(ui, response);
+        let mut scroll_used = false;
 
         // Zooming and dragging need to be exclusive, otherwise the map will get dragged when
         // pinch gesture is used.
@@ -227,6 +228,8 @@ impl Map<'_, '_, '_> {
                     .shift(offset, self.memory.zoom());
             }
 
+            scroll_used |= zoom_delta_from_scroll;
+
             true
         } else {
             self.memory.center_mode.handle_gestures(
@@ -248,14 +251,22 @@ impl Map<'_, '_, '_> {
                 self.memory.center_mode = Center::Exact(
                     AdjustedPosition::new(self.position()).shift(scroll_delta, self.memory.zoom()),
                 );
+                scroll_used = true;
             }
+        }
+
+        // Mark the scroll as consumed, so that it's not acted upon again by a container the map is
+        // nested in, such as a `ScrollArea`.
+        if scroll_used {
+            ui.input_mut(|i| i.smooth_scroll_delta = Vec2::ZERO);
         }
 
         changed
     }
 
-    /// Calculate the zoom delta based on the input.
-    fn zoom_delta(&self, ui: &mut Ui, response: &Response) -> f64 {
+    /// Calculate the zoom delta based on the input. Additionally, returns whether it was derived
+    /// from the scroll delta, which then needs to be consumed.
+    fn zoom_delta(&self, ui: &mut Ui, response: &Response) -> (f64, bool) {
         let mut zoom_delta = ui.input(|input| input.zoom_delta()) as f64;
 
         if self.options.double_click_to_zoom
@@ -284,9 +295,11 @@ impl Map<'_, '_, '_> {
                             .clamp(input.predicted_dt * 0.5, input.predicted_dt * 2.0)
                 }) as f64
                     / 4.0;
+
+            return (zoom_delta, true);
         };
 
-        zoom_delta
+        (zoom_delta, false)
     }
 
     /// Get the real position at the map's center.
