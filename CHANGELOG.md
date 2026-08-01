@@ -8,6 +8,7 @@ All notable changes to this project will be documented in this file.
 * Fix crash when zooming out close to zoom 0 with tile sources serving tiles larger than 256px.
 * Support `line-dasharray` in vector tile styles.
 * `Layer`, `Dasharray`, `Layout` and `Layout::text_field` are now public.
+* `Map` now consumes the scroll it acts upon, so that parent containers don't act on it as well.
 
 ## 0.56.0
 
