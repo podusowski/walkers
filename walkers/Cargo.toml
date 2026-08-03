@@ -41,7 +41,6 @@ http-cache-reqwest.workspace = true
 tokio.workspace = true
 
 [target.'cfg(target_family = "wasm")'.dependencies]
-getrandom = { version = "0.2", features = ["js"] }
 wasm-bindgen-futures.workspace = true
 
 [features]

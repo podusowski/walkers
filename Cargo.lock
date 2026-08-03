@@ -5330,7 +5330,6 @@ dependencies = [
  "futures",
  "geo",
  "geo-types",
- "getrandom 0.2.17",
  "http-cache-reqwest",
  "hypermocker",
  "image",

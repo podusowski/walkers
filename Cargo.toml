@@ -33,8 +33,6 @@ futures = "0.3.33"
 geo = { version = "0.33.1", default-features = false }
 geo-types = "0.7.20"
 geojson = "1.0"
-# `getrandom` is deliberately not a workspace dependency: `walkers` needs 0.2 (`js`),
-# while `demo` needs 0.4 (`wasm_js`, for `rand` 0.10).
 http-body-util = "0.1.4"
 # 1.0 (the version that supports `reqwest` 0.13) is still a pre-release, so stay on `reqwest` 0.12:
 http-cache-reqwest = "0.16.0"
