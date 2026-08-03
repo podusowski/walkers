@@ -33,7 +33,7 @@ futures = "0.3.33"
 geo = { version = "0.33.1", default-features = false }
 geo-types = "0.7.20"
 geojson = "1.0"
-getrandom = { version = "0.4.2", features = ["wasm_js"] }
+getrandom = { version = "0.4.3", features = ["wasm_js"] }
 http-body-util = "0.1.4"
 # 1.0 (the version that supports `reqwest` 0.13) is still a pre-release, so stay on `reqwest` 0.12:
 http-cache-reqwest = "0.16.0"
