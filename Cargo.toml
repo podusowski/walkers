@@ -36,6 +36,7 @@ geojson = "1.0"
 # `getrandom` is deliberately not a workspace dependency: `walkers` needs 0.2 (`js`),
 # while `demo` needs 0.4 (`wasm_js`, for `rand` 0.10).
 http-body-util = "0.1.4"
+# 1.0 (the version that supports `reqwest` 0.13) is still a pre-release, so stay on `reqwest` 0.12:
 http-cache-reqwest = "0.16.0"
 hyper = { version = "1.11", features = ["full"] }
 hyper-util = { version = "0.1.20", features = ["full"] }
@@ -51,10 +52,11 @@ pmtiles = { version = "0.23.1", default-features = false, features = [
 ] }
 quick-xml = "0.41.0"
 rand = { version = "0.10.2", features = ["std_rng"] } # StdRng
+# 0.13 is blocked on a stable `http-cache-reqwest` 1.0, which is the first version to support it:
 reqwest = { version = "0.12.28", default-features = false, features = [
   "rustls-tls",
 ] }
-reqwest-middleware = "0.4.2"
+reqwest-middleware = "0.4.2" # 0.5 requires `reqwest` 0.13
 rstar = "0.13.0"
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
@@ -65,7 +67,7 @@ walkers = { path = "walkers", version = "0.56.0" }
 walkers_extras = { path = "walkers_extras", version = "0.56.0" }
 wasm-bindgen-futures = "0.4.76"
 web-sys = "0.3.103"
-wgpu = { version = "29.0", default-features = true }
+wgpu = { version = "29.0", default-features = true } # 30 would duplicate the `wgpu` 29 that egui 0.35 needs
 
 # [patch.crates-io]
 # eframe = { git = "https://github.com/emilk/egui.git", branch = "main" }
