@@ -9,6 +9,8 @@ All notable changes to this project will be documented in this file.
 * Support `line-dasharray` in vector tile styles.
 * `Layer`, `Dasharray`, `Layout` and `Layout::text_field` are now public.
 * `Map` now consumes the scroll it acts upon, so that parent containers don't act on it as well.
+* Dependencies updated, including `kml` 0.14 and `rstar` 0.13.
+* The unused `getrandom` dependency was removed.
 
 ## 0.56.0
 

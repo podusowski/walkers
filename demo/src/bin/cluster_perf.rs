@@ -3,7 +3,7 @@ use std::sync::{Arc, Mutex};
 use std::time::{Duration, Instant};
 
 use egui::{self, Align2, Color32, Stroke};
-use rand::{Rng, SeedableRng, rngs::StdRng};
+use rand::{RngExt as _, rngs::StdRng};
 
 use walkers::sources;
 use walkers::{HttpOptions, HttpTiles, Map, MapMemory, Position, Projector, lon_lat};
@@ -124,7 +124,7 @@ impl ClusterApp {
     fn new(ctx: &egui::Context) -> Self {
         let mut app = Self {
             memory: MapMemory::default(),
-            rng: StdRng::from_os_rng(),
+            rng: rand::make_rng(),
             points: Vec::new(),
             tiles: Some(HttpTiles::with_options(
                 sources::OpenStreetMap,

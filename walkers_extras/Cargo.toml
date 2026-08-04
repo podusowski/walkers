@@ -11,13 +11,13 @@ categories.workspace = true
 
 [dependencies]
 egui.workspace = true
-geo = { version = "0.33.1", default-features = false }
-geojson = "1.0.0"
-kml = { version = "0.13.0", default-features = false }
+geo.workspace = true
+geojson.workspace = true
+kml.workspace = true
 log.workspace = true
-lyon_path = "1.0"
-lyon_tessellation = "1.0"
-quick-xml = "0.41"
-rstar = "0.12"
-thiserror = "2"
+lyon_path.workspace = true
+lyon_tessellation.workspace = true
+quick-xml.workspace = true
+rstar.workspace = true
+thiserror.workspace = true
 walkers = { workspace = true, features = ["mvt"] }

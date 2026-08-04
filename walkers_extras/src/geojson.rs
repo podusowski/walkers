@@ -57,7 +57,7 @@ impl GeoJsonLayer {
         for layer in &self.style.layers {
             match layer {
                 Layer::Line { paint, filter, .. } => {
-                    for entry in self.rtree.locate_in_envelope_intersecting(&viewport) {
+                    for entry in self.rtree.locate_in_envelope_intersecting(viewport) {
                         let properties = entry.data.properties.clone();
                         let context =
                             Context::new("geometry_type/TODO".to_string(), properties, zoom);

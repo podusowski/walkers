@@ -5,8 +5,8 @@ edition.workspace = true
 publish = false
 
 [dependencies]
-log = "0.4"
-android_logger = "0.15"
+log.workspace = true
+android_logger.workspace = true
 eframe = { workspace = true, features = ["wgpu", "android-game-activity"] }
 egui-winit.workspace = true
 demo = { path = "../../demo" }

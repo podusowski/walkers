@@ -10,46 +10,38 @@ keywords.workspace = true
 categories.workspace = true
 
 [dependencies]
-bytes = "1"
-color = { version = "0.3.2", features = ["serde"], optional = true }
+bytes.workspace = true
+color = { workspace = true, optional = true }
 egui.workspace = true
 egui_extras.workspace = true
-futures = "0.3.32"
-geo = { version = "0.33.1", default-features = false, optional = true }
-geo-types = { version = "0.7" }
-image = { version = "0.25", default-features = false, features = [
-  "jpeg",
-  "png",
-] }
+futures.workspace = true
+geo = { workspace = true, optional = true }
+geo-types.workspace = true
+image = { workspace = true, features = ["jpeg", "png"] }
 log.workspace = true
-lru = "0.18"
-lyon_path = { version = "1", optional = true }
-lyon_tessellation = { version = "1", optional = true }
-mvt-reader = { version = "2.1.0", optional = true }
-pmtiles = { version = "0.23.0", default-features = false, features = [
-  "mmap-async-tokio",
-], optional = true }
-reqwest = { version = "0.12", default-features = false, features = [
-  "rustls-tls",
-] }
-reqwest-middleware = "0.4.2"
-serde = { version = "1", features = ["derive"], optional = true }
-serde_json = { version = "1.0.148", optional = true }
-thiserror = "2"
+lru.workspace = true
+lyon_path = { workspace = true, optional = true }
+lyon_tessellation = { workspace = true, optional = true }
+mvt-reader = { workspace = true, optional = true }
+pmtiles = { workspace = true, optional = true }
+reqwest.workspace = true
+reqwest-middleware.workspace = true
+serde = { workspace = true, optional = true }
+serde_json = { workspace = true, optional = true }
+thiserror.workspace = true
 
 [dev-dependencies]
-approx = "0.5"
+approx.workspace = true
 eframe.workspace = true
-env_logger = "0.11"
+env_logger.workspace = true
 hypermocker = { path = "../hypermocker" }
 
 [target.'cfg(not(target_family = "wasm"))'.dependencies]
-http-cache-reqwest = "0.16.0"
-tokio = "1"
+http-cache-reqwest.workspace = true
+tokio.workspace = true
 
 [target.'cfg(target_family = "wasm")'.dependencies]
-getrandom = { version = "0.2", features = ["js"] }
-wasm-bindgen-futures = "0.4"
+wasm-bindgen-futures.workspace = true
 
 [features]
 default = []
