@@ -66,7 +66,7 @@ walkers = { path = "walkers", version = "0.56.0" }
 walkers_extras = { path = "walkers_extras", version = "0.56.0" }
 wasm-bindgen-futures = "0.4.76"
 web-sys = "0.3.103"
-wgpu = { version = "29.0", default-features = true } # 30 would duplicate the `wgpu` 29 that egui 0.35 needs
+wgpu = { version = "30.0", default-features = true } # 30 would duplicate the `wgpu` 29 that egui 0.35 needs
 
 # [patch.crates-io]
 # eframe = { git = "https://github.com/emilk/egui.git", branch = "main" }
