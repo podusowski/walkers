@@ -13,7 +13,7 @@ members = [
 [workspace.package]
 version = "0.56.0"
 edition = "2024"
-rust-version = "1.92"                                # Aligned to egui
+rust-version = "1.95"                                # Aligned to egui
 repository = "https://github.com/podusowski/walkers"
 license = "MIT"
 keywords = ["geography", "gis", "gui"]
@@ -24,10 +24,10 @@ android_logger = "0.15.1"
 approx = "0.5.1"
 bytes = "1.12"
 color = { version = "0.3.3", features = ["serde"] }
-eframe = "0.35.0"
-egui = "0.35.0"
-egui_extras = { version = "0.35.0", features = ["svg"] }
-egui-winit = "0.35.0"
+eframe = "0.36.0"
+egui = "0.36.0"
+egui_extras = { version = "0.36.0", features = ["svg"] }
+egui-winit = "0.36.0"
 env_logger = "0.11.11"
 futures = "0.3.33"
 geo = { version = "0.33.1", default-features = false }
@@ -66,7 +66,7 @@ walkers = { path = "walkers", version = "0.56.0" }
 walkers_extras = { path = "walkers_extras", version = "0.56.0" }
 wasm-bindgen-futures = "0.4.76"
 web-sys = "0.3.103"
-wgpu = { version = "29.0", default-features = true } # 30 would duplicate the `wgpu` 29 that egui 0.35 needs
+wgpu = { version = "30.0", default-features = true } # Aligned to the `wgpu` version that egui 0.36 uses
 
 # [patch.crates-io]
 # eframe = { git = "https://github.com/emilk/egui.git", branch = "main" }
