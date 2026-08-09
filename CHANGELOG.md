@@ -4,6 +4,8 @@ All notable changes to this project will be documented in this file.
 
 ## Unreleased
 
+## 0.58.0
+
 * `egui` updated to 0.36.
 * MSRV increased to 1.95.
 
