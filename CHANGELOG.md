@@ -13,6 +13,8 @@ All notable changes to this project will be documented in this file.
 * `Map` now consumes the scroll it acts upon, so that parent containers don't act on it as well.
 * Dependencies updated, including `kml` 0.14 and `rstar` 0.13.
 * The unused `getrandom` dependency was removed.
+* `egui` updated to 0.36.
+* MSRV increased to 1.95.
 
 ## 0.56.0
 
