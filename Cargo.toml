@@ -11,7 +11,7 @@ members = [
 ]
 
 [workspace.package]
-version = "0.56.0"
+version = "0.57.0"
 edition = "2024"
 rust-version = "1.92"                                # Aligned to egui
 repository = "https://github.com/podusowski/walkers"
@@ -62,8 +62,8 @@ serde_json = "1.0"
 thiserror = "2.0"
 tokio = "1.53"
 tokio-test = "0.4.5"
-walkers = { path = "walkers", version = "0.56.0" }
-walkers_extras = { path = "walkers_extras", version = "0.56.0" }
+walkers = { path = "walkers", version = "0.57.0" }
+walkers_extras = { path = "walkers_extras", version = "0.57.0" }
 wasm-bindgen-futures = "0.4.76"
 web-sys = "0.3.103"
 wgpu = { version = "29.0", default-features = true } # 30 would duplicate the `wgpu` 29 that egui 0.35 needs
