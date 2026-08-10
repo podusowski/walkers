@@ -4,6 +4,8 @@ All notable changes to this project will be documented in this file.
 
 ## Unreleased
 
+* Fix tile sources with tiles smaller than 256px being rendered as if they were 256px.
+
 ## 0.58.0
 
 * `egui` updated to 0.36.
