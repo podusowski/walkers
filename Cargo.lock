@@ -989,7 +989,6 @@ dependencies = [
  "rand 0.10.2",
  "walkers",
  "walkers_extras",
- "wgpu",
 ]
 
 [[package]]
