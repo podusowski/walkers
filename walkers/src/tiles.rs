@@ -102,6 +102,9 @@ impl TileId {
 pub trait Tiles {
     fn at(&mut self, tile_id: TileId) -> Option<TilePiece>;
     fn attribution(&self) -> Attribution;
+
+    /// Size of each tile, in pixels. Walkers works with 256px tiles internally, so this
+    /// should be 256 multiplied or divided by a power of two, for example 128, 256 or 512.
     fn tile_size(&self) -> u32;
 }
 
@@ -381,6 +384,91 @@ impl TileFactory for EguiTileFactory {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::lon_lat;
+
+    /// Records which tiles were asked for, without ever returning one.
+    struct RecordingTiles {
+        tile_size: u32,
+        requested: Vec<TileId>,
+    }
+
+    impl RecordingTiles {
+        fn new(tile_size: u32) -> Self {
+            Self {
+                tile_size,
+                requested: Vec::new(),
+            }
+        }
+    }
+
+    impl Tiles for RecordingTiles {
+        fn at(&mut self, tile_id: TileId) -> Option<TilePiece> {
+            self.requested.push(tile_id);
+            None
+        }
+
+        fn attribution(&self) -> Attribution {
+            Attribution {
+                text: "",
+                url: "",
+                logo_light: None,
+                logo_dark: None,
+            }
+        }
+
+        fn tile_size(&self) -> u32 {
+            self.tile_size
+        }
+    }
+
+    /// Run [`draw_tiles`] on a viewport of `TILE_SIZE` squared, and report which tiles the
+    /// source was asked for.
+    fn requested_tiles(tile_size: u32, zoom: f64) -> Vec<TileId> {
+        let ctx = Context::default();
+        let painter = egui::Painter::new(
+            ctx,
+            egui::LayerId::debug(),
+            Rect::from_min_size(pos2(0., 0.), Vec2::splat(TILE_SIZE as f32)),
+        );
+
+        let mut tiles = RecordingTiles::new(tile_size);
+
+        #[allow(clippy::unwrap_used)]
+        draw_tiles(
+            &painter,
+            lon_lat(21.00027, 52.26470),
+            Zoom::try_from(zoom).unwrap(),
+            &mut tiles,
+            1.0,
+        );
+
+        tiles.requested
+    }
+
+    /// Sources with tiles smaller than 256px are just as valid as the larger ones, and the
+    /// map should not go blank when one is used.
+    /// See: <https://github.com/podusowski/walkers/issues/551>
+    #[test]
+    fn smaller_tiles_are_requested_from_a_higher_zoom_level() {
+        let zoom = 16.;
+
+        // A 256px source covers the viewport with tiles from the map's own zoom level.
+        let with_256 = requested_tiles(256, zoom);
+        assert!(!with_256.is_empty());
+        assert!(with_256.iter().all(|tile_id| tile_id.zoom == 16));
+
+        // 128px tiles are half the size, so they have to come from one zoom level deeper to
+        // show the same area at the same scale, and more of them are needed to fill the
+        // viewport.
+        let with_128 = requested_tiles(128, zoom);
+        assert!(with_128.iter().all(|tile_id| tile_id.zoom == 17));
+        assert!(with_128.len() > with_256.len());
+
+        // Same story one step further down.
+        let with_64 = requested_tiles(64, zoom);
+        assert!(with_64.iter().all(|tile_id| tile_id.zoom == 18));
+        assert!(with_64.len() > with_128.len());
+    }
 
     #[test]
     fn test_full_rect_of_clipped_tile() {
