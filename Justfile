@@ -14,7 +14,11 @@ check-demo:
     cargo check -p demo_native
 
 [group('develop')]
-check: check-lean check-all-features check-demo
+check-wanderers:
+    cargo check -p wanderers
+
+[group('develop')]
+check: check-lean check-all-features check-demo check-wanderers
 
 [group('develop')]
 lints:

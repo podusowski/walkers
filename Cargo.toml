@@ -8,6 +8,7 @@ members = [
     "hypermocker",
     "walkers",
     "walkers_extras",
+    "wanderers",
 ]
 
 [workspace.package]

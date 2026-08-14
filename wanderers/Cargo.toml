@@ -1,0 +1,16 @@
+[package]
+name = "wanderers"
+description = "Journal of the places you have been to, and the ones you still want to see."
+version.workspace = true
+edition.workspace = true
+publish = false
+
+[dependencies]
+walkers.workspace = true
+walkers_extras.workspace = true
+eframe.workspace = true
+egui.workspace = true
+env_logger.workspace = true
+geojson.workspace = true
+serde_json.workspace = true
+thiserror.workspace = true
