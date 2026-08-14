@@ -41,7 +41,9 @@ impl eframe::App for Wanderers {
     fn ui(&mut self, ui: &mut Ui, _frame: &mut eframe::Frame) {
         let attribution = self.tiles.attribution();
 
-        Map::new(Some(&mut self.tiles), &mut self.map_memory, home()).show(ui, |_, _, _, _| {});
+        Map::new(Some(&mut self.tiles), &mut self.map_memory, home())
+            .zoom_with_ctrl(false)
+            .show(ui, |_, _, _, _| {});
 
         zoom(ui, &mut self.map_memory);
         go_home(ui, &mut self.map_memory);
