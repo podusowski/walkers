@@ -5313,7 +5313,11 @@ dependencies = [
  "eframe",
  "egui",
  "env_logger",
+ "geojson",
+ "serde_json",
+ "thiserror 2.0.19",
  "walkers",
+ "walkers_extras",
 ]
 
 [[package]]

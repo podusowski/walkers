@@ -7,6 +7,10 @@ publish = false
 
 [dependencies]
 walkers.workspace = true
+walkers_extras.workspace = true
 eframe.workspace = true
 egui.workspace = true
 env_logger.workspace = true
+geojson.workspace = true
+serde_json.workspace = true
+thiserror.workspace = true
