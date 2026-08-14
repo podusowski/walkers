@@ -23,7 +23,7 @@ use serde_json::{Number, Value as JsonValue};
 use crate::{
     expression::Context,
     style::{Filter, Layer, Layout, Paint, Style},
-    text::Text,
+    text::{OccupiedAreas, OrientedRect, Text},
 };
 
 #[derive(thiserror::Error, Debug)]
@@ -172,6 +172,50 @@ pub fn transformed(shapes: &[ShapeOrText], rect: egui::Rect) -> Vec<ShapeOrText>
         shape.transform(transform);
     }
     result
+}
+
+/// Lay out the labels, dropping the ones which would land on top of an already placed one.
+pub fn resolve_text(shapes: Vec<ShapeOrText>, ctx: &egui::Context) -> Vec<Shape> {
+    let mut occupied_text_areas = OccupiedAreas::new();
+
+    // Need to collect it to avoid deadlock caused by `Painter::extend` and `fonts_mut`.
+    shapes
+        .into_iter()
+        .map(|shape_or_text| match shape_or_text {
+            ShapeOrText::Shape(shape) => shape,
+            ShapeOrText::Text(text) => draw_text(text, ctx, &mut occupied_text_areas),
+        })
+        .collect()
+}
+
+fn draw_text(text: Text, ctx: &egui::Context, occupied_text_areas: &mut OccupiedAreas) -> Shape {
+    use egui::epaint::TextShape;
+
+    let mut layout_job = egui::text::LayoutJob::default();
+
+    layout_job.append(
+        &text.text,
+        0.0,
+        egui::TextFormat {
+            font_id: egui::FontId::proportional(text.font_size),
+            color: text.text_color,
+            background: text.background_color,
+            ..Default::default()
+        },
+    );
+
+    let galley = ctx.fonts_mut(|fonts| fonts.layout_job(layout_job));
+
+    let area = OrientedRect::new(text.position, text.angle, galley.size());
+    let top_left = area.top_left();
+
+    if occupied_text_areas.try_occupy(area) {
+        TextShape::new(top_left, galley, text.text_color)
+            .with_angle(text.angle)
+            .into()
+    } else {
+        Shape::Noop
+    }
 }
 
 fn get_layer_features(
@@ -419,7 +463,7 @@ fn render_polygon(
     Ok(())
 }
 
-fn render_symbol(
+pub fn render_symbol(
     geometry: &Geometry<f32>,
     context: &Context,
     shapes: &mut Vec<ShapeOrText>,
@@ -427,107 +471,126 @@ fn render_symbol(
     paint: &Option<Paint>,
 ) -> Result<(), Error> {
     match geometry {
-        Geometry::MultiPoint(multi_point) => {
-            let text_size = layout
-                .text_size
-                .as_ref()
-                .and_then(|text_size| {
-                    let size = text_size.evaluate(context);
-
-                    if size > 3.0 {
-                        Some(size)
-                    } else {
-                        warn!(
-                            "{} evaluated into {size}, which is too small for text size.",
-                            text_size.0
-                        );
-                        None
-                    }
-                })
-                .unwrap_or(12.0);
-
-            let text_color = if let Some(paint) = paint
-                && let Some(color) = &paint.text_color
-            {
-                color.evaluate(context)
-            } else {
-                // Default from MapLibre spec.
-                Color32::BLACK
-            };
-
-            if let Some(text) = &layout.text(context) {
-                shapes.extend(multi_point.0.iter().map(|p| {
-                    ShapeOrText::Text(Text::new(
-                        pos2(p.x(), p.y()),
-                        text.clone(),
-                        text_size,
-                        text_color,
-                        Color32::TRANSPARENT,
-                        0.0,
-                    ))
-                }))
-            }
+        Geometry::Point(point) => {
+            label_points(std::slice::from_ref(point), context, shapes, layout, paint)
         }
+        Geometry::MultiPoint(multi_point) => {
+            label_points(&multi_point.0, context, shapes, layout, paint)
+        }
+        Geometry::LineString(line_string) => label_line_strings(
+            std::slice::from_ref(line_string),
+            context,
+            shapes,
+            layout,
+            paint,
+        ),
         Geometry::MultiLineString(multi_line_string) => {
-            let text_size = layout
-                .text_size
-                .as_ref()
-                .and_then(|text_size| {
-                    let size = text_size.evaluate(context);
-
-                    if size > 3.0 {
-                        Some(size)
-                    } else {
-                        warn!(
-                            "{} evaluated into {size}, which is too small for text size.",
-                            text_size.0
-                        );
-                        None
-                    }
-                })
-                .unwrap_or(12.0);
-
-            let text_color = if let Some(paint) = paint
-                && let Some(color) = &paint.text_color
-            {
-                color.evaluate(context)
-            } else {
-                Color32::BLACK
-            };
-
-            let text_halo_color = if let Some(paint) = paint
-                && let Some(color) = &paint.text_halo_color
-            {
-                color.evaluate(context)
-            } else {
-                Color32::TRANSPARENT
-            };
-
-            for line_string in multi_line_string {
-                let lines: Vec<_> = line_string.lines().collect();
-
-                if let Some(text) = &layout.text(context)
-                // Use the longest line to fit the label.
-                && let Some(line) = lines.into_iter().max_by_key(|line| length(line) as u32)
-                {
-                    let mid_point = midpoint(&line.start_point(), &line.end_point());
-                    let angle = line.slope().atan();
-
-                    shapes.push(ShapeOrText::Text(Text::new(
-                        pos2(mid_point.x(), mid_point.y()),
-                        text.clone(),
-                        text_size,
-                        text_color,
-                        // TODO: Implement real halo rendering.
-                        text_halo_color.gamma_multiply(0.5),
-                        angle,
-                    )));
-                }
-            }
+            label_line_strings(&multi_line_string.0, context, shapes, layout, paint)
         }
         _ => (),
     }
     Ok(())
+}
+
+fn label_points(
+    points: &[geo_types::Point<f32>],
+    context: &Context,
+    shapes: &mut Vec<ShapeOrText>,
+    layout: &Layout,
+    paint: &Option<Paint>,
+) {
+    let Some(text) = layout.text(context) else {
+        return;
+    };
+
+    let text_size = evaluate_text_size(layout, context);
+    let text_color = evaluate_text_color(paint, context);
+
+    shapes.extend(points.iter().map(|p| {
+        ShapeOrText::Text(Text::new(
+            pos2(p.x(), p.y()),
+            text.clone(),
+            text_size,
+            text_color,
+            Color32::TRANSPARENT,
+            0.0,
+        ))
+    }))
+}
+
+fn label_line_strings(
+    line_strings: &[geo_types::LineString<f32>],
+    context: &Context,
+    shapes: &mut Vec<ShapeOrText>,
+    layout: &Layout,
+    paint: &Option<Paint>,
+) {
+    let Some(text) = layout.text(context) else {
+        return;
+    };
+
+    let text_size = evaluate_text_size(layout, context);
+    let text_color = evaluate_text_color(paint, context);
+
+    let text_halo_color = if let Some(paint) = paint
+        && let Some(color) = &paint.text_halo_color
+    {
+        color.evaluate(context)
+    } else {
+        Color32::TRANSPARENT
+    };
+
+    for line_string in line_strings {
+        let lines: Vec<_> = line_string.lines().collect();
+
+        // Use the longest line to fit the label.
+        if let Some(line) = lines.into_iter().max_by_key(|line| length(line) as u32) {
+            let mid_point = midpoint(&line.start_point(), &line.end_point());
+            let angle = line.slope().atan();
+
+            shapes.push(ShapeOrText::Text(Text::new(
+                pos2(mid_point.x(), mid_point.y()),
+                text.clone(),
+                text_size,
+                text_color,
+                // TODO: Implement real halo rendering.
+                text_halo_color.gamma_multiply(0.5),
+                angle,
+            )));
+        }
+    }
+}
+
+fn evaluate_text_size(layout: &Layout, context: &Context) -> f32 {
+    layout
+        .text_size
+        .as_ref()
+        .and_then(|text_size| {
+            let size = text_size.evaluate(context);
+
+            if size > 3.0 {
+                Some(size)
+            } else {
+                warn!(
+                    "{} evaluated into {size}, which is too small for text size.",
+                    text_size.0
+                );
+                None
+            }
+        })
+        // Default from MapLibre spec.
+        .unwrap_or(12.0)
+}
+
+fn evaluate_text_color(paint: &Option<Paint>, context: &Context) -> Color32 {
+    if let Some(paint) = paint
+        && let Some(color) = &paint.text_color
+    {
+        color.evaluate(context)
+    } else {
+        // Default from MapLibre spec.
+        Color32::BLACK
+    }
 }
 
 fn length(line: &Line<f32>) -> f32 {
@@ -643,5 +706,74 @@ mod tests {
         // width 2.0 turns the [2, 1] pattern into 4-unit dash, 2-unit gap.
         let segments = dash_polyline(&points, &[2.0, 1.0], 2.0);
         assert_eq!(segments, vec![vec![pos2(0.0, 0.0), pos2(4.0, 0.0)]]);
+    }
+
+    fn label(geometry: Geometry<f32>) -> Vec<ShapeOrText> {
+        let context = Context::new(
+            geometry_type_to_str(&geometry).to_string(),
+            HashMap::from([("name".to_string(), JsonValue::from("Śnieżka"))]),
+            12,
+        );
+
+        let layout = Layout {
+            text_field: Some(crate::style::json!(["get", "name"])),
+            text_size: None,
+        };
+
+        let mut shapes = Vec::new();
+        render_symbol(&geometry, &context, &mut shapes, &layout, &None).unwrap();
+        shapes
+    }
+
+    fn texts(shapes: &[ShapeOrText]) -> Vec<&str> {
+        shapes
+            .iter()
+            .filter_map(|shape| match shape {
+                ShapeOrText::Text(text) => Some(text.text.as_str()),
+                ShapeOrText::Shape(_) => None,
+            })
+            .collect()
+    }
+
+    /// MVT hands over `MultiPoint`, GeoJSON a plain `Point`, and both need labelling.
+    #[test]
+    fn points_are_labelled_whether_they_come_singly_or_not() {
+        let point = geo_types::Point::new(1.0, 2.0);
+
+        assert_eq!(texts(&label(Geometry::Point(point))), ["Śnieżka"]);
+        assert_eq!(
+            texts(&label(Geometry::MultiPoint(
+                vec![point, geo_types::Point::new(3.0, 4.0)].into()
+            ))),
+            ["Śnieżka", "Śnieżka"]
+        );
+    }
+
+    #[test]
+    fn line_strings_are_labelled_whether_they_come_singly_or_not() {
+        let line_string =
+            geo_types::LineString::from(vec![(0.0f32, 0.0f32), (10.0, 0.0), (10.0, 10.0)]);
+
+        assert_eq!(
+            texts(&label(Geometry::LineString(line_string.clone()))),
+            ["Śnieżka"]
+        );
+        assert_eq!(
+            texts(&label(Geometry::MultiLineString(
+                geo_types::MultiLineString::new(vec![line_string.clone(), line_string])
+            ))),
+            ["Śnieżka", "Śnieżka"]
+        );
+    }
+
+    /// Labels are placed on the geometry, not at the origin.
+    #[test]
+    fn a_point_label_lands_on_the_point() {
+        let shapes = label(Geometry::Point(geo_types::Point::new(1.0, 2.0)));
+
+        match shapes.as_slice() {
+            [ShapeOrText::Text(text)] => assert_eq!(text.position, pos2(1.0, 2.0)),
+            other => panic!("expected a single label, got {other:?}"),
+        }
     }
 }
