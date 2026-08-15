@@ -226,31 +226,36 @@ pub(crate) fn render_polygon(
     shapes: &mut Vec<ShapeOrText>,
     paint: &Paint,
 ) -> Result<(), Error> {
-    if let Geometry::MultiPolygon(multi_polygon) = geometry {
-        let Some(fill_color) = &paint.fill_color else {
-            warn!("Fill layer without fill color. Skipping.");
-            return Ok(());
-        };
+    let polygons: &[geo_types::Polygon<f32>] = match geometry {
+        Geometry::Polygon(polygon) => std::slice::from_ref(polygon),
+        Geometry::MultiPolygon(multi_polygon) => &multi_polygon.0,
+        _ => return Ok(()),
+    };
 
-        let fill_color = fill_color.evaluate(context);
+    let Some(fill_color) = &paint.fill_color else {
+        warn!("Fill layer without fill color. Skipping.");
+        return Ok(());
+    };
 
-        let fill_color = if let Some(fill_opacity) = &paint.fill_opacity {
-            let fill_opacity = fill_opacity.evaluate(context);
-            fill_color.gamma_multiply(fill_opacity)
-        } else {
-            fill_color
-        };
+    let fill_color = fill_color.evaluate(context);
 
-        for polygon in multi_polygon.iter() {
-            let exterior = lyon_points(&polygon.exterior().0);
-            let interiors = polygon
-                .interiors()
-                .iter()
-                .map(|hole| lyon_points(&hole.0))
-                .collect::<Vec<_>>();
-            shapes.push(tessellate_polygon(&exterior, &interiors, fill_color)?.into());
-        }
+    let fill_color = if let Some(fill_opacity) = &paint.fill_opacity {
+        let fill_opacity = fill_opacity.evaluate(context);
+        fill_color.gamma_multiply(fill_opacity)
+    } else {
+        fill_color
+    };
+
+    for polygon in polygons {
+        let exterior = lyon_points(&polygon.exterior().0);
+        let interiors = polygon
+            .interiors()
+            .iter()
+            .map(|hole| lyon_points(&hole.0))
+            .collect::<Vec<_>>();
+        shapes.push(tessellate_polygon(&exterior, &interiors, fill_color)?.into());
     }
+
     Ok(())
 }
 
@@ -547,5 +552,46 @@ mod tests {
             [ShapeOrText::Text(text)] => assert_eq!(text.position, pos2(1.0, 2.0)),
             other => panic!("expected a single label, got {other:?}"),
         }
+    }
+
+    fn fill(geometry: Geometry<f32>) -> Vec<ShapeOrText> {
+        let context = Context::new(
+            geometry_type_to_str(&geometry).to_string(),
+            HashMap::new(),
+            12,
+        );
+
+        let paint = Paint {
+            fill_color: Some(crate::style::Color(crate::style::json!("#ff0000"))),
+            ..Default::default()
+        };
+
+        let mut shapes = Vec::new();
+        render_polygon(&geometry, &context, &mut shapes, &paint).unwrap();
+        shapes
+    }
+
+    /// A tile with one ring per feature gives a plain `Polygon`, not a `MultiPolygon`.
+    #[test]
+    fn polygons_are_filled_whether_they_come_singly_or_not() {
+        let polygon = geo_types::Polygon::new(
+            geo_types::LineString::from(vec![
+                (0.0f32, 0.0f32),
+                (10.0, 0.0),
+                (10.0, 10.0),
+                (0.0, 0.0),
+            ]),
+            vec![],
+        );
+
+        assert_eq!(fill(Geometry::Polygon(polygon.clone())).len(), 1);
+        assert_eq!(
+            fill(Geometry::MultiPolygon(geo_types::MultiPolygon::new(vec![
+                polygon.clone(),
+                polygon
+            ])))
+            .len(),
+            2
+        );
     }
 }

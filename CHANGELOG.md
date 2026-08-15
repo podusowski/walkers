@@ -6,6 +6,7 @@ All notable changes to this project will be documented in this file.
 
 * Fix tile sources with tiles smaller than 256px being rendered as if they were 256px.
 * `GeoJsonLayer` now renders `symbol` layers, including their text labels.
+* Fix `fill` layers not rendering features made of a single polygon.
 
 ## 0.58.0
 
