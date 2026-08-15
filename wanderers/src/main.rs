@@ -1,5 +1,6 @@
 mod app;
 mod journal;
+mod map_style;
 
 use app::Wanderers;
 
