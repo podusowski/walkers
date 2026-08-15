@@ -1,5 +1,6 @@
 mod app;
 mod journal;
+mod style;
 
 use app::Wanderers;
 
@@ -27,6 +28,9 @@ fn main() -> Result<(), eframe::Error> {
     eframe::run_native(
         "wanderers",
         options,
-        Box::new(|cc| Ok(Box::new(Wanderers::new(cc.egui_ctx.to_owned(), path)))),
+        Box::new(|cc| {
+            style::apply(&cc.egui_ctx);
+            Ok(Box::new(Wanderers::new(cc.egui_ctx.to_owned(), path)))
+        }),
     )
 }
