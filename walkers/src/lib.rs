@@ -32,6 +32,8 @@ mod mvt;
 mod pmtiles;
 mod position;
 mod projector;
+#[cfg(feature = "mvt")]
+mod render;
 pub mod sources;
 mod tiles;
 mod zoom;
@@ -58,6 +60,6 @@ pub use zoom::InvalidZoom;
 #[cfg(feature = "mvt")]
 pub use expression::Context;
 #[cfg(feature = "mvt")]
-pub use mvt::{
+pub use render::{
     Geometry, ShapeOrText, render_line, render_symbol, resolve_text, tessellate_polygon,
 };
