@@ -9,6 +9,7 @@ All notable changes to this project will be documented in this file.
 * Fix `fill` layers not rendering features made of a single polygon.
 * `source_layer` is now a `SourceLayer`, which can name several layers of a vector tile instead
   of one. It still takes a plain name, and an empty one still matches all of them.
+* `line-width` is now in screen pixels, so lines are thicker than before.
 
 ## 0.58.0
 

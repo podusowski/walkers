@@ -49,16 +49,47 @@ impl From<Mesh> for ShapeOrText {
 }
 
 impl ShapeOrText {
+    /// Move a shape from the space it was rendered in onto the screen.
+    ///
+    /// Geometry scales, stroke widths do not: a `line-width` of 4 means four pixels on the
+    /// screen at any zoom, the way the style spec means it, rather than four pixels only at
+    /// whichever zoom the tile happened to be rendered for. Text has always worked this way,
+    /// since its font size is not scaled either.
     pub fn transform(&mut self, transform: TSTransform) {
         match self {
             ShapeOrText::Shape(shape) => {
                 shape.transform(transform);
+                keep_stroke_width(shape, transform.scaling);
             }
             ShapeOrText::Text(Text { position, .. }) => {
                 *position *= transform.scaling;
                 *position += transform.translation;
             }
         }
+    }
+}
+
+/// Undo what [`Shape::transform`] did to the stroke widths, which it scales along with
+/// everything else.
+fn keep_stroke_width(shape: &mut Shape, scaling: f32) {
+    if scaling == 0.0 {
+        return;
+    }
+
+    match shape {
+        Shape::Vec(shapes) => {
+            for shape in shapes {
+                keep_stroke_width(shape, scaling);
+            }
+        }
+        Shape::Path(path) => path.stroke.width /= scaling,
+        Shape::LineSegment { stroke, .. } => stroke.width /= scaling,
+        Shape::Circle(circle) => circle.stroke.width /= scaling,
+        Shape::Ellipse(ellipse) => ellipse.stroke.width /= scaling,
+        Shape::Rect(rect) => rect.stroke.width /= scaling,
+        Shape::QuadraticBezier(curve) => curve.stroke.width /= scaling,
+        Shape::CubicBezier(curve) => curve.stroke.width /= scaling,
+        Shape::Noop | Shape::Text(_) | Shape::Mesh(_) | Shape::Callback(_) => {}
     }
 }
 
@@ -95,10 +126,9 @@ pub fn render_line(
     paint: &Paint,
 ) -> Result<(), Error> {
     let width = if let Some(width) = &paint.line_width {
-        // Align to the proportion of MVT extent and tile size.
-        width.evaluate(context) * 4.0
+        width.evaluate(context)
     } else {
-        2.0
+        1.0
     };
 
     let opacity = if let Some(opacity) = &paint.line_opacity {
@@ -593,5 +623,84 @@ mod tests {
             .len(),
             2
         );
+    }
+}
+
+#[cfg(test)]
+mod width_tests {
+    use super::*;
+    use crate::style::{Color, Float, Paint, json};
+
+    fn line_width_after(scaling: f32, asked: f32) -> f32 {
+        let context = Context::new("LineString".to_string(), Default::default(), 10);
+        let paint = Paint {
+            line_color: Some(Color(json!("#000000"))),
+            line_width: Some(Float(json!(asked))),
+            ..Default::default()
+        };
+        let geometry = Geometry::LineString(geo_types::LineString::from(vec![
+            (0.0f32, 0.0f32),
+            (100.0, 100.0),
+        ]));
+
+        let mut shapes = Vec::new();
+        render_line(&geometry, &context, &mut shapes, &paint).unwrap();
+
+        for shape in shapes.iter_mut() {
+            shape.transform(TSTransform {
+                scaling,
+                translation: Default::default(),
+            });
+        }
+
+        shapes
+            .iter()
+            .find_map(|shape| match shape {
+                ShapeOrText::Shape(Shape::LineSegment { stroke, .. }) => Some(stroke.width),
+                ShapeOrText::Shape(Shape::Path(path)) => Some(path.stroke.width),
+                _ => None,
+            })
+            .expect("no line")
+    }
+
+    /// A tile is drawn at whatever size the current zoom calls for, but `line-width` is in
+    /// screen pixels and must not follow it.
+    #[test]
+    fn line_width_survives_the_transform() {
+        for scaling in [256.0 / 4096.0, 362.0 / 4096.0, 511.0 / 4096.0, 1.0] {
+            let width = line_width_after(scaling, 4.0);
+            assert!(
+                (width - 4.0).abs() < 0.001,
+                "asked for 4.0, got {width} at scaling {scaling}"
+            );
+        }
+    }
+
+    #[test]
+    fn geometry_still_scales() {
+        let context = Context::new("LineString".to_string(), Default::default(), 10);
+        let geometry = Geometry::LineString(geo_types::LineString::from(vec![
+            (0.0f32, 0.0f32),
+            (4096.0, 0.0),
+        ]));
+
+        let mut shapes = Vec::new();
+        render_line(&geometry, &context, &mut shapes, &Paint::default()).unwrap();
+        for shape in shapes.iter_mut() {
+            shape.transform(TSTransform {
+                scaling: 256.0 / 4096.0,
+                translation: Default::default(),
+            });
+        }
+
+        let points = match &shapes[0] {
+            ShapeOrText::Shape(Shape::LineSegment { points, .. }) => points.to_vec(),
+            ShapeOrText::Shape(Shape::Path(path)) => path.points.to_vec(),
+            other => panic!("expected a line, got {other:?}"),
+        };
+
+        // The full extent of the tile lands on the full width it is drawn at.
+        assert_eq!(points[0].x, 0.0);
+        assert_eq!(points[points.len() - 1].x, 256.0);
     }
 }
