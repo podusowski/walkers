@@ -158,7 +158,17 @@ impl Tile {
 
     /// Draw the tile on the given `rect`. The `uv` parameter defines which part of the tile
     /// should be drawn on the `rect`.
-    fn draw(&self, painter: &egui::Painter, rect: Rect, uv: Rect, transparency: f32) {
+    fn draw(
+        &self,
+        painter: &egui::Painter,
+        rect: Rect,
+        uv: Rect,
+        transparency: f32,
+        texts: &mut Texts,
+    ) {
+        #[cfg(not(feature = "mvt"))]
+        let _ = texts;
+
         match self {
             Tile::Raster(texture_handle) => {
                 let mut mesh = Mesh::with_texture(texture_handle.id());
@@ -173,12 +183,35 @@ impl Tile {
                 // ...and then it can be clipped to the `rect`.
                 let painter = painter.with_clip_rect(rect);
 
-                painter.extend(render::resolve_text(
-                    mvt::transformed(shapes, full_rect),
-                    painter.ctx(),
-                ));
+                for shape in mvt::transformed(shapes, full_rect) {
+                    match shape {
+                        ShapeOrText::Shape(shape) => {
+                            painter.add(shape);
+                        }
+                        ShapeOrText::Text(text) => texts.texts.push(text),
+                    }
+                }
             }
         }
+    }
+}
+
+/// Text gathered from the tiles of every layer, so that it can be placed against the whole
+/// viewport rather than one tile at a time.
+#[derive(Default)]
+pub(crate) struct Texts {
+    #[cfg(feature = "mvt")]
+    texts: Vec<crate::text::Text>,
+}
+
+impl Texts {
+    /// Lay them out, drop the ones which would overlap, and paint what is left above every
+    /// layer.
+    pub(crate) fn paint(self, painter: &egui::Painter) {
+        #[cfg(feature = "mvt")]
+        painter.extend(render::place_texts(self.texts, painter.ctx()));
+        #[cfg(not(feature = "mvt"))]
+        let _ = painter;
     }
 }
 
@@ -200,29 +233,45 @@ pub(crate) fn draw_tiles(
     zoom: Zoom,
     tiles: &mut dyn Tiles,
     transparency: f32,
+    texts: &mut Texts,
 ) {
     let mut meshes = Default::default();
     flood_fill_tiles(
-        painter,
+        &Spread {
+            painter,
+            map_center_projected_position: project(map_center, zoom.into()),
+            zoom: zoom.into(),
+            transparency,
+        },
         tile_id(map_center, zoom.round(), tiles.tile_size()),
-        project(map_center, zoom.into()),
-        zoom.into(),
         tiles,
-        transparency,
         &mut meshes,
+        texts,
     );
+}
+
+/// What stays the same as the fill spreads from one tile to the next.
+struct Spread<'a> {
+    painter: &'a egui::Painter,
+    map_center_projected_position: Pixels,
+    zoom: f64,
+    transparency: f32,
 }
 
 /// Use simple [flood fill algorithm](https://en.wikipedia.org/wiki/Flood_fill) to draw tiles on the map.
 fn flood_fill_tiles(
-    painter: &egui::Painter,
+    spread: &Spread,
     tile_id: TileId,
-    map_center_projected_position: Pixels,
-    zoom: f64,
     tiles: &mut dyn Tiles,
-    transparency: f32,
     meshes: &mut HashSet<TileId>,
+    texts: &mut Texts,
 ) {
+    let Spread {
+        painter,
+        map_center_projected_position,
+        zoom,
+        transparency,
+    } = *spread;
     // The tile's zoom level can differ from the map's: it is rounded to an integer, adjusted
     // for sources with tiles larger than 256px, and clamped at 0. Scale the tile so that it
     // covers the right amount of the map regardless.
@@ -242,6 +291,7 @@ fn flood_fill_tiles(
                 rect(tile_screen_position, corrected_tile_size),
                 tile.uv,
                 transparency,
+                texts,
             )
         }
 
@@ -254,15 +304,7 @@ fn flood_fill_tiles(
         .iter()
         .flatten()
         {
-            flood_fill_tiles(
-                painter,
-                *next_tile_id,
-                map_center_projected_position,
-                zoom,
-                tiles,
-                transparency,
-                meshes,
-            );
+            flood_fill_tiles(spread, *next_tile_id, tiles, meshes, texts);
         }
     }
 }
@@ -390,6 +432,7 @@ mod tests {
             Zoom::try_from(zoom).unwrap(),
             &mut tiles,
             1.0,
+            &mut Texts::default(),
         );
 
         tiles.requested
@@ -471,6 +514,99 @@ mod tests {
                 y: 0,
                 zoom: 1
             })
+        );
+    }
+
+    /// A source whose every tile carries the same label at both its left and right edge, the
+    /// way vector tiles repeat features which fall near a boundary.
+    #[cfg(feature = "mvt")]
+    struct LabelAtBothEdges;
+
+    #[cfg(feature = "mvt")]
+    impl Tiles for LabelAtBothEdges {
+        fn at(&mut self, _tile_id: TileId) -> Option<TilePiece> {
+            let label = |x: f32| {
+                ShapeOrText::Text(crate::text::Text::new(
+                    pos2(x, 2048.),
+                    "Szczepankowice".to_string(),
+                    12.,
+                    Color32::BLACK,
+                    Color32::TRANSPARENT,
+                    0.,
+                ))
+            };
+
+            Some(TilePiece::new(
+                Tile::Vector(vec![label(0.), label(4096.)]),
+                Rect::from_min_max(pos2(0., 0.), pos2(1., 1.)),
+            ))
+        }
+
+        fn attribution(&self) -> Attribution {
+            Attribution {
+                text: "",
+                url: "",
+                logo_light: None,
+                logo_dark: None,
+            }
+        }
+
+        fn tile_size(&self) -> u32 {
+            TILE_SIZE
+        }
+    }
+
+    /// The same label arriving from two neighbouring tiles should be drawn once. Before labels
+    /// were gathered across tiles, each tile placed its own copy.
+    #[cfg(feature = "mvt")]
+    #[test]
+    fn a_label_shared_by_two_tiles_is_placed_once() {
+        let ctx = Context::default();
+        // Fonts only exist once a pass has been run.
+        let mut output = ctx.run_ui(egui::RawInput::default(), |_| {});
+        output.textures_delta.clear();
+
+        let painter = egui::Painter::new(
+            ctx.to_owned(),
+            egui::LayerId::debug(),
+            Rect::from_min_size(pos2(0., 0.), Vec2::splat(TILE_SIZE as f32 * 2.)),
+        );
+
+        let mut texts = Texts::default();
+        #[allow(clippy::unwrap_used)]
+        draw_tiles(
+            &painter,
+            lon_lat(21.00027, 52.26470),
+            Zoom::try_from(16.).unwrap(),
+            &mut LabelAtBothEdges,
+            1.0,
+            &mut texts,
+        );
+
+        let gathered = texts.texts.len();
+        let positions: std::collections::HashSet<_> = texts
+            .texts
+            .iter()
+            .map(|text| (text.position.x as i32, text.position.y as i32))
+            .collect();
+
+        // Neighbouring tiles put a label on the very same spot.
+        assert!(
+            gathered > positions.len(),
+            "{gathered} labels landed on {} distinct spots, so none were shared",
+            positions.len()
+        );
+
+        let placed = crate::render::place_texts(texts.texts, &ctx)
+            .into_iter()
+            .filter(|shape| !matches!(shape, egui::Shape::Noop))
+            .count();
+
+        assert_eq!(
+            placed,
+            positions.len(),
+            "expected one label per spot, got {placed} for {} spots",
+            positions.len()
         );
     }
 }

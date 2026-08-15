@@ -107,6 +107,16 @@ pub fn resolve_text(shapes: Vec<ShapeOrText>, ctx: &egui::Context) -> Vec<Shape>
         .collect()
 }
 
+/// Same, for labels which have already been sorted out from the shapes they came with.
+pub(crate) fn place_texts(texts: Vec<Text>, ctx: &egui::Context) -> Vec<Shape> {
+    let mut occupied_text_areas = OccupiedAreas::new();
+
+    texts
+        .into_iter()
+        .map(|text| draw_text(text, ctx, &mut occupied_text_areas))
+        .collect()
+}
+
 pub(crate) fn geometry_type_to_str(geometry: &Geometry<f32>) -> &'static str {
     match geometry {
         Geometry::Point(_) | Geometry::MultiPoint(_) => "Point",

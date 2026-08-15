@@ -3,8 +3,10 @@ use egui::{
 };
 
 use crate::{
-    MapMemory, Options, Plugin, Position, Projector, Tiles, center::Center,
-    position::AdjustedPosition, tiles::draw_tiles,
+    MapMemory, Options, Plugin, Position, Projector, Tiles,
+    center::Center,
+    position::AdjustedPosition,
+    tiles::{Texts, draw_tiles},
 };
 
 struct Layer<'a> {
@@ -161,14 +163,24 @@ impl<'a, 'b, 'c> Map<'a, 'b, 'c> {
 
         let map_center = self.position();
         let painter = ui.painter().with_clip_rect(rect);
+        let mut texts = Texts::default();
 
         if let Some(tiles) = self.tiles {
-            draw_tiles(&painter, map_center, zoom, tiles, 1.0);
+            draw_tiles(&painter, map_center, zoom, tiles, 1.0, &mut texts);
         }
 
         for layer in self.layers {
-            draw_tiles(&painter, map_center, zoom, layer.tiles, layer.transparency);
+            draw_tiles(
+                &painter,
+                map_center,
+                zoom,
+                layer.tiles,
+                layer.transparency,
+                &mut texts,
+            );
         }
+
+        texts.paint(&painter);
 
         // Run plugins.
         let projector = Projector::new(response.rect, self.memory, self.my_position);
