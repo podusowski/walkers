@@ -17,6 +17,7 @@ pub struct Schema {
     buildings: &'static str,
     places: &'static str,
     pois: &'static str,
+    peaks: &'static [&'static str],
     boundaries: &'static str,
     kind: &'static str,
     kind_detail: &'static str,
@@ -35,6 +36,7 @@ pub const PROTOMAPS: Schema = Schema {
     buildings: "buildings",
     places: "places",
     pois: "pois",
+    peaks: &["pois"],
     boundaries: "boundaries",
     kind: "kind",
     kind_detail: "kind_detail",
@@ -54,6 +56,7 @@ pub const OPENMAPTILES: Schema = Schema {
     buildings: "building",
     places: "place",
     pois: "poi",
+    peaks: &["mountain_peak"],
     boundaries: "boundary",
     kind: "class",
     kind_detail: "subclass",
@@ -145,6 +148,7 @@ struct Palette {
     locality_text: &'static str,
     water: &'static str,
     station: &'static str,
+    peak: &'static str,
 }
 
 const DARK: Palette = Palette {
@@ -168,6 +172,7 @@ const DARK: Palette = Palette {
     locality_text: "#999999",
     water: "#161e31",
     station: "#7fb3d9",
+    peak: "#b59a6a",
 };
 
 const LIGHT: Palette = Palette {
@@ -192,6 +197,7 @@ const LIGHT: Palette = Palette {
     locality_text: "#1a1a1a",
     water: "#88b2e2",
     station: "#2b6ca3",
+    peak: "#6b5330",
 };
 
 fn build(palette: &Palette, schema: Schema) -> Style {
@@ -1299,6 +1305,20 @@ fn build(palette: &Palette, schema: Schema) -> Style {
             },
             paint: Some(Paint {
                 text_color: Some(Color(json!(palette.station))),
+                text_halo_color: Some(Color(json!(palette.casing))),
+                ..Default::default()
+            }),
+        },
+        // peaks
+        Layer::Symbol {
+            source_layer: schema.peaks.into(),
+            filter: Some(Filter(json!(["in", schema.kind, "peak", "volcano"]))),
+            layout: Layout {
+                text_field: Some(json!(["get", "name"])),
+                text_size: Some(linear_zoom_interpolation(&[(8.0, 10.0), (14.0, 14.0)])),
+            },
+            paint: Some(Paint {
+                text_color: Some(Color(json!(palette.peak))),
                 text_halo_color: Some(Color(json!(palette.casing))),
                 ..Default::default()
             }),
