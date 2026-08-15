@@ -52,7 +52,7 @@ pub use position::{Position, lat_lon, lon_lat};
 pub use projector::Projector;
 pub use style::Style;
 #[cfg(feature = "mvt")]
-pub use style::{Color, Dasharray, Filter, Float, Layer, Layout, Paint, Value, json};
+pub use style::{Color, Dasharray, Filter, Float, Layer, Layout, Paint, SourceLayer, Value, json};
 pub use tiles::{Tile, TileId, TilePiece, Tiles};
 pub use zoom::InvalidZoom;
 

@@ -6,7 +6,7 @@ pub fn poland_borders() -> KmlLayer {
     let style = Style {
         layers: vec![Layer::Line {
             // TODO: Actually, it does not matter.
-            source_layer: "borders".to_string(),
+            source_layer: "borders".into(),
             filter: None,
             paint: Paint {
                 line_color: Some(Color(json!("#ff0000"))),
@@ -24,7 +24,7 @@ pub fn poland_borders() -> KmlLayer {
 pub fn outgym_umea_layer() -> KmlLayer {
     let style = Style {
         layers: vec![Layer::Circle {
-            source_layer: "".to_string(),
+            source_layer: "".into(),
             filter: None,
         }],
     };
