@@ -53,6 +53,8 @@ pub use projector::Projector;
 pub use style::Style;
 #[cfg(feature = "mvt")]
 pub use style::{Color, Dasharray, Filter, Float, Layer, Layout, Paint, SourceLayer, Value, json};
+#[cfg(feature = "mvt")]
+pub use text::{Text, place_texts};
 pub use tiles::{Tile, TileId, TilePiece, Tiles};
 pub use zoom::InvalidZoom;
 
@@ -60,6 +62,4 @@ pub use zoom::InvalidZoom;
 #[cfg(feature = "mvt")]
 pub use expression::Context;
 #[cfg(feature = "mvt")]
-pub use render::{
-    Geometry, ShapeOrText, render_line, render_symbol, resolve_text, tessellate_polygon,
-};
+pub use render::{Geometry, render_line, render_symbol, tessellate_polygon};

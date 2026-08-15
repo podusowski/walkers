@@ -21,7 +21,7 @@ use lyon_tessellation::{
 use crate::{
     expression::Context,
     style::{Layout, Paint},
-    text::{OccupiedAreas, Text, draw_text},
+    text::Text,
 };
 
 #[derive(thiserror::Error, Debug)]
@@ -30,43 +30,27 @@ pub enum Error {
     Tessellation(#[from] TessellationError),
 }
 
-#[derive(Debug, Clone)]
-pub enum ShapeOrText {
-    Shape(Shape),
-    Text(Text),
+pub(crate) fn transformed_shapes(shapes: &[Shape], transform: TSTransform) -> Vec<Shape> {
+    let mut shapes = shapes.to_vec();
+
+    for shape in shapes.iter_mut() {
+        shape.transform(transform);
+
+        // `line-width` is in screen pixels, so a stroke must not follow the scaling.
+        keep_stroke_width(shape, transform.scaling);
+    }
+
+    shapes
 }
 
-impl From<Shape> for ShapeOrText {
-    fn from(shape: Shape) -> Self {
-        ShapeOrText::Shape(shape)
-    }
-}
-
-impl From<Mesh> for ShapeOrText {
-    fn from(mesh: Mesh) -> Self {
-        ShapeOrText::Shape(Shape::Mesh(mesh.into()))
-    }
-}
-
-impl ShapeOrText {
-    /// Move a shape from the space it was rendered in onto the screen.
-    ///
-    /// Geometry scales, stroke widths do not: a `line-width` of 4 means four pixels on the
-    /// screen at any zoom, the way the style spec means it, rather than four pixels only at
-    /// whichever zoom the tile happened to be rendered for. Text has always worked this way,
-    /// since its font size is not scaled either.
-    pub fn transform(&mut self, transform: TSTransform) {
-        match self {
-            ShapeOrText::Shape(shape) => {
-                shape.transform(transform);
-                keep_stroke_width(shape, transform.scaling);
-            }
-            ShapeOrText::Text(Text { position, .. }) => {
-                *position *= transform.scaling;
-                *position += transform.translation;
-            }
-        }
-    }
+pub(crate) fn transformed_texts(texts: &[Text], transform: TSTransform) -> Vec<Text> {
+    texts
+        .iter()
+        .map(|text| Text {
+            position: text.position * transform.scaling + transform.translation,
+            ..text.to_owned()
+        })
+        .collect()
 }
 
 /// Undo what [`Shape::transform`] did to the stroke widths, which it scales along with
@@ -93,30 +77,6 @@ fn keep_stroke_width(shape: &mut Shape, scaling: f32) {
     }
 }
 
-/// Lay out the labels, dropping the ones which would land on top of an already placed one.
-pub fn resolve_text(shapes: Vec<ShapeOrText>, ctx: &egui::Context) -> Vec<Shape> {
-    let mut occupied_text_areas = OccupiedAreas::new();
-
-    // Need to collect it to avoid deadlock caused by `Painter::extend` and `fonts_mut`.
-    shapes
-        .into_iter()
-        .map(|shape_or_text| match shape_or_text {
-            ShapeOrText::Shape(shape) => shape,
-            ShapeOrText::Text(text) => draw_text(text, ctx, &mut occupied_text_areas),
-        })
-        .collect()
-}
-
-/// Same, for labels which have already been sorted out from the shapes they came with.
-pub(crate) fn place_texts(texts: Vec<Text>, ctx: &egui::Context) -> Vec<Shape> {
-    let mut occupied_text_areas = OccupiedAreas::new();
-
-    texts
-        .into_iter()
-        .map(|text| draw_text(text, ctx, &mut occupied_text_areas))
-        .collect()
-}
-
 pub(crate) fn geometry_type_to_str(geometry: &Geometry<f32>) -> &'static str {
     match geometry {
         Geometry::Point(_) | Geometry::MultiPoint(_) => "Point",
@@ -132,7 +92,7 @@ pub(crate) fn geometry_type_to_str(geometry: &Geometry<f32>) -> &'static str {
 pub fn render_line(
     geometry: &Geometry<f32>,
     context: &Context,
-    shapes: &mut Vec<ShapeOrText>,
+    shapes: &mut Vec<Shape>,
     paint: &Paint,
 ) -> Result<(), Error> {
     let width = if let Some(width) = &paint.line_width {
@@ -187,7 +147,7 @@ pub fn render_line(
 
 /// Push a polyline as one or more shapes, splitting it into dashes if `dasharray` is given.
 fn push_line(
-    shapes: &mut Vec<ShapeOrText>,
+    shapes: &mut Vec<Shape>,
     points: Vec<egui::Pos2>,
     stroke: Stroke,
     dasharray: Option<&[f32]>,
@@ -196,11 +156,11 @@ fn push_line(
         Some(pattern) if !pattern.is_empty() => {
             for segment in dash_polyline(&points, pattern, stroke.width) {
                 if segment.len() >= 2 {
-                    shapes.push(Shape::line(segment, stroke).into());
+                    shapes.push(Shape::line(segment, stroke));
                 }
             }
         }
-        _ => shapes.push(Shape::line(points, stroke).into()),
+        _ => shapes.push(Shape::line(points, stroke)),
     }
 }
 
@@ -263,7 +223,7 @@ fn dash_polyline(points: &[egui::Pos2], pattern: &[f32], width: f32) -> Vec<Vec<
 pub(crate) fn render_polygon(
     geometry: &Geometry<f32>,
     context: &Context,
-    shapes: &mut Vec<ShapeOrText>,
+    shapes: &mut Vec<Shape>,
     paint: &Paint,
 ) -> Result<(), Error> {
     let polygons: &[geo_types::Polygon<f32>] = match geometry {
@@ -293,7 +253,9 @@ pub(crate) fn render_polygon(
             .iter()
             .map(|hole| lyon_points(&hole.0))
             .collect::<Vec<_>>();
-        shapes.push(tessellate_polygon(&exterior, &interiors, fill_color)?.into());
+        shapes.push(Shape::Mesh(
+            tessellate_polygon(&exterior, &interiors, fill_color)?.into(),
+        ));
     }
 
     Ok(())
@@ -302,26 +264,26 @@ pub(crate) fn render_polygon(
 pub fn render_symbol(
     geometry: &Geometry<f32>,
     context: &Context,
-    shapes: &mut Vec<ShapeOrText>,
+    texts: &mut Vec<Text>,
     layout: &Layout,
     paint: &Option<Paint>,
 ) -> Result<(), Error> {
     match geometry {
         Geometry::Point(point) => {
-            label_points(std::slice::from_ref(point), context, shapes, layout, paint)
+            label_points(std::slice::from_ref(point), context, texts, layout, paint)
         }
         Geometry::MultiPoint(multi_point) => {
-            label_points(&multi_point.0, context, shapes, layout, paint)
+            label_points(&multi_point.0, context, texts, layout, paint)
         }
         Geometry::LineString(line_string) => label_line_strings(
             std::slice::from_ref(line_string),
             context,
-            shapes,
+            texts,
             layout,
             paint,
         ),
         Geometry::MultiLineString(multi_line_string) => {
-            label_line_strings(&multi_line_string.0, context, shapes, layout, paint)
+            label_line_strings(&multi_line_string.0, context, texts, layout, paint)
         }
         _ => (),
     }
@@ -331,7 +293,7 @@ pub fn render_symbol(
 fn label_points(
     points: &[geo_types::Point<f32>],
     context: &Context,
-    shapes: &mut Vec<ShapeOrText>,
+    texts: &mut Vec<Text>,
     layout: &Layout,
     paint: &Option<Paint>,
 ) {
@@ -342,22 +304,22 @@ fn label_points(
     let text_size = evaluate_text_size(layout, context);
     let text_color = evaluate_text_color(paint, context);
 
-    shapes.extend(points.iter().map(|p| {
-        ShapeOrText::Text(Text::new(
+    texts.extend(points.iter().map(|p| {
+        Text::new(
             pos2(p.x(), p.y()),
             text.clone(),
             text_size,
             text_color,
             Color32::TRANSPARENT,
             0.0,
-        ))
+        )
     }))
 }
 
 fn label_line_strings(
     line_strings: &[geo_types::LineString<f32>],
     context: &Context,
-    shapes: &mut Vec<ShapeOrText>,
+    texts: &mut Vec<Text>,
     layout: &Layout,
     paint: &Option<Paint>,
 ) {
@@ -384,7 +346,7 @@ fn label_line_strings(
             let mid_point = midpoint(&line.start_point(), &line.end_point());
             let angle = line.slope().atan();
 
-            shapes.push(ShapeOrText::Text(Text::new(
+            texts.push(Text::new(
                 pos2(mid_point.x(), mid_point.y()),
                 text.clone(),
                 text_size,
@@ -392,7 +354,7 @@ fn label_line_strings(
                 // TODO: Implement real halo rendering.
                 text_halo_color.gamma_multiply(0.5),
                 angle,
-            )));
+            ));
         }
     }
 }
@@ -525,7 +487,7 @@ mod tests {
         assert_eq!(segments, vec![vec![pos2(0.0, 0.0), pos2(4.0, 0.0)]]);
     }
 
-    fn label(geometry: Geometry<f32>) -> Vec<ShapeOrText> {
+    fn label(geometry: Geometry<f32>) -> Vec<Text> {
         let context = Context::new(
             geometry_type_to_str(&geometry).to_string(),
             HashMap::from([("name".to_string(), serde_json::Value::from("Śnieżka"))]),
@@ -537,19 +499,13 @@ mod tests {
             text_size: None,
         };
 
-        let mut shapes = Vec::new();
-        render_symbol(&geometry, &context, &mut shapes, &layout, &None).unwrap();
-        shapes
+        let mut texts = Vec::new();
+        render_symbol(&geometry, &context, &mut texts, &layout, &None).unwrap();
+        texts
     }
 
-    fn texts(shapes: &[ShapeOrText]) -> Vec<&str> {
-        shapes
-            .iter()
-            .filter_map(|shape| match shape {
-                ShapeOrText::Text(text) => Some(text.text.as_str()),
-                ShapeOrText::Shape(_) => None,
-            })
-            .collect()
+    fn texts(texts: &[Text]) -> Vec<&str> {
+        texts.iter().map(|text| text.text.as_str()).collect()
     }
 
     /// MVT hands over `MultiPoint`, GeoJSON a plain `Point`, and both need labelling.
@@ -586,15 +542,15 @@ mod tests {
     /// Labels are placed on the geometry, not at the origin.
     #[test]
     fn a_point_label_lands_on_the_point() {
-        let shapes = label(Geometry::Point(geo_types::Point::new(1.0, 2.0)));
+        let texts = label(Geometry::Point(geo_types::Point::new(1.0, 2.0)));
 
-        match shapes.as_slice() {
-            [ShapeOrText::Text(text)] => assert_eq!(text.position, pos2(1.0, 2.0)),
+        match texts.as_slice() {
+            [text] => assert_eq!(text.position, pos2(1.0, 2.0)),
             other => panic!("expected a single label, got {other:?}"),
         }
     }
 
-    fn fill(geometry: Geometry<f32>) -> Vec<ShapeOrText> {
+    fn fill(geometry: Geometry<f32>) -> Vec<Shape> {
         let context = Context::new(
             geometry_type_to_str(&geometry).to_string(),
             HashMap::new(),
@@ -656,18 +612,19 @@ mod width_tests {
         let mut shapes = Vec::new();
         render_line(&geometry, &context, &mut shapes, &paint).unwrap();
 
-        for shape in shapes.iter_mut() {
-            shape.transform(TSTransform {
+        let shapes = transformed_shapes(
+            &shapes,
+            TSTransform {
                 scaling,
                 translation: Default::default(),
-            });
-        }
+            },
+        );
 
         shapes
             .iter()
             .find_map(|shape| match shape {
-                ShapeOrText::Shape(Shape::LineSegment { stroke, .. }) => Some(stroke.width),
-                ShapeOrText::Shape(Shape::Path(path)) => Some(path.stroke.width),
+                Shape::LineSegment { stroke, .. } => Some(stroke.width),
+                Shape::Path(path) => Some(path.stroke.width),
                 _ => None,
             })
             .expect("no line")
@@ -696,16 +653,17 @@ mod width_tests {
 
         let mut shapes = Vec::new();
         render_line(&geometry, &context, &mut shapes, &Paint::default()).unwrap();
-        for shape in shapes.iter_mut() {
-            shape.transform(TSTransform {
+        let shapes = transformed_shapes(
+            &shapes,
+            TSTransform {
                 scaling: 256.0 / 4096.0,
                 translation: Default::default(),
-            });
-        }
+            },
+        );
 
         let points = match &shapes[0] {
-            ShapeOrText::Shape(Shape::LineSegment { points, .. }) => points.to_vec(),
-            ShapeOrText::Shape(Shape::Path(path)) => path.points.to_vec(),
+            Shape::LineSegment { points, .. } => points.to_vec(),
+            Shape::Path(path) => path.points.to_vec(),
             other => panic!("expected a line, got {other:?}"),
         };
 
