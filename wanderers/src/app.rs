@@ -1,7 +1,7 @@
 use std::path::PathBuf;
 
-use egui::{Align2, Color32, Image, Key, PointerButton, RichText, Ui, Window};
-use walkers::{HttpOptions, HttpTiles, Map, MapMemory, Position, Tiles, lon_lat, sources};
+use egui::{Align2, Color32, ComboBox, Image, Key, PointerButton, RichText, Ui, Window};
+use walkers::{HttpOptions, HttpTiles, Map, MapMemory, Position, Style, Tiles, lon_lat, sources};
 use walkers_extras::{
     GroupedPlaces, LabeledSymbol, LabeledSymbolGroup, LabeledSymbolGroupStyle, LabeledSymbolStyle,
     Symbol,
@@ -29,6 +29,50 @@ fn cache_dir() -> Option<PathBuf> {
     Some(base.join("wanderers").join("tiles"))
 }
 
+/// Map the places are drawn on top of.
+#[derive(Clone, Copy, PartialEq)]
+enum Basemap {
+    OpenStreetMap,
+    OpenFreeMap,
+
+    /// Poland only, but it has aerial imagery, which the other two do not.
+    Geoportal,
+}
+
+impl Basemap {
+    /// All of them, in the order they are offered.
+    const ALL: [Basemap; 3] = [
+        Basemap::OpenStreetMap,
+        Basemap::OpenFreeMap,
+        Basemap::Geoportal,
+    ];
+
+    fn name(self) -> &'static str {
+        match self {
+            Basemap::OpenStreetMap => "OpenStreetMap",
+            Basemap::OpenFreeMap => "OpenFreeMap",
+            Basemap::Geoportal => "Geoportal",
+        }
+    }
+
+    fn tiles(self, egui_ctx: egui::Context) -> HttpTiles {
+        match self {
+            Basemap::OpenStreetMap => {
+                HttpTiles::with_options(sources::OpenStreetMap, http_options(), egui_ctx)
+            }
+            Basemap::OpenFreeMap => HttpTiles::with_options_and_style(
+                sources::OpenFreeMap,
+                http_options(),
+                Style::openfreemap_bright(),
+                egui_ctx,
+            ),
+            Basemap::Geoportal => {
+                HttpTiles::with_options(sources::Geoportal, http_options(), egui_ctx)
+            }
+        }
+    }
+}
+
 /// A place clicked on the map, waiting to be named and added to the journal.
 struct NewPlace {
     position: Position,
@@ -43,6 +87,10 @@ enum Outcome {
 }
 
 pub struct Wanderers {
+    /// Kept so that switching the basemap can build the tiles for it.
+    egui_ctx: egui::Context,
+
+    basemap: Basemap,
     tiles: HttpTiles,
     map_memory: MapMemory,
     journal: Result<Journal, journal::Error>,
@@ -54,13 +102,24 @@ pub struct Wanderers {
 
 impl Wanderers {
     pub fn new(egui_ctx: egui::Context, journal: PathBuf) -> Self {
+        let basemap = Basemap::OpenStreetMap;
+
         Self {
-            tiles: HttpTiles::with_options(sources::OpenStreetMap, http_options(), egui_ctx),
+            tiles: basemap.tiles(egui_ctx.to_owned()),
+            egui_ctx,
+            basemap,
             map_memory: MapMemory::default(),
             journal: Journal::load(journal),
             new_place: None,
             problem: None,
         }
+    }
+
+    /// Only one basemap is kept around at a time. Switching back and forth costs a rebuild,
+    /// but the tiles themselves are cached on disk, so it is not a re-download.
+    fn switch_basemap_to(&mut self, basemap: Basemap) {
+        self.basemap = basemap;
+        self.tiles = basemap.tiles(self.egui_ctx.to_owned());
     }
 
     /// Every addition is written out right away, so that there is no unsaved journal to lose.
@@ -132,6 +191,10 @@ impl eframe::App for Wanderers {
                 Outcome::Add => self.add(new_place),
                 Outcome::Cancel => {}
             }
+        }
+
+        if let Some(chosen) = basemap(ui, self.basemap) {
+            self.switch_basemap_to(chosen);
         }
 
         zoom(ui, &mut self.map_memory);
@@ -208,6 +271,28 @@ fn places(places: &[journal::Place]) -> impl walkers::Plugin {
             style: LabeledSymbolGroupStyle::default(),
         },
     )
+}
+
+/// Lets one swap the map the places are drawn on. Returns the pick, if it changed.
+fn basemap(ui: &Ui, current: Basemap) -> Option<Basemap> {
+    let mut chosen = current;
+
+    Window::new("Basemap")
+        .collapsible(false)
+        .resizable(false)
+        .title_bar(false)
+        .anchor(Align2::RIGHT_TOP, [-10., 10.])
+        .show(ui.ctx(), |ui| {
+            ComboBox::from_id_salt("basemap")
+                .selected_text(current.name())
+                .show_ui(ui, |ui| {
+                    for basemap in Basemap::ALL {
+                        ui.selectable_value(&mut chosen, basemap, basemap.name());
+                    }
+                });
+        });
+
+    (chosen != current).then_some(chosen)
 }
 
 /// Buttons to zoom in and out, for when there is no scroll wheel around.

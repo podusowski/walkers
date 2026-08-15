@@ -6,7 +6,7 @@ edition.workspace = true
 publish = false
 
 [dependencies]
-walkers.workspace = true
+walkers = { workspace = true, features = ["mvt"] }
 walkers_extras.workspace = true
 eframe.workspace = true
 egui.workspace = true
