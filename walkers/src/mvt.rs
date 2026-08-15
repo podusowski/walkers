@@ -9,8 +9,9 @@ use serde_json::{Number, Value as JsonValue};
 
 use crate::{
     expression::Context,
-    render::{self, Geometry, ShapeOrText},
+    render::{self, Geometry},
     style::{Filter, Layer, SourceLayer, Style},
+    text::Text,
 };
 
 #[derive(thiserror::Error, Debug)]
@@ -30,9 +31,10 @@ impl From<mvt_reader::error::ParserError> for Error {
 const ONLY_SUPPORTED_EXTENT: u32 = 4096;
 
 /// Render MVT data into a list of [`epaint::Shape`]s.
-pub fn render(data: &[u8], style: &Style, zoom: u8) -> Result<Vec<ShapeOrText>, Error> {
+pub fn render(data: &[u8], style: &Style, zoom: u8) -> Result<(Vec<Shape>, Vec<Text>), Error> {
     let data = mvt_reader::Reader::new(data.to_vec())?;
     let mut shapes = Vec::new();
+    let mut texts = Vec::new();
 
     for layer in &style.layers {
         match layer {
@@ -49,7 +51,7 @@ pub fn render(data: &[u8], style: &Style, zoom: u8) -> Result<Vec<ShapeOrText>, 
                     pos2(0.0, 0.0),
                     vec2(ONLY_SUPPORTED_EXTENT as f32, ONLY_SUPPORTED_EXTENT as f32),
                 );
-                shapes.push(Shape::rect_filled(rect, 0.0, bg_color).into());
+                shapes.push(Shape::rect_filled(rect, 0.0, bg_color));
             }
             Layer::Fill {
                 source_layer,
@@ -89,7 +91,7 @@ pub fn render(data: &[u8], style: &Style, zoom: u8) -> Result<Vec<ShapeOrText>, 
                     get_layer_features(&data, zoom, source_layer, filter.as_ref())?
                 {
                     if let Err(err) =
-                        render::render_symbol(&geometry, &context, &mut shapes, layout, paint)
+                        render::render_symbol(&geometry, &context, &mut texts, layout, paint)
                     {
                         warn!("{err}");
                     }
@@ -103,21 +105,15 @@ pub fn render(data: &[u8], style: &Style, zoom: u8) -> Result<Vec<ShapeOrText>, 
     }
 
     log::trace!("Rendered {} shapes", shapes.len());
-    Ok(shapes)
+    Ok((shapes, texts))
 }
 
-/// Transform shapes from MVT space to screen space.
-pub fn transformed(shapes: &[ShapeOrText], rect: egui::Rect) -> Vec<ShapeOrText> {
-    let transform = TSTransform {
+/// What takes a tile from MVT space onto the screen.
+pub fn transform_onto(rect: egui::Rect) -> TSTransform {
+    TSTransform {
         scaling: rect.width() / ONLY_SUPPORTED_EXTENT as f32,
         translation: rect.min.to_vec2(),
-    };
-
-    let mut result = shapes.to_vec();
-    for shape in result.iter_mut() {
-        shape.transform(transform);
     }
-    result
 }
 
 fn get_layer_features(

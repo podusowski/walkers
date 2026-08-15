@@ -8,7 +8,7 @@ use log::warn;
 use rstar::primitives::{GeomWithData, Rectangle};
 use rstar::{AABB, RTree};
 use walkers::{
-    Context, Filter, Layer, Position, Projector, Style, render_line, render_symbol, resolve_text,
+    Context, Filter, Layer, Position, Projector, Style, place_texts, render_line, render_symbol,
 };
 
 struct Feature {
@@ -55,6 +55,7 @@ impl GeoJsonLayer {
         let viewport = viewport(projector, ui.clip_rect());
 
         let mut shapes = Vec::new();
+        let mut texts = Vec::new();
 
         for layer in &self.style.layers {
             match layer {
@@ -72,7 +73,7 @@ impl GeoJsonLayer {
                 } => {
                     for (geometry, context) in self.features(viewport, filter.as_ref(), zoom) {
                         let projected = project_geometry(geometry, projector);
-                        let _ = render_symbol(&projected, &context, &mut shapes, layout, paint);
+                        let _ = render_symbol(&projected, &context, &mut texts, layout, paint);
                     }
                 }
                 other => {
@@ -81,8 +82,11 @@ impl GeoJsonLayer {
             }
         }
 
-        let shapes = resolve_text(shapes, ui.ctx());
-        ui.painter().extend(shapes);
+        // Geometry first, then the labels on top of it.
+        let texts = place_texts(texts, ui.ctx());
+        let painter = ui.painter();
+        painter.extend(shapes);
+        painter.extend(texts);
     }
 
     /// Features in the viewport which the layer's filter lets through.

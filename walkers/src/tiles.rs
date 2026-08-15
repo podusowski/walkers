@@ -1,7 +1,7 @@
 #[cfg(feature = "mvt")]
 use crate::mvt;
 #[cfg(feature = "mvt")]
-use crate::render::{self, ShapeOrText};
+use crate::render;
 
 use egui::{Color32, Context, Mesh, Rect, Vec2, pos2};
 use egui::{ColorImage, TextureHandle};
@@ -108,7 +108,10 @@ pub trait Tiles {
 pub enum Tile {
     Raster(TextureHandle),
     #[cfg(feature = "mvt")]
-    Vector(Vec<ShapeOrText>),
+    Vector {
+        shapes: Vec<egui::Shape>,
+        texts: Vec<crate::text::Text>,
+    },
 }
 
 impl Tile {
@@ -148,7 +151,8 @@ impl Tile {
 
     #[cfg(feature = "mvt")]
     pub fn from_mvt(data: &[u8], style: &Style, zoom: u8) -> Result<Self, TileError> {
-        Ok(Self::Vector(mvt::render(data, style, zoom)?))
+        let (shapes, texts) = mvt::render(data, style, zoom)?;
+        Ok(Self::Vector { shapes, texts })
     }
 
     /// Load the texture from egui's [`ColorImage`].
@@ -176,21 +180,21 @@ impl Tile {
                 painter.add(egui::Shape::mesh(mesh));
             }
             #[cfg(feature = "mvt")]
-            Tile::Vector(shapes) => {
+            Tile::Vector {
+                shapes,
+                texts: from_tile,
+            } => {
                 // Renderer needs to work on the full tile, before it was clipped with `uv`...
                 let full_rect = full_rect_of_clipped_tile(rect, uv);
 
                 // ...and then it can be clipped to the `rect`.
                 let painter = painter.with_clip_rect(rect);
 
-                for shape in mvt::transformed(shapes, full_rect) {
-                    match shape {
-                        ShapeOrText::Shape(shape) => {
-                            painter.add(shape);
-                        }
-                        ShapeOrText::Text(text) => texts.texts.push(text),
-                    }
-                }
+                let transform = mvt::transform_onto(full_rect);
+                painter.extend(render::transformed_shapes(shapes, transform));
+                texts
+                    .texts
+                    .extend(render::transformed_texts(from_tile, transform));
             }
         }
     }
@@ -209,7 +213,7 @@ impl Texts {
     /// layer.
     pub(crate) fn paint(self, painter: &egui::Painter) {
         #[cfg(feature = "mvt")]
-        painter.extend(render::place_texts(self.texts, painter.ctx()));
+        painter.extend(crate::text::place_texts(self.texts, painter.ctx()));
         #[cfg(not(feature = "mvt"))]
         let _ = painter;
     }
@@ -526,18 +530,21 @@ mod tests {
     impl Tiles for LabelAtBothEdges {
         fn at(&mut self, _tile_id: TileId) -> Option<TilePiece> {
             let label = |x: f32| {
-                ShapeOrText::Text(crate::text::Text::new(
+                crate::text::Text::new(
                     pos2(x, 2048.),
                     "Szczepankowice".to_string(),
                     12.,
                     Color32::BLACK,
                     Color32::TRANSPARENT,
                     0.,
-                ))
+                )
             };
 
             Some(TilePiece::new(
-                Tile::Vector(vec![label(0.), label(4096.)]),
+                Tile::Vector {
+                    shapes: Vec::new(),
+                    texts: vec![label(0.), label(4096.)],
+                },
                 Rect::from_min_max(pos2(0., 0.), pos2(1., 1.)),
             ))
         }
@@ -597,7 +604,7 @@ mod tests {
             positions.len()
         );
 
-        let placed = crate::render::place_texts(texts.texts, &ctx)
+        let placed = crate::text::place_texts(texts.texts, &ctx)
             .into_iter()
             .filter(|shape| !matches!(shape, egui::Shape::Noop))
             .count();

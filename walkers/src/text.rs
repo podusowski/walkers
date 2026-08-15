@@ -106,11 +106,7 @@ impl OccupiedAreas {
 }
 
 /// Lay the text out, unless it would land on an area which is already taken.
-pub fn draw_text(
-    text: Text,
-    ctx: &egui::Context,
-    occupied_text_areas: &mut OccupiedAreas,
-) -> Shape {
+fn place_text(text: Text, ctx: &egui::Context, occupied_text_areas: &mut OccupiedAreas) -> Shape {
     use egui::epaint::TextShape;
 
     let mut layout_job = egui::text::LayoutJob::default();
@@ -138,4 +134,15 @@ pub fn draw_text(
     } else {
         Shape::Noop
     }
+}
+
+/// Lay out the labels, dropping the ones which would land on top of an already placed one.
+pub fn place_texts(texts: Vec<Text>, ctx: &egui::Context) -> Vec<Shape> {
+    let mut occupied_text_areas = OccupiedAreas::new();
+
+    // Need to collect it to avoid deadlock caused by `Painter::extend` and `fonts_mut`.
+    texts
+        .into_iter()
+        .map(|text| place_text(text, ctx, &mut occupied_text_areas))
+        .collect()
 }
