@@ -14,3 +14,7 @@
 
 .DS_Store
 *.pmtiles
+
+# Downloaded by the `overpass-*` recipes, and picked up by the demo.
+/*.geojson
+/*.json

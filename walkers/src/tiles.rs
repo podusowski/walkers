@@ -1,14 +1,8 @@
 #[cfg(feature = "mvt")]
 use crate::mvt::{self, ShapeOrText};
-#[cfg(feature = "mvt")]
-use crate::text::Text;
-#[cfg(feature = "mvt")]
-use crate::text::{OccupiedAreas, OrientedRect};
 
 use egui::{Color32, Context, Mesh, Rect, Vec2, pos2};
 use egui::{ColorImage, TextureHandle};
-#[cfg(feature = "mvt")]
-use egui::{FontId, Shape};
 use image::{ImageError, ImageReader};
 use std::collections::HashSet;
 use thiserror::Error;
@@ -177,57 +171,11 @@ impl Tile {
                 // ...and then it can be clipped to the `rect`.
                 let painter = painter.with_clip_rect(rect);
 
-                let mut occupied_text_areas = OccupiedAreas::new();
-
-                // Need to collect it to avoid deadlock caused by `Painter::extend` and `fonts_mut`.
-                let shapes: Vec<_> = mvt::transformed(shapes, full_rect)
-                    .into_iter()
-                    .map(|shape_or_text| match shape_or_text {
-                        ShapeOrText::Shape(shape) => shape,
-                        ShapeOrText::Text(text) => {
-                            self.draw_text(text, painter.ctx(), &mut occupied_text_areas)
-                        }
-                    })
-                    .collect();
-
-                painter.extend(shapes);
+                painter.extend(mvt::resolve_text(
+                    mvt::transformed(shapes, full_rect),
+                    painter.ctx(),
+                ));
             }
-        }
-    }
-
-    #[cfg(feature = "mvt")]
-    fn draw_text(
-        &self,
-        text: Text,
-        ctx: &Context,
-        occupied_text_areas: &mut OccupiedAreas,
-    ) -> Shape {
-        use egui::epaint::TextShape;
-
-        let mut layout_job = egui::text::LayoutJob::default();
-
-        layout_job.append(
-            &text.text,
-            0.0,
-            egui::TextFormat {
-                font_id: FontId::proportional(text.font_size),
-                color: text.text_color,
-                background: text.background_color,
-                ..Default::default()
-            },
-        );
-
-        let galley = ctx.fonts_mut(|fonts| fonts.layout_job(layout_job));
-
-        let area = OrientedRect::new(text.position, text.angle, galley.size());
-        let top_left = area.top_left();
-
-        if occupied_text_areas.try_occupy(area) {
-            TextShape::new(top_left, galley, text.text_color)
-                .with_angle(text.angle)
-                .into()
-        } else {
-            Shape::Noop
         }
     }
 }

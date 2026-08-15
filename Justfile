@@ -49,6 +49,14 @@ overpass-trails-dolnoslaskie:
         -o trails.json
     osmtogeojson trails.json > trails.geojson
 
+# Download mountain peaks for Dolnośląskie, Poland from OpenStreetMap using Overpass API and convert to GeoJSON
+[group('data')]
+overpass-peaks-dolnoslaskie:
+    curl -G https://overpass-api.de/api/interpreter \
+        --data-urlencode 'data=[out:json][timeout:120];(node["natural"="peak"]["name"]({{ DOLNOSLASKIE_OVERPASS_BBOX }}););out geom;' \
+        -o peaks.json
+    osmtogeojson peaks.json > peaks.geojson
+
 # Download the latest PMTiles file for Dolnośląskie, Poland from Protomaps.
 [group('data')]
 protomaps-dolnoslaskie:
