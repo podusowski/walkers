@@ -10,6 +10,8 @@ All notable changes to this project will be documented in this file.
 * `source_layer` is now a `SourceLayer`, which can name several layers of a vector tile instead
   of one. It still takes a plain name, and an empty one still matches all of them.
 * `line-width` is now in screen pixels, so lines are thicker than before.
+* Labels are placed against the whole map rather than one tile at a time, so they no longer
+  repeat or get cut off at tile boundaries. They are also drawn above every layer.
 
 ## 0.58.0
 
