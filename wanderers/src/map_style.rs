@@ -1,4 +1,6 @@
-use walkers::{Color, Dasharray, Filter, Float, Layer, Layout, Paint, Style, Value, json};
+use walkers::{
+    Color, Dasharray, Filter, Float, Layer, Layout, Paint, SourceLayer, Style, Value, json,
+};
 
 /// Which vector tile schema the tiles follow.
 ///
@@ -9,7 +11,11 @@ use walkers::{Color, Dasharray, Filter, Float, Layer, Layout, Paint, Style, Valu
 #[derive(Clone, Copy)]
 pub struct Schema {
     earth: &'static str,
-    landuse: &'static str,
+
+    /// Protomaps keeps parks, forests and hospitals together; OpenMapTiles spreads them over
+    /// three layers. The filters already accept both vocabularies, so naming all three is
+    /// enough - no layer has to be repeated.
+    landuse: &'static [&'static str],
     water: &'static str,
     waterway: &'static str,
     roads: &'static str,
@@ -28,7 +34,7 @@ pub struct Schema {
 /// Served by Protomaps `.pmtiles`.
 pub const PROTOMAPS: Schema = Schema {
     earth: "earth",
-    landuse: "landuse",
+    landuse: &["landuse"],
     water: "water",
     waterway: "water",
     roads: "roads",
@@ -48,7 +54,7 @@ pub const PROTOMAPS: Schema = Schema {
 /// so `earth` is empty and the layers asking for it are dropped.
 pub const OPENMAPTILES: Schema = Schema {
     earth: "",
-    landuse: "landcover",
+    landuse: &["landcover", "landuse", "park"],
     water: "water",
     waterway: "waterway",
     roads: "transportation",
@@ -1310,14 +1316,18 @@ fn build(palette: &Palette, schema: Schema) -> Style {
 
     // A schema which does not carry a layer leaves its name empty, and an empty source layer
     // would match every layer of the tile rather than none.
-    layers.retain(|layer| match layer {
-        Layer::Fill { source_layer, .. }
-        | Layer::Line { source_layer, .. }
-        | Layer::Symbol { source_layer, .. } => !source_layer.is_empty(),
-        _ => true,
-    });
+    layers.retain(|layer| source_layer_of(layer).is_none_or(|source| !source.is_all()));
 
     Style { layers }
+}
+
+fn source_layer_of(layer: &Layer) -> Option<&SourceLayer> {
+    match layer {
+        Layer::Fill { source_layer, .. }
+        | Layer::Line { source_layer, .. }
+        | Layer::Symbol { source_layer, .. } => Some(source_layer),
+        _ => None,
+    }
 }
 
 /// Which of the two palettes a style is built from.
@@ -1352,60 +1362,87 @@ pub fn style(shade: Shade, schema: Schema) -> Style {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use std::collections::HashSet;
 
-    fn source_layers(style: &Style) -> HashSet<String> {
+    /// Whether any layer of the style draws from a tile layer of this name.
+    fn asks_for(style: &Style, name: &str) -> bool {
         style
             .layers
             .iter()
-            .filter_map(|layer| match layer {
-                Layer::Fill { source_layer, .. }
-                | Layer::Line { source_layer, .. }
-                | Layer::Symbol { source_layer, .. } => Some(source_layer.to_owned()),
-                _ => None,
-            })
-            .collect()
+            .filter_map(source_layer_of)
+            .any(|source| source.matches(name))
     }
 
-    /// OpenMapTiles has no land polygon, so it ends up with fewer layers than Protomaps.
+    /// OpenMapTiles has no land polygon, so those layers are dropped rather than asked for.
     #[test]
     fn a_schema_only_gets_the_layers_it_can_serve() {
-        assert!(
-            style(Shade::Light, PROTOMAPS).layers.len()
-                > style(Shade::Light, OPENMAPTILES).layers.len()
-        );
+        assert!(asks_for(&style(Shade::Light, PROTOMAPS), "earth"));
+        assert!(!asks_for(&style(Shade::Light, OPENMAPTILES), "earth"));
+    }
+
+    /// The palette changes the colours, never which layers there are.
+    #[test]
+    fn both_shades_draw_the_same_layers() {
+        for schema in [PROTOMAPS, OPENMAPTILES] {
+            assert_eq!(
+                style(Shade::Dark, schema).layers.len(),
+                style(Shade::Light, schema).layers.len()
+            );
+        }
+    }
+
+    /// OpenMapTiles spreads landuse over three tile layers. One style layer names all three,
+    /// rather than being repeated once per name.
+    #[test]
+    fn a_concept_split_across_layers_needs_no_extra_layers() {
+        let openmaptiles = style(Shade::Light, OPENMAPTILES);
+
+        for name in ["landcover", "landuse", "park"] {
+            assert!(asks_for(&openmaptiles, name), "does not ask for {name}");
+        }
+
+        let landuse_layers = |style: &Style| {
+            style
+                .layers
+                .iter()
+                .filter_map(source_layer_of)
+                .filter(|source| source.matches("landcover") || source.matches("landuse"))
+                .count()
+        };
+
         assert_eq!(
-            style(Shade::Dark, PROTOMAPS).layers.len(),
-            style(Shade::Light, PROTOMAPS).layers.len()
+            landuse_layers(&openmaptiles),
+            landuse_layers(&style(Shade::Light, PROTOMAPS))
         );
-        assert!(source_layers(&style(Shade::Light, PROTOMAPS)).contains("earth"));
-        assert!(!source_layers(&style(Shade::Light, OPENMAPTILES)).contains("earth"));
     }
 
     #[test]
     fn each_schema_asks_for_its_own_source_layers() {
-        let protomaps = source_layers(&style(Shade::Light, PROTOMAPS));
-        let openmaptiles = source_layers(&style(Shade::Light, OPENMAPTILES));
+        let protomaps = style(Shade::Light, PROTOMAPS);
+        let openmaptiles = style(Shade::Light, OPENMAPTILES);
 
-        assert!(protomaps.contains("roads"));
-        assert!(protomaps.contains("buildings"));
-        assert!(!protomaps.contains("transportation"));
+        assert!(asks_for(&protomaps, "roads"));
+        assert!(asks_for(&protomaps, "buildings"));
+        assert!(!asks_for(&protomaps, "transportation"));
 
-        assert!(openmaptiles.contains("transportation"));
-        assert!(openmaptiles.contains("transportation_name"));
-        assert!(openmaptiles.contains("waterway"));
-        assert!(openmaptiles.contains("building"));
-        assert!(!openmaptiles.contains("roads"));
+        assert!(asks_for(&openmaptiles, "transportation"));
+        assert!(asks_for(&openmaptiles, "transportation_name"));
+        assert!(asks_for(&openmaptiles, "waterway"));
+        assert!(asks_for(&openmaptiles, "building"));
+        assert!(!asks_for(&openmaptiles, "roads"));
     }
 
-    /// An empty source layer scans every layer of a tile, which is ruinous for a basemap.
+    /// A layer matching everything scans every layer of a tile, ruinous for a basemap.
     #[test]
     fn no_layer_matches_everything() {
-        for style in [
-            style(Shade::Light, PROTOMAPS),
-            style(Shade::Light, OPENMAPTILES),
-        ] {
-            assert!(!source_layers(&style).contains(""));
+        for schema in [PROTOMAPS, OPENMAPTILES] {
+            let style = style(Shade::Light, schema);
+            assert!(
+                style
+                    .layers
+                    .iter()
+                    .filter_map(source_layer_of)
+                    .all(|source| !source.is_all())
+            );
         }
     }
 }

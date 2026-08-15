@@ -157,7 +157,7 @@ fn hiking_style() -> Style {
     Style {
         layers: vec![
             Layer::Line {
-                source_layer: "".to_string(),
+                source_layer: "".into(),
                 filter: Some(Filter(json!([
                     "any",
                     ["==", ["get", "colour"], "red"],
@@ -171,7 +171,7 @@ fn hiking_style() -> Style {
                 },
             },
             Layer::Line {
-                source_layer: "".to_string(),
+                source_layer: "".into(),
                 filter: Some(Filter(json!([
                     "any",
                     ["==", ["get", "colour"], "yellow"],
@@ -184,7 +184,7 @@ fn hiking_style() -> Style {
                 },
             },
             Layer::Line {
-                source_layer: "".to_string(),
+                source_layer: "".into(),
                 filter: Some(Filter(json!(["==", ["get", "colour"], "red"]))),
                 paint: Paint {
                     line_color: Some(Color(json!("#7b0000"))),
@@ -193,7 +193,7 @@ fn hiking_style() -> Style {
                 },
             },
             Layer::Line {
-                source_layer: "".to_string(),
+                source_layer: "".into(),
                 filter: Some(Filter(json!(["==", ["get", "colour"], "blue"]))),
                 paint: Paint {
                     line_color: Some(Color(json!("#0028ac"))),
@@ -202,7 +202,7 @@ fn hiking_style() -> Style {
                 },
             },
             Layer::Line {
-                source_layer: "".to_string(),
+                source_layer: "".into(),
                 filter: Some(Filter(json!(["==", ["get", "colour"], "green"]))),
                 paint: Paint {
                     line_color: Some(Color(json!("#005d09"))),
@@ -211,7 +211,7 @@ fn hiking_style() -> Style {
                 },
             },
             Layer::Line {
-                source_layer: "".to_string(),
+                source_layer: "".into(),
                 filter: Some(Filter(json!(["==", ["get", "colour"], "yellow"]))),
                 paint: Paint {
                     line_color: Some(Color(json!("#bbbb00"))),
@@ -220,7 +220,7 @@ fn hiking_style() -> Style {
                 },
             },
             Layer::Line {
-                source_layer: "".to_string(),
+                source_layer: "".into(),
                 filter: Some(Filter(json!(["==", ["get", "colour"], "black"]))),
                 paint: Paint {
                     line_color: Some(Color(json!("#000000"))),
@@ -229,7 +229,7 @@ fn hiking_style() -> Style {
                 },
             },
             Layer::Symbol {
-                source_layer: "".to_string(),
+                source_layer: "".into(),
                 filter: Some(Filter(json!(["==", ["get", "natural"], "peak"]))),
                 layout: Layout {
                     text_field: Some(json!(["get", "name"])),
