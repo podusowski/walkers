@@ -10,17 +10,13 @@ use serde_json::{Number, Value as JsonValue};
 use crate::{
     expression::Context,
     render::{self, Geometry, ShapeOrText},
-    style::{Filter, Layer, Style},
+    style::{Filter, Layer, SourceLayer, Style},
 };
 
 #[derive(thiserror::Error, Debug)]
 pub enum Error {
     #[error("Decoding MVT failed: {0}.")]
     Mvt(String),
-    #[error("Layer not found: {0}. Available layers: {1:?}")]
-    LayerNotFound(String, Vec<String>),
-    #[error("Unsupported layer extent: {0}")]
-    UnsupportedLayerExtent(String),
 }
 
 /// Custom conversion because mvt_reader::error::Error is not Send.
@@ -127,24 +123,35 @@ pub fn transformed(shapes: &[ShapeOrText], rect: egui::Rect) -> Vec<ShapeOrText>
 fn get_layer_features(
     reader: &Reader,
     zoom: u8,
-    name: &str,
+    source_layer: &SourceLayer,
     filter: Option<&Filter>,
 ) -> Result<impl Iterator<Item = (Geometry<f32>, Context)>, Error> {
-    // An empty source layer matches features from all layers. Intended for sparse
-    // overlay tiles; pointing dense basemap rules at "" would scan every layer.
-    let raw = if name.is_empty() {
-        reader
-            .get_layer_metadata()?
-            .into_iter()
-            .filter(|layer| layer.extent == ONLY_SUPPORTED_EXTENT)
-            .flat_map(|layer| reader.get_features(layer.layer_index).unwrap_or_default())
-            .collect()
-    } else if let Ok(layer_index) = find_layer(reader, name) {
-        reader.get_features(layer_index)?
-    } else {
-        warn!("Source layer '{name}' not found. Skipping.");
-        Vec::new()
-    };
+    let mut matched = 0usize;
+    let mut raw = Vec::new();
+
+    for layer in reader.get_layer_metadata()? {
+        if !source_layer.matches(&layer.name) {
+            continue;
+        }
+
+        matched += 1;
+
+        if layer.extent != ONLY_SUPPORTED_EXTENT {
+            warn!(
+                "Unsupported extent in source layer '{}'. Skipping.",
+                layer.name
+            );
+            continue;
+        }
+
+        raw.extend(reader.get_features(layer.layer_index).unwrap_or_default());
+    }
+
+    // Asking for everything and finding nothing is a tile without features, but asking for a
+    // layer by name and not finding it usually means the style does not fit the schema.
+    if matched == 0 && !source_layer.is_all() {
+        warn!("Source layer {source_layer} not found. Skipping.");
+    }
 
     let features = raw.into_iter().filter_map(move |feature| {
         let context = Context::new(
@@ -189,24 +196,4 @@ fn mvt_value_to_json_value(value: &Value) -> JsonValue {
             JsonValue::Null
         }
     }
-}
-
-fn find_layer(data: &Reader, name: &str) -> Result<usize, Error> {
-    let layer = data
-        .get_layer_metadata()?
-        .into_iter()
-        .find(|layer| layer.name == name);
-
-    let Some(layer) = layer else {
-        return Err(Error::LayerNotFound(
-            name.to_string(),
-            data.get_layer_names()?,
-        ));
-    };
-
-    if layer.extent != ONLY_SUPPORTED_EXTENT {
-        return Err(Error::UnsupportedLayerExtent(name.to_string()));
-    }
-
-    Ok(layer.layer_index)
 }
