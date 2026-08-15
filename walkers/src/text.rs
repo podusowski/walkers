@@ -1,4 +1,4 @@
-use egui::{Color32, Pos2, Vec2, vec2};
+use egui::{Color32, Pos2, Shape, Vec2, vec2};
 use geo::{BoundingRect, Coord, Intersects, LineString, Polygon};
 
 #[derive(Debug, Clone)]
@@ -102,5 +102,40 @@ impl OccupiedAreas {
         } else {
             false
         }
+    }
+}
+
+/// Lay the text out, unless it would land on an area which is already taken.
+pub fn draw_text(
+    text: Text,
+    ctx: &egui::Context,
+    occupied_text_areas: &mut OccupiedAreas,
+) -> Shape {
+    use egui::epaint::TextShape;
+
+    let mut layout_job = egui::text::LayoutJob::default();
+
+    layout_job.append(
+        &text.text,
+        0.0,
+        egui::TextFormat {
+            font_id: egui::FontId::proportional(text.font_size),
+            color: text.text_color,
+            background: text.background_color,
+            ..Default::default()
+        },
+    );
+
+    let galley = ctx.fonts_mut(|fonts| fonts.layout_job(layout_job));
+
+    let area = OrientedRect::new(text.position, text.angle, galley.size());
+    let top_left = area.top_left();
+
+    if occupied_text_areas.try_occupy(area) {
+        TextShape::new(top_left, galley, text.text_color)
+            .with_angle(text.angle)
+            .into()
+    } else {
+        Shape::Noop
     }
 }

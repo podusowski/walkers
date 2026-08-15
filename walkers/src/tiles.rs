@@ -1,5 +1,7 @@
 #[cfg(feature = "mvt")]
-use crate::mvt::{self, ShapeOrText};
+use crate::mvt;
+#[cfg(feature = "mvt")]
+use crate::render::{self, ShapeOrText};
 
 use egui::{Color32, Context, Mesh, Rect, Vec2, pos2};
 use egui::{ColorImage, TextureHandle};
@@ -171,7 +173,7 @@ impl Tile {
                 // ...and then it can be clipped to the `rect`.
                 let painter = painter.with_clip_rect(rect);
 
-                painter.extend(mvt::resolve_text(
+                painter.extend(render::resolve_text(
                     mvt::transformed(shapes, full_rect),
                     painter.ctx(),
                 ));
