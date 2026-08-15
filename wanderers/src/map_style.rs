@@ -4,17 +4,11 @@ use walkers::{
 
 /// Which vector tile schema the tiles follow.
 ///
-/// Protomaps and OpenMapTiles carry the same world under different names, and the names are
-/// the only thing a filter cannot reach: `source_layer` picks the tile layer before there is
-/// any feature to test. Everything else - property keys, value vocabularies - is handled in
-/// the filters themselves.
+/// Only the names live here. Differing property values are absorbed by the filters, which is
+/// not possible for layer names because `source_layer` is read before there is any feature.
 #[derive(Clone, Copy)]
 pub struct Schema {
     earth: &'static str,
-
-    /// Protomaps keeps parks, forests and hospitals together; OpenMapTiles spreads them over
-    /// three layers. The filters already accept both vocabularies, so naming all three is
-    /// enough - no layer has to be repeated.
     landuse: &'static [&'static str],
     water: &'static str,
     waterway: &'static str,
@@ -31,7 +25,6 @@ pub struct Schema {
     link: &'static str,
 }
 
-/// Served by Protomaps `.pmtiles`.
 pub const PROTOMAPS: Schema = Schema {
     earth: "earth",
     landuse: &["landuse"],
@@ -50,8 +43,7 @@ pub const PROTOMAPS: Schema = Schema {
     link: "is_link",
 };
 
-/// Served by OpenFreeMap. There is no land polygon here - the background stands in for one -
-/// so `earth` is empty and the layers asking for it are dropped.
+/// `earth` is empty because there is no land polygon here; the background stands in for it.
 pub const OPENMAPTILES: Schema = Schema {
     earth: "",
     landuse: &["landcover", "landuse", "park"],
@@ -78,7 +70,6 @@ pub enum Brunnel {
 }
 
 impl Brunnel {
-    /// Protomaps flags it with a property of its own, OpenMapTiles with a value.
     fn protomaps(self) -> &'static str {
         match self {
             Brunnel::Tunnel => "is_tunnel",
@@ -1330,7 +1321,6 @@ fn source_layer_of(layer: &Layer) -> Option<&SourceLayer> {
     }
 }
 
-/// Which of the two palettes a style is built from.
 #[derive(Clone, Copy, PartialEq)]
 pub enum Shade {
     Light,
@@ -1363,7 +1353,6 @@ pub fn style(shade: Shade, schema: Schema) -> Style {
 mod tests {
     use super::*;
 
-    /// Whether any layer of the style draws from a tile layer of this name.
     fn asks_for(style: &Style, name: &str) -> bool {
         style
             .layers
@@ -1379,7 +1368,6 @@ mod tests {
         assert!(!asks_for(&style(Shade::Light, OPENMAPTILES), "earth"));
     }
 
-    /// The palette changes the colours, never which layers there are.
     #[test]
     fn both_shades_draw_the_same_layers() {
         for schema in [PROTOMAPS, OPENMAPTILES] {
@@ -1390,8 +1378,7 @@ mod tests {
         }
     }
 
-    /// OpenMapTiles spreads landuse over three tile layers. One style layer names all three,
-    /// rather than being repeated once per name.
+    /// OpenMapTiles spreads landuse over `landcover`, `landuse` and `park`.
     #[test]
     fn a_concept_split_across_layers_needs_no_extra_layers() {
         let openmaptiles = style(Shade::Light, OPENMAPTILES);
