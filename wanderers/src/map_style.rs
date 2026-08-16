@@ -1038,8 +1038,12 @@ fn build(palette: &Palette, schema: Schema) -> Style {
                 "in",
                 schema.kind,
                 "minor_road",
+                "minor",
+                "tertiary",
                 "other",
-                "path"
+                "path",
+                "service",
+                "track"
             ]))),
             layout: Layout {
                 text_field: Some(json!(["get", "name"])),
@@ -1113,7 +1117,17 @@ fn build(palette: &Palette, schema: Schema) -> Style {
                 [
                     "in",
                     ["get", schema.kind],
-                    ["literal", ["highway", "major_road"]]
+                    [
+                        "literal",
+                        [
+                            "highway",
+                            "motorway",
+                            "trunk",
+                            "major_road",
+                            "primary",
+                            "secondary"
+                        ]
+                    ]
                 ],
                 ["has", "shield_text"],
                 ["<=", ["length", ["get", "shield_text"]], 5]
@@ -1130,7 +1144,16 @@ fn build(palette: &Palette, schema: Schema) -> Style {
         // roads_labels_major
         Layer::Symbol {
             source_layer: schema.road_labels.into(),
-            filter: Some(Filter(json!(["in", schema.kind, "highway", "major_road"]))),
+            filter: Some(Filter(json!([
+                "in",
+                schema.kind,
+                "highway",
+                "motorway",
+                "trunk",
+                "major_road",
+                "primary",
+                "secondary"
+            ]))),
             layout: Layout {
                 text_field: Some(json!(["get", "name"])),
                 text_size: Some(Float(json!(13))),
@@ -1148,7 +1171,9 @@ fn build(palette: &Palette, schema: Schema) -> Style {
                 "in",
                 schema.kind,
                 "neighbourhood",
-                "macrohood"
+                "macrohood",
+                "suburb",
+                "quarter"
             ]))),
             layout: Layout {
                 text_field: Some(json!(["get", "name"])),
@@ -1167,7 +1192,7 @@ fn build(palette: &Palette, schema: Schema) -> Style {
         // places_region
         Layer::Symbol {
             source_layer: schema.places.into(),
-            filter: Some(Filter(json!(["==", schema.kind, "region"]))),
+            filter: Some(Filter(json!(["in", schema.kind, "region", "state"]))),
             layout: Layout {
                 text_field: Some(json!(["get", "name"])),
                 text_size: Some(linear_zoom_interpolation(&[(3.0, 11.0), (7.0, 16.0)])),
@@ -1181,7 +1206,14 @@ fn build(palette: &Palette, schema: Schema) -> Style {
         // places_locality
         Layer::Symbol {
             source_layer: schema.places.into(),
-            filter: Some(Filter(json!(["==", schema.kind, "locality"]))),
+            filter: Some(Filter(json!([
+                "in",
+                schema.kind,
+                "locality",
+                "city",
+                "town",
+                "village"
+            ]))),
             layout: Layout {
                 text_field: Some(json!(["get", "name"])),
                 text_size: Some(Float(json!([
