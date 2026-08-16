@@ -6,9 +6,6 @@ use super::{
 };
 
 /// Which vector tile schema the tiles follow.
-///
-/// Only the names live here. Differing property values are absorbed by the filters, which is
-/// not possible for layer names because `source_layer` is read before there is any feature.
 #[derive(Clone, Copy)]
 struct Schema {
     pub earth: &'static str,
@@ -26,9 +23,22 @@ struct Schema {
     pub kind: &'static str,
     pub kind_detail: &'static str,
     pub admin_level: &'static str,
-    pub place_rank: &'static str,
+    pub settlements: Settlements,
     pub brunnel: Option<&'static str>,
     pub link: &'static str,
+}
+
+/// How a schema tells a city from a village.
+#[derive(Clone, Copy)]
+enum Settlements {
+    /// Protomaps files every settlement under the one `locality` kind and separates them by
+    /// `population_rank`, which counts *up* with population.
+    ByPopulationRank,
+
+    /// OpenMapTiles keeps `city`, `town` and `village` apart as classes. Its `rank` is a
+    /// placement priority counting *down* with importance — Berlin is 2, Wrocław 7, and the
+    /// villages around it 11 to 15 — so it is the class, not the rank, which sizes a label.
+    ByClass,
 }
 
 const PROTOMAPS: Schema = Schema {
@@ -47,7 +57,7 @@ const PROTOMAPS: Schema = Schema {
     kind: "kind",
     kind_detail: "kind_detail",
     admin_level: "kind_detail",
-    place_rank: "population_rank",
+    settlements: Settlements::ByPopulationRank,
     brunnel: None,
     link: "is_link",
 };
@@ -68,7 +78,7 @@ const OPENMAPTILES: Schema = Schema {
     kind: "class",
     kind_detail: "subclass",
     admin_level: "admin_level",
-    place_rank: "rank",
+    settlements: Settlements::ByClass,
     brunnel: Some("brunnel"),
     link: "ramp",
 };
@@ -124,6 +134,76 @@ impl Schema {
             None => json!(["!has", self.link]),
         }
     }
+
+    /// Text size for a city, town or village label, growing with zoom and with how big the
+    /// place is. Both schemas answer the second half, but not with the same property.
+    pub fn settlement_text_size(&self) -> Float {
+        match self.settlements {
+            // Two tiers, split at a population rank which itself falls as the map zooms in.
+            Settlements::ByPopulationRank => Float(json!([
+                "interpolate",
+                ["linear"],
+                ["zoom"],
+                2,
+                population_rank_over(13, 13, 8),
+                4,
+                population_rank_over(13, 15, 10),
+                6,
+                population_rank_over(12, 17, 11),
+                8,
+                population_rank_over(11, 18, 11),
+                10,
+                population_rank_over(9, 20, 12),
+                15,
+                population_rank_over(8, 22, 12)
+            ])),
+
+            // Three tiers, because the schema names them. The curve echoes the one above, with
+            // towns landing between a Protomaps locality's two sizes.
+            Settlements::ByClass => {
+                let sizes = |city: u32, town: u32, village: u32| {
+                    json!([
+                        "match",
+                        ["get", self.kind],
+                        "city",
+                        city,
+                        "town",
+                        town,
+                        village
+                    ])
+                };
+
+                Float(json!([
+                    "interpolate",
+                    ["linear"],
+                    ["zoom"],
+                    2,
+                    sizes(13, 8, 8),
+                    4,
+                    sizes(15, 10, 10),
+                    6,
+                    sizes(17, 13, 11),
+                    8,
+                    sizes(18, 14, 11),
+                    10,
+                    sizes(20, 15, 12),
+                    15,
+                    sizes(22, 17, 13)
+                ]))
+            }
+        }
+    }
+}
+
+/// `above` is the size for a settlement whose `population_rank` reaches `rank`, `below` the
+/// size for one which does not.
+fn population_rank_over(rank: u32, above: u32, below: u32) -> Value {
+    json!([
+        "case",
+        [">=", ["get", "population_rank"], rank],
+        above,
+        below
+    ])
 }
 
 impl Style {
@@ -1251,65 +1331,7 @@ fn build(palette: &Palette, schema: Schema) -> Style {
             ]))),
             layout: Layout {
                 text_field: Some(json!(["get", "name"])),
-                text_size: Some(Float(json!([
-                    "interpolate",
-                    ["linear"],
-                    ["zoom"],
-                    2,
-                    [
-                        "case",
-                        ["<", ["get", schema.place_rank], 13],
-                        8,
-                        [">=", ["get", schema.place_rank], 13],
-                        13,
-                        0
-                    ],
-                    4,
-                    [
-                        "case",
-                        ["<", ["get", schema.place_rank], 13],
-                        10,
-                        [">=", ["get", schema.place_rank], 13],
-                        15,
-                        0
-                    ],
-                    6,
-                    [
-                        "case",
-                        ["<", ["get", schema.place_rank], 12],
-                        11,
-                        [">=", ["get", schema.place_rank], 12],
-                        17,
-                        0
-                    ],
-                    8,
-                    [
-                        "case",
-                        ["<", ["get", schema.place_rank], 11],
-                        11,
-                        [">=", ["get", schema.place_rank], 11],
-                        18,
-                        0
-                    ],
-                    10,
-                    [
-                        "case",
-                        ["<", ["get", schema.place_rank], 9],
-                        12,
-                        [">=", ["get", schema.place_rank], 9],
-                        20,
-                        0
-                    ],
-                    15,
-                    [
-                        "case",
-                        ["<", ["get", schema.place_rank], 8],
-                        12,
-                        [">=", ["get", schema.place_rank], 8],
-                        22,
-                        0
-                    ]
-                ]))),
+                text_size: Some(schema.settlement_text_size()),
             },
             paint: Some(Paint {
                 text_color: Some(Color(json!(palette.locality_text))),
@@ -1384,6 +1406,100 @@ fn source_layer_of(layer: &Layer) -> Option<&SourceLayer> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::expression::Context;
+    use std::collections::HashMap;
+
+    /// Size the style gives a label, found the way the renderer finds it: the layer which asks
+    /// for this source layer and whose filter the feature passes.
+    fn label_size(style: &Style, source: &str, properties: Value, zoom: u8) -> f32 {
+        let context = Context::new(
+            "Point".to_owned(),
+            serde_json::from_value::<HashMap<String, Value>>(properties).unwrap(),
+            zoom,
+        );
+
+        let sizes: Vec<f32> = style
+            .layers
+            .iter()
+            .filter_map(|layer| match layer {
+                Layer::Symbol {
+                    source_layer,
+                    filter,
+                    layout,
+                    ..
+                } if source_layer.matches(source)
+                    && filter
+                        .as_ref()
+                        .is_some_and(|filter| filter.matches(&context)) =>
+                {
+                    layout
+                        .text_size
+                        .as_ref()
+                        .map(|size| size.evaluate(&context))
+                }
+                _ => None,
+            })
+            .collect();
+
+        assert_eq!(
+            sizes.len(),
+            1,
+            "expected one label for {source}, got {sizes:?}"
+        );
+        sizes[0]
+    }
+
+    /// The two schemas rank a settlement in opposite directions. Protomaps' `population_rank`
+    /// counts up with population, while OpenMapTiles' `rank` is a placement priority where 1
+    /// is the most prominent — Berlin is 2, Wrocław 7, and the villages around it 11 to 15.
+    /// Reading the second as if it were the first drew villages larger than the city.
+    #[test]
+    fn a_city_is_labelled_larger_than_a_village() {
+        for zoom in [6, 10, 14] {
+            let protomaps = Style::protomaps_basemap_light();
+            assert!(
+                label_size(
+                    &protomaps,
+                    "places",
+                    json!({"kind": "locality", "population_rank": 13}),
+                    zoom
+                ) > label_size(
+                    &protomaps,
+                    "places",
+                    json!({"kind": "locality", "population_rank": 3}),
+                    zoom
+                ),
+                "protomaps, zoom {zoom}"
+            );
+
+            let openmaptiles = Style::openmaptiles_basemap_light();
+            assert!(
+                label_size(
+                    &openmaptiles,
+                    "place",
+                    json!({"class": "city", "rank": 7}),
+                    zoom
+                ) > label_size(
+                    &openmaptiles,
+                    "place",
+                    json!({"class": "village", "rank": 12}),
+                    zoom
+                ),
+                "openmaptiles, zoom {zoom}"
+            );
+        }
+    }
+
+    /// OpenMapTiles keeps the settlement's size in `class`, so all three tiers can be told
+    /// apart — which `population_rank` alone cannot do on Protomaps.
+    #[test]
+    fn openmaptiles_labels_a_town_between_a_city_and_a_village() {
+        let style = Style::openmaptiles_basemap_light();
+        let size = |class| label_size(&style, "place", json!({ "class": class, "rank": 11 }), 12);
+
+        assert!(size("city") > size("town"));
+        assert!(size("town") > size("village"));
+    }
 
     fn asks_for(style: &Style, name: &str) -> bool {
         style
