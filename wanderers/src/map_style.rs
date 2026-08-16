@@ -11,6 +11,7 @@ pub struct Schema {
     earth: &'static str,
     landuse: &'static [&'static str],
     water: &'static str,
+    water_labels: &'static [&'static str],
     waterway: &'static str,
     roads: &'static str,
     road_labels: &'static str,
@@ -31,6 +32,7 @@ pub const PROTOMAPS: Schema = Schema {
     earth: "earth",
     landuse: &["landuse"],
     water: "water",
+    water_labels: &["water"],
     waterway: "water",
     roads: "roads",
     road_labels: "roads",
@@ -52,6 +54,7 @@ pub const OPENMAPTILES: Schema = Schema {
     earth: "",
     landuse: &["landcover", "landuse", "park"],
     water: "water",
+    water_labels: &["water_name"],
     waterway: "waterway",
     roads: "transportation",
     road_labels: "transportation_name",
@@ -150,6 +153,8 @@ struct Palette {
     label: &'static str,
     locality_text: &'static str,
     water: &'static str,
+    water_label: &'static str,
+    water_label_halo: &'static str,
     station: &'static str,
     peak: &'static str,
 }
@@ -174,6 +179,8 @@ const DARK: Palette = Palette {
     label: "#707070",
     locality_text: "#999999",
     water: "#161e31",
+    water_label: "#134164",
+    water_label_halo: "#0d1526",
     station: "#7fb3d9",
     peak: "#b59a6a",
 };
@@ -199,6 +206,8 @@ const LIGHT: Palette = Palette {
     label: "#1f1f1f",
     locality_text: "#1a1a1a",
     water: "#88b2e2",
+    water_label: "#2f6690",
+    water_label_halo: "#ffffff",
     station: "#2b6ca3",
     peak: "#6b5330",
 };
@@ -1006,6 +1015,7 @@ fn build(palette: &Palette, schema: Schema) -> Style {
             paint: Some(Paint {
                 text_color: Some(Color(json!(palette.label))),
                 text_halo_color: Some(Color(json!(palette.casing))),
+                text_halo_width: Some(Float(json!(1.5))),
                 ..Default::default()
             }),
         },
@@ -1018,8 +1028,9 @@ fn build(palette: &Palette, schema: Schema) -> Style {
                 text_size: Some(Float(json!(12))),
             },
             paint: Some(Paint {
-                text_color: Some(Color(json!(palette.label))),
-                text_halo_color: Some(Color(json!(palette.muted))),
+                text_color: Some(Color(json!(palette.water_label))),
+                text_halo_color: Some(Color(json!(palette.water_label_halo))),
+                text_halo_width: Some(Float(json!(1.5))),
                 ..Default::default()
             }),
         },
@@ -1054,12 +1065,13 @@ fn build(palette: &Palette, schema: Schema) -> Style {
             paint: Some(Paint {
                 text_color: Some(Color(json!(palette.label_muted))),
                 text_halo_color: Some(Color(json!(palette.background))),
+                text_halo_width: Some(Float(json!(1.5))),
                 ..Default::default()
             }),
         },
         // water_label_ocean
         Layer::Symbol {
-            source_layer: schema.water.into(),
+            source_layer: schema.water_labels.into(),
             filter: Some(Filter(json!([
                 "in",
                 schema.kind,
@@ -1074,8 +1086,9 @@ fn build(palette: &Palette, schema: Schema) -> Style {
                 text_size: Some(linear_zoom_interpolation(&[(3.0, 10.0), (10.0, 12.0)])),
             },
             paint: Some(Paint {
-                text_color: Some(Color(json!(palette.label))),
-                text_halo_color: Some(Color(json!(palette.muted))),
+                text_color: Some(Color(json!(palette.water_label))),
+                text_halo_color: Some(Color(json!(palette.water_label_halo))),
+                text_halo_width: Some(Float(json!(1.5))),
                 ..Default::default()
             }),
         },
@@ -1090,12 +1103,13 @@ fn build(palette: &Palette, schema: Schema) -> Style {
             paint: Some(Paint {
                 text_color: Some(Color(json!(palette.label_muted))),
                 text_halo_color: Some(Color(json!(palette.casing))),
+                text_halo_width: Some(Float(json!(1.5))),
                 ..Default::default()
             }),
         },
         // water_label_lakes
         Layer::Symbol {
-            source_layer: schema.water.into(),
+            source_layer: schema.water_labels.into(),
             filter: Some(Filter(json!(["in", schema.kind, "lake", "water"]))),
             layout: Layout {
                 text_field: Some(json!(["get", "name"])),
@@ -1106,8 +1120,9 @@ fn build(palette: &Palette, schema: Schema) -> Style {
                 ])),
             },
             paint: Some(Paint {
-                text_color: Some(Color(json!(palette.label))),
-                text_halo_color: Some(Color(json!(palette.muted))),
+                text_color: Some(Color(json!(palette.water_label))),
+                text_halo_color: Some(Color(json!(palette.water_label_halo))),
+                text_halo_width: Some(Float(json!(1.5))),
                 ..Default::default()
             }),
         },
@@ -1163,6 +1178,7 @@ fn build(palette: &Palette, schema: Schema) -> Style {
             paint: Some(Paint {
                 text_color: Some(Color(json!(palette.label))),
                 text_halo_color: Some(Color(json!(palette.background))),
+                text_halo_width: Some(Float(json!(1.5))),
                 ..Default::default()
             }),
         },
@@ -1188,6 +1204,7 @@ fn build(palette: &Palette, schema: Schema) -> Style {
             paint: Some(Paint {
                 text_color: Some(Color(json!(palette.label_muted))),
                 text_halo_color: Some(Color(json!(palette.casing))),
+                text_halo_width: Some(Float(json!(1.5))),
                 ..Default::default()
             }),
         },
@@ -1202,6 +1219,7 @@ fn build(palette: &Palette, schema: Schema) -> Style {
             paint: Some(Paint {
                 text_color: Some(Color(json!(palette.label))),
                 text_halo_color: Some(Color(json!(palette.casing))),
+                text_halo_width: Some(Float(json!(1.5))),
                 ..Default::default()
             }),
         },
@@ -1281,6 +1299,7 @@ fn build(palette: &Palette, schema: Schema) -> Style {
             paint: Some(Paint {
                 text_color: Some(Color(json!(palette.locality_text))),
                 text_halo_color: Some(Color(json!(palette.casing))),
+                text_halo_width: Some(Float(json!(1.5))),
                 ..Default::default()
             }),
         },
@@ -1326,6 +1345,7 @@ fn build(palette: &Palette, schema: Schema) -> Style {
             paint: Some(Paint {
                 text_color: Some(Color(json!(palette.label))),
                 text_halo_color: Some(Color(json!(palette.casing))),
+                text_halo_width: Some(Float(json!(1.5))),
                 ..Default::default()
             }),
         },
@@ -1340,6 +1360,7 @@ fn build(palette: &Palette, schema: Schema) -> Style {
             paint: Some(Paint {
                 text_color: Some(Color(json!(palette.station))),
                 text_halo_color: Some(Color(json!(palette.casing))),
+                text_halo_width: Some(Float(json!(1.5))),
                 ..Default::default()
             }),
         },
@@ -1354,6 +1375,7 @@ fn build(palette: &Palette, schema: Schema) -> Style {
             paint: Some(Paint {
                 text_color: Some(Color(json!(palette.peak))),
                 text_halo_color: Some(Color(json!(palette.casing))),
+                text_halo_width: Some(Float(json!(1.5))),
                 ..Default::default()
             }),
         },

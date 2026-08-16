@@ -7,7 +7,8 @@ pub struct Text {
     pub position: Pos2,
     pub font_size: f32,
     pub text_color: Color32,
-    pub background_color: Color32,
+    pub halo_color: Color32,
+    pub halo_width: f32,
     pub angle: f32,
 }
 
@@ -17,7 +18,6 @@ impl Text {
         text: String,
         font_size: f32,
         text_color: Color32,
-        background_color: Color32,
         angle: f32,
     ) -> Self {
         Self {
@@ -25,11 +25,30 @@ impl Text {
             text,
             font_size,
             text_color,
-            background_color,
+            halo_color: Color32::TRANSPARENT,
+            halo_width: 0.0,
             angle,
         }
     }
+
+    pub fn with_halo(mut self, color: Color32, width: f32) -> Self {
+        self.halo_color = color;
+        self.halo_width = width;
+        self
+    }
 }
+
+/// Where to stamp a copy of the text to fake an outline around it.
+const HALO_RING: [Vec2; 8] = [
+    Vec2 { x: 1.0, y: 0.0 },
+    Vec2 { x: 0.7, y: 0.7 },
+    Vec2 { x: 0.0, y: 1.0 },
+    Vec2 { x: -0.7, y: 0.7 },
+    Vec2 { x: -1.0, y: 0.0 },
+    Vec2 { x: -0.7, y: -0.7 },
+    Vec2 { x: 0.0, y: -1.0 },
+    Vec2 { x: 0.7, y: -0.7 },
+];
 
 pub struct OrientedRect {
     polygon: Polygon<f32>,
@@ -117,7 +136,6 @@ fn place_text(text: Text, ctx: &egui::Context, occupied_text_areas: &mut Occupie
         egui::TextFormat {
             font_id: egui::FontId::proportional(text.font_size),
             color: text.text_color,
-            background: text.background_color,
             ..Default::default()
         },
     );
@@ -127,13 +145,34 @@ fn place_text(text: Text, ctx: &egui::Context, occupied_text_areas: &mut Occupie
     let area = OrientedRect::new(text.position, text.angle, galley.size());
     let top_left = area.top_left();
 
-    if occupied_text_areas.try_occupy(area) {
-        TextShape::new(top_left, galley, text.text_color)
-            .with_angle(text.angle)
-            .into()
-    } else {
-        Shape::Noop
+    if !occupied_text_areas.try_occupy(area) {
+        return Shape::Noop;
     }
+
+    let on_top =
+        TextShape::new(top_left, galley.to_owned(), text.text_color).with_angle(text.angle);
+
+    if text.halo_width <= 0.0 || text.halo_color.a() == 0 {
+        return on_top.into();
+    }
+
+    // Text cannot be stroked, so the halo is the same text stamped around it.
+    let mut shapes: Vec<Shape> = HALO_RING
+        .iter()
+        .map(|offset| {
+            TextShape::new(
+                top_left + *offset * text.halo_width,
+                galley.to_owned(),
+                text.halo_color,
+            )
+            .with_angle(text.angle)
+            .with_override_text_color(text.halo_color)
+            .into()
+        })
+        .collect();
+
+    shapes.push(on_top.into());
+    Shape::Vec(shapes)
 }
 
 /// Lay out the labels, dropping the ones which would land on top of an already placed one.
