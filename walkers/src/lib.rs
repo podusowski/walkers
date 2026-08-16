@@ -52,7 +52,14 @@ pub use position::{Position, lat_lon, lon_lat};
 pub use projector::Projector;
 pub use style::Style;
 #[cfg(feature = "mvt")]
-pub use style::{Color, Dasharray, Filter, Float, Layer, Layout, Paint, SourceLayer, Value, json};
+pub use style::basemap::Shade;
+#[cfg(feature = "mvt")]
+pub use style::schema::{OPENMAPTILES, PROTOMAPS, Schema};
+#[cfg(feature = "mvt")]
+pub use style::{
+    Color, Dasharray, Filter, Float, Layer, Layout, Paint, SourceLayer, Value, json,
+    linear_zoom_interpolation,
+};
 #[cfg(feature = "mvt")]
 pub use text::{Text, place_texts};
 pub use tiles::{Tile, TileId, TilePiece, Tiles};

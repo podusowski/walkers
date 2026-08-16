@@ -1,14 +1,16 @@
 use std::path::PathBuf;
 
 use egui::{Align2, Color32, ComboBox, Image, Key, PointerButton, RichText, Ui, Window};
-use walkers::{HttpOptions, HttpTiles, Map, MapMemory, PmTiles, Position, Tiles, lon_lat, sources};
+use walkers::{
+    HttpOptions, HttpTiles, Map, MapMemory, OPENMAPTILES, PROTOMAPS, PmTiles, Position, Shade,
+    Style, Tiles, lon_lat, sources,
+};
 use walkers_extras::{
     GroupedPlaces, LabeledSymbol, LabeledSymbolGroup, LabeledSymbolGroupStyle, LabeledSymbolStyle,
     Symbol,
 };
 
 use crate::journal::{self, Journal, Place};
-use crate::map_style::{self, Shade};
 
 /// Where the map is centered when the app starts, until the journal has a say in it.
 fn home() -> Position {
@@ -83,7 +85,7 @@ impl Basemap {
                 Basetiles::Http(Box::new(HttpTiles::with_options_and_style(
                     sources::OpenFreeMap,
                     http_options(),
-                    map_style::style(*shade, map_style::OPENMAPTILES),
+                    Style::basemap(*shade, OPENMAPTILES),
                     egui_ctx,
                 )))
             }
@@ -94,7 +96,7 @@ impl Basemap {
             ))),
             Basemap::Protomaps(path, shade) => Basetiles::PmTiles(Box::new(PmTiles::with_style(
                 path,
-                map_style::style(*shade, map_style::PROTOMAPS),
+                Style::basemap(*shade, PROTOMAPS),
                 egui_ctx,
             ))),
         }

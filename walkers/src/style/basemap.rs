@@ -1,136 +1,40 @@
-use walkers::{
-    Color, Dasharray, Filter, Float, Layer, Layout, Paint, SourceLayer, Style, Value, json,
+//! A general purpose basemap, in either shade, for either schema.
+
+use super::schema::{Brunnel, Schema};
+use super::{
+    Color, Dasharray, Filter, Float, Layer, Layout, Paint, SourceLayer, Style, json,
+    linear_zoom_interpolation,
 };
 
-/// Which vector tile schema the tiles follow.
-///
-/// Only the names live here. Differing property values are absorbed by the filters, which is
-/// not possible for layer names because `source_layer` is read before there is any feature.
-#[derive(Clone, Copy)]
-pub struct Schema {
-    earth: &'static str,
-    landuse: &'static [&'static str],
-    water: &'static str,
-    water_labels: &'static [&'static str],
-    waterway: &'static str,
-    roads: &'static str,
-    road_labels: &'static str,
-    buildings: &'static str,
-    places: &'static str,
-    pois: &'static str,
-    peaks: &'static [&'static str],
-    boundaries: &'static str,
-    kind: &'static str,
-    kind_detail: &'static str,
-    admin_level: &'static str,
-    place_rank: &'static str,
-    brunnel: Option<&'static str>,
-    link: &'static str,
+#[derive(Clone, Copy, PartialEq)]
+pub enum Shade {
+    Light,
+    Dark,
 }
 
-pub const PROTOMAPS: Schema = Schema {
-    earth: "earth",
-    landuse: &["landuse"],
-    water: "water",
-    water_labels: &["water"],
-    waterway: "water",
-    roads: "roads",
-    road_labels: "roads",
-    buildings: "buildings",
-    places: "places",
-    pois: "pois",
-    peaks: &["pois"],
-    boundaries: "boundaries",
-    kind: "kind",
-    kind_detail: "kind_detail",
-    admin_level: "kind_detail",
-    place_rank: "population_rank",
-    brunnel: None,
-    link: "is_link",
-};
+impl Shade {
+    /// In the order they are offered.
+    pub const ALL: [Shade; 2] = [Shade::Light, Shade::Dark];
 
-/// `earth` is empty because there is no land polygon here; the background stands in for it.
-pub const OPENMAPTILES: Schema = Schema {
-    earth: "",
-    landuse: &["landcover", "landuse", "park"],
-    water: "water",
-    water_labels: &["water_name"],
-    waterway: "waterway",
-    roads: "transportation",
-    road_labels: "transportation_name",
-    buildings: "building",
-    places: "place",
-    pois: "poi",
-    peaks: &["mountain_peak"],
-    boundaries: "boundary",
-    kind: "class",
-    kind_detail: "subclass",
-    admin_level: "admin_level",
-    place_rank: "rank",
-    brunnel: Some("brunnel"),
-    link: "ramp",
-};
-
-/// A road which bridges or tunnels rather than lying on the ground.
-#[derive(Clone, Copy)]
-pub enum Brunnel {
-    Tunnel,
-    Bridge,
-}
-
-impl Brunnel {
-    fn protomaps(self) -> &'static str {
+    pub fn name(self) -> &'static str {
         match self {
-            Brunnel::Tunnel => "is_tunnel",
-            Brunnel::Bridge => "is_bridge",
-        }
-    }
-
-    fn openmaptiles(self) -> &'static str {
-        match self {
-            Brunnel::Tunnel => "tunnel",
-            Brunnel::Bridge => "bridge",
+            Shade::Light => "light",
+            Shade::Dark => "dark",
         }
     }
 }
 
-impl Schema {
-    fn is(&self, what: Brunnel) -> Value {
-        match self.brunnel {
-            Some(key) => json!(["==", key, what.openmaptiles()]),
-            None => json!(["has", what.protomaps()]),
-        }
+impl Style {
+    /// A general purpose basemap, in either shade, for either schema.
+    pub fn basemap(shade: Shade, schema: Schema) -> Self {
+        build(
+            match shade {
+                Shade::Light => &LIGHT,
+                Shade::Dark => &DARK,
+            },
+            schema,
+        )
     }
-
-    fn is_not(&self, what: Brunnel) -> Value {
-        match self.brunnel {
-            Some(key) => json!(["!=", key, what.openmaptiles()]),
-            None => json!(["!has", what.protomaps()]),
-        }
-    }
-
-    fn is_link(&self) -> Value {
-        match self.brunnel {
-            Some(_) => json!(["==", self.link, 1]),
-            None => json!(["has", self.link]),
-        }
-    }
-
-    fn is_not_link(&self) -> Value {
-        match self.brunnel {
-            Some(_) => json!(["!=", self.link, 1]),
-            None => json!(["!has", self.link]),
-        }
-    }
-}
-
-fn linear_zoom_interpolation(stops: &[(f64, f64)]) -> Float {
-    let mut expr = vec![json!("interpolate"), json!(["linear"]), json!(["zoom"])];
-    for &(zoom, value) in stops {
-        expr.push(json!(zoom));
-        expr.push(json!(value));
-    }
-    Float(json!(expr))
 }
 
 struct Palette {
@@ -1397,37 +1301,10 @@ fn source_layer_of(layer: &Layer) -> Option<&SourceLayer> {
     }
 }
 
-#[derive(Clone, Copy, PartialEq)]
-pub enum Shade {
-    Light,
-    Dark,
-}
-
-impl Shade {
-    /// In the order they are offered.
-    pub const ALL: [Shade; 2] = [Shade::Light, Shade::Dark];
-
-    pub fn name(self) -> &'static str {
-        match self {
-            Shade::Light => "light",
-            Shade::Dark => "dark",
-        }
-    }
-}
-
-pub fn style(shade: Shade, schema: Schema) -> Style {
-    build(
-        match shade {
-            Shade::Light => &LIGHT,
-            Shade::Dark => &DARK,
-        },
-        schema,
-    )
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::style::schema::{OPENMAPTILES, PROTOMAPS};
 
     fn asks_for(style: &Style, name: &str) -> bool {
         style
@@ -1440,16 +1317,19 @@ mod tests {
     /// OpenMapTiles has no land polygon, so those layers are dropped rather than asked for.
     #[test]
     fn a_schema_only_gets_the_layers_it_can_serve() {
-        assert!(asks_for(&style(Shade::Light, PROTOMAPS), "earth"));
-        assert!(!asks_for(&style(Shade::Light, OPENMAPTILES), "earth"));
+        assert!(asks_for(&Style::basemap(Shade::Light, PROTOMAPS), "earth"));
+        assert!(!asks_for(
+            &Style::basemap(Shade::Light, OPENMAPTILES),
+            "earth"
+        ));
     }
 
     #[test]
     fn both_shades_draw_the_same_layers() {
         for schema in [PROTOMAPS, OPENMAPTILES] {
             assert_eq!(
-                style(Shade::Dark, schema).layers.len(),
-                style(Shade::Light, schema).layers.len()
+                Style::basemap(Shade::Dark, schema).layers.len(),
+                Style::basemap(Shade::Light, schema).layers.len()
             );
         }
     }
@@ -1457,7 +1337,7 @@ mod tests {
     /// OpenMapTiles spreads landuse over `landcover`, `landuse` and `park`.
     #[test]
     fn a_concept_split_across_layers_needs_no_extra_layers() {
-        let openmaptiles = style(Shade::Light, OPENMAPTILES);
+        let openmaptiles = Style::basemap(Shade::Light, OPENMAPTILES);
 
         for name in ["landcover", "landuse", "park"] {
             assert!(asks_for(&openmaptiles, name), "does not ask for {name}");
@@ -1474,14 +1354,14 @@ mod tests {
 
         assert_eq!(
             landuse_layers(&openmaptiles),
-            landuse_layers(&style(Shade::Light, PROTOMAPS))
+            landuse_layers(&Style::basemap(Shade::Light, PROTOMAPS))
         );
     }
 
     #[test]
     fn each_schema_asks_for_its_own_source_layers() {
-        let protomaps = style(Shade::Light, PROTOMAPS);
-        let openmaptiles = style(Shade::Light, OPENMAPTILES);
+        let protomaps = Style::basemap(Shade::Light, PROTOMAPS);
+        let openmaptiles = Style::basemap(Shade::Light, OPENMAPTILES);
 
         assert!(asks_for(&protomaps, "roads"));
         assert!(asks_for(&protomaps, "buildings"));
@@ -1498,7 +1378,7 @@ mod tests {
     #[test]
     fn no_layer_matches_everything() {
         for schema in [PROTOMAPS, OPENMAPTILES] {
-            let style = style(Shade::Light, schema);
+            let style = Style::basemap(Shade::Light, schema);
             assert!(
                 style
                     .layers

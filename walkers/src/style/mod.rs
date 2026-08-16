@@ -1,3 +1,6 @@
+pub mod basemap;
+pub mod schema;
+
 use color::Rgba8;
 use egui::Color32;
 use log::warn;
@@ -25,7 +28,7 @@ impl Style {
     ///
     /// <https://docs.protomaps.com/basemaps/flavors>
     pub fn protomaps_dark() -> Self {
-        let style_json = include_str!("../assets/protomaps-dark.json");
+        let style_json = include_str!("../../assets/protomaps-dark.json");
         serde_json::from_str(style_json).expect("failed to parse style JSON")
     }
 
@@ -33,7 +36,7 @@ impl Style {
     ///
     /// <https://docs.protomaps.com/basemaps/flavors>
     pub fn protomaps_dark_vis() -> Self {
-        let style_json = include_str!("../assets/protomaps-dark-vis.json");
+        let style_json = include_str!("../../assets/protomaps-dark-vis.json");
         serde_json::from_str(style_json).expect("failed to parse style JSON")
     }
 
@@ -41,12 +44,12 @@ impl Style {
     ///
     /// <https://docs.protomaps.com/basemaps/flavors>
     pub fn protomaps_light() -> Self {
-        let style_json = include_str!("../assets/protomaps-light.json");
+        let style_json = include_str!("../../assets/protomaps-light.json");
         serde_json::from_str(style_json).expect("failed to parse style JSON")
     }
 
     pub fn openfreemap_bright() -> Self {
-        let style_json = include_str!("../assets/openfreemap-bright.json");
+        let style_json = include_str!("../../assets/openfreemap-bright.json");
         serde_json::from_str(style_json).expect("failed to parse style JSON")
     }
 }
@@ -260,6 +263,18 @@ impl Dasharray {
             _ => Err(StyleError::InvalidType),
         }
     }
+}
+
+/// Build an `["interpolate", ["linear"], ["zoom"], ...]` expression from its stops.
+pub fn linear_zoom_interpolation(stops: &[(f64, f64)]) -> Float {
+    let mut expression = vec![json!("interpolate"), json!(["linear"]), json!(["zoom"])];
+
+    for &(zoom, value) in stops {
+        expression.push(json!(zoom));
+        expression.push(json!(value));
+    }
+
+    Float(json!(expression))
 }
 
 #[derive(Deserialize, Debug)]
