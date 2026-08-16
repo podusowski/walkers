@@ -1324,38 +1324,7 @@ fn build(palette: &Palette, schema: Schema) -> Style {
             filter: Some(Filter(json!(["==", schema.kind, "country"]))),
             layout: Layout {
                 text_field: Some(json!(["get", "name:en"])),
-                text_size: Some(Float(json!([
-                    "interpolate",
-                    ["linear"],
-                    ["zoom"],
-                    2,
-                    [
-                        "case",
-                        ["<", ["get", schema.place_rank], 10],
-                        8,
-                        [">=", ["get", schema.place_rank], 10],
-                        12,
-                        0
-                    ],
-                    6,
-                    [
-                        "case",
-                        ["<", ["get", schema.place_rank], 8],
-                        10,
-                        [">=", ["get", schema.place_rank], 8],
-                        18,
-                        0
-                    ],
-                    8,
-                    [
-                        "case",
-                        ["<", ["get", schema.place_rank], 7],
-                        11,
-                        [">=", ["get", schema.place_rank], 7],
-                        20,
-                        0
-                    ]
-                ]))),
+                text_size: Some(Float(json!(18.0))),
             },
             paint: Some(Paint {
                 text_color: Some(Color(json!(palette.label))),
