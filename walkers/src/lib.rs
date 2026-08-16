@@ -38,6 +38,8 @@ pub mod sources;
 mod tiles;
 mod zoom;
 
+#[cfg(feature = "mvt")]
+pub use expression::Context;
 pub use http_tiles::HttpTiles;
 pub use io::tiles_io::Stats;
 pub use io::{HeaderValue, MaxParallelDownloads, http::HttpOptions};
@@ -50,6 +52,8 @@ pub use plugin::Plugin;
 pub use pmtiles::PmTiles;
 pub use position::{Position, lat_lon, lon_lat};
 pub use projector::Projector;
+#[cfg(feature = "mvt")]
+pub use render::{Geometry, render_line, render_symbol, tessellate_polygon};
 pub use style::Style;
 #[cfg(feature = "mvt")]
 pub use style::{
@@ -60,7 +64,3 @@ pub use style::{
 pub use text::{Text, place_texts};
 pub use tiles::{Tile, TileId, TilePiece, Tiles};
 pub use zoom::InvalidZoom;
-#[cfg(feature = "mvt")]
-pub use expression::Context;
-#[cfg(feature = "mvt")]
-pub use render::{Geometry, render_line, render_symbol, tessellate_polygon};
