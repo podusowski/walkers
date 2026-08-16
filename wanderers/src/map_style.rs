@@ -417,7 +417,7 @@ fn build(palette: &Palette, schema: Schema) -> Style {
             ]))),
             paint: Paint {
                 line_color: Some(Color(json!(palette.tunnel_casing))),
-                line_dasharray: Some(Dasharray(json!([3, 2]))),
+                line_dasharray: Some(Dasharray(json!([2, 2]))),
                 line_width: Some(linear_zoom_interpolation(&[(12.0, 0.0), (12.5, 1.0)])),
                 ..Default::default()
             },
@@ -432,7 +432,7 @@ fn build(palette: &Palette, schema: Schema) -> Style {
             ]))),
             paint: Paint {
                 line_color: Some(Color(json!(palette.tunnel_casing))),
-                line_dasharray: Some(Dasharray(json!([3, 2]))),
+                line_dasharray: Some(Dasharray(json!([2, 2]))),
                 line_width: Some(linear_zoom_interpolation(&[(12.0, 0.0), (12.5, 1.0)])),
                 ..Default::default()
             },
@@ -448,7 +448,7 @@ fn build(palette: &Palette, schema: Schema) -> Style {
             ]))),
             paint: Paint {
                 line_color: Some(Color(json!(palette.tunnel_casing))),
-                line_dasharray: Some(Dasharray(json!([3, 2]))),
+                line_dasharray: Some(Dasharray(json!([2, 2]))),
                 line_width: Some(linear_zoom_interpolation(&[(9.0, 0.0), (9.5, 1.0)])),
                 ..Default::default()
             },
@@ -465,7 +465,7 @@ fn build(palette: &Palette, schema: Schema) -> Style {
             ]))),
             paint: Paint {
                 line_color: Some(Color(json!(palette.tunnel_casing))),
-                line_dasharray: Some(Dasharray(json!([6, 0.5]))),
+                line_dasharray: Some(Dasharray(json!([2, 2]))),
                 line_width: Some(linear_zoom_interpolation(&[
                     (7.0, 0.0),
                     (7.5, 1.5),
@@ -484,7 +484,7 @@ fn build(palette: &Palette, schema: Schema) -> Style {
             ]))),
             paint: Paint {
                 line_color: Some(Color(json!(palette.structure))),
-                line_dasharray: Some(Dasharray(json!([4.5, 0.5]))),
+                line_dasharray: Some(Dasharray(json!([2, 2]))),
                 line_width: Some(linear_zoom_interpolation(&[(14.0, 0.0), (20.0, 7.0)])),
                 ..Default::default()
             },
@@ -805,7 +805,7 @@ fn build(palette: &Palette, schema: Schema) -> Style {
             paint: Paint {
                 line_opacity: Some(Float(json!(0.5))),
                 line_color: Some(Color(json!(palette.rail_tie))),
-                line_dasharray: Some(Dasharray(json!([4, 1]))),
+                line_dasharray: Some(Dasharray(json!([2, 2]))),
                 line_width: Some(linear_zoom_interpolation(&[(3.0, 0.0), (18.0, 2.0)])),
                 ..Default::default()
             },
@@ -892,7 +892,7 @@ fn build(palette: &Palette, schema: Schema) -> Style {
             ]))),
             paint: Paint {
                 line_color: Some(Color(json!(palette.bridge))),
-                line_dasharray: Some(Dasharray(json!([2, 1]))),
+                line_dasharray: Some(Dasharray(json!([2, 2]))),
                 line_width: Some(linear_zoom_interpolation(&[(14.0, 0.0), (20.0, 7.0)])),
                 ..Default::default()
             },

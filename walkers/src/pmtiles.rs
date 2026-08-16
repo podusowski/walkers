@@ -14,6 +14,10 @@ use std::{
 };
 use thiserror::Error;
 
+/// What a tile is rendered for, unless asked for something else. Larger means fewer tiles
+/// covering the map, at less detail.
+const DEFAULT_TILE_SIZE: u32 = 1024;
+
 /// Provides tiles from a local PMTiles file.
 ///
 /// <https://docs.protomaps.com/guide/getting-started>
@@ -30,19 +34,26 @@ impl PmTiles {
     /// Construct new [`PmTiles`] with [`Style`]. Style is relevant only for vector tile
     /// sources.
     pub fn with_style(path: impl AsRef<Path>, style: Style, egui_ctx: Context) -> Self {
+        Self::with_style_and_tile_size(path, style, DEFAULT_TILE_SIZE, egui_ctx)
+    }
+
+    /// Tiles are rendered for `tile_size`, which is the size they are drawn at when the map is
+    /// at one of their zoom levels. Everything a style measures in pixels is measured against
+    /// it, so it has to be known before the first tile is decoded.
+    pub fn with_style_and_tile_size(
+        path: impl AsRef<Path>,
+        style: Style,
+        tile_size: u32,
+        egui_ctx: Context,
+    ) -> Self {
         Self {
             tiles_io: TilesIo::new(
                 PmTilesFetch::new(path.as_ref()),
-                EguiTileFactory::new(egui_ctx.clone(), style),
+                EguiTileFactory::new(egui_ctx.clone(), style, tile_size),
                 egui_ctx,
             ),
-            tile_size: 1024,
+            tile_size,
         }
-    }
-
-    pub fn with_tile_size(mut self, tile_size: u32) -> Self {
-        self.tile_size = tile_size;
-        self
     }
 
     /// Get at tile, or interpolate it from lower zoom levels. This function does not start any

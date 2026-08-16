@@ -7,9 +7,11 @@ use log::warn;
 use mvt_reader::{Reader, feature::Value};
 use serde_json::{Number, Value as JsonValue};
 
+use geo::MapCoords;
+
 use crate::{
     expression::Context,
-    render::{self, Geometry},
+    render::{self, Coord, Geometry},
     style::{Filter, Layer, SourceLayer, Style},
     text::Text,
 };
@@ -31,7 +33,12 @@ impl From<mvt_reader::error::ParserError> for Error {
 const ONLY_SUPPORTED_EXTENT: u32 = 4096;
 
 /// Render MVT data into a list of [`epaint::Shape`]s.
-pub fn render(data: &[u8], style: &Style, zoom: u8) -> Result<(Vec<Shape>, Vec<Text>), Error> {
+pub fn render(
+    data: &[u8],
+    style: &Style,
+    zoom: u8,
+    tile_size: u32,
+) -> Result<(Vec<Shape>, Vec<Text>), Error> {
     let data = mvt_reader::Reader::new(data.to_vec())?;
     let mut shapes = Vec::new();
     let mut texts = Vec::new();
@@ -47,10 +54,8 @@ pub fn render(data: &[u8], style: &Style, zoom: u8) -> Result<(Vec<Shape>, Vec<T
                     Color32::WHITE
                 };
 
-                let rect = Rect::from_min_size(
-                    pos2(0.0, 0.0),
-                    vec2(ONLY_SUPPORTED_EXTENT as f32, ONLY_SUPPORTED_EXTENT as f32),
-                );
+                let rect =
+                    Rect::from_min_size(pos2(0.0, 0.0), vec2(tile_size as f32, tile_size as f32));
                 shapes.push(Shape::rect_filled(rect, 0.0, bg_color));
             }
             Layer::Fill {
@@ -59,7 +64,7 @@ pub fn render(data: &[u8], style: &Style, zoom: u8) -> Result<(Vec<Shape>, Vec<T
                 paint,
             } => {
                 for (geometry, context) in
-                    get_layer_features(&data, zoom, source_layer, filter.as_ref())?
+                    get_layer_features(&data, zoom, source_layer, filter.as_ref(), tile_size)?
                 {
                     if let Err(err) =
                         render::render_polygon(&geometry, &context, &mut shapes, paint)
@@ -74,7 +79,7 @@ pub fn render(data: &[u8], style: &Style, zoom: u8) -> Result<(Vec<Shape>, Vec<T
                 paint,
             } => {
                 for (geometry, context) in
-                    get_layer_features(&data, zoom, source_layer, filter.as_ref())?
+                    get_layer_features(&data, zoom, source_layer, filter.as_ref(), tile_size)?
                 {
                     if let Err(err) = render::render_line(&geometry, &context, &mut shapes, paint) {
                         warn!("{err}");
@@ -88,7 +93,7 @@ pub fn render(data: &[u8], style: &Style, zoom: u8) -> Result<(Vec<Shape>, Vec<T
                 paint,
             } => {
                 for (geometry, context) in
-                    get_layer_features(&data, zoom, source_layer, filter.as_ref())?
+                    get_layer_features(&data, zoom, source_layer, filter.as_ref(), tile_size)?
                 {
                     if let Err(err) =
                         render::render_symbol(&geometry, &context, &mut texts, layout, paint)
@@ -108,10 +113,10 @@ pub fn render(data: &[u8], style: &Style, zoom: u8) -> Result<(Vec<Shape>, Vec<T
     Ok((shapes, texts))
 }
 
-/// What takes a tile from MVT space onto the screen.
-pub fn transform_onto(rect: egui::Rect) -> TSTransform {
+/// What takes a tile rendered for `tile_size` onto the `rect` it is actually drawn at.
+pub fn transform_onto(rect: egui::Rect, tile_size: u32) -> TSTransform {
     TSTransform {
-        scaling: rect.width() / ONLY_SUPPORTED_EXTENT as f32,
+        scaling: rect.width() / tile_size as f32,
         translation: rect.min.to_vec2(),
     }
 }
@@ -121,7 +126,9 @@ fn get_layer_features(
     zoom: u8,
     source_layer: &SourceLayer,
     filter: Option<&Filter>,
+    tile_size: u32,
 ) -> Result<impl Iterator<Item = (Geometry<f32>, Context)>, Error> {
+    let into_pixels = tile_size as f32 / ONLY_SUPPORTED_EXTENT as f32;
     let mut matched = 0usize;
     let mut raw = Vec::new();
 
@@ -158,9 +165,14 @@ fn get_layer_features(
             zoom,
         );
 
+        let geometry = feature.geometry.map_coords(|coord| Coord {
+            x: coord.x * into_pixels,
+            y: coord.y * into_pixels,
+        });
+
         filter
             .is_none_or(|filter| filter.matches(&context))
-            .then_some((feature.geometry, context))
+            .then_some((geometry, context))
     });
 
     Ok(features)
