@@ -52,9 +52,8 @@ const PROTOMAPS: Schema = Schema {
     link: "is_link",
 };
 
-/// `earth` is empty because there is no land polygon here; the background stands in for it.
 const OPENMAPTILES: Schema = Schema {
-    earth: "",
+    earth: "", // OpenMapTiles has no land polygon.
     landuse: &["landcover", "landuse", "park"],
     water: "water",
     water_labels: &["water_name"],
