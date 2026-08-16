@@ -11,6 +11,7 @@ pub struct Schema {
     earth: &'static str,
     landuse: &'static [&'static str],
     water: &'static str,
+    water_labels: &'static [&'static str],
     waterway: &'static str,
     roads: &'static str,
     road_labels: &'static str,
@@ -31,6 +32,7 @@ pub const PROTOMAPS: Schema = Schema {
     earth: "earth",
     landuse: &["landuse"],
     water: "water",
+    water_labels: &["water"],
     waterway: "water",
     roads: "roads",
     road_labels: "roads",
@@ -52,6 +54,7 @@ pub const OPENMAPTILES: Schema = Schema {
     earth: "",
     landuse: &["landcover", "landuse", "park"],
     water: "water",
+    water_labels: &["water_name"],
     waterway: "waterway",
     roads: "transportation",
     road_labels: "transportation_name",
@@ -1068,7 +1071,7 @@ fn build(palette: &Palette, schema: Schema) -> Style {
         },
         // water_label_ocean
         Layer::Symbol {
-            source_layer: schema.water.into(),
+            source_layer: schema.water_labels.into(),
             filter: Some(Filter(json!([
                 "in",
                 schema.kind,
@@ -1106,7 +1109,7 @@ fn build(palette: &Palette, schema: Schema) -> Style {
         },
         // water_label_lakes
         Layer::Symbol {
-            source_layer: schema.water.into(),
+            source_layer: schema.water_labels.into(),
             filter: Some(Filter(json!(["in", schema.kind, "lake", "water"]))),
             layout: Layout {
                 text_field: Some(json!(["get", "name"])),
