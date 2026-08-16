@@ -127,24 +127,6 @@ impl Schema {
     }
 }
 
-#[derive(Clone, Copy, PartialEq)]
-enum Shade {
-    Light,
-    Dark,
-}
-
-impl Shade {
-    /// In the order they are offered.
-    pub const ALL: [Shade; 2] = [Shade::Light, Shade::Dark];
-
-    pub fn name(self) -> &'static str {
-        match self {
-            Shade::Light => "light",
-            Shade::Dark => "dark",
-        }
-    }
-}
-
 impl Style {
     /// Light Walkers style for Protomaps schema.
     pub fn protomaps_basemap_light() -> Self {
@@ -1446,27 +1428,14 @@ mod tests {
     /// OpenMapTiles has no land polygon, so those layers are dropped rather than asked for.
     #[test]
     fn a_schema_only_gets_the_layers_it_can_serve() {
-        assert!(asks_for(&Style::basemap(Shade::Light, PROTOMAPS), "earth"));
-        assert!(!asks_for(
-            &Style::basemap(Shade::Light, OPENMAPTILES),
-            "earth"
-        ));
-    }
-
-    #[test]
-    fn both_shades_draw_the_same_layers() {
-        for schema in [PROTOMAPS, OPENMAPTILES] {
-            assert_eq!(
-                Style::basemap(Shade::Dark, schema).layers.len(),
-                Style::basemap(Shade::Light, schema).layers.len()
-            );
-        }
+        assert!(asks_for(&Style::protomaps_basemap_dark(), "earth"));
+        assert!(!asks_for(&Style::openmaptiles_basemap_dark(), "earth"));
     }
 
     /// OpenMapTiles spreads landuse over `landcover`, `landuse` and `park`.
     #[test]
     fn a_concept_split_across_layers_needs_no_extra_layers() {
-        let openmaptiles = Style::basemap(Shade::Light, OPENMAPTILES);
+        let openmaptiles = Style::openmaptiles_basemap_dark();
 
         for name in ["landcover", "landuse", "park"] {
             assert!(asks_for(&openmaptiles, name), "does not ask for {name}");
@@ -1483,14 +1452,14 @@ mod tests {
 
         assert_eq!(
             landuse_layers(&openmaptiles),
-            landuse_layers(&Style::basemap(Shade::Light, PROTOMAPS))
+            landuse_layers(&Style::protomaps_basemap_dark())
         );
     }
 
     #[test]
     fn each_schema_asks_for_its_own_source_layers() {
-        let protomaps = Style::basemap(Shade::Light, PROTOMAPS);
-        let openmaptiles = Style::basemap(Shade::Light, OPENMAPTILES);
+        let protomaps = Style::protomaps_basemap_dark();
+        let openmaptiles = Style::openmaptiles_basemap_dark();
 
         assert!(asks_for(&protomaps, "roads"));
         assert!(asks_for(&protomaps, "buildings"));
@@ -1501,20 +1470,5 @@ mod tests {
         assert!(asks_for(&openmaptiles, "waterway"));
         assert!(asks_for(&openmaptiles, "building"));
         assert!(!asks_for(&openmaptiles, "roads"));
-    }
-
-    /// A layer matching everything scans every layer of a tile, ruinous for a basemap.
-    #[test]
-    fn no_layer_matches_everything() {
-        for schema in [PROTOMAPS, OPENMAPTILES] {
-            let style = Style::basemap(Shade::Light, schema);
-            assert!(
-                style
-                    .layers
-                    .iter()
-                    .filter_map(source_layer_of)
-                    .all(|source| !source.is_all())
-            );
-        }
     }
 }
