@@ -165,6 +165,8 @@ pub struct Paint {
     pub text_color: Option<Color>,
     /// <https://maplibre.org/maplibre-style-spec/layers/>#text-halo-color
     pub text_halo_color: Option<Color>,
+    /// <https://maplibre.org/maplibre-style-spec/layers/>#text-halo-width
+    pub text_halo_width: Option<Float>,
 }
 
 #[derive(Debug, Error)]

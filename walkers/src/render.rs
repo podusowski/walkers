@@ -303,16 +303,11 @@ fn label_points(
 
     let text_size = evaluate_text_size(layout, context);
     let text_color = evaluate_text_color(paint, context);
+    let (halo_color, halo_width) = evaluate_halo(paint, context);
 
     texts.extend(points.iter().map(|p| {
-        Text::new(
-            pos2(p.x(), p.y()),
-            text.clone(),
-            text_size,
-            text_color,
-            Color32::TRANSPARENT,
-            0.0,
-        )
+        Text::new(pos2(p.x(), p.y()), text.clone(), text_size, text_color, 0.0)
+            .with_halo(halo_color, halo_width)
     }))
 }
 
@@ -329,14 +324,7 @@ fn label_line_strings(
 
     let text_size = evaluate_text_size(layout, context);
     let text_color = evaluate_text_color(paint, context);
-
-    let text_halo_color = if let Some(paint) = paint
-        && let Some(color) = &paint.text_halo_color
-    {
-        color.evaluate(context)
-    } else {
-        Color32::TRANSPARENT
-    };
+    let (halo_color, halo_width) = evaluate_halo(paint, context);
 
     for line_string in line_strings {
         let lines: Vec<_> = line_string.lines().collect();
@@ -346,15 +334,16 @@ fn label_line_strings(
             let mid_point = midpoint(&line.start_point(), &line.end_point());
             let angle = line.slope().atan();
 
-            texts.push(Text::new(
-                pos2(mid_point.x(), mid_point.y()),
-                text.clone(),
-                text_size,
-                text_color,
-                // TODO: Implement real halo rendering.
-                text_halo_color.gamma_multiply(0.5),
-                angle,
-            ));
+            texts.push(
+                Text::new(
+                    pos2(mid_point.x(), mid_point.y()),
+                    text.clone(),
+                    text_size,
+                    text_color,
+                    angle,
+                )
+                .with_halo(halo_color, halo_width),
+            );
         }
     }
 }
@@ -378,6 +367,25 @@ fn evaluate_text_size(layout: &Layout, context: &Context) -> f32 {
         })
         // Default from MapLibre spec.
         .unwrap_or(12.0)
+}
+
+/// A halo is only drawn where the style asks for one; the spec has no width by default.
+fn evaluate_halo(paint: &Option<Paint>, context: &Context) -> (Color32, f32) {
+    let Some(paint) = paint else {
+        return (Color32::TRANSPARENT, 0.0);
+    };
+
+    let color = match &paint.text_halo_color {
+        Some(color) => color.evaluate(context),
+        None => return (Color32::TRANSPARENT, 0.0),
+    };
+
+    let width = match &paint.text_halo_width {
+        Some(width) => width.evaluate(context),
+        None => 0.0,
+    };
+
+    (color, width)
 }
 
 fn evaluate_text_color(paint: &Option<Paint>, context: &Context) -> Color32 {

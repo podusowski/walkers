@@ -1006,6 +1006,7 @@ fn build(palette: &Palette, schema: Schema) -> Style {
             paint: Some(Paint {
                 text_color: Some(Color(json!(palette.label))),
                 text_halo_color: Some(Color(json!(palette.casing))),
+                text_halo_width: Some(Float(json!(1.5))),
                 ..Default::default()
             }),
         },
@@ -1020,6 +1021,7 @@ fn build(palette: &Palette, schema: Schema) -> Style {
             paint: Some(Paint {
                 text_color: Some(Color(json!(palette.label))),
                 text_halo_color: Some(Color(json!(palette.muted))),
+                text_halo_width: Some(Float(json!(1.5))),
                 ..Default::default()
             }),
         },
@@ -1054,6 +1056,7 @@ fn build(palette: &Palette, schema: Schema) -> Style {
             paint: Some(Paint {
                 text_color: Some(Color(json!(palette.label_muted))),
                 text_halo_color: Some(Color(json!(palette.background))),
+                text_halo_width: Some(Float(json!(1.5))),
                 ..Default::default()
             }),
         },
@@ -1076,6 +1079,7 @@ fn build(palette: &Palette, schema: Schema) -> Style {
             paint: Some(Paint {
                 text_color: Some(Color(json!(palette.label))),
                 text_halo_color: Some(Color(json!(palette.muted))),
+                text_halo_width: Some(Float(json!(1.5))),
                 ..Default::default()
             }),
         },
@@ -1090,6 +1094,7 @@ fn build(palette: &Palette, schema: Schema) -> Style {
             paint: Some(Paint {
                 text_color: Some(Color(json!(palette.label_muted))),
                 text_halo_color: Some(Color(json!(palette.casing))),
+                text_halo_width: Some(Float(json!(1.5))),
                 ..Default::default()
             }),
         },
@@ -1108,6 +1113,7 @@ fn build(palette: &Palette, schema: Schema) -> Style {
             paint: Some(Paint {
                 text_color: Some(Color(json!(palette.label))),
                 text_halo_color: Some(Color(json!(palette.muted))),
+                text_halo_width: Some(Float(json!(1.5))),
                 ..Default::default()
             }),
         },
@@ -1163,6 +1169,7 @@ fn build(palette: &Palette, schema: Schema) -> Style {
             paint: Some(Paint {
                 text_color: Some(Color(json!(palette.label))),
                 text_halo_color: Some(Color(json!(palette.background))),
+                text_halo_width: Some(Float(json!(1.5))),
                 ..Default::default()
             }),
         },
@@ -1188,6 +1195,7 @@ fn build(palette: &Palette, schema: Schema) -> Style {
             paint: Some(Paint {
                 text_color: Some(Color(json!(palette.label_muted))),
                 text_halo_color: Some(Color(json!(palette.casing))),
+                text_halo_width: Some(Float(json!(1.5))),
                 ..Default::default()
             }),
         },
@@ -1202,6 +1210,7 @@ fn build(palette: &Palette, schema: Schema) -> Style {
             paint: Some(Paint {
                 text_color: Some(Color(json!(palette.label))),
                 text_halo_color: Some(Color(json!(palette.casing))),
+                text_halo_width: Some(Float(json!(1.5))),
                 ..Default::default()
             }),
         },
@@ -1281,6 +1290,7 @@ fn build(palette: &Palette, schema: Schema) -> Style {
             paint: Some(Paint {
                 text_color: Some(Color(json!(palette.locality_text))),
                 text_halo_color: Some(Color(json!(palette.casing))),
+                text_halo_width: Some(Float(json!(1.5))),
                 ..Default::default()
             }),
         },
@@ -1326,6 +1336,7 @@ fn build(palette: &Palette, schema: Schema) -> Style {
             paint: Some(Paint {
                 text_color: Some(Color(json!(palette.label))),
                 text_halo_color: Some(Color(json!(palette.casing))),
+                text_halo_width: Some(Float(json!(1.5))),
                 ..Default::default()
             }),
         },
@@ -1340,6 +1351,7 @@ fn build(palette: &Palette, schema: Schema) -> Style {
             paint: Some(Paint {
                 text_color: Some(Color(json!(palette.station))),
                 text_halo_color: Some(Color(json!(palette.casing))),
+                text_halo_width: Some(Float(json!(1.5))),
                 ..Default::default()
             }),
         },
@@ -1354,6 +1366,7 @@ fn build(palette: &Palette, schema: Schema) -> Style {
             paint: Some(Paint {
                 text_color: Some(Color(json!(palette.peak))),
                 text_halo_color: Some(Color(json!(palette.casing))),
+                text_halo_width: Some(Float(json!(1.5))),
                 ..Default::default()
             }),
         },

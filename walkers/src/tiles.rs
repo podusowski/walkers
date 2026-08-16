@@ -554,7 +554,6 @@ mod tests {
                     "Szczepankowice".to_string(),
                     12.,
                     Color32::BLACK,
-                    Color32::TRANSPARENT,
                     0.,
                 )
             };
