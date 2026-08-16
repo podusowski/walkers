@@ -150,6 +150,8 @@ struct Palette {
     label: &'static str,
     locality_text: &'static str,
     water: &'static str,
+    water_label: &'static str,
+    water_label_halo: &'static str,
     station: &'static str,
     peak: &'static str,
 }
@@ -174,6 +176,8 @@ const DARK: Palette = Palette {
     label: "#707070",
     locality_text: "#999999",
     water: "#161e31",
+    water_label: "#134164",
+    water_label_halo: "#0d1526",
     station: "#7fb3d9",
     peak: "#b59a6a",
 };
@@ -199,6 +203,8 @@ const LIGHT: Palette = Palette {
     label: "#1f1f1f",
     locality_text: "#1a1a1a",
     water: "#88b2e2",
+    water_label: "#2f6690",
+    water_label_halo: "#ffffff",
     station: "#2b6ca3",
     peak: "#6b5330",
 };
@@ -1019,8 +1025,8 @@ fn build(palette: &Palette, schema: Schema) -> Style {
                 text_size: Some(Float(json!(12))),
             },
             paint: Some(Paint {
-                text_color: Some(Color(json!(palette.label))),
-                text_halo_color: Some(Color(json!(palette.muted))),
+                text_color: Some(Color(json!(palette.water_label))),
+                text_halo_color: Some(Color(json!(palette.water_label_halo))),
                 text_halo_width: Some(Float(json!(1.5))),
                 ..Default::default()
             }),
@@ -1077,8 +1083,8 @@ fn build(palette: &Palette, schema: Schema) -> Style {
                 text_size: Some(linear_zoom_interpolation(&[(3.0, 10.0), (10.0, 12.0)])),
             },
             paint: Some(Paint {
-                text_color: Some(Color(json!(palette.label))),
-                text_halo_color: Some(Color(json!(palette.muted))),
+                text_color: Some(Color(json!(palette.water_label))),
+                text_halo_color: Some(Color(json!(palette.water_label_halo))),
                 text_halo_width: Some(Float(json!(1.5))),
                 ..Default::default()
             }),
@@ -1111,8 +1117,8 @@ fn build(palette: &Palette, schema: Schema) -> Style {
                 ])),
             },
             paint: Some(Paint {
-                text_color: Some(Color(json!(palette.label))),
-                text_halo_color: Some(Color(json!(palette.muted))),
+                text_color: Some(Color(json!(palette.water_label))),
+                text_halo_color: Some(Color(json!(palette.water_label_halo))),
                 text_halo_width: Some(Float(json!(1.5))),
                 ..Default::default()
             }),
