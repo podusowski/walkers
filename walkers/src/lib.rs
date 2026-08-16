@@ -52,8 +52,6 @@ pub use position::{Position, lat_lon, lon_lat};
 pub use projector::Projector;
 pub use style::Style;
 #[cfg(feature = "mvt")]
-pub use style::basemap::{OPENMAPTILES, PROTOMAPS, Schema, Shade};
-#[cfg(feature = "mvt")]
 pub use style::{
     Color, Dasharray, Filter, Float, Layer, Layout, Paint, SourceLayer, Value, json,
     linear_zoom_interpolation,
@@ -62,8 +60,6 @@ pub use style::{
 pub use text::{Text, place_texts};
 pub use tiles::{Tile, TileId, TilePiece, Tiles};
 pub use zoom::InvalidZoom;
-
-// TODO: In future, I'd like to expose full drawing API instead of this.
 #[cfg(feature = "mvt")]
 pub use expression::Context;
 #[cfg(feature = "mvt")]

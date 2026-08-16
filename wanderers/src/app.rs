@@ -2,8 +2,7 @@ use std::path::PathBuf;
 
 use egui::{Align2, Color32, ComboBox, Image, Key, PointerButton, RichText, Ui, Window};
 use walkers::{
-    HttpOptions, HttpTiles, Map, MapMemory, OPENMAPTILES, PROTOMAPS, PmTiles, Position, Shade,
-    Style, Tiles, lon_lat, sources,
+    HttpOptions, HttpTiles, Map, MapMemory, PmTiles, Position, Style, Tiles, lon_lat, sources,
 };
 use walkers_extras::{
     GroupedPlaces, LabeledSymbol, LabeledSymbolGroup, LabeledSymbolGroupStyle, LabeledSymbolStyle,
@@ -36,26 +35,24 @@ fn cache_dir() -> Option<PathBuf> {
 #[derive(Clone, PartialEq)]
 enum Basemap {
     OpenStreetMap,
-
-    /// Vector tiles, so the same map comes in either shade.
-    OpenFreeMap(Shade),
-
-    /// Poland only, but it has aerial imagery, which the other two do not.
     Geoportal,
-
-    /// A `.pmtiles` file sitting next to the app, so the map works without a network.
-    Protomaps(PathBuf, Shade),
+    OpenFreeMapLight,
+    OpenFreeMapDark,
+    ProtomapsLight(PathBuf),
+    ProtomapsDark(PathBuf),
 }
 
 impl Basemap {
     /// In the order they are offered. Protomaps only shows up when there is a file for it.
     fn all() -> Vec<Basemap> {
         let mut all = vec![Basemap::OpenStreetMap];
-        all.extend(Shade::ALL.map(Basemap::OpenFreeMap));
+        all.push(Basemap::OpenFreeMapLight);
+        all.push(Basemap::OpenFreeMapDark);
         all.push(Basemap::Geoportal);
 
         for path in pmtiles_files() {
-            all.extend(Shade::ALL.map(|shade| Basemap::Protomaps(path.to_owned(), shade)));
+            all.push(Basemap::ProtomapsLight(path.to_owned()));
+            all.push(Basemap::ProtomapsDark(path.to_owned()));
         }
 
         all
@@ -64,12 +61,16 @@ impl Basemap {
     fn name(&self) -> String {
         match self {
             Basemap::OpenStreetMap => "OpenStreetMap".to_owned(),
-            Basemap::OpenFreeMap(shade) => format!("OpenFreeMap ({})", shade.name()),
+            Basemap::OpenFreeMapLight => "OpenFreeMap (light)".to_owned(),
+            Basemap::OpenFreeMapDark => "OpenFreeMap (dark)".to_owned(),
             Basemap::Geoportal => "Geoportal".to_owned(),
-            Basemap::Protomaps(path, shade) => format!(
-                "{} ({})",
-                path.file_stem().unwrap_or_default().to_string_lossy(),
-                shade.name()
+            Basemap::ProtomapsLight(path) => format!(
+                "{} (light)",
+                path.file_stem().unwrap_or_default().to_string_lossy()
+            ),
+            Basemap::ProtomapsDark(path) => format!(
+                "{} (dark)",
+                path.file_stem().unwrap_or_default().to_string_lossy()
             ),
         }
     }
@@ -81,22 +82,35 @@ impl Basemap {
                 http_options(),
                 egui_ctx,
             ))),
-            Basemap::OpenFreeMap(shade) => {
-                Basetiles::Http(Box::new(HttpTiles::with_options_and_style(
-                    sources::OpenFreeMap,
-                    http_options(),
-                    Style::basemap(*shade, OPENMAPTILES),
-                    egui_ctx,
-                )))
-            }
             Basemap::Geoportal => Basetiles::Http(Box::new(HttpTiles::with_options(
                 sources::Geoportal,
                 http_options(),
                 egui_ctx,
             ))),
-            Basemap::Protomaps(path, shade) => Basetiles::PmTiles(Box::new(PmTiles::with_style(
+            Basemap::OpenFreeMapLight => {
+                Basetiles::Http(Box::new(HttpTiles::with_options_and_style(
+                    sources::OpenFreeMap,
+                    http_options(),
+                    Style::openmaptiles_basemap_light(),
+                    egui_ctx,
+                )))
+            }
+            Basemap::OpenFreeMapDark => {
+                Basetiles::Http(Box::new(HttpTiles::with_options_and_style(
+                    sources::OpenFreeMap,
+                    http_options(),
+                    Style::openmaptiles_basemap_dark(),
+                    egui_ctx,
+                )))
+            }
+            Basemap::ProtomapsLight(path) => Basetiles::PmTiles(Box::new(PmTiles::with_style(
                 path,
-                Style::basemap(*shade, PROTOMAPS),
+                Style::protomaps_basemap_light(),
+                egui_ctx,
+            ))),
+            Basemap::ProtomapsDark(path) => Basetiles::PmTiles(Box::new(PmTiles::with_style(
+                path,
+                Style::protomaps_basemap_dark(),
                 egui_ctx,
             ))),
         }

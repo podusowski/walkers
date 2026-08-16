@@ -10,7 +10,7 @@ use super::{
 /// Only the names live here. Differing property values are absorbed by the filters, which is
 /// not possible for layer names because `source_layer` is read before there is any feature.
 #[derive(Clone, Copy)]
-pub struct Schema {
+struct Schema {
     pub earth: &'static str,
     pub landuse: &'static [&'static str],
     pub water: &'static str,
@@ -31,7 +31,7 @@ pub struct Schema {
     pub link: &'static str,
 }
 
-pub const PROTOMAPS: Schema = Schema {
+const PROTOMAPS: Schema = Schema {
     earth: "earth",
     landuse: &["landuse"],
     water: "water",
@@ -53,7 +53,7 @@ pub const PROTOMAPS: Schema = Schema {
 };
 
 /// `earth` is empty because there is no land polygon here; the background stands in for it.
-pub const OPENMAPTILES: Schema = Schema {
+const OPENMAPTILES: Schema = Schema {
     earth: "",
     landuse: &["landcover", "landuse", "park"],
     water: "water",
@@ -128,7 +128,7 @@ impl Schema {
 }
 
 #[derive(Clone, Copy, PartialEq)]
-pub enum Shade {
+enum Shade {
     Light,
     Dark,
 }
@@ -146,15 +146,24 @@ impl Shade {
 }
 
 impl Style {
-    /// A general purpose basemap, in either shade, for either schema.
-    pub fn basemap(shade: Shade, schema: Schema) -> Self {
-        build(
-            match shade {
-                Shade::Light => &LIGHT,
-                Shade::Dark => &DARK,
-            },
-            schema,
-        )
+    /// Light Walkers style for Protomaps schema.
+    pub fn protomaps_basemap_light() -> Self {
+        build(&LIGHT, PROTOMAPS)
+    }
+
+    /// Dark Walkers style for Protomaps schema.
+    pub fn protomaps_basemap_dark() -> Self {
+        build(&DARK, PROTOMAPS)
+    }
+
+    /// Light Walkers style for OpenMapTiles schema.
+    pub fn openmaptiles_basemap_light() -> Self {
+        build(&LIGHT, OPENMAPTILES)
+    }
+
+    /// Dark Walkers style for OpenMapTiles schema.
+    pub fn openmaptiles_basemap_dark() -> Self {
+        build(&DARK, OPENMAPTILES)
     }
 }
 
