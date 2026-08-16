@@ -80,6 +80,28 @@ pub(crate) fn providers(egui_ctx: Context) -> Providers {
         ))],
     );
 
+    #[cfg(feature = "mvt")]
+    providers.available.insert(
+        "OpenFreeMap (Walkers basemap light)".to_string(),
+        vec![TilesKind::Http(HttpTiles::with_options_and_style(
+            walkers::sources::OpenFreeMap,
+            http_options(),
+            Style::openmaptiles_basemap_light(),
+            egui_ctx.to_owned(),
+        ))],
+    );
+
+    #[cfg(feature = "mvt")]
+    providers.available.insert(
+        "OpenFreeMap (Walkers basemap dark)".to_string(),
+        vec![TilesKind::Http(HttpTiles::with_options_and_style(
+            walkers::sources::OpenFreeMap,
+            http_options(),
+            Style::openmaptiles_basemap_dark(),
+            egui_ctx.to_owned(),
+        ))],
+    );
+
     providers.available.insert(
         "Geoportal".to_string(),
         vec![TilesKind::Http(HttpTiles::with_options(
