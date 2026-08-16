@@ -21,6 +21,7 @@ pub struct Schema {
     boundaries: &'static str,
     kind: &'static str,
     kind_detail: &'static str,
+    admin_level: &'static str,
     place_rank: &'static str,
     brunnel: Option<&'static str>,
     link: &'static str,
@@ -40,6 +41,7 @@ pub const PROTOMAPS: Schema = Schema {
     boundaries: "boundaries",
     kind: "kind",
     kind_detail: "kind_detail",
+    admin_level: "kind_detail",
     place_rank: "population_rank",
     brunnel: None,
     link: "is_link",
@@ -60,6 +62,7 @@ pub const OPENMAPTILES: Schema = Schema {
     boundaries: "boundary",
     kind: "class",
     kind_detail: "subclass",
+    admin_level: "admin_level",
     place_rank: "rank",
     brunnel: Some("brunnel"),
     link: "ramp",
@@ -570,10 +573,9 @@ fn build(palette: &Palette, schema: Schema) -> Style {
         Layer::Fill {
             source_layer: schema.buildings.into(),
             filter: Some(Filter(json!([
-                "in",
-                schema.kind,
-                "building",
-                "building_part"
+                "any",
+                ["in", schema.kind, "building", "building_part"],
+                ["!has", schema.kind]
             ]))),
             paint: Paint {
                 fill_color: Some(Color(json!(palette.structure))),
@@ -813,7 +815,7 @@ fn build(palette: &Palette, schema: Schema) -> Style {
         // boundaries_country
         Layer::Line {
             source_layer: schema.boundaries.into(),
-            filter: Some(Filter(json!(["<=", schema.kind_detail, 2]))),
+            filter: Some(Filter(json!(["<=", schema.admin_level, 2]))),
             paint: Paint {
                 line_color: Some(Color(json!(palette.label))),
                 line_width: Some(Float(json!(2))),
