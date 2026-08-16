@@ -117,9 +117,15 @@ pub enum Tile {
 impl Tile {
     /// Create a tile from raw image data. The data can be either raster image (PNG, JPEG, etc.)
     /// or vector tile (MVT) if the `mvt` feature is enabled.
-    pub fn new(image: &[u8], style: &Style, zoom: u8, ctx: &Context) -> Result<Self, TileError> {
+    pub fn new(
+        image: &[u8],
+        style: &Style,
+        zoom: u8,
+        tile_size: u32,
+        ctx: &Context,
+    ) -> Result<Self, TileError> {
         #[cfg(not(feature = "mvt"))]
-        let _ = (style, zoom);
+        let _ = (style, zoom, tile_size);
 
         if image.is_empty() {
             return Err(TileError::Empty);
@@ -140,7 +146,7 @@ impl Tile {
             #[cfg(feature = "mvt")]
             {
                 log::debug!("Trying to decode tile as MVT vector tile.");
-                Ok(Self::from_mvt(image, style, zoom)?)
+                Ok(Self::from_mvt(image, style, zoom, tile_size)?)
             }
             #[cfg(not(feature = "mvt"))]
             {
@@ -150,8 +156,13 @@ impl Tile {
     }
 
     #[cfg(feature = "mvt")]
-    pub fn from_mvt(data: &[u8], style: &Style, zoom: u8) -> Result<Self, TileError> {
-        let (shapes, texts) = mvt::render(data, style, zoom)?;
+    pub fn from_mvt(
+        data: &[u8],
+        style: &Style,
+        zoom: u8,
+        tile_size: u32,
+    ) -> Result<Self, TileError> {
+        let (shapes, texts) = mvt::render(data, style, zoom, tile_size)?;
         Ok(Self::Vector { shapes, texts })
     }
 
@@ -168,10 +179,11 @@ impl Tile {
         rect: Rect,
         uv: Rect,
         transparency: f32,
+        tile_size: u32,
         texts: &mut Texts,
     ) {
         #[cfg(not(feature = "mvt"))]
-        let _ = texts;
+        let _ = (tile_size, texts);
 
         match self {
             Tile::Raster(texture_handle) => {
@@ -190,7 +202,7 @@ impl Tile {
                 // ...and then it can be clipped to the `rect`.
                 let painter = painter.with_clip_rect(rect);
 
-                let transform = mvt::transform_onto(full_rect);
+                let transform = mvt::transform_onto(full_rect, tile_size);
                 painter.extend(render::transformed_shapes(shapes, transform));
                 texts
                     .texts
@@ -295,6 +307,7 @@ fn flood_fill_tiles(
                 rect(tile_screen_position, corrected_tile_size),
                 tile.uv,
                 transparency,
+                tiles.tile_size(),
                 texts,
             )
         }
@@ -363,17 +376,22 @@ pub(crate) fn rect(screen_position: Vec2, tile_size: f64) -> Rect {
 pub struct EguiTileFactory {
     egui_ctx: Context,
     style: Style,
+    tile_size: u32,
 }
 
 impl EguiTileFactory {
-    pub fn new(egui_ctx: Context, style: Style) -> Self {
-        Self { egui_ctx, style }
+    pub fn new(egui_ctx: Context, style: Style, tile_size: u32) -> Self {
+        Self {
+            egui_ctx,
+            style,
+            tile_size,
+        }
     }
 }
 
 impl TileFactory for EguiTileFactory {
     fn create_tile(&self, data: &bytes::Bytes, zoom: u8) -> Result<Tile, TileError> {
-        Tile::new(data, &self.style, zoom, &self.egui_ctx)
+        Tile::new(data, &self.style, zoom, self.tile_size, &self.egui_ctx)
     }
 }
 
@@ -522,7 +540,8 @@ mod tests {
     }
 
     /// A source whose every tile carries the same label at both its left and right edge, the
-    /// way vector tiles repeat features which fall near a boundary.
+    /// way vector tiles repeat features which fall near a boundary. Positions are in the
+    /// pixels of a tile, which is what a rendered tile holds.
     #[cfg(feature = "mvt")]
     struct LabelAtBothEdges;
 
@@ -531,7 +550,7 @@ mod tests {
         fn at(&mut self, _tile_id: TileId) -> Option<TilePiece> {
             let label = |x: f32| {
                 crate::text::Text::new(
-                    pos2(x, 2048.),
+                    pos2(x, TILE_SIZE as f32 / 2.),
                     "Szczepankowice".to_string(),
                     12.,
                     Color32::BLACK,
@@ -543,7 +562,7 @@ mod tests {
             Some(TilePiece::new(
                 Tile::Vector {
                     shapes: Vec::new(),
-                    texts: vec![label(0.), label(4096.)],
+                    texts: vec![label(0.), label(TILE_SIZE as f32)],
                 },
                 Rect::from_min_max(pos2(0., 0.), pos2(1., 1.)),
             ))

@@ -55,7 +55,7 @@ impl HttpTiles {
             attribution,
             tiles_io: TilesIo::new(
                 HttpFetch::new(source, http_options),
-                EguiTileFactory::new(egui_ctx.clone(), style),
+                EguiTileFactory::new(egui_ctx.clone(), style, tile_size),
                 egui_ctx,
             ),
             tile_size,
