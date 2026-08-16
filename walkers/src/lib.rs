@@ -52,9 +52,7 @@ pub use position::{Position, lat_lon, lon_lat};
 pub use projector::Projector;
 pub use style::Style;
 #[cfg(feature = "mvt")]
-pub use style::basemap::Shade;
-#[cfg(feature = "mvt")]
-pub use style::schema::{OPENMAPTILES, PROTOMAPS, Schema};
+pub use style::basemap::{OPENMAPTILES, PROTOMAPS, Schema, Shade};
 #[cfg(feature = "mvt")]
 pub use style::{
     Color, Dasharray, Filter, Float, Layer, Layout, Paint, SourceLayer, Value, json,

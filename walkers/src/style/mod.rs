@@ -1,5 +1,4 @@
 pub mod basemap;
-pub mod schema;
 
 use color::Rgba8;
 use egui::Color32;
