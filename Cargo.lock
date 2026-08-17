@@ -175,7 +175,7 @@ dependencies = [
  "ndk-sys",
  "num_enum",
  "simd_cesu8",
- "thiserror 2.0.19",
+ "thiserror 2.0.20",
 ]
 
 [[package]]
@@ -1180,7 +1180,7 @@ dependencies = [
  "epaint",
  "log",
  "profiling",
- "thiserror 2.0.19",
+ "thiserror 2.0.20",
  "type-map",
  "web-time",
  "wgpu",
@@ -1757,7 +1757,7 @@ dependencies = [
  "rstar 0.8.4",
  "rstar 0.9.3",
  "serde",
- "thiserror 2.0.19",
+ "thiserror 2.0.20",
 ]
 
 [[package]]
@@ -1779,7 +1779,7 @@ dependencies = [
  "log",
  "serde",
  "serde_json",
- "thiserror 2.0.19",
+ "thiserror 2.0.20",
  "tinyvec",
 ]
 
@@ -1947,7 +1947,7 @@ dependencies = [
  "hashbrown 0.16.1",
  "log",
  "presser",
- "thiserror 2.0.19",
+ "thiserror 2.0.20",
  "windows",
 ]
 
@@ -2527,7 +2527,7 @@ dependencies = [
  "jni-sys 0.4.1",
  "log",
  "simd_cesu8",
- "thiserror 2.0.19",
+ "thiserror 2.0.20",
  "walkdir",
  "windows-link",
 ]
@@ -2619,7 +2619,7 @@ checksum = "1ad943f54e9e575b0c01c2260a3cdacf54c898ca6840022c171a967cd01a2237"
 dependencies = [
  "num-traits",
  "quick-xml 0.41.0",
- "thiserror 2.0.19",
+ "thiserror 2.0.20",
 ]
 
 [[package]]
@@ -2885,7 +2885,7 @@ dependencies = [
  "geo-types",
  "num-traits",
  "prost",
- "thiserror 2.0.19",
+ "thiserror 2.0.20",
 ]
 
 [[package]]
@@ -2910,7 +2910,7 @@ dependencies = [
  "once_cell",
  "rustc-hash 1.1.0",
  "spirv",
- "thiserror 2.0.19",
+ "thiserror 2.0.20",
  "unicode-ident",
 ]
 
@@ -2923,7 +2923,7 @@ dependencies = [
  "hashbrown 0.17.1",
  "indexmap",
  "rustc-hash 1.1.0",
- "thiserror 2.0.19",
+ "thiserror 2.0.20",
 ]
 
 [[package]]
@@ -3591,7 +3591,7 @@ dependencies = [
  "bytes",
  "fast_hilbert",
  "fmmap",
- "thiserror 2.0.19",
+ "thiserror 2.0.20",
  "tokio",
  "varint-rs",
 ]
@@ -3779,7 +3779,7 @@ dependencies = [
  "rustc-hash 2.1.2",
  "rustls",
  "socket2",
- "thiserror 2.0.19",
+ "thiserror 2.0.20",
  "tokio",
  "tracing",
  "web-time",
@@ -3801,7 +3801,7 @@ dependencies = [
  "rustls",
  "rustls-pki-types",
  "slab",
- "thiserror 2.0.19",
+ "thiserror 2.0.20",
  "tinyvec",
  "tracing",
  "web-time",
@@ -4538,7 +4538,7 @@ dependencies = [
  "log",
  "memmap2 0.9.10",
  "rustix 1.1.4",
- "thiserror 2.0.19",
+ "thiserror 2.0.20",
  "wayland-backend",
  "wayland-client",
  "wayland-csd-frame",
@@ -4772,11 +4772,11 @@ dependencies = [
 
 [[package]]
 name = "thiserror"
-version = "2.0.19"
+version = "2.0.20"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "09a43598840e33d5b0331f38c5e30d13bb11c11210a4b58f0d9b18a5a5eefcd9"
+checksum = "ec86235f5fcc2a73650310756d2ac5b138a5780bbbdfae3eeccec992c435ba4f"
 dependencies = [
- "thiserror-impl 2.0.19",
+ "thiserror-impl 2.0.20",
 ]
 
 [[package]]
@@ -4792,9 +4792,9 @@ dependencies = [
 
 [[package]]
 name = "thiserror-impl"
-version = "2.0.19"
+version = "2.0.20"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "43cbfe0cf76104d42a574802844187e84a305e531ed54455f11fbde0f10541cd"
+checksum = "bc04cd3e1236dd4a98afca4569f2deb3f120e5422a4023be2cb683f8486292af"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -5226,7 +5226,7 @@ dependencies = [
  "log",
  "peniko",
  "smallvec",
- "thiserror 2.0.19",
+ "thiserror 2.0.20",
 ]
 
 [[package]]
@@ -5284,7 +5284,7 @@ dependencies = [
  "reqwest-middleware",
  "serde",
  "serde_json",
- "thiserror 2.0.19",
+ "thiserror 2.0.20",
  "tokio",
  "wasm-bindgen-futures",
 ]
@@ -5302,7 +5302,7 @@ dependencies = [
  "lyon_tessellation",
  "quick-xml 0.41.0",
  "rstar 0.13.0",
- "thiserror 2.0.19",
+ "thiserror 2.0.20",
  "walkers",
 ]
 
@@ -5315,7 +5315,7 @@ dependencies = [
  "env_logger",
  "geojson",
  "serde_json",
- "thiserror 2.0.19",
+ "thiserror 2.0.20",
  "walkers",
  "walkers_extras",
 ]
@@ -5640,7 +5640,7 @@ dependencies = [
  "raw-window-handle",
  "rustc-hash 1.1.0",
  "smallvec",
- "thiserror 2.0.19",
+ "thiserror 2.0.20",
  "wgpu-core-deps-apple",
  "wgpu-core-deps-emscripten",
  "wgpu-core-deps-wasm",
@@ -5731,7 +5731,7 @@ dependencies = [
  "renderdoc-sys",
  "smallvec",
  "static_assertions",
- "thiserror 2.0.19",
+ "thiserror 2.0.20",
  "wasm-bindgen",
  "wayland-sys",
  "web-sys",
