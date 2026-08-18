@@ -21,7 +21,7 @@ use lyon_tessellation::{
 use crate::{
     expression::Context,
     style::{Layout, Paint},
-    text::Text,
+    text::{Placement, Text},
 };
 
 #[derive(thiserror::Error, Debug)]
@@ -342,7 +342,8 @@ fn label_line_strings(
                     text_color,
                     angle,
                 )
-                .with_halo(halo_color, halo_width),
+                .with_halo(halo_color, halo_width)
+                .with_placement(Placement::Line),
             );
         }
     }
