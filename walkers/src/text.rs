@@ -124,71 +124,61 @@ impl OrientedRect {
 /// How far apart two labels saying the same thing have to be.
 const MIN_REPEAT_DISTANCE: f32 = 400.0;
 
-/// Tracks what has been named where, so that a street arriving as a dozen features is not
-/// named a dozen times.
+/// What has been placed so far - where it sits, and what it says.
 ///
-/// Only line labels take part. OSM splits a way at every intersection, so one street really is
-/// many features saying the same thing, while two points sharing a name are two different
-/// things - house numbers being the obvious case.
+/// Only line labels are remembered by name. OSM splits a way at every intersection, so one
+/// street really is many features saying the same thing, while two points sharing a name are two
+/// different things - house numbers being the obvious case.
 #[derive(Default)]
-struct PlacedLabels {
-    positions: HashMap<String, Vec<Pos2>>,
+struct PlacedTexts {
+    occupied_areas: Vec<OrientedRect>,
+    text_positions: HashMap<String, Vec<Pos2>>,
 }
 
-impl PlacedLabels {
-    fn text_already_placed_nearby(&self, text: &Text) -> bool {
+impl PlacedTexts {
+    fn already_placed_nearby(&self, text: &Text) -> bool {
         text.placement == Placement::Line
-            && self.positions.get(&text.text).is_some_and(|positions| {
-                positions
-                    .iter()
-                    .any(|placed| placed.distance(text.position) < MIN_REPEAT_DISTANCE)
-            })
+            && self
+                .text_positions
+                .get(&text.text)
+                .is_some_and(|positions| {
+                    positions
+                        .iter()
+                        .any(|placed| placed.distance(text.position) < MIN_REPEAT_DISTANCE)
+                })
     }
 
-    fn remember(&mut self, text: &Text) {
-        if text.placement != Placement::Line {
-            return;
+    /// Take the area, unless something is already there. The text is remembered only once it
+    /// turned out to be free.
+    fn try_place(&mut self, text: &Text, area: OrientedRect) -> bool {
+        if self
+            .occupied_areas
+            .iter()
+            .any(|occupied| occupied.intersects(&area))
+        {
+            return false;
         }
 
-        self.positions
-            .entry(text.text.to_owned())
-            .or_default()
-            .push(text.position);
-    }
-}
+        self.occupied_areas.push(area);
 
-// Tracks areas occupied by texts to avoid overlapping them.
-pub struct OccupiedAreas {
-    areas: Vec<OrientedRect>,
-}
-
-impl OccupiedAreas {
-    pub fn new() -> Self {
-        Self { areas: Vec::new() }
-    }
-
-    pub fn try_occupy(&mut self, rect: OrientedRect) -> bool {
-        if !self.areas.iter().any(|existing| existing.intersects(&rect)) {
-            self.areas.push(rect);
-            true
-        } else {
-            false
+        if text.placement == Placement::Line {
+            self.text_positions
+                .entry(text.text.to_owned())
+                .or_default()
+                .push(text.position);
         }
+
+        true
     }
 }
 
 /// Lay the text out, unless it repeats a nearby one or would land on an area which is already
 /// taken.
-fn place_text(
-    text: Text,
-    ctx: &egui::Context,
-    occupied_areas: &mut OccupiedAreas,
-    placed_labels: &mut PlacedLabels,
-) -> Shape {
+fn place_text(text: Text, ctx: &egui::Context, placed_texts: &mut PlacedTexts) -> Shape {
     use egui::epaint::TextShape;
 
     // Before laying it out, which is the expensive part.
-    if placed_labels.text_already_placed_nearby(&text) {
+    if placed_texts.already_placed_nearby(&text) {
         return Shape::Noop;
     }
 
@@ -209,11 +199,9 @@ fn place_text(
     let area = OrientedRect::new(text.position, text.angle, galley.size());
     let top_left = area.top_left();
 
-    if !occupied_areas.try_occupy(area) {
+    if !placed_texts.try_place(&text, area) {
         return Shape::Noop;
     }
-
-    placed_labels.remember(&text);
 
     let on_top =
         TextShape::new(top_left, galley.to_owned(), text.text_color).with_angle(text.angle);
@@ -244,13 +232,12 @@ fn place_text(
 /// Lay out the labels, dropping the ones which repeat a nearby label or would land on top of an
 /// already placed one.
 pub fn place_texts(texts: Vec<Text>, ctx: &egui::Context) -> Vec<Shape> {
-    let mut occupied_areas = OccupiedAreas::new();
-    let mut placed_labels = PlacedLabels::default();
+    let mut placed_texts = PlacedTexts::default();
 
     // Need to collect it to avoid deadlock caused by `Painter::extend` and `fonts_mut`.
     texts
         .into_iter()
-        .map(|text| place_text(text, ctx, &mut occupied_areas, &mut placed_labels))
+        .map(|text| place_text(text, ctx, &mut placed_texts))
         .collect()
 }
 
