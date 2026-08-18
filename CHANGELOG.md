@@ -12,6 +12,7 @@ All notable changes to this project will be documented in this file.
 * `line-width` is now in screen pixels, so lines are thicker than before.
 * Labels are placed against the whole map rather than one tile at a time, so they no longer
   repeat or get cut off at tile boundaries. They are also drawn above every layer.
+* A street split into many features is named once rather than once per feature.
 
 ## 0.58.0
 

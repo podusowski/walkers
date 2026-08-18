@@ -61,6 +61,6 @@ pub use style::{
     linear_zoom_interpolation,
 };
 #[cfg(feature = "mvt")]
-pub use text::{Text, place_texts};
+pub use text::{Placement, Text, place_texts};
 pub use tiles::{Tile, TileId, TilePiece, Tiles};
 pub use zoom::InvalidZoom;
