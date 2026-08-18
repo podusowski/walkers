@@ -47,7 +47,7 @@ lru = "0.18.1"
 lyon_path = "1.0"
 lyon_tessellation = "1.0"
 mvt-reader = "2.4"
-pmtiles = { version = "0.23.1", default-features = false, features = [
+pmtiles = { version = "0.24.0", default-features = false, features = [
   "mmap-async-tokio",
 ] }
 quick-xml = "0.41.0"
