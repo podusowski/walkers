@@ -110,7 +110,7 @@ pub fn render(
     }
 
     log::trace!("Rendered {} shapes", shapes.len());
-    Ok((shapes, texts))
+    Ok((render::merge_mesh_runs(shapes), texts))
 }
 
 /// What takes a tile rendered for `tile_size` onto the `rect` it is actually drawn at.

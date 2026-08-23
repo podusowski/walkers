@@ -77,6 +77,27 @@ fn keep_stroke_width(shape: &mut Shape, scaling: f32) {
     }
 }
 
+/// Meshes standing next to each other can be drawn as one. Consecutive is as far as this can
+/// go: a line drawn between two polygons has to stay between them, so a run ends wherever
+/// anything which is not a mesh does.
+pub(crate) fn merge_mesh_runs(shapes: Vec<Shape>) -> Vec<Shape> {
+    let mut merged: Vec<Shape> = Vec::with_capacity(shapes.len());
+
+    for shape in shapes {
+        if let Shape::Mesh(mesh) = &shape
+            && let Some(Shape::Mesh(run)) = merged.last_mut()
+            && run.texture_id == mesh.texture_id
+        {
+            std::sync::Arc::make_mut(run).append_ref(mesh);
+            continue;
+        }
+
+        merged.push(shape);
+    }
+
+    merged
+}
+
 pub(crate) fn geometry_type_to_str(geometry: &Geometry<f32>) -> &'static str {
     match geometry {
         Geometry::Point(_) | Geometry::MultiPoint(_) => "Point",
@@ -458,6 +479,44 @@ fn lyon_points(points: &[Coord<f32>]) -> Vec<Point<f32>> {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    fn mesh(vertices: usize) -> Shape {
+        Shape::Mesh(
+            Mesh {
+                vertices: vec![Vertex::default(); vertices],
+                indices: (0..vertices as u32).collect(),
+                ..Default::default()
+            }
+            .into(),
+        )
+    }
+
+    fn vertices_of(shape: &Shape) -> usize {
+        match shape {
+            Shape::Mesh(mesh) => mesh.vertices.len(),
+            _ => 0,
+        }
+    }
+
+    #[test]
+    fn meshes_standing_next_to_each_other_become_one() {
+        let merged = merge_mesh_runs(vec![mesh(3), mesh(4), mesh(5)]);
+
+        assert_eq!(merged.len(), 1);
+        assert_eq!(vertices_of(&merged[0]), 12);
+    }
+
+    /// Merging across a line would move the polygons on top of it.
+    #[test]
+    fn a_line_between_two_meshes_keeps_them_apart() {
+        let line = Shape::line(vec![pos2(0., 0.), pos2(1., 1.)], Stroke::default());
+        let merged = merge_mesh_runs(vec![mesh(3), line, mesh(4)]);
+
+        assert_eq!(merged.len(), 3);
+        assert_eq!(vertices_of(&merged[0]), 3);
+        assert!(matches!(merged[1], Shape::Path(_)));
+        assert_eq!(vertices_of(&merged[2]), 4);
+    }
     use std::collections::HashMap;
 
     #[test]
