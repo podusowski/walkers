@@ -1,11 +1,12 @@
-//! Turning what a tile decoded into ([`crate::drawable`]) into something egui can paint.
+//! Where walkers meets egui.
 //!
-//! This is the one place which knows both, and the first thing another renderer would need
-//! its own version of.
+//! Tiles are drawn by [`crate::render::gpu`], which this hosts through a paint callback.
+//! [`to_shapes`] is for geometry which is worked out afresh every frame, such as a GeoJSON
+//! overlay following the map - there is nothing for the GPU to hold on to there, so handing
+//! egui shapes is the right thing to do.
 
 use egui::{
     Shape, Stroke,
-    emath::TSTransform,
     epaint::{Vertex, WHITE_UV},
 };
 
@@ -46,137 +47,12 @@ pub fn to_shapes(drawables: &[Drawable]) -> Vec<Shape> {
         })
         .collect()
 }
-
-pub(crate) fn transformed_shape(shape: &Shape, transform: TSTransform) -> Shape {
-    let mut shape = shape.to_owned();
-    shape.transform(transform);
-
-    // `line-width` is in screen pixels, so a stroke must not follow the scaling.
-    keep_stroke_width(&mut shape, transform.scaling);
-
-    shape
-}
-
-pub(crate) fn transformed_shapes(shapes: &[Shape], transform: TSTransform) -> Vec<Shape> {
-    shapes
-        .iter()
-        .map(|shape| transformed_shape(shape, transform))
-        .collect()
-}
-
-/// Undo what [`Shape::transform`] did to the stroke widths, which it scales along with
-/// everything else.
-fn keep_stroke_width(shape: &mut Shape, scaling: f32) {
-    if scaling == 0.0 {
-        return;
-    }
-
-    match shape {
-        Shape::Vec(shapes) => {
-            for shape in shapes {
-                keep_stroke_width(shape, scaling);
-            }
-        }
-        Shape::Path(path) => path.stroke.width /= scaling,
-        Shape::LineSegment { stroke, .. } => stroke.width /= scaling,
-        Shape::Circle(circle) => circle.stroke.width /= scaling,
-        Shape::Ellipse(ellipse) => ellipse.stroke.width /= scaling,
-        Shape::Rect(rect) => rect.stroke.width /= scaling,
-        Shape::QuadraticBezier(curve) => curve.stroke.width /= scaling,
-        Shape::CubicBezier(curve) => curve.stroke.width /= scaling,
-        Shape::Noop | Shape::Text(_) | Shape::Mesh(_) | Shape::Callback(_) => {}
-    }
-}
-
-#[cfg(test)]
-mod width_tests {
-    use super::*;
-    use crate::expression::Context;
-    use crate::render::{Geometry, render_line};
-    use crate::style::{Color, Float, Paint, json};
-
-    fn line_width_after(scaling: f32, asked: f32) -> f32 {
-        let context = Context::new("LineString".to_string(), Default::default(), 10);
-        let paint = Paint {
-            line_color: Some(Color(json!("#000000"))),
-            line_width: Some(Float(json!(asked))),
-            ..Default::default()
-        };
-        let geometry = Geometry::LineString(geo_types::LineString::from(vec![
-            (0.0f32, 0.0f32),
-            (100.0, 100.0),
-        ]));
-
-        let mut drawables = Vec::new();
-        render_line(&geometry, &context, &mut drawables, &paint).unwrap();
-
-        let shapes = transformed_shapes(
-            &to_shapes(&drawables),
-            TSTransform {
-                scaling,
-                translation: Default::default(),
-            },
-        );
-
-        shapes
-            .iter()
-            .find_map(|shape| match shape {
-                Shape::LineSegment { stroke, .. } => Some(stroke.width),
-                Shape::Path(path) => Some(path.stroke.width),
-                _ => None,
-            })
-            .expect("no line")
-    }
-
-    /// A tile is drawn at whatever size the current zoom calls for, but `line-width` is in
-    /// screen pixels and must not follow it.
-    #[test]
-    fn line_width_survives_the_transform() {
-        for scaling in [256.0 / 4096.0, 362.0 / 4096.0, 511.0 / 4096.0, 1.0] {
-            let width = line_width_after(scaling, 4.0);
-            assert!(
-                (width - 4.0).abs() < 0.001,
-                "asked for 4.0, got {width} at scaling {scaling}"
-            );
-        }
-    }
-
-    #[test]
-    fn geometry_still_scales() {
-        let context = Context::new("LineString".to_string(), Default::default(), 10);
-        let geometry = Geometry::LineString(geo_types::LineString::from(vec![
-            (0.0f32, 0.0f32),
-            (4096.0, 0.0),
-        ]));
-
-        let mut drawables = Vec::new();
-        render_line(&geometry, &context, &mut drawables, &Paint::default()).unwrap();
-        let shapes = transformed_shapes(
-            &to_shapes(&drawables),
-            TSTransform {
-                scaling: 256.0 / 4096.0,
-                translation: Default::default(),
-            },
-        );
-
-        let points = match &shapes[0] {
-            Shape::LineSegment { points, .. } => points.to_vec(),
-            Shape::Path(path) => path.points.to_vec(),
-            other => panic!("expected a line, got {other:?}"),
-        };
-
-        // The full extent of the tile lands on the full width it is drawn at.
-        assert_eq!(points[0].x, 0.0);
-        assert_eq!(points[points.len() - 1].x, 256.0);
-    }
-}
-
-/// Hosting [`crate::renderer`] inside an egui app, which egui allows through a paint callback.
+/// Hosting [`crate::render::gpu`] inside an egui app, which egui allows through a paint callback.
 ///
 /// egui itself has no idea what backend it is being rendered with, so the app has to say, and
 /// saying so is what turns this on. Without it, or under a backend which is not wgpu, tiles are
 /// drawn by handing egui shapes as before.
-#[cfg(feature = "wgpu")]
+#[cfg(feature = "mvt")]
 pub mod wgpu {
     use egui::Rect;
     use egui::emath::TSTransform;
@@ -201,10 +77,25 @@ pub mod wgpu {
         ctx.data_mut(|data| data.insert_temp(egui::Id::NULL, TargetFormat(target_format)));
     }
 
-    /// What [`use_wgpu`] was told, if anything.
+    /// What [`use_wgpu`] was told. There is nothing to fall back on if it was not told
+    /// anything, so rather than leave the map empty in silence, say so once.
     pub(crate) fn target_format(ctx: &egui::Context) -> Option<wgpu::TextureFormat> {
-        ctx.data(|data| data.get_temp::<TargetFormat>(egui::Id::NULL))
-            .map(|format| format.0)
+        let format = ctx
+            .data(|data| data.get_temp::<TargetFormat>(egui::Id::NULL))
+            .map(|format| format.0);
+
+        if format.is_none() {
+            static COMPLAINED: std::sync::Once = std::sync::Once::new();
+            COMPLAINED.call_once(|| {
+                log::error!(
+                    "Vector tiles are drawn with wgpu, and nothing has said what is being \
+                     rendered to. Call `walkers::use_wgpu` when the app starts, or the map \
+                     will stay empty."
+                );
+            });
+        }
+
+        format
     }
 
     /// One run of a tile's geometry, drawn by walkers rather than by egui.

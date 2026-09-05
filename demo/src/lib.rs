@@ -16,7 +16,7 @@ use crate::tiles::Providers;
 /// Let walkers draw the map with its own renderer rather than by handing egui shapes on every
 /// frame. It needs to know what is being rendered to, which only the app can say, and there is
 /// nothing to say when egui is not being rendered with wgpu.
-#[cfg(feature = "wgpu")]
+#[cfg(feature = "mvt")]
 pub fn use_walkers_renderer(cc: &eframe::CreationContext<'_>) {
     if let Some(state) = &cc.wgpu_render_state {
         walkers::use_wgpu(&cc.egui_ctx, state.target_format);

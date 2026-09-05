@@ -7,7 +7,7 @@
 pub mod drawable;
 
 /// Drawing it.
-#[cfg(feature = "wgpu")]
+#[cfg(feature = "mvt")]
 pub mod gpu;
 
 use ecolor::Color32;

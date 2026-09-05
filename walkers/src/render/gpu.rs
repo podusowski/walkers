@@ -397,3 +397,57 @@ impl Renderer {
         render_pass.draw_indexed(0..geometry.indices_count, 0, 0..1);
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::render::drawable::Line;
+    use ecolor::Color32;
+    use emath::pos2;
+
+    fn horizontal(width: f32) -> Vec<Line> {
+        vec![Line {
+            points: vec![pos2(0., 0.), pos2(10., 0.)],
+            width,
+            color: Color32::WHITE,
+        }]
+    }
+
+    /// A tile is drawn at whatever size the current zoom calls for, but `line-width` is in
+    /// screen pixels. Pushing the vertices out after the transform is what keeps it that way,
+    /// so how far they are pushed is what has to be right.
+    #[test]
+    fn a_line_is_pushed_out_by_half_its_width() {
+        let (vertices, _) = line_vertices(&horizontal(4.));
+
+        for vertex in &vertices {
+            let [x, y] = vertex.extrude;
+            assert!(
+                x.abs() < f32::EPSILON,
+                "pushed along the line, not across it"
+            );
+            assert!((y.abs() - (2. + FEATHER)).abs() < 0.001, "pushed {y} out");
+        }
+    }
+
+    /// Every segment is two triangles, and the ends are not joined up to anything.
+    #[test]
+    fn every_segment_is_a_quad() {
+        let (vertices, indices) = line_vertices(&horizontal(1.));
+
+        assert_eq!(vertices.len(), 4);
+        assert_eq!(indices.len(), 6);
+    }
+
+    /// A line which doubles back on itself has nothing to be pushed out from.
+    #[test]
+    fn a_segment_going_nowhere_is_skipped() {
+        let (vertices, _) = line_vertices(&[Line {
+            points: vec![pos2(3., 3.), pos2(3., 3.)],
+            width: 2.,
+            color: Color32::WHITE,
+        }]);
+
+        assert!(vertices.is_empty());
+    }
+}

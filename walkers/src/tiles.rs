@@ -114,10 +114,6 @@ pub enum Tile {
         /// buffers for it.
         geometry: std::sync::Arc<Vec<crate::render::drawable::Drawable>>,
 
-        /// The same thing, as egui shapes, in the same order. Built once here rather than on
-        /// every frame the tile shows up on.
-        shapes: Vec<egui::Shape>,
-
         texts: Vec<crate::text::Text>,
     },
 }
@@ -173,7 +169,6 @@ impl Tile {
         let (drawables, texts) = mvt::render(data, style, zoom, tile_size)?;
 
         Ok(Self::Vector {
-            shapes: crate::egui_backend::to_shapes(&drawables),
             geometry: std::sync::Arc::new(drawables),
             texts,
         })
@@ -207,7 +202,6 @@ impl Tile {
             #[cfg(feature = "mvt")]
             Tile::Vector {
                 geometry,
-                shapes,
                 texts: from_tile,
             } => {
                 // Renderer needs to work on the full tile, before it was clipped with `uv`...
@@ -218,12 +212,6 @@ impl Tile {
 
                 let transform = mvt::transform_onto(full_rect, tile_size);
 
-                #[cfg(not(feature = "wgpu"))]
-                let _ = geometry;
-
-                // With a renderer of its own, everything a tile decoded into goes to it.
-                // Without one, it all goes to egui as shapes.
-                #[cfg(feature = "wgpu")]
                 if let Some(format) = crate::egui_backend::wgpu::target_format(painter.ctx()) {
                     let frame = painter.ctx().cumulative_pass_nr();
 
@@ -243,12 +231,7 @@ impl Tile {
                             frame,
                         )
                     }));
-                } else {
-                    painter.extend(crate::egui_backend::transformed_shapes(shapes, transform));
                 }
-
-                #[cfg(not(feature = "wgpu"))]
-                painter.extend(crate::egui_backend::transformed_shapes(shapes, transform));
 
                 texts
                     .texts
@@ -607,7 +590,6 @@ mod tests {
             Some(TilePiece::new(
                 Tile::Vector {
                     geometry: std::sync::Arc::new(Vec::new()),
-                    shapes: Vec::new(),
                     texts: vec![label(0.), label(TILE_SIZE as f32)],
                 },
                 Rect::from_min_max(pos2(0., 0.), pos2(1., 1.)),

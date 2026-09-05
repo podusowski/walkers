@@ -6,7 +6,7 @@ publish = false
 default-run = "demo_native"
 
 [dependencies]
-demo = { path = "../demo", features = ["mvt", "pmtiles", "wgpu"] }
+demo = { path = "../demo", features = ["mvt", "pmtiles"] }
 eframe.workspace = true
 egui.workspace = true
 env_logger.workspace = true

@@ -43,7 +43,7 @@ mod zoom;
 
 #[cfg(feature = "mvt")]
 pub use egui_backend::to_shapes;
-#[cfg(feature = "wgpu")]
+#[cfg(feature = "mvt")]
 pub use egui_backend::wgpu::use_wgpu;
 #[cfg(feature = "mvt")]
 pub use expression::Context;

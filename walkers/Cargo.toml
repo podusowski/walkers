@@ -50,17 +50,16 @@ wasm-bindgen-futures.workspace = true
 [features]
 default = []
 mvt = [
+  "dep:bytemuck",
   "dep:color",
   "dep:geo",
   "dep:lyon_path",
   "dep:lyon_tessellation",
   "dep:mvt-reader",
+  "dep:egui-wgpu",
   "dep:serde",
-  "dep:serde_json"
+  "dep:serde_json",
+  "egui/bytemuck"
 ]
 pmtiles = ["dep:pmtiles"]
-
-# Draw the map with walkers' own renderer rather than by handing egui shapes every frame.
-# Needs the app to render egui with wgpu, and to say so with `use_wgpu`.
-wgpu = ["mvt", "dep:bytemuck", "dep:egui-wgpu", "egui/bytemuck"]
 serde = ["dep:serde", "egui/serde", "geo-types/serde"]
