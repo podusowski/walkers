@@ -162,8 +162,14 @@ impl Tile {
         zoom: u8,
         tile_size: u32,
     ) -> Result<Self, TileError> {
-        let (shapes, texts) = mvt::render(data, style, zoom, tile_size)?;
-        Ok(Self::Vector { shapes, texts })
+        let (drawables, texts) = mvt::render(data, style, zoom, tile_size)?;
+
+        Ok(Self::Vector {
+            // Turned into what egui paints here, once, rather than on every frame the tile
+            // shows up on.
+            shapes: crate::egui_backend::to_shapes(&drawables),
+            texts,
+        })
     }
 
     /// Load the texture from egui's [`ColorImage`].
@@ -203,7 +209,9 @@ impl Tile {
                 let painter = painter.with_clip_rect(rect);
 
                 let transform = mvt::transform_onto(full_rect, tile_size);
-                painter.extend(render::transformed_shapes(shapes, transform));
+
+                painter.extend(crate::egui_backend::transformed_shapes(shapes, transform));
+
                 texts
                     .texts
                     .extend(render::transformed_texts(from_tile, transform));

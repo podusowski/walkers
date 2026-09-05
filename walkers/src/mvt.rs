@@ -2,7 +2,8 @@
 
 use std::collections::HashMap;
 
-use egui::{Color32, Rect, Shape, emath::TSTransform, pos2, vec2};
+use ecolor::Color32;
+use emath::TSTransform;
 use log::warn;
 use mvt_reader::{Reader, feature::Value};
 use serde_json::{Number, Value as JsonValue};
@@ -38,9 +39,9 @@ pub fn render(
     style: &Style,
     zoom: u8,
     tile_size: u32,
-) -> Result<(Vec<Shape>, Vec<Text>), Error> {
+) -> Result<(Vec<crate::drawable::Drawable>, Vec<Text>), Error> {
     let data = mvt_reader::Reader::new(data.to_vec())?;
-    let mut shapes = Vec::new();
+    let mut drawables = Vec::new();
     let mut texts = Vec::new();
 
     for layer in &style.layers {
@@ -54,9 +55,10 @@ pub fn render(
                     Color32::WHITE
                 };
 
-                let rect =
-                    Rect::from_min_size(pos2(0.0, 0.0), vec2(tile_size as f32, tile_size as f32));
-                shapes.push(Shape::rect_filled(rect, 0.0, bg_color));
+                drawables.push(crate::drawable::Drawable::background(
+                    tile_size as f32,
+                    bg_color,
+                ));
             }
             Layer::Fill {
                 source_layer,
@@ -67,7 +69,7 @@ pub fn render(
                     get_layer_features(&data, zoom, source_layer, filter.as_ref(), tile_size)?
                 {
                     if let Err(err) =
-                        render::render_polygon(&geometry, &context, &mut shapes, paint)
+                        render::render_polygon(&geometry, &context, &mut drawables, paint)
                     {
                         warn!("{err}");
                     }
@@ -81,7 +83,9 @@ pub fn render(
                 for (geometry, context) in
                     get_layer_features(&data, zoom, source_layer, filter.as_ref(), tile_size)?
                 {
-                    if let Err(err) = render::render_line(&geometry, &context, &mut shapes, paint) {
+                    if let Err(err) =
+                        render::render_line(&geometry, &context, &mut drawables, paint)
+                    {
                         warn!("{err}");
                     }
                 }
@@ -109,8 +113,8 @@ pub fn render(
         }
     }
 
-    log::trace!("Rendered {} shapes", shapes.len());
-    Ok((render::merge_mesh_runs(shapes), texts))
+    log::trace!("Rendered {} drawables", drawables.len());
+    Ok((render::merge_fill_runs(drawables), texts))
 }
 
 /// What takes a tile rendered for `tile_size` onto the `rect` it is actually drawn at.

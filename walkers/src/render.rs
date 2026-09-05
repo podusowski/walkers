@@ -2,12 +2,8 @@
 //!
 //! Where the geometries came from - vector tiles, GeoJSON, KML - is not this module's concern.
 
-use egui::{
-    Color32, Mesh, Shape, Stroke,
-    emath::TSTransform,
-    epaint::{Vertex, WHITE_UV},
-    pos2,
-};
+use ecolor::Color32;
+use emath::{TSTransform, pos2};
 pub use geo_types::{Coord, Geometry, Line};
 use log::warn;
 use lyon_path::{
@@ -19,6 +15,7 @@ use lyon_tessellation::{
 };
 
 use crate::{
+    drawable::{Drawable, Line as DrawableLine, Mesh, Vertex},
     expression::Context,
     style::{Layout, Paint},
     text::{Placement, Text},
@@ -28,19 +25,6 @@ use crate::{
 pub enum Error {
     #[error(transparent)]
     Tessellation(#[from] TessellationError),
-}
-
-pub(crate) fn transformed_shapes(shapes: &[Shape], transform: TSTransform) -> Vec<Shape> {
-    let mut shapes = shapes.to_vec();
-
-    for shape in shapes.iter_mut() {
-        shape.transform(transform);
-
-        // `line-width` is in screen pixels, so a stroke must not follow the scaling.
-        keep_stroke_width(shape, transform.scaling);
-    }
-
-    shapes
 }
 
 pub(crate) fn transformed_texts(texts: &[Text], transform: TSTransform) -> Vec<Text> {
@@ -53,46 +37,21 @@ pub(crate) fn transformed_texts(texts: &[Text], transform: TSTransform) -> Vec<T
         .collect()
 }
 
-/// Undo what [`Shape::transform`] did to the stroke widths, which it scales along with
-/// everything else.
-fn keep_stroke_width(shape: &mut Shape, scaling: f32) {
-    if scaling == 0.0 {
-        return;
-    }
+/// Fills standing next to each other can be drawn as one. Consecutive is as far as this can
+/// go: a line drawn between two of them has to stay between them, so a run ends wherever
+/// anything which is not a fill does.
+pub(crate) fn merge_fill_runs(drawables: Vec<Drawable>) -> Vec<Drawable> {
+    let mut merged: Vec<Drawable> = Vec::with_capacity(drawables.len());
 
-    match shape {
-        Shape::Vec(shapes) => {
-            for shape in shapes {
-                keep_stroke_width(shape, scaling);
-            }
-        }
-        Shape::Path(path) => path.stroke.width /= scaling,
-        Shape::LineSegment { stroke, .. } => stroke.width /= scaling,
-        Shape::Circle(circle) => circle.stroke.width /= scaling,
-        Shape::Ellipse(ellipse) => ellipse.stroke.width /= scaling,
-        Shape::Rect(rect) => rect.stroke.width /= scaling,
-        Shape::QuadraticBezier(curve) => curve.stroke.width /= scaling,
-        Shape::CubicBezier(curve) => curve.stroke.width /= scaling,
-        Shape::Noop | Shape::Text(_) | Shape::Mesh(_) | Shape::Callback(_) => {}
-    }
-}
-
-/// Meshes standing next to each other can be drawn as one. Consecutive is as far as this can
-/// go: a line drawn between two polygons has to stay between them, so a run ends wherever
-/// anything which is not a mesh does.
-pub(crate) fn merge_mesh_runs(shapes: Vec<Shape>) -> Vec<Shape> {
-    let mut merged: Vec<Shape> = Vec::with_capacity(shapes.len());
-
-    for shape in shapes {
-        if let Shape::Mesh(mesh) = &shape
-            && let Some(Shape::Mesh(run)) = merged.last_mut()
-            && run.texture_id == mesh.texture_id
+    for drawable in drawables {
+        if let Drawable::Fill(mesh) = &drawable
+            && let Some(Drawable::Fill(run)) = merged.last_mut()
         {
-            std::sync::Arc::make_mut(run).append_ref(mesh);
+            run.append(mesh);
             continue;
         }
 
-        merged.push(shape);
+        merged.push(drawable);
     }
 
     merged
@@ -113,7 +72,7 @@ pub(crate) fn geometry_type_to_str(geometry: &Geometry<f32>) -> &'static str {
 pub fn render_line(
     geometry: &Geometry<f32>,
     context: &Context,
-    shapes: &mut Vec<Shape>,
+    drawables: &mut Vec<Drawable>,
     paint: &Paint,
 ) -> Result<(), Error> {
     let width = if let Some(width) = &paint.line_width {
@@ -139,8 +98,6 @@ pub fn render_line(
         .as_ref()
         .and_then(|dasharray| dasharray.evaluate(context));
 
-    let stroke = Stroke::new(width, color);
-
     match geometry {
         Geometry::LineString(line_string) => {
             let points = line_string
@@ -148,7 +105,7 @@ pub fn render_line(
                 .iter()
                 .map(|p| pos2(p.x, p.y))
                 .collect::<Vec<_>>();
-            push_line(shapes, points, stroke, dasharray.as_deref());
+            push_line(drawables, points, width, color, dasharray.as_deref());
         }
         Geometry::MultiLineString(multi_line_string) => {
             for line_string in multi_line_string {
@@ -157,7 +114,7 @@ pub fn render_line(
                     .iter()
                     .map(|p| pos2(p.x, p.y))
                     .collect::<Vec<_>>();
-                push_line(shapes, points, stroke, dasharray.as_deref());
+                push_line(drawables, points, width, color, dasharray.as_deref());
             }
         }
         _ => (),
@@ -166,29 +123,38 @@ pub fn render_line(
     Ok(())
 }
 
-/// Push a polyline as one or more shapes, splitting it into dashes if `dasharray` is given.
+/// Push a polyline as one or more lines, splitting it into dashes if `dasharray` is given.
 fn push_line(
-    shapes: &mut Vec<Shape>,
-    points: Vec<egui::Pos2>,
-    stroke: Stroke,
+    drawables: &mut Vec<Drawable>,
+    points: Vec<emath::Pos2>,
+    width: f32,
+    color: Color32,
     dasharray: Option<&[f32]>,
 ) {
+    let mut push = |points: Vec<emath::Pos2>| {
+        drawables.push(Drawable::Line(DrawableLine {
+            points,
+            width,
+            color,
+        }))
+    };
+
     match dasharray {
         Some(pattern) if !pattern.is_empty() => {
-            for segment in dash_polyline(&points, pattern, stroke.width) {
+            for segment in dash_polyline(&points, pattern, width) {
                 if segment.len() >= 2 {
-                    shapes.push(Shape::line(segment, stroke));
+                    push(segment);
                 }
             }
         }
-        _ => shapes.push(Shape::line(points, stroke)),
+        _ => push(points),
     }
 }
 
 /// Split a polyline into the "on" (dash) runs of a dash/gap `pattern`, whose values are
 /// in units of `width` per the MapLibre `line-dasharray` spec. Each returned run is a
-/// standalone polyline meant to be drawn as its own [`Shape::line`].
-fn dash_polyline(points: &[egui::Pos2], pattern: &[f32], width: f32) -> Vec<Vec<egui::Pos2>> {
+/// standalone polyline.
+fn dash_polyline(points: &[emath::Pos2], pattern: &[f32], width: f32) -> Vec<Vec<emath::Pos2>> {
     let pattern = pattern
         .iter()
         .map(|value| value * width)
@@ -244,7 +210,7 @@ fn dash_polyline(points: &[egui::Pos2], pattern: &[f32], width: f32) -> Vec<Vec<
 pub(crate) fn render_polygon(
     geometry: &Geometry<f32>,
     context: &Context,
-    shapes: &mut Vec<Shape>,
+    drawables: &mut Vec<Drawable>,
     paint: &Paint,
 ) -> Result<(), Error> {
     let polygons: &[geo_types::Polygon<f32>] = match geometry {
@@ -274,9 +240,9 @@ pub(crate) fn render_polygon(
             .iter()
             .map(|hole| lyon_points(&hole.0))
             .collect::<Vec<_>>();
-        shapes.push(Shape::Mesh(
-            tessellate_polygon(&exterior, &interiors, fill_color)?.into(),
-        ));
+        drawables.push(Drawable::Fill(tessellate_polygon(
+            &exterior, &interiors, fill_color,
+        )?));
     }
 
     Ok(())
@@ -455,10 +421,9 @@ pub fn tessellate_polygon(
         &builder.build(),
         &FillOptions::default(),
         &mut BuffersBuilder::new(&mut buffers, |vertex: FillVertex| {
-            let pos = vertex.position();
+            let position = vertex.position();
             Vertex {
-                pos: pos2(pos.x, pos.y),
-                uv: WHITE_UV,
+                position: pos2(position.x, position.y),
                 color: fill_color,
             }
         }),
@@ -467,7 +432,6 @@ pub fn tessellate_polygon(
     Ok(Mesh {
         indices: buffers.indices,
         vertices: buffers.vertices,
-        ..Default::default()
     })
 }
 
@@ -480,41 +444,47 @@ fn lyon_points(points: &[Coord<f32>]) -> Vec<Point<f32>> {
 mod tests {
     use super::*;
 
-    fn mesh(vertices: usize) -> Shape {
-        Shape::Mesh(
-            Mesh {
-                vertices: vec![Vertex::default(); vertices],
-                indices: (0..vertices as u32).collect(),
-                ..Default::default()
-            }
-            .into(),
-        )
+    fn filled(vertices: usize) -> Drawable {
+        Drawable::Fill(Mesh {
+            vertices: vec![
+                Vertex {
+                    position: pos2(0., 0.),
+                    color: Color32::WHITE,
+                };
+                vertices
+            ],
+            indices: (0..vertices as u32).collect(),
+        })
     }
 
-    fn vertices_of(shape: &Shape) -> usize {
-        match shape {
-            Shape::Mesh(mesh) => mesh.vertices.len(),
-            _ => 0,
+    fn vertices_of(drawable: &Drawable) -> usize {
+        match drawable {
+            Drawable::Fill(mesh) => mesh.vertices.len(),
+            Drawable::Line(_) => 0,
         }
     }
 
     #[test]
-    fn meshes_standing_next_to_each_other_become_one() {
-        let merged = merge_mesh_runs(vec![mesh(3), mesh(4), mesh(5)]);
+    fn fills_standing_next_to_each_other_become_one() {
+        let merged = merge_fill_runs(vec![filled(3), filled(4), filled(5)]);
 
         assert_eq!(merged.len(), 1);
         assert_eq!(vertices_of(&merged[0]), 12);
     }
 
-    /// Merging across a line would move the polygons on top of it.
+    /// Merging across a line would move the fills on top of it.
     #[test]
-    fn a_line_between_two_meshes_keeps_them_apart() {
-        let line = Shape::line(vec![pos2(0., 0.), pos2(1., 1.)], Stroke::default());
-        let merged = merge_mesh_runs(vec![mesh(3), line, mesh(4)]);
+    fn a_line_between_two_fills_keeps_them_apart() {
+        let line = Drawable::Line(DrawableLine {
+            points: vec![pos2(0., 0.), pos2(1., 1.)],
+            width: 1.,
+            color: Color32::WHITE,
+        });
+        let merged = merge_fill_runs(vec![filled(3), line, filled(4)]);
 
         assert_eq!(merged.len(), 3);
         assert_eq!(vertices_of(&merged[0]), 3);
-        assert!(matches!(merged[1], Shape::Path(_)));
+        assert!(matches!(merged[1], Drawable::Line(_)));
         assert_eq!(vertices_of(&merged[2]), 4);
     }
     use std::collections::HashMap;
@@ -618,7 +588,7 @@ mod tests {
         }
     }
 
-    fn fill(geometry: Geometry<f32>) -> Vec<Shape> {
+    fn fill(geometry: Geometry<f32>) -> Vec<Drawable> {
         let context = Context::new(
             geometry_type_to_str(&geometry).to_string(),
             HashMap::new(),
@@ -630,9 +600,9 @@ mod tests {
             ..Default::default()
         };
 
-        let mut shapes = Vec::new();
-        render_polygon(&geometry, &context, &mut shapes, &paint).unwrap();
-        shapes
+        let mut drawables = Vec::new();
+        render_polygon(&geometry, &context, &mut drawables, &paint).unwrap();
+        drawables
     }
 
     /// A tile with one ring per feature gives a plain `Polygon`, not a `MultiPolygon`.
@@ -657,86 +627,5 @@ mod tests {
             .len(),
             2
         );
-    }
-}
-
-#[cfg(test)]
-mod width_tests {
-    use super::*;
-    use crate::style::{Color, Float, Paint, json};
-
-    fn line_width_after(scaling: f32, asked: f32) -> f32 {
-        let context = Context::new("LineString".to_string(), Default::default(), 10);
-        let paint = Paint {
-            line_color: Some(Color(json!("#000000"))),
-            line_width: Some(Float(json!(asked))),
-            ..Default::default()
-        };
-        let geometry = Geometry::LineString(geo_types::LineString::from(vec![
-            (0.0f32, 0.0f32),
-            (100.0, 100.0),
-        ]));
-
-        let mut shapes = Vec::new();
-        render_line(&geometry, &context, &mut shapes, &paint).unwrap();
-
-        let shapes = transformed_shapes(
-            &shapes,
-            TSTransform {
-                scaling,
-                translation: Default::default(),
-            },
-        );
-
-        shapes
-            .iter()
-            .find_map(|shape| match shape {
-                Shape::LineSegment { stroke, .. } => Some(stroke.width),
-                Shape::Path(path) => Some(path.stroke.width),
-                _ => None,
-            })
-            .expect("no line")
-    }
-
-    /// A tile is drawn at whatever size the current zoom calls for, but `line-width` is in
-    /// screen pixels and must not follow it.
-    #[test]
-    fn line_width_survives_the_transform() {
-        for scaling in [256.0 / 4096.0, 362.0 / 4096.0, 511.0 / 4096.0, 1.0] {
-            let width = line_width_after(scaling, 4.0);
-            assert!(
-                (width - 4.0).abs() < 0.001,
-                "asked for 4.0, got {width} at scaling {scaling}"
-            );
-        }
-    }
-
-    #[test]
-    fn geometry_still_scales() {
-        let context = Context::new("LineString".to_string(), Default::default(), 10);
-        let geometry = Geometry::LineString(geo_types::LineString::from(vec![
-            (0.0f32, 0.0f32),
-            (4096.0, 0.0),
-        ]));
-
-        let mut shapes = Vec::new();
-        render_line(&geometry, &context, &mut shapes, &Paint::default()).unwrap();
-        let shapes = transformed_shapes(
-            &shapes,
-            TSTransform {
-                scaling: 256.0 / 4096.0,
-                translation: Default::default(),
-            },
-        );
-
-        let points = match &shapes[0] {
-            Shape::LineSegment { points, .. } => points.to_vec(),
-            Shape::Path(path) => path.points.to_vec(),
-            other => panic!("expected a line, got {other:?}"),
-        };
-
-        // The full extent of the tile lands on the full width it is drawn at.
-        assert_eq!(points[0].x, 0.0);
-        assert_eq!(points[points.len() - 1].x, 256.0);
     }
 }

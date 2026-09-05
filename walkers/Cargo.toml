@@ -12,7 +12,9 @@ categories.workspace = true
 [dependencies]
 bytes.workspace = true
 color = { workspace = true, optional = true }
+ecolor.workspace = true
 egui.workspace = true
+emath.workspace = true
 egui_extras.workspace = true
 futures.workspace = true
 geo = { workspace = true, optional = true }

@@ -25,6 +25,11 @@ mod style {
 pub mod mercator;
 
 #[cfg(feature = "mvt")]
+mod drawable;
+#[cfg(feature = "mvt")]
+mod egui_backend;
+
+#[cfg(feature = "mvt")]
 mod expression;
 #[cfg(feature = "mvt")]
 mod mvt;
@@ -38,6 +43,10 @@ pub mod sources;
 mod tiles;
 mod zoom;
 
+#[cfg(feature = "mvt")]
+pub use drawable::{Drawable, Line, Mesh, Vertex};
+#[cfg(feature = "mvt")]
+pub use egui_backend::to_shapes;
 #[cfg(feature = "mvt")]
 pub use expression::Context;
 pub use http_tiles::HttpTiles;
