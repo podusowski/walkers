@@ -14,28 +14,35 @@ use crate::drawable::Drawable;
 /// A tile's drawables, in the form egui wants them. Done once, when the tile is decoded,
 /// rather than on every frame it is visible on.
 pub fn to_shapes(drawables: &[Drawable]) -> Vec<Shape> {
+    let mesh_of = |mesh: &crate::drawable::Mesh| {
+        Shape::Mesh(
+            egui::Mesh {
+                vertices: mesh
+                    .vertices
+                    .iter()
+                    .map(|vertex| Vertex {
+                        pos: vertex.position,
+                        uv: WHITE_UV,
+                        color: vertex.color,
+                    })
+                    .collect(),
+                indices: mesh.indices.to_owned(),
+                ..Default::default()
+            }
+            .into(),
+        )
+    };
+
     drawables
         .iter()
-        .map(|drawable| match drawable {
-            Drawable::Fill(mesh) => Shape::Mesh(
-                egui::Mesh {
-                    vertices: mesh
-                        .vertices
-                        .iter()
-                        .map(|vertex| Vertex {
-                            pos: vertex.position,
-                            uv: WHITE_UV,
-                            color: vertex.color,
-                        })
-                        .collect(),
-                    indices: mesh.indices.to_owned(),
-                    ..Default::default()
-                }
-                .into(),
-            ),
-            Drawable::Line(line) => {
-                Shape::line(line.points.to_owned(), Stroke::new(line.width, line.color))
-            }
+        .flat_map(|drawable| match drawable {
+            Drawable::Fill(mesh) => vec![mesh_of(mesh)],
+            Drawable::Lines(run) => run
+                .iter()
+                .map(|line| {
+                    Shape::line(line.points.to_owned(), Stroke::new(line.width, line.color))
+                })
+                .collect(),
         })
         .collect()
 }
@@ -177,7 +184,7 @@ pub mod wgpu {
     use egui_wgpu::{CallbackTrait, ScreenDescriptor};
     use std::sync::{Arc, Mutex};
 
-    use crate::drawable::{Drawable, Mesh};
+    use crate::drawable::Drawable;
     use crate::renderer::{Renderer, key_of};
 
     /// The format the app renders egui to. It cannot be discovered from inside a callback.
@@ -242,11 +249,8 @@ pub mod wgpu {
             .into()
         }
 
-        fn mesh(&self) -> Option<&Mesh> {
-            match self.geometry.get(self.index)? {
-                Drawable::Fill(mesh) => Some(mesh),
-                Drawable::Line(_) => None,
-            }
+        fn drawable(&self) -> Option<&Drawable> {
+            self.geometry.get(self.index)
         }
     }
 
@@ -259,7 +263,7 @@ pub mod wgpu {
             _egui_encoder: &mut wgpu::CommandEncoder,
             resources: &mut egui_wgpu::CallbackResources,
         ) -> Vec<wgpu::CommandBuffer> {
-            let Some(mesh) = self.mesh() else {
+            let Some(drawable) = self.drawable() else {
                 return Vec::new();
             };
 
@@ -269,7 +273,7 @@ pub mod wgpu {
                 .entry::<Renderer>()
                 .or_insert_with(|| Renderer::new(device, self.format));
 
-            renderer.upload(device, mesh, &self.geometry, self.frame);
+            renderer.upload(device, drawable, &self.geometry, self.frame);
             renderer.forget_stale(self.frame);
 
             if let Ok(mut placement) = self.placement.lock() {
@@ -285,7 +289,8 @@ pub mod wgpu {
             render_pass: &mut wgpu::RenderPass<'static>,
             resources: &egui_wgpu::CallbackResources,
         ) {
-            let (Some(renderer), Some(mesh)) = (resources.get::<Renderer>(), self.mesh()) else {
+            let (Some(renderer), Some(drawable)) = (resources.get::<Renderer>(), self.drawable())
+            else {
                 return;
             };
 
@@ -294,7 +299,7 @@ pub mod wgpu {
             };
 
             if let Some(placement) = placement.as_ref() {
-                renderer.draw(render_pass, key_of(mesh), placement);
+                renderer.draw(render_pass, key_of(drawable), placement);
             }
         }
     }

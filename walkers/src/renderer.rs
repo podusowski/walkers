@@ -8,11 +8,8 @@
 //! shapes means copying and transforming every vertex on every frame; here the vertices are
 //! uploaded once and the map's movement arrives as a uniform.
 
-use ecolor::Color32;
 use egui_wgpu::wgpu;
-use emath::{Pos2, Rect, TSTransform};
-
-use crate::drawable::Mesh;
+use emath::{Rect, TSTransform};
 
 /// What the shader needs to put a tile's vertices on the screen.
 #[repr(C)]
@@ -27,30 +24,97 @@ struct Uniform {
     viewport_size: [f32; 2],
 }
 
-/// A vertex as the shader reads it. Smaller than what egui uses, which carries texture
-/// coordinates a filled polygon has no use for.
+/// A vertex of a fill, as the shader reads it. Smaller than what egui uses, which carries
+/// texture coordinates a filled polygon has no use for.
 #[repr(C)]
 #[derive(Clone, Copy, bytemuck::Pod, bytemuck::Zeroable)]
-struct Vertex {
+struct FillVertex {
     position: [f32; 2],
     color: [u8; 4],
 }
 
-impl Vertex {
-    fn of(position: Pos2, color: Color32) -> Self {
-        Self {
-            position: [position.x, position.y],
-            color: color.to_array(),
+/// A vertex of a line. A line is drawn as a quad per segment, pushed out sideways from the
+/// middle of it. The push is in screen points and happens after the map's transform, which is
+/// what keeps `line-width` in screen pixels without anything having to undo a scaling.
+#[repr(C)]
+#[derive(Clone, Copy, bytemuck::Pod, bytemuck::Zeroable)]
+struct LineVertex {
+    /// Where on the line this is, in tile coordinates.
+    position: [f32; 2],
+
+    /// How far to push it sideways once it is on the screen.
+    extrude: [f32; 2],
+
+    /// Which side of the line it is, -1 or 1, so that the edges can be softened.
+    side: f32,
+
+    color: [u8; 4],
+}
+
+/// How far past its real edge a line is drawn, so that the edge can be faded rather than
+/// ending on a hard pixel. The same idea as egui's feathering, and the same width.
+const FEATHER: f32 = 0.5;
+
+/// Turn a run of lines into triangles. Segments are independent - no joins, no caps - which
+/// shows at corners of thick lines and is the first thing to improve here.
+fn line_vertices(run: &[crate::drawable::Line]) -> (Vec<LineVertex>, Vec<u32>) {
+    let mut vertices = Vec::new();
+    let mut indices = Vec::new();
+
+    for line in run {
+        for pair in line.points.windows(2) {
+            let (from, to) = (pair[0], pair[1]);
+            let along = to - from;
+
+            let length = along.length();
+            if length == 0. {
+                continue;
+            }
+
+            // Half a pixel wider than asked for, on each side, so that the fragment shader
+            // has somewhere to fade out. What the line is really meant to be is worked back
+            // out from this in the shader.
+            let across = emath::vec2(-along.y, along.x) / length * (line.width / 2. + FEATHER);
+            let corner = vertices.len() as u32;
+
+            for (position, side) in [(from, 1.), (from, -1.), (to, 1.), (to, -1.)] {
+                vertices.push(LineVertex {
+                    position: [position.x, position.y],
+                    extrude: [across.x * side, across.y * side],
+                    side,
+                    color: line.color.to_array(),
+                });
+            }
+
+            indices.extend([
+                corner,
+                corner + 1,
+                corner + 2,
+                corner + 2,
+                corner + 1,
+                corner + 3,
+            ]);
         }
     }
+
+    (vertices, indices)
 }
 
 /// Frames a mesh may go undrawn before its buffers are let go. Tiles come and go as the map
 /// moves, and their buffers should not outlive them by much.
 const FORGET_AFTER: u64 = 120;
 
-/// One mesh's buffers, kept between frames.
+/// Which pipeline draws a piece of geometry.
+#[derive(Clone, Copy, PartialEq)]
+enum Kind {
+    Fill,
+    Lines,
+}
+
+/// One drawable's buffers, kept between frames.
 struct Uploaded {
+    kind: Kind,
+
     /// Holds the tile's geometry, so that nothing else can be allocated at the address being
     /// used as its key while it is still in here.
     _keepalive: std::sync::Arc<Vec<crate::drawable::Drawable>>,
@@ -61,14 +125,15 @@ struct Uploaded {
     last_drawn: u64,
 }
 
-/// Identifies a mesh by where it lives, which is unique for as long as [`Uploaded`] holds onto
-/// the tile it belongs to.
-pub(crate) fn key_of(mesh: &Mesh) -> usize {
-    std::ptr::from_ref(mesh) as usize
+/// Identifies a drawable by where it lives, which is unique for as long as [`Uploaded`] holds
+/// onto the tile it belongs to.
+pub(crate) fn key_of(drawable: &crate::drawable::Drawable) -> usize {
+    std::ptr::from_ref(drawable) as usize
 }
 
 pub(crate) struct Renderer {
-    pipeline: wgpu::RenderPipeline,
+    fills: wgpu::RenderPipeline,
+    lines: wgpu::RenderPipeline,
     bind_group_layout: wgpu::BindGroupLayout,
     uploaded: std::collections::HashMap<usize, Uploaded>,
 }
@@ -100,101 +165,172 @@ impl Renderer {
             immediate_size: 0,
         });
 
-        let pipeline = device.create_render_pipeline(&wgpu::RenderPipelineDescriptor {
-            label: Some("walkers"),
-            layout: Some(&layout),
-            vertex: wgpu::VertexState {
-                module: &shader,
-                entry_point: Some("vs_main"),
-                compilation_options: Default::default(),
-                buffers: &[Some(wgpu::VertexBufferLayout {
-                    array_stride: std::mem::size_of::<Vertex>() as u64,
-                    step_mode: wgpu::VertexStepMode::Vertex,
-                    attributes: &[
-                        wgpu::VertexAttribute {
-                            format: wgpu::VertexFormat::Float32x2,
-                            offset: 0,
-                            shader_location: 0,
-                        },
-                        wgpu::VertexAttribute {
-                            format: wgpu::VertexFormat::Unorm8x4,
-                            offset: 8,
-                            shader_location: 1,
-                        },
-                    ],
-                })],
-            },
-            fragment: Some(wgpu::FragmentState {
-                module: &shader,
-                entry_point: Some(if format.is_srgb() {
-                    // The same choice egui makes, for the same reason.
-                    "fs_main_linear_framebuffer"
-                } else {
-                    "fs_main_gamma_framebuffer"
+        let suffix = if format.is_srgb() {
+            // The same choice egui makes, for the same reason.
+            "linear_framebuffer"
+        } else {
+            "gamma_framebuffer"
+        };
+
+        let pipeline = |vertex_entry: &str,
+                        fragment_entry: &str,
+                        attributes: &[wgpu::VertexAttribute],
+                        stride: u64| {
+            device.create_render_pipeline(&wgpu::RenderPipelineDescriptor {
+                label: Some("walkers"),
+                layout: Some(&layout),
+                vertex: wgpu::VertexState {
+                    module: &shader,
+                    entry_point: Some(vertex_entry),
+                    compilation_options: Default::default(),
+                    buffers: &[Some(wgpu::VertexBufferLayout {
+                        array_stride: stride,
+                        step_mode: wgpu::VertexStepMode::Vertex,
+                        attributes,
+                    })],
+                },
+                fragment: Some(wgpu::FragmentState {
+                    module: &shader,
+                    entry_point: Some(fragment_entry),
+                    compilation_options: Default::default(),
+                    targets: &[Some(wgpu::ColorTargetState {
+                        format,
+                        // egui works in premultiplied alpha, and so must anything drawn beside it.
+                        blend: Some(wgpu::BlendState {
+                            color: wgpu::BlendComponent {
+                                src_factor: wgpu::BlendFactor::One,
+                                dst_factor: wgpu::BlendFactor::OneMinusSrcAlpha,
+                                operation: wgpu::BlendOperation::Add,
+                            },
+                            alpha: wgpu::BlendComponent {
+                                src_factor: wgpu::BlendFactor::OneMinusDstAlpha,
+                                dst_factor: wgpu::BlendFactor::One,
+                                operation: wgpu::BlendOperation::Add,
+                            },
+                        }),
+                        write_mask: wgpu::ColorWrites::ALL,
+                    })],
                 }),
-                compilation_options: Default::default(),
-                targets: &[Some(wgpu::ColorTargetState {
-                    format,
-                    // egui works in premultiplied alpha, and so must anything drawn beside it.
-                    blend: Some(wgpu::BlendState {
-                        color: wgpu::BlendComponent {
-                            src_factor: wgpu::BlendFactor::One,
-                            dst_factor: wgpu::BlendFactor::OneMinusSrcAlpha,
-                            operation: wgpu::BlendOperation::Add,
-                        },
-                        alpha: wgpu::BlendComponent {
-                            src_factor: wgpu::BlendFactor::OneMinusDstAlpha,
-                            dst_factor: wgpu::BlendFactor::One,
-                            operation: wgpu::BlendOperation::Add,
-                        },
-                    }),
-                    write_mask: wgpu::ColorWrites::ALL,
-                })],
-            }),
-            primitive: Default::default(),
-            depth_stencil: None,
-            multisample: Default::default(),
-            multiview_mask: None,
-            cache: None,
-        });
+                primitive: Default::default(),
+                depth_stencil: None,
+                multisample: Default::default(),
+                multiview_mask: None,
+                cache: None,
+            })
+        };
+
+        let fills = pipeline(
+            "vs_fill",
+            &format!("fs_fill_{suffix}"),
+            &[
+                wgpu::VertexAttribute {
+                    format: wgpu::VertexFormat::Float32x2,
+                    offset: 0,
+                    shader_location: 0,
+                },
+                wgpu::VertexAttribute {
+                    format: wgpu::VertexFormat::Unorm8x4,
+                    offset: 8,
+                    shader_location: 1,
+                },
+            ],
+            std::mem::size_of::<FillVertex>() as u64,
+        );
+
+        let lines = pipeline(
+            "vs_line",
+            &format!("fs_line_{suffix}"),
+            &[
+                wgpu::VertexAttribute {
+                    format: wgpu::VertexFormat::Float32x2,
+                    offset: 0,
+                    shader_location: 0,
+                },
+                wgpu::VertexAttribute {
+                    format: wgpu::VertexFormat::Float32x2,
+                    offset: 8,
+                    shader_location: 1,
+                },
+                wgpu::VertexAttribute {
+                    format: wgpu::VertexFormat::Float32,
+                    offset: 16,
+                    shader_location: 2,
+                },
+                wgpu::VertexAttribute {
+                    format: wgpu::VertexFormat::Unorm8x4,
+                    offset: 20,
+                    shader_location: 3,
+                },
+            ],
+            std::mem::size_of::<LineVertex>() as u64,
+        );
 
         Self {
-            pipeline,
+            fills,
+            lines,
             bind_group_layout,
             uploaded: Default::default(),
         }
     }
 
-    /// Put a mesh on the GPU, unless it is already there, and say it is still wanted.
+    /// Put a drawable on the GPU, unless it is already there, and say it is still wanted.
     pub(crate) fn upload(
         &mut self,
         device: &wgpu::Device,
-        mesh: &Mesh,
+        drawable: &crate::drawable::Drawable,
         keepalive: &std::sync::Arc<Vec<crate::drawable::Drawable>>,
         frame: u64,
     ) {
         use wgpu::util::DeviceExt as _;
 
-        let uploaded = self.uploaded.entry(key_of(mesh)).or_insert_with(|| {
-            let vertices: Vec<Vertex> = mesh
-                .vertices
-                .iter()
-                .map(|vertex| Vertex::of(vertex.position, vertex.color))
-                .collect();
+        let uploaded = self.uploaded.entry(key_of(drawable)).or_insert_with(|| {
+            let buffer = |contents: &[u8], usage| {
+                device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
+                    label: Some("walkers"),
+                    contents,
+                    usage,
+                })
+            };
+
+            let (kind, vertices, indices, indices_count) = match drawable {
+                crate::drawable::Drawable::Fill(mesh) => {
+                    let vertices: Vec<FillVertex> = mesh
+                        .vertices
+                        .iter()
+                        .map(|vertex| FillVertex {
+                            position: [vertex.position.x, vertex.position.y],
+                            color: vertex.color.to_array(),
+                        })
+                        .collect();
+
+                    (
+                        Kind::Fill,
+                        buffer(bytemuck::cast_slice(&vertices), wgpu::BufferUsages::VERTEX),
+                        buffer(
+                            bytemuck::cast_slice(&mesh.indices),
+                            wgpu::BufferUsages::INDEX,
+                        ),
+                        mesh.indices.len() as u32,
+                    )
+                }
+                crate::drawable::Drawable::Lines(run) => {
+                    let (vertices, indices) = line_vertices(run);
+
+                    (
+                        Kind::Lines,
+                        buffer(bytemuck::cast_slice(&vertices), wgpu::BufferUsages::VERTEX),
+                        buffer(bytemuck::cast_slice(&indices), wgpu::BufferUsages::INDEX),
+                        indices.len() as u32,
+                    )
+                }
+            };
 
             Uploaded {
+                kind,
                 _keepalive: keepalive.to_owned(),
-                vertices: device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
-                    label: Some("walkers"),
-                    contents: bytemuck::cast_slice(&vertices),
-                    usage: wgpu::BufferUsages::VERTEX,
-                }),
-                indices: device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
-                    label: Some("walkers"),
-                    contents: bytemuck::cast_slice(&mesh.indices),
-                    usage: wgpu::BufferUsages::INDEX,
-                }),
-                indices_count: mesh.indices.len() as u32,
+                vertices,
+                indices,
+                indices_count,
                 last_drawn: frame,
             }
         });
@@ -240,21 +376,24 @@ impl Renderer {
         })
     }
 
-    /// Draw one uploaded mesh, wherever `placement` says.
+    /// Draw one uploaded drawable, wherever `placement` says.
     pub(crate) fn draw(
         &self,
         render_pass: &mut wgpu::RenderPass<'static>,
         key: usize,
         placement: &wgpu::BindGroup,
     ) {
-        let Some(mesh) = self.uploaded.get(&key) else {
+        let Some(geometry) = self.uploaded.get(&key) else {
             return;
         };
 
-        render_pass.set_pipeline(&self.pipeline);
+        render_pass.set_pipeline(match geometry.kind {
+            Kind::Fill => &self.fills,
+            Kind::Lines => &self.lines,
+        });
         render_pass.set_bind_group(0, placement, &[]);
-        render_pass.set_vertex_buffer(0, mesh.vertices.slice(..));
-        render_pass.set_index_buffer(mesh.indices.slice(..), wgpu::IndexFormat::Uint32);
-        render_pass.draw_indexed(0..mesh.indices_count, 0, 0..1);
+        render_pass.set_vertex_buffer(0, geometry.vertices.slice(..));
+        render_pass.set_index_buffer(geometry.indices.slice(..), wgpu::IndexFormat::Uint32);
+        render_pass.draw_indexed(0..geometry.indices_count, 0, 0..1);
     }
 }

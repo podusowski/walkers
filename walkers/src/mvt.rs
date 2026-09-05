@@ -114,7 +114,7 @@ pub fn render(
     }
 
     log::trace!("Rendered {} drawables", drawables.len());
-    Ok((render::merge_fill_runs(drawables), texts))
+    Ok((render::merge_runs(drawables), texts))
 }
 
 /// What takes a tile rendered for `tile_size` onto the `rect` it is actually drawn at.

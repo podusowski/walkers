@@ -37,21 +37,18 @@ pub(crate) fn transformed_texts(texts: &[Text], transform: TSTransform) -> Vec<T
         .collect()
 }
 
-/// Fills standing next to each other can be drawn as one. Consecutive is as far as this can
-/// go: a line drawn between two of them has to stay between them, so a run ends wherever
-/// anything which is not a fill does.
-pub(crate) fn merge_fill_runs(drawables: Vec<Drawable>) -> Vec<Drawable> {
+/// Things of the same kind standing next to each other can be drawn as one. Consecutive is as
+/// far as this can go: a line drawn between two fills has to stay between them, so a run ends
+/// wherever something of another kind does.
+pub(crate) fn merge_runs(drawables: Vec<Drawable>) -> Vec<Drawable> {
     let mut merged: Vec<Drawable> = Vec::with_capacity(drawables.len());
 
     for drawable in drawables {
-        if let Drawable::Fill(mesh) = &drawable
-            && let Some(Drawable::Fill(run)) = merged.last_mut()
-        {
-            run.append(mesh);
-            continue;
+        match (merged.last_mut(), drawable) {
+            (Some(Drawable::Fill(run)), Drawable::Fill(mesh)) => run.append(&mesh),
+            (Some(Drawable::Lines(run)), Drawable::Lines(lines)) => run.extend(lines),
+            (_, drawable) => merged.push(drawable),
         }
-
-        merged.push(drawable);
     }
 
     merged
@@ -132,11 +129,11 @@ fn push_line(
     dasharray: Option<&[f32]>,
 ) {
     let mut push = |points: Vec<emath::Pos2>| {
-        drawables.push(Drawable::Line(DrawableLine {
+        drawables.push(Drawable::Lines(vec![DrawableLine {
             points,
             width,
             color,
-        }))
+        }]))
     };
 
     match dasharray {
@@ -460,13 +457,21 @@ mod tests {
     fn vertices_of(drawable: &Drawable) -> usize {
         match drawable {
             Drawable::Fill(mesh) => mesh.vertices.len(),
-            Drawable::Line(_) => 0,
+            Drawable::Lines(_) => 0,
         }
+    }
+
+    fn line() -> Drawable {
+        Drawable::Lines(vec![DrawableLine {
+            points: vec![pos2(0., 0.), pos2(1., 1.)],
+            width: 1.,
+            color: Color32::WHITE,
+        }])
     }
 
     #[test]
     fn fills_standing_next_to_each_other_become_one() {
-        let merged = merge_fill_runs(vec![filled(3), filled(4), filled(5)]);
+        let merged = merge_runs(vec![filled(3), filled(4), filled(5)]);
 
         assert_eq!(merged.len(), 1);
         assert_eq!(vertices_of(&merged[0]), 12);
@@ -475,17 +480,24 @@ mod tests {
     /// Merging across a line would move the fills on top of it.
     #[test]
     fn a_line_between_two_fills_keeps_them_apart() {
-        let line = Drawable::Line(DrawableLine {
-            points: vec![pos2(0., 0.), pos2(1., 1.)],
-            width: 1.,
-            color: Color32::WHITE,
-        });
-        let merged = merge_fill_runs(vec![filled(3), line, filled(4)]);
+        let merged = merge_runs(vec![filled(3), line(), filled(4)]);
 
         assert_eq!(merged.len(), 3);
         assert_eq!(vertices_of(&merged[0]), 3);
-        assert!(matches!(merged[1], Drawable::Line(_)));
+        assert!(matches!(merged[1], Drawable::Lines(_)));
         assert_eq!(vertices_of(&merged[2]), 4);
+    }
+
+    /// Thousands of lines in a tile, and a renderer wants them as few pieces of work.
+    #[test]
+    fn lines_standing_next_to_each_other_become_one_run() {
+        let merged = merge_runs(vec![line(), line(), line()]);
+
+        assert_eq!(merged.len(), 1);
+        match &merged[0] {
+            Drawable::Lines(run) => assert_eq!(run.len(), 3),
+            other => panic!("expected a run of lines, got {other:?}"),
+        }
     }
     use std::collections::HashMap;
 

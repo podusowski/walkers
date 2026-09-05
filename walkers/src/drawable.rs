@@ -68,10 +68,13 @@ pub struct Line {
 }
 
 /// One thing to draw, in the order it should be drawn.
+///
+/// Lines come in runs rather than one at a time. A tile holds thousands of them, and colour and
+/// width are per-vertex to a renderer, so a run of them is one piece of work.
 #[derive(Clone, Debug, PartialEq)]
 pub enum Drawable {
     Fill(Mesh),
-    Line(Line),
+    Lines(Vec<Line>),
 }
 
 impl Drawable {

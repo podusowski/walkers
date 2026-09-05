@@ -221,35 +221,28 @@ impl Tile {
                 #[cfg(not(feature = "wgpu"))]
                 let _ = geometry;
 
-                // Fills go to walkers' own renderer when the app has one. Everything else, and
-                // everything at all when it has not, goes to egui as shapes.
+                // With a renderer of its own, everything a tile decoded into goes to it.
+                // Without one, it all goes to egui as shapes.
                 #[cfg(feature = "wgpu")]
                 if let Some(format) = crate::egui_backend::wgpu::target_format(painter.ctx()) {
                     let frame = painter.ctx().cumulative_pass_nr();
 
-                    // The callback covers the whole screen rather than this tile, because
-                    // that is what its viewport ends up being, and a tile hanging off the
-                    // edge would have its own clamped. What keeps the tile inside its bounds
-                    // is the painter's clip rectangle, which egui turns into a scissor.
+                    // The callback covers the whole viewport rather than this tile, because
+                    // that is what egui sets the viewport to, and a tile hanging off the edge
+                    // would have its own clamped. What keeps the tile inside its bounds is the
+                    // painter's clip rectangle, which egui turns into a scissor.
                     let screen = painter.ctx().viewport_rect();
 
-                    painter.extend(geometry.iter().zip(shapes).enumerate().map(
-                        |(index, (drawable, shape))| match drawable {
-                            crate::drawable::Drawable::Fill(_) => {
-                                crate::egui_backend::wgpu::Run::callback(
-                                    geometry.to_owned(),
-                                    index,
-                                    transform,
-                                    screen,
-                                    format,
-                                    frame,
-                                )
-                            }
-                            crate::drawable::Drawable::Line(_) => {
-                                crate::egui_backend::transformed_shape(shape, transform)
-                            }
-                        },
-                    ));
+                    painter.extend((0..geometry.len()).map(|index| {
+                        crate::egui_backend::wgpu::Run::callback(
+                            geometry.to_owned(),
+                            index,
+                            transform,
+                            screen,
+                            format,
+                            frame,
+                        )
+                    }));
                 } else {
                     painter.extend(crate::egui_backend::transformed_shapes(shapes, transform));
                 }
