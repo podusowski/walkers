@@ -1,10 +1,3 @@
-//! Where walkers meets egui.
-//!
-//! Tiles are drawn by [`crate::render::gpu`], which this hosts through a paint callback.
-//! [`to_shapes`] is for geometry which is worked out afresh every frame, such as a GeoJSON
-//! overlay following the map - there is nothing for the GPU to hold on to there, so handing
-//! egui shapes is the right thing to do.
-
 use egui::{
     Shape, Stroke,
     epaint::{Vertex, WHITE_UV},
@@ -47,6 +40,7 @@ pub fn to_shapes(drawables: &[Drawable]) -> Vec<Shape> {
         })
         .collect()
 }
+
 /// Hosting [`crate::render::gpu`] inside an egui app, which egui allows through a paint callback.
 ///
 /// egui itself has no idea what backend it is being rendered with, so the app has to say, and
