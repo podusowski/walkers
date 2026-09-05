@@ -24,7 +24,10 @@ fn main() {
             .start(
                 canvas,
                 web_options,
-                Box::new(|cc| Ok(Box::new(demo::MyApp::new(cc.egui_ctx.clone())))),
+                Box::new(|cc| {
+                    demo::use_walkers_renderer(cc);
+                    Ok(Box::new(demo::MyApp::new(cc.egui_ctx.clone())))
+                }),
             )
             .await
             .expect("failed to start eframe");
