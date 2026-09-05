@@ -1,13 +1,3 @@
-//! Walkers' own renderer, which draws a tile from buffers the GPU already holds.
-//!
-//! Nothing in here knows about egui. It is handed a device, a queue and a render pass, and it
-//! draws; whoever is hosting it decides where those come from. Inside an egui app that is
-//! [`crate::egui_backend`], through a paint callback.
-//!
-//! The point of it is that a tile's geometry does not change as the map moves. Handing egui
-//! shapes means copying and transforming every vertex on every frame; here the vertices are
-//! uploaded once and the map's movement arrives as a uniform.
-
 use egui_wgpu::wgpu;
 use emath::{Rect, TSTransform};
 
@@ -15,17 +5,12 @@ use emath::{Rect, TSTransform};
 #[repr(C)]
 #[derive(Clone, Copy, bytemuck::Pod, bytemuck::Zeroable)]
 struct Uniform {
-    /// Turns a tile coordinate into a point on the screen.
     scale: [f32; 2],
     offset: [f32; 2],
-
-    /// The part of the screen being drawn to, in points, because clip space is relative to it.
     viewport_origin: [f32; 2],
     viewport_size: [f32; 2],
 }
 
-/// A vertex of a fill, as the shader reads it. Smaller than what egui uses, which carries
-/// texture coordinates a filled polygon has no use for.
 #[repr(C)]
 #[derive(Clone, Copy, bytemuck::Pod, bytemuck::Zeroable)]
 struct FillVertex {
@@ -33,9 +18,6 @@ struct FillVertex {
     color: [u8; 4],
 }
 
-/// A vertex of a line. A line is drawn as a quad per segment, pushed out sideways from the
-/// middle of it. The push is in screen points and happens after the map's transform, which is
-/// what keeps `line-width` in screen pixels without anything having to undo a scaling.
 #[repr(C)]
 #[derive(Clone, Copy, bytemuck::Pod, bytemuck::Zeroable)]
 struct LineVertex {
@@ -52,7 +34,7 @@ struct LineVertex {
 }
 
 /// How far past its real edge a line is drawn, so that the edge can be faded rather than
-/// ending on a hard pixel. The same idea as egui's feathering, and the same width.
+/// ending on a hard pixel.
 const FEATHER: f32 = 0.5;
 
 /// Turn a run of lines into triangles. Segments are independent - no joins, no caps - which
