@@ -17,5 +17,8 @@ default = []
 mvt = ["walkers/mvt"]
 pmtiles = ["walkers/pmtiles"]
 
+# Draw the map with walkers' own renderer instead of handing egui shapes every frame.
+wgpu = ["walkers/wgpu"]
+
 [target.'cfg(target_arch = "wasm32")'.dependencies]
 getrandom.workspace = true
