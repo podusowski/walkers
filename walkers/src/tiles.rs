@@ -109,10 +109,9 @@ pub enum Tile {
     Raster(TextureHandle),
     #[cfg(feature = "mvt")]
     Vector {
-        /// What the tile decoded into, kept because walkers' own renderer draws from it. Held
-        /// behind an `Arc` so that a mesh inside it stays at one address while the GPU holds
-        /// buffers for it.
-        geometry: std::sync::Arc<Vec<crate::render::drawable::Drawable>>,
+        /// What the tile decoded into. Held behind an `Arc` so that a mesh inside it stays at
+        /// one address while the GPU holds buffers for it.
+        drawables: std::sync::Arc<Vec<crate::render::drawable::Drawable>>,
 
         texts: Vec<crate::text::Text>,
     },
@@ -169,7 +168,7 @@ impl Tile {
         let (drawables, texts) = mvt::render(data, style, zoom, tile_size)?;
 
         Ok(Self::Vector {
-            geometry: std::sync::Arc::new(drawables),
+            drawables: std::sync::Arc::new(drawables),
             texts,
         })
     }
@@ -201,7 +200,7 @@ impl Tile {
             }
             #[cfg(feature = "mvt")]
             Tile::Vector {
-                geometry,
+                drawables,
                 texts: from_tile,
             } => {
                 // Renderer needs to work on the full tile, before it was clipped with `uv`...
@@ -221,9 +220,9 @@ impl Tile {
                     // painter's clip rectangle, which egui turns into a scissor.
                     let screen = painter.ctx().viewport_rect();
 
-                    painter.extend((0..geometry.len()).map(|index| {
+                    painter.extend((0..drawables.len()).map(|index| {
                         crate::egui_backend::wgpu::Run::callback(
-                            geometry.to_owned(),
+                            drawables.to_owned(),
                             index,
                             transform,
                             screen,
@@ -589,7 +588,7 @@ mod tests {
 
             Some(TilePiece::new(
                 Tile::Vector {
-                    geometry: std::sync::Arc::new(Vec::new()),
+                    drawables: std::sync::Arc::new(Vec::new()),
                     texts: vec![label(0.), label(TILE_SIZE as f32)],
                 },
                 Rect::from_min_max(pos2(0., 0.), pos2(1., 1.)),

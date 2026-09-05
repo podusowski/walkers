@@ -115,7 +115,7 @@ enum Kind {
 struct Uploaded {
     kind: Kind,
 
-    /// Holds the tile's geometry, so that nothing else can be allocated at the address being
+    /// Holds the tile's drawables, so that nothing else can be allocated at the address being
     /// used as its key while it is still in here.
     _keepalive: std::sync::Arc<Vec<crate::render::drawable::Drawable>>,
 
@@ -383,18 +383,18 @@ impl Renderer {
         key: usize,
         placement: &wgpu::BindGroup,
     ) {
-        let Some(geometry) = self.uploaded.get(&key) else {
+        let Some(uploaded) = self.uploaded.get(&key) else {
             return;
         };
 
-        render_pass.set_pipeline(match geometry.kind {
+        render_pass.set_pipeline(match uploaded.kind {
             Kind::Fill => &self.fills,
             Kind::Lines => &self.lines,
         });
         render_pass.set_bind_group(0, placement, &[]);
-        render_pass.set_vertex_buffer(0, geometry.vertices.slice(..));
-        render_pass.set_index_buffer(geometry.indices.slice(..), wgpu::IndexFormat::Uint32);
-        render_pass.draw_indexed(0..geometry.indices_count, 0, 0..1);
+        render_pass.set_vertex_buffer(0, uploaded.vertices.slice(..));
+        render_pass.set_index_buffer(uploaded.indices.slice(..), wgpu::IndexFormat::Uint32);
+        render_pass.draw_indexed(0..uploaded.indices_count, 0, 0..1);
     }
 }
 

@@ -98,12 +98,12 @@ pub mod wgpu {
         format
     }
 
-    /// One run of a tile's geometry, drawn by walkers rather than by egui.
+    /// One run of a tile's drawables, drawn by walkers rather than by egui.
     pub(crate) struct Run {
-        /// The tile's geometry, held so that the mesh being drawn stays put.
-        geometry: Arc<Vec<Drawable>>,
+        /// Everything the tile decoded into, held so that the one being drawn stays put.
+        drawables: Arc<Vec<Drawable>>,
 
-        /// Which of `geometry` this run is.
+        /// Which of `drawables` this run is.
         index: usize,
 
         transform: TSTransform,
@@ -118,7 +118,7 @@ pub mod wgpu {
 
     impl Run {
         pub(crate) fn callback(
-            geometry: Arc<Vec<Drawable>>,
+            drawables: Arc<Vec<Drawable>>,
             index: usize,
             transform: TSTransform,
             viewport: Rect,
@@ -128,7 +128,7 @@ pub mod wgpu {
             egui_wgpu::Callback::new_paint_callback(
                 viewport,
                 Self {
-                    geometry,
+                    drawables,
                     index,
                     transform,
                     viewport,
@@ -141,7 +141,7 @@ pub mod wgpu {
         }
 
         fn drawable(&self) -> Option<&Drawable> {
-            self.geometry.get(self.index)
+            self.drawables.get(self.index)
         }
     }
 
@@ -164,7 +164,7 @@ pub mod wgpu {
                 .entry::<Renderer>()
                 .or_insert_with(|| Renderer::new(device, self.format));
 
-            renderer.upload(device, drawable, &self.geometry, self.frame);
+            renderer.upload(device, drawable, &self.drawables, self.frame);
             renderer.forget_stale(self.frame);
 
             if let Ok(mut placement) = self.placement.lock() {
