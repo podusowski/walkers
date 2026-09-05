@@ -112,7 +112,7 @@ pub enum Tile {
         /// What the tile decoded into, kept because walkers' own renderer draws from it. Held
         /// behind an `Arc` so that a mesh inside it stays at one address while the GPU holds
         /// buffers for it.
-        geometry: std::sync::Arc<Vec<crate::drawable::Drawable>>,
+        geometry: std::sync::Arc<Vec<crate::render::drawable::Drawable>>,
 
         /// The same thing, as egui shapes, in the same order. Built once here rather than on
         /// every frame the tile shows up on.

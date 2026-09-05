@@ -25,11 +25,7 @@ mod style {
 pub mod mercator;
 
 #[cfg(feature = "mvt")]
-mod drawable;
-#[cfg(feature = "mvt")]
 mod egui_backend;
-#[cfg(feature = "wgpu")]
-mod renderer;
 
 #[cfg(feature = "mvt")]
 mod expression;
@@ -45,8 +41,6 @@ pub mod sources;
 mod tiles;
 mod zoom;
 
-#[cfg(feature = "mvt")]
-pub use drawable::{Drawable, Line, Mesh, Vertex};
 #[cfg(feature = "mvt")]
 pub use egui_backend::to_shapes;
 #[cfg(feature = "wgpu")]
@@ -65,6 +59,8 @@ pub use plugin::Plugin;
 pub use pmtiles::PmTiles;
 pub use position::{Position, lat_lon, lon_lat};
 pub use projector::Projector;
+#[cfg(feature = "mvt")]
+pub use render::drawable::{Drawable, Line, Mesh, Vertex};
 #[cfg(feature = "mvt")]
 pub use render::{Geometry, render_line, render_symbol, tessellate_polygon};
 pub use style::Style;

@@ -57,7 +57,7 @@ const FEATHER: f32 = 0.5;
 
 /// Turn a run of lines into triangles. Segments are independent - no joins, no caps - which
 /// shows at corners of thick lines and is the first thing to improve here.
-fn line_vertices(run: &[crate::drawable::Line]) -> (Vec<LineVertex>, Vec<u32>) {
+fn line_vertices(run: &[crate::render::drawable::Line]) -> (Vec<LineVertex>, Vec<u32>) {
     let mut vertices = Vec::new();
     let mut indices = Vec::new();
 
@@ -117,7 +117,7 @@ struct Uploaded {
 
     /// Holds the tile's geometry, so that nothing else can be allocated at the address being
     /// used as its key while it is still in here.
-    _keepalive: std::sync::Arc<Vec<crate::drawable::Drawable>>,
+    _keepalive: std::sync::Arc<Vec<crate::render::drawable::Drawable>>,
 
     vertices: wgpu::Buffer,
     indices: wgpu::Buffer,
@@ -127,7 +127,7 @@ struct Uploaded {
 
 /// Identifies a drawable by where it lives, which is unique for as long as [`Uploaded`] holds
 /// onto the tile it belongs to.
-pub(crate) fn key_of(drawable: &crate::drawable::Drawable) -> usize {
+pub(crate) fn key_of(drawable: &crate::render::drawable::Drawable) -> usize {
     std::ptr::from_ref(drawable) as usize
 }
 
@@ -142,7 +142,7 @@ impl Renderer {
     pub(crate) fn new(device: &wgpu::Device, format: wgpu::TextureFormat) -> Self {
         let shader = device.create_shader_module(wgpu::ShaderModuleDescriptor {
             label: Some("walkers"),
-            source: wgpu::ShaderSource::Wgsl(include_str!("renderer.wgsl").into()),
+            source: wgpu::ShaderSource::Wgsl(include_str!("gpu.wgsl").into()),
         });
 
         let bind_group_layout = device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
@@ -277,8 +277,8 @@ impl Renderer {
     pub(crate) fn upload(
         &mut self,
         device: &wgpu::Device,
-        drawable: &crate::drawable::Drawable,
-        keepalive: &std::sync::Arc<Vec<crate::drawable::Drawable>>,
+        drawable: &crate::render::drawable::Drawable,
+        keepalive: &std::sync::Arc<Vec<crate::render::drawable::Drawable>>,
         frame: u64,
     ) {
         use wgpu::util::DeviceExt as _;
@@ -293,7 +293,7 @@ impl Renderer {
             };
 
             let (kind, vertices, indices, indices_count) = match drawable {
-                crate::drawable::Drawable::Fill(mesh) => {
+                crate::render::drawable::Drawable::Fill(mesh) => {
                     let vertices: Vec<FillVertex> = mesh
                         .vertices
                         .iter()
@@ -313,7 +313,7 @@ impl Renderer {
                         mesh.indices.len() as u32,
                     )
                 }
-                crate::drawable::Drawable::Lines(run) => {
+                crate::render::drawable::Drawable::Lines(run) => {
                     let (vertices, indices) = line_vertices(run);
 
                     (

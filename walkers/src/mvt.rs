@@ -39,7 +39,7 @@ pub fn render(
     style: &Style,
     zoom: u8,
     tile_size: u32,
-) -> Result<(Vec<crate::drawable::Drawable>, Vec<Text>), Error> {
+) -> Result<(Vec<crate::render::drawable::Drawable>, Vec<Text>), Error> {
     let data = mvt_reader::Reader::new(data.to_vec())?;
     let mut drawables = Vec::new();
     let mut texts = Vec::new();
@@ -55,7 +55,7 @@ pub fn render(
                     Color32::WHITE
                 };
 
-                drawables.push(crate::drawable::Drawable::background(
+                drawables.push(crate::render::drawable::Drawable::background(
                     tile_size as f32,
                     bg_color,
                 ));

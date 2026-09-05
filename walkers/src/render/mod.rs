@@ -1,6 +1,14 @@
-//! Draw geometries the way a [`crate::Style`] says to.
+//! Turning geometries into something drawable, the way a [`crate::Style`] says to, and then
+//! drawing it.
 //!
 //! Where the geometries came from - vector tiles, GeoJSON, KML - is not this module's concern.
+
+/// What there is to draw, in a form no particular renderer is baked into.
+pub mod drawable;
+
+/// Drawing it.
+#[cfg(feature = "wgpu")]
+pub mod gpu;
 
 use ecolor::Color32;
 use emath::{TSTransform, pos2};
@@ -15,8 +23,8 @@ use lyon_tessellation::{
 };
 
 use crate::{
-    drawable::{Drawable, Line as DrawableLine, Mesh, Vertex},
     expression::Context,
+    render::drawable::{Drawable, Line as DrawableLine, Mesh, Vertex},
     style::{Layout, Paint},
     text::{Placement, Text},
 };

@@ -9,12 +9,12 @@ use egui::{
     epaint::{Vertex, WHITE_UV},
 };
 
-use crate::drawable::Drawable;
+use crate::render::drawable::Drawable;
 
 /// A tile's drawables, in the form egui wants them. Done once, when the tile is decoded,
 /// rather than on every frame it is visible on.
 pub fn to_shapes(drawables: &[Drawable]) -> Vec<Shape> {
-    let mesh_of = |mesh: &crate::drawable::Mesh| {
+    let mesh_of = |mesh: &crate::render::drawable::Mesh| {
         Shape::Mesh(
             egui::Mesh {
                 vertices: mesh
@@ -184,8 +184,8 @@ pub mod wgpu {
     use egui_wgpu::{CallbackTrait, ScreenDescriptor};
     use std::sync::{Arc, Mutex};
 
-    use crate::drawable::Drawable;
-    use crate::renderer::{Renderer, key_of};
+    use crate::render::drawable::Drawable;
+    use crate::render::gpu::{Renderer, key_of};
 
     /// The format the app renders egui to. It cannot be discovered from inside a callback.
     #[derive(Clone, Copy)]
