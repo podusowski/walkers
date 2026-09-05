@@ -10,10 +10,12 @@ keywords.workspace = true
 categories.workspace = true
 
 [dependencies]
+bytemuck = { workspace = true, optional = true }
 bytes.workspace = true
 color = { workspace = true, optional = true }
 ecolor.workspace = true
 egui.workspace = true
+egui-wgpu = { workspace = true, optional = true }
 emath.workspace = true
 egui_extras.workspace = true
 futures.workspace = true
@@ -57,4 +59,8 @@ mvt = [
   "dep:serde_json"
 ]
 pmtiles = ["dep:pmtiles"]
+
+# Draw the map with walkers' own renderer rather than by handing egui shapes every frame.
+# Needs the app to render egui with wgpu, and to say so with `use_wgpu`.
+wgpu = ["mvt", "dep:bytemuck", "dep:egui-wgpu", "egui/bytemuck"]
 serde = ["dep:serde", "egui/serde", "geo-types/serde"]

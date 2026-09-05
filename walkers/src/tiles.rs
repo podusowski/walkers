@@ -109,7 +109,15 @@ pub enum Tile {
     Raster(TextureHandle),
     #[cfg(feature = "mvt")]
     Vector {
+        /// What the tile decoded into, kept because walkers' own renderer draws from it. Held
+        /// behind an `Arc` so that a mesh inside it stays at one address while the GPU holds
+        /// buffers for it.
+        geometry: std::sync::Arc<Vec<crate::drawable::Drawable>>,
+
+        /// The same thing, as egui shapes, in the same order. Built once here rather than on
+        /// every frame the tile shows up on.
         shapes: Vec<egui::Shape>,
+
         texts: Vec<crate::text::Text>,
     },
 }
@@ -165,9 +173,8 @@ impl Tile {
         let (drawables, texts) = mvt::render(data, style, zoom, tile_size)?;
 
         Ok(Self::Vector {
-            // Turned into what egui paints here, once, rather than on every frame the tile
-            // shows up on.
             shapes: crate::egui_backend::to_shapes(&drawables),
+            geometry: std::sync::Arc::new(drawables),
             texts,
         })
     }
@@ -199,6 +206,7 @@ impl Tile {
             }
             #[cfg(feature = "mvt")]
             Tile::Vector {
+                geometry,
                 shapes,
                 texts: from_tile,
             } => {
@@ -210,6 +218,43 @@ impl Tile {
 
                 let transform = mvt::transform_onto(full_rect, tile_size);
 
+                #[cfg(not(feature = "wgpu"))]
+                let _ = geometry;
+
+                // Fills go to walkers' own renderer when the app has one. Everything else, and
+                // everything at all when it has not, goes to egui as shapes.
+                #[cfg(feature = "wgpu")]
+                if let Some(format) = crate::egui_backend::wgpu::target_format(painter.ctx()) {
+                    let frame = painter.ctx().cumulative_pass_nr();
+
+                    // The callback covers the whole screen rather than this tile, because
+                    // that is what its viewport ends up being, and a tile hanging off the
+                    // edge would have its own clamped. What keeps the tile inside its bounds
+                    // is the painter's clip rectangle, which egui turns into a scissor.
+                    let screen = painter.ctx().viewport_rect();
+
+                    painter.extend(geometry.iter().zip(shapes).enumerate().map(
+                        |(index, (drawable, shape))| match drawable {
+                            crate::drawable::Drawable::Fill(_) => {
+                                crate::egui_backend::wgpu::Run::callback(
+                                    geometry.to_owned(),
+                                    index,
+                                    transform,
+                                    screen,
+                                    format,
+                                    frame,
+                                )
+                            }
+                            crate::drawable::Drawable::Line(_) => {
+                                crate::egui_backend::transformed_shape(shape, transform)
+                            }
+                        },
+                    ));
+                } else {
+                    painter.extend(crate::egui_backend::transformed_shapes(shapes, transform));
+                }
+
+                #[cfg(not(feature = "wgpu"))]
                 painter.extend(crate::egui_backend::transformed_shapes(shapes, transform));
 
                 texts
@@ -568,6 +613,7 @@ mod tests {
 
             Some(TilePiece::new(
                 Tile::Vector {
+                    geometry: std::sync::Arc::new(Vec::new()),
                     shapes: Vec::new(),
                     texts: vec![label(0.), label(TILE_SIZE as f32)],
                 },

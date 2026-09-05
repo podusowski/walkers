@@ -5262,11 +5262,13 @@ name = "walkers"
 version = "0.58.0"
 dependencies = [
  "approx",
+ "bytemuck",
  "bytes",
  "color",
  "ecolor",
  "eframe",
  "egui",
+ "egui-wgpu",
  "egui_extras",
  "emath",
  "env_logger",

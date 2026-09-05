@@ -28,6 +28,8 @@ pub mod mercator;
 mod drawable;
 #[cfg(feature = "mvt")]
 mod egui_backend;
+#[cfg(feature = "wgpu")]
+mod renderer;
 
 #[cfg(feature = "mvt")]
 mod expression;
@@ -47,6 +49,8 @@ mod zoom;
 pub use drawable::{Drawable, Line, Mesh, Vertex};
 #[cfg(feature = "mvt")]
 pub use egui_backend::to_shapes;
+#[cfg(feature = "wgpu")]
+pub use egui_backend::wgpu::use_wgpu;
 #[cfg(feature = "mvt")]
 pub use expression::Context;
 pub use http_tiles::HttpTiles;

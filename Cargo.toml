@@ -23,11 +23,13 @@ categories = ["gui", "science::geo"]
 [workspace.dependencies]
 android_logger = "0.15.1"
 approx = "0.5.1"
+bytemuck = { version = "1.25", features = ["derive"] }
 bytes = "1.12"
 color = { version = "0.3.3", features = ["serde"] }
 eframe = "0.36.0"
 ecolor = "0.36.0"
 egui = "0.36.0"
+egui-wgpu = "0.36.0"
 emath = "0.36.0"
 egui_extras = { version = "0.36.0", features = ["svg"] }
 egui-winit = "0.36.0"
