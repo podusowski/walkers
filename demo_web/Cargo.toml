@@ -7,6 +7,7 @@ publish = false
 [dependencies]
 demo = { path = "../demo", features = ["mvt"] }
 eframe.workspace = true
+walkers.workspace = true
 egui.workspace = true
 log.workspace = true
 wasm-bindgen-futures.workspace = true

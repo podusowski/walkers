@@ -8,8 +8,8 @@ fn main() -> Result<(), eframe::Error> {
         "MyApp",
         Default::default(),
         Box::new(|cc| {
-            demo::use_walkers_renderer(cc);
-            Ok(Box::new(MyApp::new(cc.egui_ctx.clone())))
+            walkers::install_renderer(cc.wgpu_render_state.as_ref());
+            Ok(Box::new(MyApp::new(cc)))
         }),
     )
 }

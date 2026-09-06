@@ -44,7 +44,7 @@ mod zoom;
 #[cfg(feature = "mvt")]
 pub use egui_backend::to_shapes;
 #[cfg(feature = "mvt")]
-pub use egui_backend::wgpu::use_wgpu;
+pub use egui_backend::wgpu::install_renderer;
 #[cfg(feature = "mvt")]
 pub use expression::Context;
 pub use http_tiles::HttpTiles;

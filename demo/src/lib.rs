@@ -6,22 +6,12 @@ mod windows;
 
 use std::io;
 
-use egui::{Button, Context, DragPanButtons, OpenUrl, Rect, Vec2};
+use egui::{Button, DragPanButtons, OpenUrl, Rect, Vec2};
 use tiles::{TilesKind, providers};
 use walkers::{Color, Filter, Float, Layer, Layout, Map, MapMemory, Paint, Style, json};
 use walkers_extras::GeoJsonLayer;
 
 use crate::tiles::Providers;
-
-/// Let walkers draw the map with its own renderer rather than by handing egui shapes on every
-/// frame. It needs to know what is being rendered to, which only the app can say, and there is
-/// nothing to say when egui is not being rendered with wgpu.
-#[cfg(feature = "mvt")]
-pub fn use_walkers_renderer(cc: &eframe::CreationContext<'_>) {
-    if let Some(state) = &cc.wgpu_render_state {
-        walkers::use_wgpu(&cc.egui_ctx, state.target_format);
-    }
-}
 
 pub struct MyApp {
     providers: Providers,
@@ -32,7 +22,8 @@ pub struct MyApp {
 }
 
 impl MyApp {
-    pub fn new(egui_ctx: Context) -> Self {
+    pub fn new(cc: &eframe::CreationContext<'_>) -> Self {
+        let egui_ctx = cc.egui_ctx.to_owned();
         egui_extras::install_image_loaders(&egui_ctx);
 
         Self {

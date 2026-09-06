@@ -8,5 +8,6 @@ default-run = "demo_native"
 [dependencies]
 demo = { path = "../demo", features = ["mvt", "pmtiles"] }
 eframe.workspace = true
+walkers.workspace = true
 egui.workspace = true
 env_logger.workspace = true

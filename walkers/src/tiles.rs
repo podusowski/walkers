@@ -211,26 +211,23 @@ impl Tile {
 
                 let transform = mvt::transform_onto(full_rect, tile_size);
 
-                if let Some(format) = crate::egui_backend::wgpu::target_format(painter.ctx()) {
-                    let frame = painter.ctx().cumulative_pass_nr();
+                let frame = painter.ctx().cumulative_pass_nr();
 
-                    // The callback covers the whole viewport rather than this tile, because
-                    // that is what egui sets the viewport to, and a tile hanging off the edge
-                    // would have its own clamped. What keeps the tile inside its bounds is the
-                    // painter's clip rectangle, which egui turns into a scissor.
-                    let screen = painter.ctx().viewport_rect();
+                // The callback covers the whole viewport rather than this tile, because that
+                // is what egui sets the viewport to, and a tile hanging off the edge would
+                // have its own clamped. What keeps the tile inside its bounds is the painter's
+                // clip rectangle, which egui turns into a scissor.
+                let screen = painter.ctx().viewport_rect();
 
-                    painter.extend((0..drawables.len()).map(|index| {
-                        crate::egui_backend::wgpu::Run::callback(
-                            drawables.to_owned(),
-                            index,
-                            transform,
-                            screen,
-                            format,
-                            frame,
-                        )
-                    }));
-                }
+                painter.extend((0..drawables.len()).map(|index| {
+                    crate::egui_backend::wgpu::Run::callback(
+                        drawables.to_owned(),
+                        index,
+                        transform,
+                        screen,
+                        frame,
+                    )
+                }));
 
                 texts
                     .texts

@@ -51,45 +51,42 @@ pub mod wgpu {
     use egui::Rect;
     use egui::emath::TSTransform;
     use egui_wgpu::wgpu;
-    use egui_wgpu::{CallbackTrait, ScreenDescriptor};
+    use egui_wgpu::{CallbackTrait, RenderState, ScreenDescriptor};
     use std::sync::{Arc, Mutex};
 
     use crate::render::drawable::Drawable;
     use crate::render::gpu::{Renderer, key_of};
 
-    /// The format the app renders egui to. It cannot be discovered from inside a callback.
-    #[derive(Clone, Copy)]
-    struct TargetFormat(wgpu::TextureFormat);
-
-    /// Let walkers draw with its own renderer. Only makes sense when the app renders egui with
-    /// wgpu, and it needs the format being rendered to:
+    /// Call at startup to get walkers ready to draw vector tiles.
     ///
     /// ```ignore
-    /// walkers::use_wgpu(&cc.egui_ctx, cc.wgpu_render_state.as_ref().expect("wgpu").target_format);
+    /// eframe::run_native("app", options, Box::new(|cc| {
+    ///     walkers::install_renderer(cc.wgpu_render_state.as_ref());
+    ///     Ok(Box::new(MyApp::new(cc)))
+    /// }))
     /// ```
-    pub fn use_wgpu(ctx: &egui::Context, target_format: wgpu::TextureFormat) {
-        ctx.data_mut(|data| data.insert_temp(egui::Id::NULL, TargetFormat(target_format)));
+    ///
+    /// # Panics
+    ///
+    /// If there is no render state, which means egui is not being rendered with wgpu.
+    pub fn install_renderer(render_state: Option<&RenderState>) {
+        let render_state = render_state.expect("walkers vector tiles require wgpu");
+
+        render_state
+            .renderer
+            .write()
+            .callback_resources
+            .entry()
+            .or_insert_with(|| Renderer::new(&render_state.device, render_state.target_format));
     }
 
-    /// What [`use_wgpu`] was told. There is nothing to fall back on if it was not told
-    /// anything, so rather than leave the map empty in silence, say so once.
-    pub(crate) fn target_format(ctx: &egui::Context) -> Option<wgpu::TextureFormat> {
-        let format = ctx
-            .data(|data| data.get_temp::<TargetFormat>(egui::Id::NULL))
-            .map(|format| format.0);
-
-        if format.is_none() {
-            static COMPLAINED: std::sync::Once = std::sync::Once::new();
-            COMPLAINED.call_once(|| {
-                log::error!(
-                    "Vector tiles are drawn with wgpu, and nothing has said what is being \
-                     rendered to. Call `walkers::use_wgpu` when the app starts, or the map \
-                     will stay empty."
-                );
-            });
-        }
-
-        format
+    fn complain_about_missing_renderer_once() {
+        static COMPLAINED: std::sync::Once = std::sync::Once::new();
+        COMPLAINED.call_once(|| {
+            log::error!(
+                "There is no renderer installed. Call `walkers::install_renderer` on startup."
+            );
+        });
     }
 
     /// One run of a tile's drawables, drawn by walkers rather than by egui.
@@ -102,7 +99,6 @@ pub mod wgpu {
 
         transform: TSTransform,
         viewport: Rect,
-        format: wgpu::TextureFormat,
         frame: u64,
 
         /// Where this run goes, worked out by `prepare` for `paint`. One per callback rather
@@ -116,7 +112,6 @@ pub mod wgpu {
             index: usize,
             transform: TSTransform,
             viewport: Rect,
-            format: wgpu::TextureFormat,
             frame: u64,
         ) -> egui::Shape {
             egui_wgpu::Callback::new_paint_callback(
@@ -126,7 +121,6 @@ pub mod wgpu {
                     index,
                     transform,
                     viewport,
-                    format,
                     frame,
                     placement: Mutex::new(None),
                 },
@@ -152,11 +146,11 @@ pub mod wgpu {
                 return Vec::new();
             };
 
-            // Made on the first frame which draws anything, because a library has no say in
-            // how the app starts up and so cannot build it earlier.
-            let renderer = resources
-                .entry::<Renderer>()
-                .or_insert_with(|| Renderer::new(device, self.format));
+            // Put there by `install_renderer` when the app started.
+            let Some(renderer) = resources.get_mut::<Renderer>() else {
+                complain_about_missing_renderer_once();
+                return Vec::new();
+            };
 
             renderer.upload(device, drawable, &self.drawables, self.frame);
             renderer.forget_stale(self.frame);
