@@ -21,8 +21,8 @@ use crate::{
 pub(crate) fn render(
     geometry: &Geometry<f32>,
     context: &Context,
-    drawables: &mut Vec<Drawable>,
     paint: &Paint,
+    drawables: &mut Vec<Drawable>,
 ) -> Result<(), Error> {
     let polygons: &[geo_types::Polygon<f32>] = match geometry {
         Geometry::Polygon(polygon) => std::slice::from_ref(polygon),
@@ -121,7 +121,7 @@ mod tests {
         };
 
         let mut drawables = Vec::new();
-        render(&geometry, &context, &mut drawables, &paint).unwrap();
+        render(&geometry, &context, &paint, &mut drawables).unwrap();
         drawables
     }
 
