@@ -1,9 +1,16 @@
+use std::collections::HashMap;
 use std::sync::Arc;
 
 use egui_wgpu::wgpu;
+use egui_wgpu::wgpu::{
+    BindGroup, BindGroupDescriptor, BindGroupEntry, BindGroupLayout, BindGroupLayoutDescriptor,
+    BindGroupLayoutEntry, BindingType, BufferBindingType, BufferUsages, Device, RenderPipeline,
+    ShaderModuleDescriptor, ShaderSource, ShaderStages, TextureFormat,
+    util::{BufferInitDescriptor, DeviceExt as _},
+};
 use emath::{Rect, TSTransform};
 
-use crate::Drawable;
+use crate::{Drawable, Line};
 
 /// What the shader needs to put a tile's vertices on the screen.
 #[repr(C)]
@@ -43,7 +50,7 @@ const FEATHER: f32 = 0.5;
 
 /// Turn a run of lines into triangles. Segments are independent - no joins, no caps - which
 /// shows at corners of thick lines and is the first thing to improve here.
-fn line_vertices(run: &[crate::render::drawable::Line]) -> (Vec<LineVertex>, Vec<u32>) {
+fn line_vertices(run: &[Line]) -> (Vec<LineVertex>, Vec<u32>) {
     let mut vertices = Vec::new();
     let mut indices = Vec::new();
 
@@ -117,26 +124,26 @@ pub(crate) fn key_of(drawable: &Drawable) -> usize {
 }
 
 pub(crate) struct Renderer {
-    fills: wgpu::RenderPipeline,
-    lines: wgpu::RenderPipeline,
-    bind_group_layout: wgpu::BindGroupLayout,
-    uploaded: std::collections::HashMap<usize, Uploaded>,
+    fills: RenderPipeline,
+    lines: RenderPipeline,
+    bind_group_layout: BindGroupLayout,
+    uploaded: HashMap<usize, Uploaded>,
 }
 
 impl Renderer {
-    pub(crate) fn new(device: &wgpu::Device, format: wgpu::TextureFormat) -> Self {
-        let shader = device.create_shader_module(wgpu::ShaderModuleDescriptor {
+    pub(crate) fn new(device: &Device, format: TextureFormat) -> Self {
+        let shader = device.create_shader_module(ShaderModuleDescriptor {
             label: Some("walkers"),
-            source: wgpu::ShaderSource::Wgsl(include_str!("gpu.wgsl").into()),
+            source: ShaderSource::Wgsl(include_str!("gpu.wgsl").into()),
         });
 
-        let bind_group_layout = device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
+        let bind_group_layout = device.create_bind_group_layout(&BindGroupLayoutDescriptor {
             label: Some("walkers"),
-            entries: &[wgpu::BindGroupLayoutEntry {
+            entries: &[BindGroupLayoutEntry {
                 binding: 0,
-                visibility: wgpu::ShaderStages::VERTEX,
-                ty: wgpu::BindingType::Buffer {
-                    ty: wgpu::BufferBindingType::Uniform,
+                visibility: ShaderStages::VERTEX,
+                ty: BindingType::Buffer {
+                    ty: BufferBindingType::Uniform,
                     has_dynamic_offset: false,
                     min_binding_size: None,
                 },
@@ -260,16 +267,14 @@ impl Renderer {
     /// Put a drawable on the GPU, unless it is already there, and say it is still wanted.
     pub(crate) fn upload(
         &mut self,
-        device: &wgpu::Device,
+        device: &Device,
         drawable: &Drawable,
         keepalive: &Arc<Vec<Drawable>>,
         frame: u64,
     ) {
-        use wgpu::util::DeviceExt as _;
-
         let uploaded = self.uploaded.entry(key_of(drawable)).or_insert_with(|| {
             let buffer = |contents: &[u8], usage| {
-                device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
+                device.create_buffer_init(&BufferInitDescriptor {
                     label: Some("walkers"),
                     contents,
                     usage,
@@ -289,11 +294,8 @@ impl Renderer {
 
                     (
                         Kind::Fill,
-                        buffer(bytemuck::cast_slice(&vertices), wgpu::BufferUsages::VERTEX),
-                        buffer(
-                            bytemuck::cast_slice(&mesh.indices),
-                            wgpu::BufferUsages::INDEX,
-                        ),
+                        buffer(bytemuck::cast_slice(&vertices), BufferUsages::VERTEX),
+                        buffer(bytemuck::cast_slice(&mesh.indices), BufferUsages::INDEX),
                         mesh.indices.len() as u32,
                     )
                 }
@@ -302,8 +304,8 @@ impl Renderer {
 
                     (
                         Kind::Lines,
-                        buffer(bytemuck::cast_slice(&vertices), wgpu::BufferUsages::VERTEX),
-                        buffer(bytemuck::cast_slice(&indices), wgpu::BufferUsages::INDEX),
+                        buffer(bytemuck::cast_slice(&vertices), BufferUsages::VERTEX),
+                        buffer(bytemuck::cast_slice(&indices), BufferUsages::INDEX),
                         indices.len() as u32,
                     )
                 }
@@ -331,12 +333,10 @@ impl Renderer {
     /// Where a tile's vertices should end up, ready to be handed to the shader.
     pub(crate) fn placement(
         &self,
-        device: &wgpu::Device,
+        device: &Device,
         transform: TSTransform,
         viewport: Rect,
-    ) -> wgpu::BindGroup {
-        use wgpu::util::DeviceExt as _;
-
+    ) -> BindGroup {
         let uniform = Uniform {
             scale: [transform.scaling, transform.scaling],
             offset: [transform.translation.x, transform.translation.y],
@@ -344,16 +344,16 @@ impl Renderer {
             viewport_size: [viewport.width(), viewport.height()],
         };
 
-        let buffer = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
+        let buffer = device.create_buffer_init(&BufferInitDescriptor {
             label: Some("walkers"),
             contents: bytemuck::bytes_of(&uniform),
-            usage: wgpu::BufferUsages::UNIFORM,
+            usage: BufferUsages::UNIFORM,
         });
 
-        device.create_bind_group(&wgpu::BindGroupDescriptor {
+        device.create_bind_group(&BindGroupDescriptor {
             label: Some("walkers"),
             layout: &self.bind_group_layout,
-            entries: &[wgpu::BindGroupEntry {
+            entries: &[BindGroupEntry {
                 binding: 0,
                 resource: buffer.as_entire_binding(),
             }],
@@ -365,7 +365,7 @@ impl Renderer {
         &self,
         render_pass: &mut wgpu::RenderPass<'static>,
         key: usize,
-        placement: &wgpu::BindGroup,
+        placement: &BindGroup,
     ) {
         let Some(uploaded) = self.uploaded.get(&key) else {
             return;
