@@ -69,7 +69,7 @@ pub fn render(
                     get_layer_features(&data, zoom, source_layer, filter.as_ref(), tile_size)?
                 {
                     if let Err(err) =
-                        render::render_polygon(&geometry, &context, &mut drawables, paint)
+                        render::fill::render(&geometry, &context, &mut drawables, paint)
                     {
                         warn!("{err}");
                     }
@@ -84,7 +84,7 @@ pub fn render(
                     get_layer_features(&data, zoom, source_layer, filter.as_ref(), tile_size)?
                 {
                     if let Err(err) =
-                        render::render_line(&geometry, &context, &mut drawables, paint)
+                        render::line::render(&geometry, &context, &mut drawables, paint)
                     {
                         warn!("{err}");
                     }
@@ -100,7 +100,7 @@ pub fn render(
                     get_layer_features(&data, zoom, source_layer, filter.as_ref(), tile_size)?
                 {
                     if let Err(err) =
-                        render::render_symbol(&geometry, &context, &mut texts, layout, paint)
+                        render::symbol::render(&geometry, &context, &mut texts, layout, paint)
                     {
                         warn!("{err}");
                     }

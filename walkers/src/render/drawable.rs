@@ -1,21 +1,12 @@
-//! What a tile turns into, before any particular renderer gets hold of it.
-//!
-//! Nothing in here knows how it will be drawn. A renderer takes these and does whatever it
-//! does - hands them to egui as shapes, uploads them to the GPU, writes them out as an image.
-//! Positions are in the pixels of a tile, so a renderer still has to place the tile itself.
-
 use ecolor::Color32;
 use emath::{Pos2, Rect, pos2};
 
-/// One corner of a triangle.
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub struct Vertex {
     pub position: Pos2,
     pub color: Color32,
 }
 
-/// An area, already cut into triangles, because working out how to cut it is the same job
-/// whoever is drawing.
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct Mesh {
     pub vertices: Vec<Vertex>,
@@ -27,7 +18,7 @@ impl Mesh {
         self.indices.is_empty()
     }
 
-    /// A rectangle of one colour, which is how a background layer arrives.
+    /// A rectangle of one color.
     pub fn rect(rect: Rect, color: Color32) -> Self {
         let corners = [
             rect.left_top(),
@@ -55,8 +46,6 @@ impl Mesh {
     }
 }
 
-/// A line, left as points rather than as a stroked outline, so that whoever draws it can do so
-/// the way it does lines - on the CPU, or by extruding it in a shader.
 #[derive(Clone, Debug, PartialEq)]
 pub struct Line {
     pub points: Vec<Pos2>,
@@ -67,10 +56,6 @@ pub struct Line {
     pub color: Color32,
 }
 
-/// One thing to draw, in the order it should be drawn.
-///
-/// Lines come in runs rather than one at a time. A tile holds thousands of them, and colour and
-/// width are per-vertex to a renderer, so a run of them is one piece of work.
 #[derive(Clone, Debug, PartialEq)]
 pub enum Drawable {
     Fill(Mesh),
@@ -78,7 +63,6 @@ pub enum Drawable {
 }
 
 impl Drawable {
-    /// A one-colour rectangle covering the whole tile.
     pub fn background(size: f32, color: Color32) -> Self {
         Self::Fill(Mesh::rect(
             Rect::from_min_max(pos2(0., 0.), pos2(size, size)),
