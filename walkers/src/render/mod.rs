@@ -1,12 +1,5 @@
-//! Turning geometries into something drawable, the way a [`crate::Style`] says to, and then
-//! drawing it.
-//!
-//! Where the geometries came from - vector tiles, GeoJSON, KML - is not this module's concern.
-
-/// What there is to draw, in a form no particular renderer is baked into.
 pub mod drawable;
 
-/// Drawing it.
 #[cfg(feature = "mvt")]
 pub mod gpu;
 
