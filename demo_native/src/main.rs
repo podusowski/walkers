@@ -7,7 +7,10 @@ fn main() -> Result<(), eframe::Error> {
     eframe::run_native(
         "MyApp",
         Default::default(),
-        Box::new(|cc| Ok(Box::new(MyApp::new(cc.egui_ctx.clone())))),
+        Box::new(|cc| {
+            walkers::install_renderer(cc.wgpu_render_state.as_ref());
+            Ok(Box::new(MyApp::new(cc)))
+        }),
     )
 }
 

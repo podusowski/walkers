@@ -109,7 +109,10 @@ pub enum Tile {
     Raster(TextureHandle),
     #[cfg(feature = "mvt")]
     Vector {
-        shapes: Vec<egui::Shape>,
+        /// What the tile decoded into. Held behind an `Arc` so that a mesh inside it stays at
+        /// one address while the GPU holds buffers for it.
+        drawables: std::sync::Arc<Vec<crate::render::drawable::Drawable>>,
+
         texts: Vec<crate::text::Text>,
     },
 }
@@ -162,8 +165,12 @@ impl Tile {
         zoom: u8,
         tile_size: u32,
     ) -> Result<Self, TileError> {
-        let (shapes, texts) = mvt::render(data, style, zoom, tile_size)?;
-        Ok(Self::Vector { shapes, texts })
+        let (drawables, texts) = mvt::render(data, style, zoom, tile_size)?;
+
+        Ok(Self::Vector {
+            drawables: std::sync::Arc::new(drawables),
+            texts,
+        })
     }
 
     /// Load the texture from egui's [`ColorImage`].
@@ -193,7 +200,7 @@ impl Tile {
             }
             #[cfg(feature = "mvt")]
             Tile::Vector {
-                shapes,
+                drawables,
                 texts: from_tile,
             } => {
                 // Renderer needs to work on the full tile, before it was clipped with `uv`...
@@ -203,7 +210,25 @@ impl Tile {
                 let painter = painter.with_clip_rect(rect);
 
                 let transform = mvt::transform_onto(full_rect, tile_size);
-                painter.extend(render::transformed_shapes(shapes, transform));
+
+                let frame = painter.ctx().cumulative_pass_nr();
+
+                // The callback covers the whole viewport rather than this tile, because that
+                // is what egui sets the viewport to, and a tile hanging off the edge would
+                // have its own clamped. What keeps the tile inside its bounds is the painter's
+                // clip rectangle, which egui turns into a scissor.
+                let screen = painter.ctx().viewport_rect();
+
+                painter.extend((0..drawables.len()).map(|index| {
+                    crate::egui_backend::wgpu::Run::callback(
+                        drawables.to_owned(),
+                        index,
+                        transform,
+                        screen,
+                        frame,
+                    )
+                }));
+
                 texts
                     .texts
                     .extend(render::transformed_texts(from_tile, transform));
@@ -560,7 +585,7 @@ mod tests {
 
             Some(TilePiece::new(
                 Tile::Vector {
-                    shapes: Vec::new(),
+                    drawables: std::sync::Arc::new(Vec::new()),
                     texts: vec![label(0.), label(TILE_SIZE as f32)],
                 },
                 Rect::from_min_max(pos2(0., 0.), pos2(1., 1.)),

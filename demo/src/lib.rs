@@ -6,7 +6,7 @@ mod windows;
 
 use std::io;
 
-use egui::{Button, Context, DragPanButtons, OpenUrl, Rect, Vec2};
+use egui::{Button, DragPanButtons, OpenUrl, Rect, Vec2};
 use tiles::{TilesKind, providers};
 use walkers::{Color, Filter, Float, Layer, Layout, Map, MapMemory, Paint, Style, json};
 use walkers_extras::GeoJsonLayer;
@@ -22,7 +22,8 @@ pub struct MyApp {
 }
 
 impl MyApp {
-    pub fn new(egui_ctx: Context) -> Self {
+    pub fn new(cc: &eframe::CreationContext<'_>) -> Self {
+        let egui_ctx = cc.egui_ctx.to_owned();
         egui_extras::install_image_loaders(&egui_ctx);
 
         Self {

@@ -1001,6 +1001,7 @@ dependencies = [
  "eframe",
  "egui-winit",
  "log",
+ "walkers",
 ]
 
 [[package]]
@@ -1011,6 +1012,7 @@ dependencies = [
  "eframe",
  "egui",
  "env_logger",
+ "walkers",
 ]
 
 [[package]]
@@ -1021,6 +1023,7 @@ dependencies = [
  "eframe",
  "egui",
  "log",
+ "walkers",
  "wasm-bindgen-futures",
  "web-sys",
 ]
@@ -5176,11 +5179,15 @@ name = "walkers"
 version = "0.59.0"
 dependencies = [
  "approx",
+ "bytemuck",
  "bytes",
  "color",
+ "ecolor",
  "eframe",
  "egui",
+ "egui-wgpu",
  "egui_extras",
+ "emath",
  "env_logger",
  "futures",
  "geo",

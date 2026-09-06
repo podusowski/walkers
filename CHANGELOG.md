@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file.
 
+## Unreleased
+
+* Vector tiles are now drawn using wgpu. This means that egui has to be rendered with wgpu, and
+  `walkers::install_renderer` needs to be called on startup. Raster tiles work as before.
+* `render_line` and `render_symbol` fill a `Vec<Drawable>`, and `tessellate_polygon` returns
+  walkers' own `Mesh`.
+
 ## 0.59.0
 
 * Fix tile sources with tiles smaller than 256px being rendered as if they were 256px.

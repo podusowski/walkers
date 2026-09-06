@@ -16,7 +16,10 @@ fn android_main(
     eframe::run_native(
         "Walkers",
         options,
-        Box::new(|cc| Ok(Box::new(demo::MyApp::new(cc.egui_ctx.clone())))),
+        Box::new(|cc| {
+            walkers::install_renderer(cc.wgpu_render_state.as_ref());
+            Ok(Box::new(demo::MyApp::new(cc)))
+        }),
     )?;
 
     Ok(())

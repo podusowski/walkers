@@ -9,6 +9,7 @@ use rstar::primitives::{GeomWithData, Rectangle};
 use rstar::{AABB, RTree};
 use walkers::{
     Context, Filter, Layer, Position, Projector, Style, place_texts, render_line, render_symbol,
+    to_shapes,
 };
 
 struct Feature {
@@ -54,7 +55,7 @@ impl GeoJsonLayer {
     pub fn render(&self, ui: &mut Ui, projector: &Projector, zoom: u8) {
         let viewport = viewport(projector, ui.clip_rect());
 
-        let mut shapes = Vec::new();
+        let mut drawables = Vec::new();
         let mut texts = Vec::new();
 
         for layer in &self.style.layers {
@@ -62,7 +63,7 @@ impl GeoJsonLayer {
                 Layer::Line { paint, filter, .. } => {
                     for (geometry, context) in self.features(viewport, filter.as_ref(), zoom) {
                         let projected = project_geometry(geometry, projector);
-                        let _ = render_line(&projected, &context, &mut shapes, paint);
+                        let _ = render_line(&projected, &context, paint, &mut drawables);
                     }
                 }
                 Layer::Symbol {
@@ -85,7 +86,7 @@ impl GeoJsonLayer {
         // Geometry first, then the labels on top of it.
         let texts = place_texts(texts, ui.ctx());
         let painter = ui.painter();
-        painter.extend(shapes);
+        painter.extend(to_shapes(&drawables));
         painter.extend(texts);
     }
 
