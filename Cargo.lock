@@ -1001,6 +1001,7 @@ dependencies = [
  "eframe",
  "egui-winit",
  "log",
+ "walkers",
 ]
 
 [[package]]
