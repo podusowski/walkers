@@ -11,6 +11,11 @@ eframe.workspace = true
 egui.workspace = true
 egui_extras.workspace = true
 rand.workspace = true
+env_logger.workspace = true
+
+[[bin]]
+name = "scroll_perf"
+required-features = ["mvt", "pmtiles"]
 
 [features]
 default = []

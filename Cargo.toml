@@ -12,7 +12,7 @@ members = [
 ]
 
 [workspace.package]
-version = "0.58.0"
+version = "0.59.0"
 edition = "2024"
 rust-version = "1.95"                                # Aligned to egui
 repository = "https://github.com/podusowski/walkers"
@@ -21,6 +21,9 @@ keywords = ["geography", "gis", "gui"]
 categories = ["gui", "science::geo"]
 
 [workspace.dependencies]
+walkers = { path = "walkers", version = "0.59.0" }
+walkers_extras = { path = "walkers_extras", version = "0.59.0" }
+
 android_logger = "0.15.1"
 approx = "0.5.1"
 bytemuck = { version = "1.25", features = ["derive"] }
@@ -51,7 +54,7 @@ lru = "0.18.1"
 lyon_path = "1.0"
 lyon_tessellation = "1.0"
 mvt-reader = "2.4"
-pmtiles = { version = "0.23.1", default-features = false, features = [
+pmtiles = { version = "0.24.0", default-features = false, features = [
   "mmap-async-tokio",
 ] }
 quick-xml = "0.41.0"
@@ -67,8 +70,6 @@ serde_json = "1.0"
 thiserror = "2.0"
 tokio = "1.53"
 tokio-test = "0.4.5"
-walkers = { path = "walkers", version = "0.58.0" }
-walkers_extras = { path = "walkers_extras", version = "0.58.0" }
 wasm-bindgen-futures = "0.4.76"
 web-sys = "0.3.103"
 

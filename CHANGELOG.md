@@ -2,7 +2,7 @@
 
 All notable changes to this project will be documented in this file.
 
-## Unreleased
+## 0.59.0
 
 * Fix tile sources with tiles smaller than 256px being rendered as if they were 256px.
 * `GeoJsonLayer` now renders `symbol` layers, including their text labels.

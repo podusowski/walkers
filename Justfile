@@ -12,6 +12,8 @@ check-all-features:
 [group('develop')]
 check-demo:
     cargo check -p demo_native
+    # The perf binaries are behind `required-features`, so a plain check skips them.
+    cargo check -p demo --features mvt,pmtiles --bins
 
 [group('develop')]
 check-wanderers:
