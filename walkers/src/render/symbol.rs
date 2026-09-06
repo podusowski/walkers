@@ -38,6 +38,7 @@ pub fn render(
     Ok(())
 }
 
+/// Put labels on top of points.
 fn label_points(
     points: &[geo_types::Point<f32>],
     context: &Context,
@@ -59,6 +60,7 @@ fn label_points(
     }))
 }
 
+/// Put labels on top of lines.
 fn label_line_strings(
     line_strings: &[geo_types::LineString<f32>],
     context: &Context,
