@@ -46,7 +46,7 @@ pub fn render(
                 .iter()
                 .map(|p| pos2(p.x, p.y))
                 .collect::<Vec<_>>();
-            push_line(drawables, points, width, color, dasharray.as_deref());
+            push_line(points, width, color, dasharray.as_deref(), drawables);
         }
         Geometry::MultiLineString(multi_line_string) => {
             for line_string in multi_line_string {
@@ -55,7 +55,7 @@ pub fn render(
                     .iter()
                     .map(|p| pos2(p.x, p.y))
                     .collect::<Vec<_>>();
-                push_line(drawables, points, width, color, dasharray.as_deref());
+                push_line(points, width, color, dasharray.as_deref(), drawables);
             }
         }
         _ => (),
@@ -66,11 +66,11 @@ pub fn render(
 
 /// Push a polyline as one or more lines, splitting it into dashes if `dasharray` is given.
 fn push_line(
-    drawables: &mut Vec<Drawable>,
     points: Vec<emath::Pos2>,
     width: f32,
     color: Color32,
     dasharray: Option<&[f32]>,
+    drawables: &mut Vec<Drawable>,
 ) {
     let mut push = |points: Vec<emath::Pos2>| {
         drawables.push(Drawable::Lines(vec![Line {

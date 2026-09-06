@@ -18,20 +18,20 @@ pub fn render(
 ) -> Result<(), Error> {
     match geometry {
         Geometry::Point(point) => {
-            label_points(std::slice::from_ref(point), context, texts, layout, paint)
+            label_points(std::slice::from_ref(point), context, layout, paint, texts)
         }
         Geometry::MultiPoint(multi_point) => {
-            label_points(&multi_point.0, context, texts, layout, paint)
+            label_points(&multi_point.0, context, layout, paint, texts)
         }
         Geometry::LineString(line_string) => label_line_strings(
             std::slice::from_ref(line_string),
             context,
-            texts,
             layout,
             paint,
+            texts,
         ),
         Geometry::MultiLineString(multi_line_string) => {
-            label_line_strings(&multi_line_string.0, context, texts, layout, paint)
+            label_line_strings(&multi_line_string.0, context, layout, paint, texts)
         }
         _ => (),
     }
@@ -41,9 +41,9 @@ pub fn render(
 fn label_points(
     points: &[geo_types::Point<f32>],
     context: &Context,
-    texts: &mut Vec<Text>,
     layout: &Layout,
     paint: &Option<Paint>,
+    texts: &mut Vec<Text>,
 ) {
     let Some(text) = layout.text(context) else {
         return;
@@ -62,9 +62,9 @@ fn label_points(
 fn label_line_strings(
     line_strings: &[geo_types::LineString<f32>],
     context: &Context,
-    texts: &mut Vec<Text>,
     layout: &Layout,
     paint: &Option<Paint>,
+    texts: &mut Vec<Text>,
 ) {
     let Some(text) = layout.text(context) else {
         return;
