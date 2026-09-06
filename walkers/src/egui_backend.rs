@@ -5,8 +5,6 @@ use egui::{
 
 use crate::render::drawable::Drawable;
 
-/// A tile's drawables, in the form egui wants them. Done once, when the tile is decoded,
-/// rather than on every frame it is visible on.
 pub fn to_shapes(drawables: &[Drawable]) -> Vec<Shape> {
     let mesh_of = |mesh: &crate::render::drawable::Mesh| {
         Shape::Mesh(
@@ -41,11 +39,6 @@ pub fn to_shapes(drawables: &[Drawable]) -> Vec<Shape> {
         .collect()
 }
 
-/// Hosting [`crate::render::gpu`] inside an egui app, which egui allows through a paint callback.
-///
-/// egui itself has no idea what backend it is being rendered with, so the app has to say, and
-/// saying so is what turns this on. Without it, or under a backend which is not wgpu, tiles are
-/// drawn by handing egui shapes as before.
 #[cfg(feature = "mvt")]
 pub mod wgpu {
     use egui::Rect;
