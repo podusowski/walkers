@@ -1,5 +1,9 @@
+use std::sync::Arc;
+
 use egui_wgpu::wgpu;
 use emath::{Rect, TSTransform};
+
+use crate::Drawable;
 
 /// What the shader needs to put a tile's vertices on the screen.
 #[repr(C)]
@@ -147,8 +151,7 @@ impl Renderer {
             immediate_size: 0,
         });
 
-        let suffix = if format.is_srgb() {
-            // The same choice egui makes, for the same reason.
+        let fragment_suffix = if format.is_srgb() {
             "linear_framebuffer"
         } else {
             "gamma_framebuffer"
@@ -203,7 +206,7 @@ impl Renderer {
 
         let fills = pipeline(
             "vs_fill",
-            &format!("fs_fill_{suffix}"),
+            &format!("fs_fill_{fragment_suffix}"),
             &[
                 wgpu::VertexAttribute {
                     format: wgpu::VertexFormat::Float32x2,
@@ -221,7 +224,7 @@ impl Renderer {
 
         let lines = pipeline(
             "vs_line",
-            &format!("fs_line_{suffix}"),
+            &format!("fs_line_{fragment_suffix}"),
             &[
                 wgpu::VertexAttribute {
                     format: wgpu::VertexFormat::Float32x2,
@@ -259,8 +262,8 @@ impl Renderer {
     pub(crate) fn upload(
         &mut self,
         device: &wgpu::Device,
-        drawable: &crate::render::drawable::Drawable,
-        keepalive: &std::sync::Arc<Vec<crate::render::drawable::Drawable>>,
+        drawable: &Drawable,
+        keepalive: &Arc<Vec<Drawable>>,
         frame: u64,
     ) {
         use wgpu::util::DeviceExt as _;
@@ -275,7 +278,7 @@ impl Renderer {
             };
 
             let (kind, vertices, indices, indices_count) = match drawable {
-                crate::render::drawable::Drawable::Fill(mesh) => {
+                Drawable::Fill(mesh) => {
                     let vertices: Vec<FillVertex> = mesh
                         .vertices
                         .iter()
@@ -295,7 +298,7 @@ impl Renderer {
                         mesh.indices.len() as u32,
                     )
                 }
-                crate::render::drawable::Drawable::Lines(run) => {
+                Drawable::Lines(run) => {
                     let (vertices, indices) = line_vertices(run);
 
                     (
