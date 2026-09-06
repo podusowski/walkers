@@ -103,7 +103,7 @@ struct Uploaded {
 
     /// Holds the tile's drawables, so that nothing else can be allocated at the address being
     /// used as its key while it is still in here.
-    _keepalive: std::sync::Arc<Vec<crate::render::drawable::Drawable>>,
+    _keepalive: Arc<Vec<Drawable>>,
 
     vertices: wgpu::Buffer,
     indices: wgpu::Buffer,
@@ -113,7 +113,7 @@ struct Uploaded {
 
 /// Identifies a drawable by where it lives, which is unique for as long as [`Uploaded`] holds
 /// onto the tile it belongs to.
-pub(crate) fn key_of(drawable: &crate::render::drawable::Drawable) -> usize {
+pub(crate) fn key_of(drawable: &Drawable) -> usize {
     std::ptr::from_ref(drawable) as usize
 }
 
