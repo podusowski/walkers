@@ -13,8 +13,8 @@ use crate::{
 pub fn render(
     geometry: &Geometry<f32>,
     context: &Context,
-    drawables: &mut Vec<Drawable>,
     paint: &Paint,
+    drawables: &mut Vec<Drawable>,
 ) -> Result<(), Error> {
     let width = if let Some(width) = &paint.line_width {
         width.evaluate(context)

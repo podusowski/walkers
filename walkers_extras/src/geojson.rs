@@ -63,7 +63,7 @@ impl GeoJsonLayer {
                 Layer::Line { paint, filter, .. } => {
                     for (geometry, context) in self.features(viewport, filter.as_ref(), zoom) {
                         let projected = project_geometry(geometry, projector);
-                        let _ = render_line(&projected, &context, &mut drawables, paint);
+                        let _ = render_line(&projected, &context, paint, &mut drawables);
                     }
                 }
                 Layer::Symbol {

@@ -84,7 +84,7 @@ pub fn render(
                     get_layer_features(&data, zoom, source_layer, filter.as_ref(), tile_size)?
                 {
                     if let Err(err) =
-                        render::line::render(&geometry, &context, &mut drawables, paint)
+                        render::line::render(&geometry, &context,  paint, &mut drawables,)
                     {
                         warn!("{err}");
                     }
