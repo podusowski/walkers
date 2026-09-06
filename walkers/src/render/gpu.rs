@@ -86,8 +86,7 @@ fn line_vertices(run: &[crate::render::drawable::Line]) -> (Vec<LineVertex>, Vec
     (vertices, indices)
 }
 
-/// Frames a mesh may go undrawn before its buffers are let go. Tiles come and go as the map
-/// moves, and their buffers should not outlive them by much.
+/// Number of frames after which a mesh is freed.
 const FORGET_AFTER: u64 = 120;
 
 /// Which pipeline draws a piece of geometry.
