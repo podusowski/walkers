@@ -1,8 +1,3 @@
-//! `line` layers: a feature's lines, as the style asks for them.
-//!
-//! They stay as points and a width. Turning that into something with area is left to whoever
-//! draws it - a shader can push the points apart as it goes, and egui has its own stroking.
-
 use ecolor::Color32;
 use emath::pos2;
 
