@@ -4,6 +4,8 @@ All notable changes to this project will be documented in this file.
 
 ## Unreleased
 
+* Add `EqualEarthProjection` for equal-area world maps.
+* Use the map's projection when selecting and positioning tiles instead of assuming Web Mercator.
 * `walkers::Geometry` is replaced by the re-exported `walkers::geo_types`.
 * `symbol` layers support `minzoom`.
 * Vector tile decoding optimizations.

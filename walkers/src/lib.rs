@@ -3,6 +3,7 @@
 
 mod cached_tiles;
 mod center;
+mod equal_earth;
 mod http_tiles;
 mod io;
 mod map;
@@ -57,7 +58,11 @@ pub use plugin::Plugin;
 #[cfg(feature = "pmtiles")]
 pub use pmtiles::PmTiles;
 pub use position::{Position, lat_lon, lon_lat};
-pub use projector::{MercatorProjection, ProjectedProjection, Projection, ScreenProjector};
+
+pub use projector::{
+    CoordinateKind, EqualEarthProjection, MercatorProjection, PlanarProjection, Projection,
+    ScreenProjector,
+};
 #[cfg(feature = "mvt")]
 pub use render::drawable::{Drawable, Line, Mesh, Vertex};
 #[cfg(feature = "mvt")]

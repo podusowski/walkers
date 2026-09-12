@@ -182,6 +182,7 @@ impl<'a, 'b, 'c, P: Projection + 'static> Map<'a, 'b, 'c, P> {
         for (index, layer) in self.layers.into_iter().enumerate() {
             draw_tiles(
                 &painter,
+                &self.projection,
                 map_center,
                 zoom,
                 layer.tiles,
