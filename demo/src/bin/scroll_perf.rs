@@ -202,6 +202,9 @@ fn main() -> eframe::Result<()> {
             viewport: egui::ViewportBuilder::default().with_inner_size(WINDOW_SIZE),
             ..Default::default()
         },
-        Box::new(|cc| Ok(Box::new(ScrollPerf::new(cc.egui_ctx.to_owned())))),
+        Box::new(|cc| {
+            walkers::install_renderer(cc.wgpu_render_state.as_ref());
+            Ok(Box::new(ScrollPerf::new(cc.egui_ctx.to_owned())))
+        }),
     )
 }

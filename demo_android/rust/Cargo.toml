@@ -9,7 +9,8 @@ log.workspace = true
 android_logger.workspace = true
 eframe = { workspace = true, features = ["wgpu", "android-game-activity"] }
 egui-winit.workspace = true
-demo = { path = "../../demo" }
+demo = { path = "../../demo", features = ["mvt"] }
+walkers = { path = "../../walkers", features = ["mvt"] }
 
 [lib]
 name = "main"

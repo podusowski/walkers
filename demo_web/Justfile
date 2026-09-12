@@ -1,8 +1,9 @@
 help:
     @just --list --unsorted
 
-build:
-    trunk build
+# Pass `--release` for a build worth judging performance by. A debug wasm build is far slower.
+build *args:
+    trunk build {{ args }}
 
-serve:
-    trunk serve
+serve *args:
+    trunk serve {{ args }}

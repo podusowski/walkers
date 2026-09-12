@@ -1011,7 +1011,7 @@ dependencies = [
 
 [[package]]
 name = "demo"
-version = "0.58.0"
+version = "0.59.0"
 dependencies = [
  "eframe",
  "egui",
@@ -1025,33 +1025,36 @@ dependencies = [
 
 [[package]]
 name = "demo_android"
-version = "0.58.0"
+version = "0.59.0"
 dependencies = [
  "android_logger",
  "demo",
  "eframe",
  "egui-winit",
  "log",
+ "walkers",
 ]
 
 [[package]]
 name = "demo_native"
-version = "0.58.0"
+version = "0.59.0"
 dependencies = [
  "demo",
  "eframe",
  "egui",
  "env_logger",
+ "walkers",
 ]
 
 [[package]]
 name = "demo_web"
-version = "0.58.0"
+version = "0.59.0"
 dependencies = [
  "demo",
  "eframe",
  "egui",
  "log",
+ "walkers",
  "wasm-bindgen-futures",
  "web-sys",
 ]
@@ -5220,14 +5223,18 @@ dependencies = [
 
 [[package]]
 name = "walkers"
-version = "0.58.0"
+version = "0.59.0"
 dependencies = [
  "approx",
+ "bytemuck",
  "bytes",
  "color",
+ "ecolor",
  "eframe",
  "egui",
+ "egui-wgpu",
  "egui_extras",
+ "emath",
  "env_logger",
  "futures",
  "geo",
@@ -5252,7 +5259,7 @@ dependencies = [
 
 [[package]]
 name = "walkers_extras"
-version = "0.58.0"
+version = "0.59.0"
 dependencies = [
  "egui",
  "geo",
@@ -5269,7 +5276,7 @@ dependencies = [
 
 [[package]]
 name = "wanderers"
-version = "0.58.0"
+version = "0.59.0"
 dependencies = [
  "eframe",
  "egui",

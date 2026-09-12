@@ -22,5 +22,6 @@ default = []
 mvt = ["walkers/mvt"]
 pmtiles = ["walkers/pmtiles"]
 
+
 [target.'cfg(target_arch = "wasm32")'.dependencies]
 getrandom.workspace = true

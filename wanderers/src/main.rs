@@ -30,6 +30,7 @@ fn main() -> Result<(), eframe::Error> {
         options,
         Box::new(|cc| {
             style::apply(&cc.egui_ctx);
+            walkers::install_renderer(cc.wgpu_render_state.as_ref());
             Ok(Box::new(Wanderers::new(cc.egui_ctx.to_owned(), path)))
         }),
     )

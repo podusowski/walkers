@@ -5,7 +5,14 @@ All notable changes to this project will be documented in this file.
 ## Unreleased
 
 * Add `EqualEarthProjection` for equal-area world maps.
-* Use the map's projection when selecting and positioning tiles instead of assuming Web Mercator.
+
+* Vector tiles are now drawn using wgpu. This means that egui has to be rendered with wgpu, and
+  `walkers::install_renderer` needs to be called on startup. Raster tiles work as before.
+* `render_line` and `render_symbol` fill a `Vec<Drawable>`, and `tessellate_polygon` returns
+  walkers' own `Mesh`.
+
+## 0.59.0
+
 * Fix tile sources with tiles smaller than 256px being rendered as if they were 256px.
 * `GeoJsonLayer` now renders `symbol` layers, including their text labels.
 * Fix `fill` layers not rendering features made of a single polygon.
