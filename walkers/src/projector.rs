@@ -170,8 +170,8 @@ impl Projection for PlanarProjection {
 pub struct ScreenProjector<'a, P: Projection + ?Sized = dyn Projection> {
     pub projection: &'a P,
     pub clip_rect: Rect,
-    pub memory: MapMemory,
-    pub center_projected: Pixels,
+    zoom: f64,
+    pub(crate) center_projected: Pixels,
 }
 
 impl<'a, P: Projection + ?Sized> ScreenProjector<'a, P> {
@@ -182,35 +182,37 @@ impl<'a, P: Projection + ?Sized> ScreenProjector<'a, P> {
         my_position: Position,
     ) -> Self {
         let center = map_memory.center_mode.position(my_position, projection);
-        let center_projected = projection.position_to_pixels(center, map_memory.zoom());
+        let zoom = map_memory.zoom();
+        let center_projected = projection.position_to_pixels(center, zoom);
         Self {
             projection,
             clip_rect,
-            memory: map_memory.to_owned(),
+            zoom,
             center_projected,
         }
     }
 
     pub fn project(&self, position: Position) -> Pos2 {
-        let projected = self
-            .projection
-            .position_to_pixels(position, self.memory.zoom());
+        let projected = self.projection.position_to_pixels(position, self.zoom);
         (self.clip_rect.center().to_vec2() + (projected - self.center_projected).to_vec2())
             .to_pos2()
     }
 
     pub fn unproject(&self, screen_position: Pos2) -> Position {
-        let zoom = self.memory.zoom();
         let x = self.center_projected.x() + (screen_position.x as f64)
             - (self.clip_rect.center().x as f64);
         let y = self.center_projected.y() + (screen_position.y as f64)
             - (self.clip_rect.center().y as f64);
-        self.projection.pixels_to_position(Pixels::new(x, y), zoom)
+        self.projection
+            .pixels_to_position(Pixels::new(x, y), self.zoom)
     }
 
     pub fn scale_pixel_per_meter(&self, position: Position) -> f32 {
-        self.projection
-            .scale_pixel_per_meter(position, self.memory.zoom())
+        self.projection.scale_pixel_per_meter(position, self.zoom)
+    }
+
+    pub fn zoom(&self) -> f64 {
+        self.zoom
     }
 }
 
