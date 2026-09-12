@@ -167,9 +167,9 @@ impl Projection for PlanarProjection {
 /// It combines a raw [`Projection`] with the current clip rectangle and map memory
 /// to convert between world coordinates and screen pixels.
 #[derive(Debug, Clone)]
-pub struct ScreenProjector<'a, P: Projection + ?Sized = dyn Projection> {
-    pub projection: &'a P,
-    pub clip_rect: Rect,
+pub struct ScreenProjector<'a, P: Projection + ?Sized> {
+    projection: &'a P,
+    clip_rect: Rect,
     zoom: f64,
     pub(crate) center_projected: Pixels,
 }
@@ -213,6 +213,14 @@ impl<'a, P: Projection + ?Sized> ScreenProjector<'a, P> {
 
     pub fn zoom(&self) -> f64 {
         self.zoom
+    }
+
+    pub fn projection(&self) -> &P {
+        self.projection
+    }
+
+    pub fn clip_rect(&self) -> &Rect {
+        &self.clip_rect
     }
 }
 

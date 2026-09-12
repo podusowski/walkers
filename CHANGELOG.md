@@ -5,6 +5,9 @@ All notable changes to this project will be documented in this file.
 ## Unreleased
 
 * Add `EqualEarthProjection` for equal-area world maps.
+* `Plugin<P>` is now generic over the map's concrete projection and `Plugin::run` receives a `ScreenProjector<P>`.
+  Projection-independent plugin implementations should use `impl<P: Projection> Plugin<P>`.
+  Trait objects remain available by specifying their projection, for example `Box<dyn Plugin<MercatorProjection>>`.
 
 * Vector tiles are now drawn using wgpu. This means that egui has to be rendered with wgpu, and
   `walkers::install_renderer` needs to be called on startup. Raster tiles work as before.

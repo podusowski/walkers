@@ -1,5 +1,5 @@
 use crate::{
-    MercatorProjection, TileId, TilePiece, Tiles,
+    TileId, TilePiece, Tiles,
     io::{Fetch, tiles_io::TilesIo},
     projector::Projection,
     sources::Attribution,
@@ -22,7 +22,7 @@ const DEFAULT_TILE_SIZE: u32 = 1024;
 /// Provides tiles from a local PMTiles file.
 ///
 /// <https://docs.protomaps.com/guide/getting-started>
-pub struct PmTiles<P: Projection = MercatorProjection> {
+pub struct PmTiles<P: Projection> {
     tiles_io: TilesIo,
     tile_size: u32,
     projection: P,
