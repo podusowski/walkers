@@ -2,7 +2,8 @@ use std::path::PathBuf;
 
 use egui::{Align2, Color32, ComboBox, Image, Key, PointerButton, RichText, Ui, Window};
 use walkers::{
-    HttpOptions, HttpTiles, Map, MapMemory, PmTiles, Position, Style, Tiles, lon_lat, sources,
+    HttpOptions, HttpTiles, Map, MapMemory, MercatorProjection, PmTiles, Position, Projection,
+    Style, Tiles, lon_lat, sources,
 };
 use walkers_extras::{
     GroupedPlaces, LabeledSymbol, LabeledSymbolGroup, LabeledSymbolGroupStyle, LabeledSymbolStyle,
@@ -105,11 +106,13 @@ impl Basemap {
             }
             Basemap::ProtomapsLight(path) => Basetiles::PmTiles(Box::new(PmTiles::with_style(
                 path,
+                MercatorProjection,
                 Style::protomaps_basemap_light(),
                 egui_ctx,
             ))),
             Basemap::ProtomapsDark(path) => Basetiles::PmTiles(Box::new(PmTiles::with_style(
                 path,
+                MercatorProjection,
                 Style::protomaps_basemap_dark(),
                 egui_ctx,
             ))),
@@ -135,13 +138,13 @@ fn pmtiles_files() -> Vec<PathBuf> {
 }
 
 /// Tiles either come over HTTP or out of a local file.
-enum Basetiles {
-    Http(Box<HttpTiles>),
-    PmTiles(Box<PmTiles>),
+enum Basetiles<P: Projection = MercatorProjection> {
+    Http(Box<HttpTiles<P>>),
+    PmTiles(Box<PmTiles<P>>),
 }
 
-impl Basetiles {
-    fn as_mut(&mut self) -> &mut dyn Tiles {
+impl<P: Projection> Basetiles<P> {
+    fn as_mut(&mut self) -> &mut dyn Tiles<Projection = P> {
         match self {
             Basetiles::Http(tiles) => tiles.as_mut(),
             Basetiles::PmTiles(tiles) => tiles.as_mut(),
@@ -224,8 +227,9 @@ impl eframe::App for Wanderers {
         let attribution = self.tiles.attribution();
         let pending = self.new_place.as_ref().map(|new_place| new_place.position);
 
-        let mut map =
-            Map::new(Some(self.tiles.as_mut()), &mut self.map_memory, home()).zoom_with_ctrl(false);
+        let mut map = Map::new(MercatorProjection, &mut self.map_memory, home())
+            .with_layer(self.tiles.as_mut(), 1.0)
+            .zoom_with_ctrl(false);
 
         if let Ok(journal) = &self.journal {
             map = map.with_plugin(places(&journal.places));
@@ -237,7 +241,7 @@ impl eframe::App for Wanderers {
                 // cluster while it is still being named.
                 if let Some(position) = pending {
                     ui.painter().circle_filled(
-                        projector.project(position).to_pos2(),
+                        projector.project(position),
                         7.,
                         Color32::from_rgb(0xE0, 0x6C, 0x00),
                     );
@@ -250,7 +254,7 @@ impl eframe::App for Wanderers {
 
                 response
                     .interact_pointer_pos()
-                    .map(|clicked_at| projector.unproject(clicked_at.to_vec2()))
+                    .map(|clicked_at| projector.unproject(clicked_at))
             })
             .inner;
 
@@ -336,7 +340,7 @@ fn ask_for_name(ui: &Ui, new_place: &mut NewPlace) -> Outcome {
 
 /// Places are grouped, so that a journal which got dense in one city is still readable when
 /// the whole country is on the screen.
-fn places(places: &[journal::Place]) -> impl walkers::Plugin {
+fn places(places: &[journal::Place]) -> impl walkers::Plugin<MercatorProjection> {
     GroupedPlaces::new(
         places
             .iter()
@@ -400,8 +404,8 @@ fn zoom(ui: &Ui, map_memory: &mut MapMemory) {
 }
 
 /// Once the map is dragged away, offer a way back.
-fn go_home(ui: &Ui, map_memory: &mut MapMemory) {
-    if map_memory.detached().is_some() {
+fn go_home(ui: &Ui, memory: &mut MapMemory) {
+    if memory.detached(&MercatorProjection).is_some() {
         Window::new("Go home")
             .collapsible(false)
             .resizable(false)
@@ -409,7 +413,7 @@ fn go_home(ui: &Ui, map_memory: &mut MapMemory) {
             .anchor(Align2::RIGHT_BOTTOM, [-10., -10.])
             .show(ui.ctx(), |ui| {
                 if ui.button(RichText::new("go back home").heading()).clicked() {
-                    map_memory.follow_my_position();
+                    memory.follow_my_position();
                 }
             });
     }

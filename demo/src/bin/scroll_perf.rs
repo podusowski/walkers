@@ -10,7 +10,10 @@ use std::collections::VecDeque;
 use std::time::Instant;
 
 use egui::{Align2, Key, Window};
-use walkers::{HttpOptions, HttpTiles, Map, MapMemory, Position, Style, Tiles, lon_lat, sources};
+use walkers::{
+    HttpOptions, HttpTiles, Map, MapMemory, MercatorProjection, Position, Style, Tiles, lon_lat,
+    sources,
+};
 
 /// Wrocław, which has enough going on to be worth drawing.
 fn start() -> Position {
@@ -65,7 +68,7 @@ impl Rolling {
 }
 
 struct ScrollPerf {
-    tiles: Box<dyn Tiles>,
+    tiles: Box<dyn Tiles<Projection = MercatorProjection>>,
     source: String,
     memory: MapMemory,
 
@@ -80,25 +83,27 @@ struct ScrollPerf {
 
 impl ScrollPerf {
     fn new(egui_ctx: egui::Context) -> Self {
-        let (tiles, source): (Box<dyn Tiles>, String) = match std::env::args().nth(1) {
-            Some(path) => (
-                Box::new(walkers::PmTiles::with_style(
-                    &path,
-                    Style::protomaps_basemap_light(),
-                    egui_ctx,
-                )),
-                path,
-            ),
-            None => (
-                Box::new(HttpTiles::with_options_and_style(
-                    sources::OpenFreeMap,
-                    HttpOptions::default(),
-                    Style::openmaptiles_basemap_light(),
-                    egui_ctx,
-                )),
-                "OpenFreeMap".to_owned(),
-            ),
-        };
+        let (tiles, source): (Box<dyn Tiles<Projection = MercatorProjection>>, String) =
+            match std::env::args().nth(1) {
+                Some(path) => (
+                    Box::new(walkers::PmTiles::with_style(
+                        &path,
+                        MercatorProjection,
+                        Style::protomaps_basemap_light(),
+                        egui_ctx,
+                    )),
+                    path,
+                ),
+                None => (
+                    Box::new(HttpTiles::with_options_and_style(
+                        sources::OpenFreeMap,
+                        HttpOptions::default(),
+                        Style::openmaptiles_basemap_light(),
+                        egui_ctx,
+                    )),
+                    "OpenFreeMap".to_owned(),
+                ),
+            };
 
         let mut memory = MapMemory::default();
         let _ = memory.set_zoom(STARTING_ZOOM);
@@ -159,7 +164,8 @@ impl eframe::App for ScrollPerf {
         }
 
         egui::CentralPanel::default().show(ui, |ui| {
-            Map::new(Some(self.tiles.as_mut()), &mut self.memory, start())
+            Map::new(MercatorProjection, &mut self.memory, start())
+                .with_layer(self.tiles.as_mut(), 1.0)
                 .show(ui, |_, _, _, _| {});
         });
 

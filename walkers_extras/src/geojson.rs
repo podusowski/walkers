@@ -8,8 +8,8 @@ use log::warn;
 use rstar::primitives::{GeomWithData, Rectangle};
 use rstar::{AABB, RTree};
 use walkers::{
-    Context, Filter, Layer, Position, Projector, Style, place_texts, render_line, render_symbol,
-    to_shapes,
+    Context, Filter, Layer, Position, Projection, ScreenProjector, Style, place_texts, render_line,
+    render_symbol, to_shapes,
 };
 
 struct Feature {
@@ -52,7 +52,12 @@ impl GeoJsonLayer {
         }
     }
 
-    pub fn render(&self, ui: &mut Ui, projector: &Projector, zoom: u8) {
+    pub fn render<P: Projection + ?Sized>(
+        &self,
+        ui: &mut Ui,
+        projector: &ScreenProjector<'_, P>,
+        zoom: u8,
+    ) {
         let viewport = viewport(projector, ui.clip_rect());
 
         let mut drawables = Vec::new();
@@ -136,9 +141,12 @@ fn bounding_rect(geometry: &walkers::Geometry<f32>) -> Rectangle<[f64; 2]> {
 }
 
 /// Compute the geographic envelope of the current viewport by unprojecting its corners.
-fn viewport(projector: &Projector, clip_rect: egui::Rect) -> AABB<[f64; 2]> {
-    let top_left = projector.unproject(clip_rect.min.to_vec2());
-    let bottom_right = projector.unproject(clip_rect.max.to_vec2());
+fn viewport<P: Projection + ?Sized>(
+    projector: &ScreenProjector<'_, P>,
+    clip_rect: egui::Rect,
+) -> AABB<[f64; 2]> {
+    let top_left = projector.unproject(clip_rect.min);
+    let bottom_right = projector.unproject(clip_rect.max);
 
     // Position is geo_types::Point where x() = longitude, y() = latitude.
     let min_lon = top_left.x().min(bottom_right.x());
@@ -149,9 +157,9 @@ fn viewport(projector: &Projector, clip_rect: egui::Rect) -> AABB<[f64; 2]> {
     AABB::from_corners([min_lon, min_lat], [max_lon, max_lat])
 }
 
-fn project_geometry(
+fn project_geometry<P: Projection + ?Sized>(
     geometry: &walkers::Geometry<f32>,
-    projector: &Projector,
+    projector: &ScreenProjector<'_, P>,
 ) -> walkers::Geometry<f32> {
     geometry.map_coords(|coord| {
         let projected = projector.project(Position::new(coord.x as f64, coord.y as f64));

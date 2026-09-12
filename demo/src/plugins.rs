@@ -1,5 +1,5 @@
 use egui::{Color32, Response, Ui};
-use walkers::{MapMemory, Plugin, Position, Projector};
+use walkers::{Plugin, Position, Projection, ScreenProjector};
 use walkers_extras::{
     GroupedPlaces, LabeledSymbol, LabeledSymbolGroup, LabeledSymbolGroupStyle, LabeledSymbolStyle,
     Symbol,
@@ -8,7 +8,7 @@ use walkers_extras::{
 use crate::places;
 
 /// Creates a built-in [`GroupedPlaces`] plugin populated with some predefined places.
-pub fn places() -> impl Plugin {
+pub fn places<P: Projection>() -> impl Plugin<P> {
     GroupedPlaces::new(
         vec![
             LabeledSymbol {
@@ -47,14 +47,8 @@ pub fn places() -> impl Plugin {
 /// Sample map plugin which draws custom stuff on the map.
 pub struct CustomShapes {}
 
-impl Plugin for CustomShapes {
-    fn run(
-        self: Box<Self>,
-        ui: &mut Ui,
-        response: &Response,
-        projector: &Projector,
-        _map_memory: &MapMemory,
-    ) {
+impl<P: Projection> Plugin<P> for CustomShapes {
+    fn run(self: Box<Self>, ui: &mut Ui, response: &Response, projector: &ScreenProjector<'_, P>) {
         // Position of the point we want to put our shapes.
         let position = places::capitol();
 
@@ -62,7 +56,7 @@ impl Plugin for CustomShapes {
         let radius = 100.0 * projector.scale_pixel_per_meter(position);
 
         // Project it into the position on the screen.
-        let position = projector.project(position).to_pos2();
+        let position = projector.project(position);
 
         let hovered = response
             .hover_pos()
@@ -98,23 +92,17 @@ impl ClickWatcher {
     }
 }
 
-impl Plugin for &mut ClickWatcher {
-    fn run(
-        self: Box<Self>,
-        ui: &mut Ui,
-        response: &Response,
-        projector: &Projector,
-        _map_memory: &MapMemory,
-    ) {
+impl<P: Projection> Plugin<P> for &mut ClickWatcher {
+    fn run(self: Box<Self>, ui: &mut Ui, response: &Response, projector: &ScreenProjector<'_, P>) {
         if !response.changed() && response.clicked_by(egui::PointerButton::Primary) {
             self.clicked_at = response
                 .interact_pointer_pos()
-                .map(|p| projector.unproject(p.to_vec2()));
+                .map(|p| projector.unproject(p));
         }
 
         if let Some(position) = self.clicked_at {
             ui.painter()
-                .circle_filled(projector.project(position).to_pos2(), 5.0, Color32::BLUE);
+                .circle_filled(projector.project(position), 5.0, Color32::BLUE);
         }
     }
 }

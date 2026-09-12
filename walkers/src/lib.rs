@@ -2,9 +2,9 @@
 #![deny(clippy::unwrap_used, rustdoc::broken_intra_doc_links)]
 
 mod center;
+mod equal_earth;
 mod http_tiles;
 mod io;
-mod local_tiles;
 mod map;
 mod memory;
 mod options;
@@ -16,13 +16,12 @@ mod text;
 
 #[cfg(not(feature = "mvt"))]
 mod style {
-    /// Dummy style, used when `mtv` feature is not enabled.
+    /// Dummy style, used when `mvt` feature is not enabled.
     #[derive(Default)]
     pub struct Style;
 }
 
-// TODO: I don't want it to be public.
-pub mod mercator;
+mod mercator;
 
 #[cfg(feature = "mvt")]
 mod egui_backend;
@@ -50,7 +49,6 @@ pub use expression::Context;
 pub use http_tiles::HttpTiles;
 pub use io::tiles_io::Stats;
 pub use io::{HeaderValue, MaxParallelDownloads, http::HttpOptions};
-pub use local_tiles::LocalTiles;
 pub use map::Map;
 pub use memory::MapMemory;
 pub use options::Options;
@@ -58,7 +56,11 @@ pub use plugin::Plugin;
 #[cfg(feature = "pmtiles")]
 pub use pmtiles::PmTiles;
 pub use position::{Position, lat_lon, lon_lat};
-pub use projector::Projector;
+
+pub use projector::{
+    CoordinateKind, EqualEarthProjection, MercatorProjection, PlanarProjection, Projection,
+    ScreenProjector,
+};
 #[cfg(feature = "mvt")]
 pub use render::drawable::{Drawable, Line, Mesh, Vertex};
 #[cfg(feature = "mvt")]

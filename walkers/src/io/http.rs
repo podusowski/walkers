@@ -81,7 +81,7 @@ mod native {
     use http_cache_reqwest::{CACacheManager, Cache, CacheMode, HttpCache, HttpCacheOptions};
     use reqwest_middleware::{ClientBuilder, ClientWithMiddleware};
 
-    pub fn http_client(http_options: &HttpOptions) -> ClientWithMiddleware {
+    pub(crate) fn http_client(http_options: &HttpOptions) -> ClientWithMiddleware {
         let builder = ClientBuilder::new(bare_client(http_options));
 
         if let Some(cache) = &http_options.cache {
@@ -105,7 +105,7 @@ mod web {
     use super::{HttpOptions, bare_client};
     use reqwest_middleware::{ClientBuilder, ClientWithMiddleware};
 
-    pub fn http_client(http_options: &HttpOptions) -> ClientWithMiddleware {
+    pub(crate) fn http_client(http_options: &HttpOptions) -> ClientWithMiddleware {
         if http_options.cache.is_some() {
             log::warn!(
                 "HTTP cache directory set, but ignored because, in WASM, caching is handled by the browser."

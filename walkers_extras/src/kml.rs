@@ -3,7 +3,7 @@ use std::str::FromStr;
 use egui::{self, Color32, Response, Shape, Stroke, Ui};
 use kml::{KmlDocument, types::Folder};
 use log::{debug, warn};
-use walkers::{Layer, MapMemory, Plugin, Projector, Style, lon_lat};
+use walkers::{Layer, Plugin, Projection, ScreenProjector, Style, lon_lat};
 
 /// Plugin that renders parsed KML features on top of a [`Map`](walkers::Map).
 pub struct KmlLayer {
@@ -20,7 +20,11 @@ impl KmlLayer {
     }
 }
 
-fn draw_line_layer(painter: &egui::Painter, projector: &Projector, element: &kml::Kml) {
+fn draw_line_layer<P: Projection + ?Sized>(
+    painter: &egui::Painter,
+    projector: &ScreenProjector<'_, P>,
+    element: &kml::Kml,
+) {
     match element {
         kml::Kml::Placemark(placemark) => {
             if let Some(geometry) = &placemark.geometry {
@@ -40,7 +44,11 @@ fn draw_line_layer(painter: &egui::Painter, projector: &Projector, element: &kml
     }
 }
 
-fn draw_circle_layer(painter: &egui::Painter, projector: &Projector, element: &kml::Kml) {
+fn draw_circle_layer<P: Projection + ?Sized>(
+    painter: &egui::Painter,
+    projector: &ScreenProjector<'_, P>,
+    element: &kml::Kml,
+) {
     match element {
         kml::Kml::Placemark(placemark) => {
             if let Some(geometry) = &placemark.geometry {
@@ -60,9 +68,9 @@ fn draw_circle_layer(painter: &egui::Painter, projector: &Projector, element: &k
     }
 }
 
-fn draw_line_geometry(
+fn draw_line_geometry<P: Projection + ?Sized>(
     painter: &egui::Painter,
-    projector: &Projector,
+    projector: &ScreenProjector<'_, P>,
     geometry: &kml::types::Geometry,
 ) {
     match geometry {
@@ -74,7 +82,7 @@ fn draw_line_geometry(
                 .outer
                 .coords
                 .iter()
-                .map(|c| projector.project(lon_lat(c.x, c.y)).to_pos2())
+                .map(|c| projector.project(lon_lat(c.x, c.y)))
                 .collect();
 
             painter.add(Shape::closed_line(exterior, stroke));
@@ -83,7 +91,7 @@ fn draw_line_geometry(
                 let hole: Vec<_> = inner
                     .coords
                     .iter()
-                    .map(|c| projector.project(lon_lat(c.x, c.y)).to_pos2())
+                    .map(|c| projector.project(lon_lat(c.x, c.y)))
                     .collect();
 
                 painter.add(Shape::closed_line(hole, stroke));
@@ -98,16 +106,14 @@ fn draw_line_geometry(
     }
 }
 
-fn draw_circle_geometry(
+fn draw_circle_geometry<P: Projection + ?Sized>(
     painter: &egui::Painter,
-    projector: &Projector,
+    projector: &ScreenProjector<'_, P>,
     geometry: &kml::types::Geometry,
 ) {
     match geometry {
         kml::types::Geometry::Point(point) => {
-            let center = projector
-                .project(lon_lat(point.coord.x, point.coord.y))
-                .to_pos2();
+            let center = projector.project(lon_lat(point.coord.x, point.coord.y));
             let radius = 5.0;
             let stroke = Stroke::new(1.0, Color32::BLACK);
             let fill = Color32::from_rgb(0, 255, 0);
@@ -124,14 +130,8 @@ fn draw_circle_geometry(
     }
 }
 
-impl Plugin for KmlLayer {
-    fn run(
-        self: Box<Self>,
-        ui: &mut Ui,
-        response: &Response,
-        projector: &Projector,
-        _map_memory: &MapMemory,
-    ) {
+impl<P: Projection> Plugin<P> for KmlLayer {
+    fn run(self: Box<Self>, ui: &mut Ui, response: &Response, projector: &ScreenProjector<'_, P>) {
         for layer in &self.style.layers {
             match layer {
                 Layer::Line { .. } => {

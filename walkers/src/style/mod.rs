@@ -291,6 +291,7 @@ mod tests {
     }
 }
 
+#[expect(clippy::unwrap_used)]
 #[cfg(test)]
 mod source_layer_tests {
     use super::*;

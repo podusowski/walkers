@@ -32,12 +32,12 @@ such as OpenStreetMap and stores them in a cache, `MapMemory` keeps track of
 the widget's state and `Map` is the widget itself.
 
 ```rust
-use walkers::{HttpTiles, Map, MapMemory, Position, sources::OpenStreetMap, lon_lat};
+use walkers::{HttpTiles, Map, MapMemory, MercatorProjection, Position, sources::OpenStreetMap, lon_lat};
 use egui::{Context, CentralPanel};
 use eframe::{App, Frame};
 
 struct MyApp {
-    tiles: HttpTiles,
+    tiles: HttpTiles<MercatorProjection>,
     map_memory: MapMemory,
 }
 
@@ -52,11 +52,10 @@ impl MyApp {
 
 impl App for MyApp {
     fn ui(&mut self, ui: &mut egui::Ui, _frame: &mut Frame) {
-        ui.add(Map::new(
-            Some(&mut self.tiles),
-            &mut self.map_memory,
-            lon_lat(17.03664, 51.09916)
-        ));
+        ui.add(
+            Map::new(MercatorProjection, &mut self.map_memory, lon_lat(17.03664, 51.09916))
+                .with_layer(&mut self.tiles, 1.0)
+        );
     }
 }
 ```
