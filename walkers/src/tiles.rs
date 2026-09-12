@@ -9,7 +9,6 @@ use image::{ImageError, ImageReader};
 use std::collections::HashSet;
 use thiserror::Error;
 
-use crate::Position;
 use crate::io::TileFactory;
 use crate::mercator::{TILE_SIZE, tile_zoom, total_tiles};
 use crate::position::{Pixels, PixelsExt};
@@ -249,8 +248,7 @@ impl TilePiece {
 
 pub(crate) fn draw_tiles<P: Projection>(
     painter: &egui::Painter,
-    projection: &P,
-    map_center: Position,
+    map_center_screen_position: Pixels,
     zoom: Zoom,
     tiles: &mut dyn Tiles<Projection = P>,
     transparency: f32,
@@ -259,18 +257,18 @@ pub(crate) fn draw_tiles<P: Projection>(
     let mut meshes = Default::default();
     let tile_zoom = tile_zoom(zoom.round(), tiles.tile_size());
     let zoom: f64 = zoom.into();
-    let map_center_projected_position = projection.position_to_pixels(map_center, zoom);
+
     let corrected_tile_size = TILE_SIZE as f64 * 2f64.powf(zoom - tile_zoom as f64);
     let tile_id = TileId {
-        x: (map_center_projected_position.x() / corrected_tile_size).floor() as u32,
-        y: (map_center_projected_position.y() / corrected_tile_size).floor() as u32,
+        x: (map_center_screen_position.x() / corrected_tile_size).floor() as u32,
+        y: (map_center_screen_position.y() / corrected_tile_size).floor() as u32,
         zoom: tile_zoom,
     };
 
     flood_fill_tiles(
         &Spread {
             painter,
-            map_center_projected_position,
+            map_center_projected_position: map_center_screen_position,
             zoom,
             transparency,
         },
@@ -410,10 +408,11 @@ impl TileFactory for EguiTileFactory {
     }
 }
 
+#[expect(clippy::unwrap_used)]
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::{EqualEarthProjection, MercatorProjection, lon_lat};
+    use crate::{EqualEarthProjection, MercatorProjection, Position, lon_lat};
     use std::marker::PhantomData;
 
     /// Records which tiles were asked for, without ever returning one.
@@ -478,14 +477,16 @@ mod tests {
             Rect::from_min_size(pos2(0., 0.), Vec2::splat(TILE_SIZE as f32)),
         );
 
-        let mut tiles = RecordingTiles::new(tile_size);
+        let mut tiles: RecordingTiles<P> = RecordingTiles::new(tile_size);
+
+        let zoom = Zoom::try_from(zoom).unwrap();
+        let center_projected = projection.position_to_pixels(center, zoom.into());
 
         #[allow(clippy::unwrap_used)]
         draw_tiles(
             &painter,
-            projection,
-            center,
-            Zoom::try_from(zoom).unwrap(),
+            center_projected,
+            zoom,
             &mut tiles,
             1.0,
             &mut Texts::default(),
@@ -656,13 +657,16 @@ mod tests {
             Rect::from_min_size(pos2(0., 0.), Vec2::splat(TILE_SIZE as f32 * 2.)),
         );
 
+        let zoom = Zoom::try_from(16.).unwrap();
+        let center_projected =
+            MercatorProjection.position_to_pixels(lon_lat(21.00027, 52.26470), zoom.into());
+
         let mut texts = Texts::default();
         #[allow(clippy::unwrap_used)]
         draw_tiles(
             &painter,
-            &MercatorProjection,
-            lon_lat(21.00027, 52.26470),
-            Zoom::try_from(16.).unwrap(),
+            center_projected,
+            zoom,
             &mut LabelAtBothEdges,
             1.0,
             &mut texts,

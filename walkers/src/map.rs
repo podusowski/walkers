@@ -168,18 +168,17 @@ impl<'a, 'b, 'c, P: Projection + 'static> Map<'a, 'b, 'c, P> {
             ui.request_repaint();
         }
 
-        let map_center = self
-            .memory
-            .center_mode
-            .position(self.my_position, &self.projection);
         let painter = ui.painter().with_clip_rect(rect);
         let mut texts = Texts::default();
+
+        let projection: &dyn Projection = &self.projection;
+        let projector =
+            ScreenProjector::new(projection, response.rect, self.memory, self.my_position);
 
         for layer in self.layers {
             draw_tiles(
                 &painter,
-                &self.projection,
-                map_center,
+                projector.center_projected,
                 zoom,
                 layer.tiles,
                 layer.transparency,
@@ -190,9 +189,6 @@ impl<'a, 'b, 'c, P: Projection + 'static> Map<'a, 'b, 'c, P> {
         texts.paint(&painter);
 
         // Run plugins.
-        let projection: &dyn Projection = &self.projection;
-        let projector =
-            ScreenProjector::new(projection, response.rect, self.memory, self.my_position);
         for (idx, plugin) in self.plugins.into_iter().enumerate() {
             let mut child_ui = ui.new_child(UiBuilder::new().max_rect(rect).id_salt(idx));
             plugin.run(&mut child_ui, &response, &projector);
