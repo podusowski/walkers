@@ -340,7 +340,7 @@ fn ask_for_name(ui: &Ui, new_place: &mut NewPlace) -> Outcome {
 
 /// Places are grouped, so that a journal which got dense in one city is still readable when
 /// the whole country is on the screen.
-fn places(places: &[journal::Place]) -> impl walkers::Plugin {
+fn places(places: &[journal::Place]) -> impl walkers::Plugin<MercatorProjection> {
     GroupedPlaces::new(
         places
             .iter()

@@ -7,7 +7,7 @@ use crate::{
     MapMemory, Options, Plugin, Position, Tiles,
     center::Center,
     position::AdjustedPosition,
-    projector::{Projection, ScreenProjector},
+    projector::{Projection, Projector},
     tiles::{Texts, draw_tiles},
 };
 
@@ -35,16 +35,16 @@ struct Layer<'a, P> {
 /// Initially, the map follows `my_position` argument which is typically fed by a GPS sensor or
 /// other geo-localization method. If user drags the map, it enters a "detached state". You can use
 /// [`MapMemory`]'s methods to change the state programmatically.
-pub struct Map<'a, 'b, 'c, P: Projection + 'static> {
+pub struct Map<'a, 'b, 'c, P: Projection> {
     projection: P,
     layers: Vec<Layer<'b, P>>,
     memory: &'a mut MapMemory,
     my_position: Position,
-    plugins: Vec<Box<dyn Plugin + 'c>>,
+    plugins: Vec<Box<dyn Plugin<P> + 'c>>,
     options: Options,
 }
 
-impl<'a, 'b, 'c, P: Projection + 'static> Map<'a, 'b, 'c, P> {
+impl<'a, 'b, 'c, P: Projection> Map<'a, 'b, 'c, P> {
     pub fn new(projection: P, memory: &'a mut MapMemory, my_position: Position) -> Self {
         Self {
             projection,
@@ -57,7 +57,7 @@ impl<'a, 'b, 'c, P: Projection + 'static> Map<'a, 'b, 'c, P> {
     }
 
     /// Add plugin to the drawing pipeline. Plugins allow drawing custom shapes on the map.
-    pub fn with_plugin(mut self, plugin: impl Plugin + 'c) -> Self {
+    pub fn with_plugin(mut self, plugin: impl Plugin<P> + 'c) -> Self {
         self.plugins.push(Box::new(plugin));
         self
     }
@@ -151,7 +151,7 @@ impl<'a, 'b, 'c, P: Projection + 'static> Map<'a, 'b, 'c, P> {
     pub fn show<R>(
         mut self,
         ui: &mut Ui,
-        add_contents: impl FnOnce(&mut Ui, &Response, &ScreenProjector, &MapMemory) -> R,
+        add_contents: impl FnOnce(&mut Ui, &Response, &Projector<'_, P>, &MapMemory) -> R,
     ) -> InnerResponse<R> {
         let (rect, mut response) =
             ui.allocate_exact_size(ui.available_size(), Sense::click_and_drag());
@@ -174,6 +174,13 @@ impl<'a, 'b, 'c, P: Projection + 'static> Map<'a, 'b, 'c, P> {
 
         let painter = ui.painter().with_clip_rect(rect);
         let mut texts = Texts::default();
+
+        let projector = Projector::new(
+            &self.projection,
+            response.rect,
+            self.memory,
+            self.my_position,
+        );
 
         for (index, layer) in self.layers.into_iter().enumerate() {
             draw_tiles(
@@ -202,7 +209,7 @@ impl<'a, 'b, 'c, P: Projection + 'static> Map<'a, 'b, 'c, P> {
     }
 }
 
-impl<P: Projection + 'static> Map<'_, '_, '_, P> {
+impl<P: Projection> Map<'_, '_, '_, P> {
     /// Handle user inputs and recalculate everything accordingly. Returns whether something changed.
     fn handle_gestures(&mut self, ui: &mut Ui, response: &Response) -> bool {
         let (zoom_delta, zoom_delta_from_scroll) = self.zoom_delta(ui, response);
@@ -329,7 +336,7 @@ impl<P: Projection + 'static> Map<'_, '_, '_, P> {
     }
 }
 
-impl<P: Projection + 'static> Widget for Map<'_, '_, '_, P> {
+impl<P: Projection> Widget for Map<'_, '_, '_, P> {
     fn ui(self, ui: &mut Ui) -> Response {
         self.show(ui, |_, _, _, _| ()).response
     }

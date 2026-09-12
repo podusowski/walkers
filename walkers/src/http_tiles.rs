@@ -5,7 +5,7 @@ use reqwest_middleware::ClientWithMiddleware;
 use crate::cached_tiles::CachedTiles;
 use crate::io::Fetch;
 use crate::io::http::http_client;
-use crate::projector::{MercatorProjection, Projection};
+use crate::projector::Projection;
 use crate::sources::{Attribution, TileSource};
 use crate::style::Style;
 use crate::tiles::EguiTileFactory;
@@ -13,7 +13,7 @@ use crate::{HttpOptions, TilePiece, Tiles};
 use crate::{Stats, TileId};
 
 /// Downloads the tiles via HTTP. It must persist between frames.
-pub struct HttpTiles<P: Projection = MercatorProjection> {
+pub struct HttpTiles<P: Projection> {
     cached_tiles: CachedTiles,
     projection: P,
 }

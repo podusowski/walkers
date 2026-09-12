@@ -1,5 +1,5 @@
 use crate::{
-    MercatorProjection, Projection, TileId, TilePiece, Tiles, cached_tiles::CachedTiles, io::Fetch, sources::Attribution,
+    Projection, TileId, TilePiece, Tiles, cached_tiles::CachedTiles, io::Fetch, sources::Attribution,
     style::Style, tiles::EguiTileFactory,
 };
 use bytes::Bytes;
@@ -20,7 +20,7 @@ const DEFAULT_MAX_ZOOM: u8 = 15;
 /// Provides tiles from a local PMTiles file.
 ///
 /// <https://docs.protomaps.com/guide/getting-started>
-pub struct PmTiles<P: Projection = MercatorProjection> {
+pub struct PmTiles<P: Projection> {
     cached_tiles: CachedTiles,
     projection: P,
 }

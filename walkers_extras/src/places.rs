@@ -2,7 +2,7 @@ use egui::{Id, Rect, Response, Sense, Ui, vec2};
 use rstar::{PointDistance, RTree, RTreeObject};
 use std::cell::RefCell;
 use std::sync::Arc;
-use walkers::{Plugin, Position, Projection, ScreenProjector, lon_lat};
+use walkers::{Plugin, Position, Projection, Projector, lon_lat};
 
 /// [`Plugin`] which shows places on the map. Place can be any type that implements the [`Place`]
 /// trait.
@@ -22,11 +22,12 @@ where
     }
 }
 
-impl<T> Plugin for Places<T>
+impl<T, P> Plugin<P> for Places<T>
 where
     T: Place + 'static,
+    P: Projection,
 {
-    fn run(self: Box<Self>, ui: &mut Ui, _response: &Response, projector: &ScreenProjector) {
+    fn run(self: Box<Self>, ui: &mut Ui, _response: &Response, projector: &Projector<'_, P>) {
         for place in &self.places {
             place.draw(ui, projector);
         }
@@ -35,16 +36,16 @@ where
 
 pub trait Place {
     fn position(&self) -> Position;
-    fn draw(&self, ui: &Ui, projector: &ScreenProjector);
+    fn draw<P: Projection + ?Sized>(&self, ui: &Ui, projector: &Projector<'_, P>);
 }
 
 /// A group of places that can be drawn together on the map.
 pub trait Group {
-    fn draw<T: Place>(
+    fn draw<T: Place, P: Projection + ?Sized>(
         &self,
         places: &[&T],
         position: Position,
-        projector: &ScreenProjector,
+        projector: &Projector<'_, P>,
         ui: &mut Ui,
     );
 }
@@ -70,7 +71,13 @@ where
     }
 
     /// Handle user interactions. Returns whether group should be expanded.
-    fn interact(&self, position: Position, projector: &ScreenProjector, ui: &Ui, id: Id) -> bool {
+    fn interact<P: Projection + ?Sized>(
+        &self,
+        position: Position,
+        projector: &Projector<'_, P>,
+        ui: &Ui,
+        id: Id,
+    ) -> bool {
         let screen_position = projector.project(position);
         let rect = Rect::from_center_size(screen_position, vec2(50., 50.));
         let response = ui.interact(rect, id, Sense::click());
@@ -88,12 +95,13 @@ where
     }
 }
 
-impl<T, G> Plugin for GroupedPlaces<T, G>
+impl<T, G, P> Plugin<P> for GroupedPlaces<T, G>
 where
     T: Place,
     G: Group,
+    P: Projection,
 {
-    fn run(self: Box<Self>, ui: &mut Ui, _response: &Response, projector: &ScreenProjector) {
+    fn run(self: Box<Self>, ui: &mut Ui, _response: &Response, projector: &Projector<'_, P>) {
         for (idx, places) in groups(&self.places, projector).iter().enumerate() {
             let id = ui.id().with(idx);
             let position = center(&places.iter().map(|p| p.position()).collect::<Vec<_>>());
@@ -111,9 +119,10 @@ where
 }
 
 /// Group places that are close together.
-fn groups<'a, T>(places: &'a [T], projector: &ScreenProjector) -> Vec<Vec<&'a T>>
+fn groups<'a, T, P>(places: &'a [T], projector: &Projector<'_, P>) -> Vec<Vec<&'a T>>
 where
     T: Place,
+    P: Projection + ?Sized,
 {
     let mut groups: Vec<Vec<&T>> = Vec::new();
 
@@ -132,7 +141,11 @@ where
 }
 
 /// Calculate the distance between two positions after being projected onto the screen.
-fn distance_projected(p1: Position, p2: Position, projector: &ScreenProjector) -> f32 {
+fn distance_projected<P: Projection + ?Sized>(
+    p1: Position,
+    p2: Position,
+    projector: &Projector<'_, P>,
+) -> f32 {
     let screen_p1 = projector.project(p1);
     let screen_p2 = projector.project(p2);
     (screen_p1 - screen_p2).length()
@@ -194,9 +207,9 @@ impl PointDistance for Pt {
     }
 }
 
-fn interact_cluster(
+fn interact_cluster<P: Projection + ?Sized>(
     ui: &Ui,
-    projector: &ScreenProjector,
+    projector: &Projector<'_, P>,
     center: Position,
     cluster_id: egui::Id,
     hitbox_px: f32,
@@ -391,15 +404,20 @@ impl<T: Place, G: Group, P: Projection> GroupedPlacesTree<T, G, P> {
         }
     }
 
-    pub fn draw_once(&self, ui: &mut Ui, response: &Response, projector: &ScreenProjector) {
-        self.draw_with_stats(ui, response, projector);
-    }
-
-    pub fn draw_with_stats(
+    pub fn draw_once<Q: Projection + ?Sized>(
         &self,
         ui: &mut Ui,
         response: &Response,
-        projector: &ScreenProjector,
+        projector: &Projector<'_, Q>,
+    ) {
+        self.draw_with_stats(ui, response, projector);
+    }
+
+    pub fn draw_with_stats<Q: Projection + ?Sized>(
+        &self,
+        ui: &mut Ui,
+        response: &Response,
+        projector: &Projector<'_, Q>,
     ) -> (usize, usize) {
         let mut clusters = 0usize;
         let mut max_size = 0usize;
@@ -438,7 +456,7 @@ impl<T: Place, G: Group, P: Projection> GroupedPlacesTree<T, G, P> {
     pub fn cluster_stats<Q: Projection + ?Sized>(
         &self,
         rect: egui::Rect,
-        projector: &ScreenProjector<'_, Q>,
+        projector: &Projector<'_, Q>,
     ) -> (usize, usize) {
         let mut clusters = 0usize;
         let mut max_size = 0usize;
@@ -457,8 +475,14 @@ impl<T: Place, G: Group, P: Projection> GroupedPlacesTree<T, G, P> {
     }
 }
 
-impl<T: Place, G: Group, P: Projection> Plugin for GroupedPlacesTree<T, G, P> {
-    fn run(self: Box<Self>, ui: &mut Ui, response: &Response, projector: &ScreenProjector) {
+impl<T, G, P, Q> Plugin<Q> for GroupedPlacesTree<T, G, P>
+where
+    T: Place,
+    G: Group,
+    P: Projection,
+    Q: Projection,
+{
+    fn run(self: Box<Self>, ui: &mut Ui, response: &Response, projector: &Projector<'_, Q>) {
         self.draw_once(ui, response, projector);
     }
 }
@@ -484,7 +508,7 @@ fn build_rtree<T: Place>(places: &[T]) -> RTree<Pt> {
 mod tests {
     use super::*;
     use egui::{Pos2, Rect, Vec2};
-    use walkers::{MapMemory, MercatorProjection, ScreenProjector};
+    use walkers::{MapMemory, MercatorProjection, Projector};
 
     #[derive(Clone)]
     struct DummyPlace(Position);
@@ -494,28 +518,28 @@ mod tests {
             self.0
         }
 
-        fn draw(&self, _ui: &Ui, _projector: &ScreenProjector) {}
+        fn draw<P: Projection + ?Sized>(&self, _ui: &Ui, _projector: &Projector<'_, P>) {}
     }
 
     #[derive(Clone)]
     struct DummyGroup;
 
     impl Group for DummyGroup {
-        fn draw<T: Place>(
+        fn draw<T: Place, P: Projection + ?Sized>(
             &self,
             _places: &[&T],
             _position: Position,
-            _projector: &ScreenProjector,
+            _projector: &Projector<'_, P>,
             _ui: &mut Ui,
         ) {
         }
     }
 
-    fn projector_for_zoom(zoom: f64) -> (Rect, ScreenProjector<'static, MercatorProjection>) {
+    fn projector_for_zoom(zoom: f64) -> (Rect, Projector<'static, MercatorProjection>) {
         let rect = Rect::from_min_size(Pos2::ZERO, Vec2::splat(512.0));
         let mut memory = MapMemory::default();
         memory.set_zoom(zoom).unwrap();
-        let projector = ScreenProjector::new(&MercatorProjection, rect, &memory, lon_lat(0.0, 0.0));
+        let projector = Projector::new(&MercatorProjection, rect, &memory, lon_lat(0.0, 0.0));
         (rect, projector)
     }
 
