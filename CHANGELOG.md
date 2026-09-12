@@ -4,6 +4,8 @@ All notable changes to this project will be documented in this file.
 
 ## Unreleased
 
+* Add `EqualEarthProjection` for equal-area world maps.
+* Use the map's projection when selecting and positioning tiles instead of assuming Web Mercator.
 * Fix tile sources with tiles smaller than 256px being rendered as if they were 256px.
 * `GeoJsonLayer` now renders `symbol` layers, including their text labels.
 * Fix `fill` layers not rendering features made of a single polygon.

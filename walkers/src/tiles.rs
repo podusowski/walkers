@@ -11,7 +11,7 @@ use thiserror::Error;
 
 use crate::Position;
 use crate::io::TileFactory;
-use crate::mercator::{TILE_SIZE, project, tile_id, total_tiles};
+use crate::mercator::{TILE_SIZE, tile_zoom, total_tiles};
 use crate::position::{Pixels, PixelsExt};
 use crate::projector::Projection;
 use crate::sources::Attribution;
@@ -249,6 +249,7 @@ impl TilePiece {
 
 pub(crate) fn draw_tiles<P: Projection>(
     painter: &egui::Painter,
+    projection: &P,
     map_center: Position,
     zoom: Zoom,
     tiles: &mut dyn Tiles<Projection = P>,
@@ -256,14 +257,24 @@ pub(crate) fn draw_tiles<P: Projection>(
     texts: &mut Texts,
 ) {
     let mut meshes = Default::default();
+    let tile_zoom = tile_zoom(zoom.round(), tiles.tile_size());
+    let zoom: f64 = zoom.into();
+    let map_center_projected_position = projection.position_to_pixels(map_center, zoom);
+    let corrected_tile_size = TILE_SIZE as f64 * 2f64.powf(zoom - tile_zoom as f64);
+    let tile_id = TileId {
+        x: (map_center_projected_position.x() / corrected_tile_size).floor() as u32,
+        y: (map_center_projected_position.y() / corrected_tile_size).floor() as u32,
+        zoom: tile_zoom,
+    };
+
     flood_fill_tiles(
         &Spread {
             painter,
-            map_center_projected_position: project(map_center, zoom.into()),
-            zoom: zoom.into(),
+            map_center_projected_position,
+            zoom,
             transparency,
         },
-        tile_id(map_center, zoom.round(), tiles.tile_size()),
+        tile_id,
         tiles,
         &mut meshes,
         texts,
@@ -402,19 +413,22 @@ impl TileFactory for EguiTileFactory {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::lon_lat;
+    use crate::{EqualEarthProjection, MercatorProjection, lon_lat};
+    use std::marker::PhantomData;
 
     /// Records which tiles were asked for, without ever returning one.
-    struct RecordingTiles {
+    struct RecordingTiles<P> {
         tile_size: u32,
         requested: Vec<TileId>,
+        projection: PhantomData<P>,
     }
 
-    impl RecordingTiles {
+    impl<P> RecordingTiles<P> {
         fn new(tile_size: u32) -> Self {
             Self {
                 tile_size,
                 requested: Vec::new(),
+                projection: PhantomData,
             }
         }
     }
@@ -443,6 +457,20 @@ mod tests {
     /// Run [`draw_tiles`] on a viewport of `TILE_SIZE` squared, and report which tiles the
     /// source was asked for.
     fn requested_tiles(tile_size: u32, zoom: f64) -> Vec<TileId> {
+        requested_tiles_for(
+            &MercatorProjection,
+            lon_lat(21.00027, 52.26470),
+            tile_size,
+            zoom,
+        )
+    }
+
+    fn requested_tiles_for<P: Projection>(
+        projection: &P,
+        center: Position,
+        tile_size: u32,
+        zoom: f64,
+    ) -> Vec<TileId> {
         let ctx = Context::default();
         let painter = egui::Painter::new(
             ctx,
@@ -455,7 +483,8 @@ mod tests {
         #[allow(clippy::unwrap_used)]
         draw_tiles(
             &painter,
-            lon_lat(21.00027, 52.26470),
+            projection,
+            center,
             Zoom::try_from(zoom).unwrap(),
             &mut tiles,
             1.0,
@@ -463,6 +492,30 @@ mod tests {
         );
 
         tiles.requested
+    }
+
+    #[test]
+    fn selected_projection_determines_the_requested_tile() {
+        let center = lon_lat(0.0, 80.0);
+        let mercator = requested_tiles_for(&MercatorProjection, center, 256, 2.0);
+        let equal_earth = requested_tiles_for(&EqualEarthProjection, center, 256, 2.0);
+
+        assert_eq!(
+            mercator[0],
+            TileId {
+                x: 2,
+                y: 0,
+                zoom: 2
+            }
+        );
+        assert_eq!(
+            equal_earth[0],
+            TileId {
+                x: 2,
+                y: 1,
+                zoom: 2
+            }
+        );
     }
 
     /// Sources with tiles smaller than 256px are just as valid as the larger ones, and the
@@ -551,8 +604,8 @@ mod tests {
     struct LabelAtBothEdges;
 
     #[cfg(feature = "mvt")]
-    impl<P: Projection> Tiles for LabelAtBothEdges {
-        type Projection = P;
+    impl Tiles for LabelAtBothEdges {
+        type Projection = MercatorProjection;
         fn at(&mut self, _tile_id: TileId) -> Option<TilePiece> {
             let label = |x: f32| {
                 crate::text::Text::new(
@@ -607,6 +660,7 @@ mod tests {
         #[allow(clippy::unwrap_used)]
         draw_tiles(
             &painter,
+            &MercatorProjection,
             lon_lat(21.00027, 52.26470),
             Zoom::try_from(16.).unwrap(),
             &mut LabelAtBothEdges,

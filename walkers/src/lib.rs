@@ -2,6 +2,7 @@
 #![deny(clippy::unwrap_used, rustdoc::broken_intra_doc_links)]
 
 mod center;
+mod equal_earth;
 mod http_tiles;
 mod io;
 mod map;
@@ -49,7 +50,10 @@ pub use plugin::Plugin;
 pub use pmtiles::PmTiles;
 pub use position::{Position, lat_lon, lon_lat};
 
-pub use projector::{MercatorProjection, ProjectedProjection, Projection, ScreenProjector};
+pub use projector::{
+    CoordinateKind, EqualEarthProjection, MercatorProjection, PlanarProjection, Projection,
+    ScreenProjector,
+};
 #[cfg(feature = "mvt")]
 pub use render::{Geometry, render_line, render_symbol, tessellate_polygon};
 pub use style::Style;

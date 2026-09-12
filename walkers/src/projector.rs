@@ -1,15 +1,29 @@
 use egui::{Pos2, Rect};
 
 use crate::{
-    MapMemory, Position, mercator,
+    MapMemory, Position, equal_earth, mercator,
     position::{Pixels, PixelsExt as _},
 };
 
+const EARTH_RADIUS_METERS: f64 = 6_378_137.0;
+
+/// What kind of coordinates a projection expects
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum CoordinateKind {
+    /// Longitude and latitude in degrees.
+    Geographic,
+    /// Cartesian coordinates in linear units.
+    Projected,
+}
+
 /// Raw coordinate projection between world coordinates and pixel space.
 ///
-/// Implementors define how a coordinate system maps to pixel coordinates at a
-/// given zoom level. For GPS coordinates, use [`MercatorProjection`].
-/// For pre-projected coordinates, use [`ProjectedProjection`].
+/// Implementors define how a coordinate system maps to pixel coordinates at a given zoom level.
+///
+/// For geographic coordinates, use [`MercatorProjection`] or [`EqualEarthProjection`].
+/// For cartesian coordinates, use [`PlanarProjection`].
+///
+/// Or implement your own for your custom tile server
 pub trait Projection {
     /// Convert world coordinates to pixel coordinates at a given zoom level.
     fn position_to_pixels(&self, position: Position, zoom: f64) -> Pixels;
@@ -17,11 +31,13 @@ pub trait Projection {
     /// Convert pixel coordinates back to world coordinates at a given zoom level.
     fn pixels_to_position(&self, pixels: Pixels, zoom: f64) -> Position;
 
-    /// Scale factor: how many pixels correspond to one meter at this position and zoom level.
+    /// Nominal scale factor: how many pixels correspond to one meter at this position and zoom
+    /// level. For non-conformal projections, implementations must document how this representative
+    /// scalar is chosen.
     fn scale_pixel_per_meter(&self, position: Position, zoom: f64) -> f32;
 
-    /// If it is gps or not
-    fn is_mercator(&self) -> bool;
+    /// What coordinates the projection projects from
+    fn coordinate_kind(&self) -> CoordinateKind;
 }
 
 /// Web Mercator projection for GPS (lat/lon) coordinates.
@@ -45,53 +61,103 @@ impl Projection for MercatorProjection {
         (pixel_per_meter_equator / latitude_rad.cos()) as f32
     }
 
-    fn is_mercator(&self) -> bool {
-        true
+    fn coordinate_kind(&self) -> CoordinateKind {
+        CoordinateKind::Geographic
     }
 }
 
-/// Linear projection for pre-projected coordinates (e.g., meters).
+/// Spherical Equal Earth projection for longitude/latitude coordinates.
 ///
-/// Positions are treated as (x, y) coordinates in a projected system.
-/// The y-axis is flipped for screen rendering (positive y goes up in world space,
-/// down in screen space).
+/// Equal Earth is an equal-area pseudocylindrical projection intended for world maps.
+/// The full equatorial width occupies 256 pixels at zoom level zero and doubles with each zoom level.
+/// The shorter projected height is centered within the same square world-pixel space.
+///
+/// Unlike Web Mercator, Equal Earth is not conformal: local distances can have different horizontal and vertical scales.
+/// [`Projection::scale_pixel_per_meter`] therefore returns the area-equivalent nominal linear scale.
 #[derive(Debug, Clone)]
-pub struct ProjectedProjection {
-    /// Center of the projection in world coordinates.
-    pub center: Position,
-    /// Base scale factor (pixels per world-unit at zoom 0).
-    pub scale: f64,
-}
+pub struct EqualEarthProjection;
 
-impl ProjectedProjection {
-    pub fn new(center: Position, scale: f64) -> Self {
-        Self { center, scale }
+impl Projection for EqualEarthProjection {
+    fn position_to_pixels(&self, position: Position, zoom: f64) -> Pixels {
+        let total_pixels = mercator::total_pixels(zoom);
+        let scale = total_pixels / (2.0 * equal_earth::MAX_X);
+        let projected = equal_earth::project(position);
+
+        Pixels::new(
+            total_pixels / 2.0 + projected.x() * scale,
+            total_pixels / 2.0 - projected.y() * scale,
+        )
+    }
+
+    fn pixels_to_position(&self, pixels: Pixels, zoom: f64) -> Position {
+        let total_pixels = mercator::total_pixels(zoom);
+        let scale = total_pixels / (2.0 * equal_earth::MAX_X);
+        let projected = Pixels::new(
+            (pixels.x() - total_pixels / 2.0) / scale,
+            (total_pixels / 2.0 - pixels.y()) / scale,
+        );
+
+        equal_earth::unproject(projected)
+    }
+
+    fn scale_pixel_per_meter(&self, _position: Position, zoom: f64) -> f32 {
+        let total_pixels = mercator::total_pixels(zoom);
+        let projected_pixels_per_radian = total_pixels / (2.0 * equal_earth::MAX_X);
+        (projected_pixels_per_radian / EARTH_RADIUS_METERS) as f32
+    }
+
+    fn coordinate_kind(&self) -> CoordinateKind {
+        CoordinateKind::Geographic
     }
 }
 
-impl Projection for ProjectedProjection {
+/// Maps positions from an already-projected, meter-based Cartesian
+/// coordinate system into Walkers' zoomed pixel space.
+///
+/// `origin` maps to the pixel origin. At zoom level zero,
+/// `pixels_per_meter` determines the uniform scale; each additional zoom
+/// level doubles it. The y-axis is reversed so positive world y points
+/// upward while positive screen y points downward.
+#[derive(Debug, Clone)]
+pub struct PlanarProjection {
+    /// Origin of the projection in world coordinates.
+    pub origin: Position,
+    /// Pixels per meter at zoom level zero.
+    pub pixels_per_meter_at_zoom_zero: f64,
+}
+
+impl PlanarProjection {
+    pub fn new(origin: Position, pixels_per_meter_at_zoom_zero: f64) -> Self {
+        Self {
+            origin,
+            pixels_per_meter_at_zoom_zero,
+        }
+    }
+}
+
+impl Projection for PlanarProjection {
     fn position_to_pixels(&self, position: Position, zoom: f64) -> Pixels {
-        let scale = self.scale * 2f64.powf(zoom);
-        let dx = position.x() - self.center.x();
-        let dy = position.y() - self.center.y();
+        let scale = self.pixels_per_meter_at_zoom_zero * 2f64.powf(zoom);
+        let dx = position.x() - self.origin.x();
+        let dy = position.y() - self.origin.y();
         Pixels::new(dx * scale, -dy * scale)
     }
 
     fn pixels_to_position(&self, pixels: Pixels, zoom: f64) -> Position {
-        let scale = self.scale * 2f64.powf(zoom);
+        let scale = self.pixels_per_meter_at_zoom_zero * 2f64.powf(zoom);
         Position::new(
-            self.center.x() + pixels.x() / scale,
-            self.center.y() - pixels.y() / scale,
+            self.origin.x() + pixels.x() / scale,
+            self.origin.y() - pixels.y() / scale,
         )
     }
 
     fn scale_pixel_per_meter(&self, _position: Position, zoom: f64) -> f32 {
         // For projected coordinates assumed to be in meters, scale is uniform.
-        (self.scale * 2f64.powf(zoom)) as f32
+        (self.pixels_per_meter_at_zoom_zero * 2f64.powf(zoom)) as f32
     }
 
-    fn is_mercator(&self) -> bool {
-        false
+    fn coordinate_kind(&self) -> CoordinateKind {
+        CoordinateKind::Projected
     }
 }
 
@@ -200,6 +266,37 @@ mod tests {
     }
 
     #[test]
+    fn equal_earth_uses_the_zoom_zero_world_width() {
+        let west = EqualEarthProjection.position_to_pixels(lon_lat(-180.0, 0.0), 0.0);
+        let center = EqualEarthProjection.position_to_pixels(lon_lat(0.0, 0.0), 0.0);
+        let east = EqualEarthProjection.position_to_pixels(lon_lat(180.0, 0.0), 0.0);
+
+        assert_approx_eq(west.x(), 0.0);
+        assert_approx_eq(center.x(), 128.0);
+        assert_approx_eq(center.y(), 128.0);
+        assert_approx_eq(east.x(), 256.0);
+    }
+
+    #[test]
+    fn equal_earth_roundtrip() {
+        let original = lon_lat(21.0, 52.0);
+        let pixels = EqualEarthProjection.position_to_pixels(original, 10.0);
+        let unprojected = EqualEarthProjection.pixels_to_position(pixels, 10.0);
+
+        assert_approx_eq(unprojected.x(), original.x());
+        assert_approx_eq(unprojected.y(), original.y());
+    }
+
+    #[test]
+    fn equal_earth_scale_doubles_at_each_zoom_level() {
+        let position = lon_lat(21.0, 52.0);
+        let scale_at_zero = EqualEarthProjection.scale_pixel_per_meter(position, 0.0);
+        let scale_at_one = EqualEarthProjection.scale_pixel_per_meter(position, 1.0);
+
+        assert_approx_eq(scale_at_one.into(), (scale_at_zero * 2.0).into());
+    }
+
+    #[test]
     fn unproject_is_inverse_of_project() {
         let original = lon_lat(21., 52.);
 
@@ -227,7 +324,7 @@ mod tests {
         let mut map_memory = MapMemory::default();
         map_memory.set_zoom(10.).unwrap();
 
-        let projection = ProjectedProjection::new(original, 1.0);
+        let projection = PlanarProjection::new(original, 1.0);
         let projector = ScreenProjector::new(
             &projection,
             Rect::from_min_size(Pos2::ZERO, Vec2::splat(100.)),

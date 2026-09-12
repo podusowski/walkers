@@ -3,7 +3,7 @@
 use crate::projector::Projection;
 use egui::Vec2;
 
-/// Geographical position with latitude and longitude.
+/// World space coordinates, Geographical position with latitude and longitude for any projection with [`crate::CoordinateKind::Geographic`].
 pub type Position = geo_types::Point;
 
 /// Construct `Position` from latitude and longitude.
