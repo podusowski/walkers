@@ -1,6 +1,6 @@
 use super::places::{Group, Place};
 use egui::{Align2, Color32, FontId, Stroke, Ui, vec2};
-use walkers::{Position, Projection, ScreenProjector};
+use walkers::{Position, Projection, Projector};
 
 #[derive(Clone)]
 /// Type of the symbol of a [`LabeledSymbol`].
@@ -31,7 +31,7 @@ impl Place for LabeledSymbol {
         self.position
     }
 
-    fn draw<P: Projection + ?Sized>(&self, ui: &Ui, projector: &ScreenProjector<'_, P>) {
+    fn draw<P: Projection + ?Sized>(&self, ui: &Ui, projector: &Projector<'_, P>) {
         let screen_position = projector.project(self.position);
         let painter = ui.painter();
 
@@ -188,7 +188,7 @@ impl Group for LabeledSymbolGroup {
         &self,
         places: &[&T],
         position: Position,
-        projector: &ScreenProjector<'_, P>,
+        projector: &Projector<'_, P>,
         ui: &mut Ui,
     ) {
         let screen_position = projector.project(position);

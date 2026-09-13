@@ -59,7 +59,7 @@ pub use position::{Position, lat_lon, lon_lat};
 
 pub use projector::{
     CoordinateKind, EqualEarthProjection, MercatorProjection, PlanarProjection, Projection,
-    ScreenProjector,
+    Projector,
 };
 #[cfg(feature = "mvt")]
 pub use render::drawable::{Drawable, Line, Mesh, Vertex};

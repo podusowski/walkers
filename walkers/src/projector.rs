@@ -161,20 +161,19 @@ impl Projection for PlanarProjection {
     }
 }
 
-/// Screen projector that wraps a [`Projection`] with viewport state.
+/// The projector wraps a [`Projection`] with viewport state.
 ///
-/// This is the standard projector implementation used by the map widget.
 /// It combines a raw [`Projection`] with the current clip rectangle and map memory
 /// to convert between world coordinates and screen pixels.
 #[derive(Debug, Clone)]
-pub struct ScreenProjector<'a, P: Projection + ?Sized> {
+pub struct Projector<'a, P: Projection + ?Sized> {
     projection: &'a P,
     clip_rect: Rect,
     zoom: f64,
     pub(crate) center_projected: Pixels,
 }
 
-impl<'a, P: Projection + ?Sized> ScreenProjector<'a, P> {
+impl<'a, P: Projection + ?Sized> Projector<'a, P> {
     pub fn new(
         projection: &'a P,
         clip_rect: Rect,
@@ -247,7 +246,7 @@ mod tests {
         let mut map_memory = MapMemory::default();
         map_memory.set_zoom(18.).unwrap();
 
-        let projector = ScreenProjector::new(
+        let projector = Projector::new(
             &MercatorProjection,
             Rect::from_min_size(Pos2::ZERO, Vec2::splat(100.)),
             &map_memory,
@@ -313,7 +312,7 @@ mod tests {
         let mut map_memory = MapMemory::default();
         map_memory.set_zoom(10.).unwrap();
 
-        let projector = ScreenProjector::new(
+        let projector = Projector::new(
             &MercatorProjection,
             Rect::from_min_size(Pos2::ZERO, Vec2::splat(100.)),
             &map_memory,
@@ -335,7 +334,7 @@ mod tests {
         map_memory.set_zoom(10.).unwrap();
 
         let projection = PlanarProjection::new(original, 1.0);
-        let projector = ScreenProjector::new(
+        let projector = Projector::new(
             &projection,
             Rect::from_min_size(Pos2::ZERO, Vec2::splat(100.)),
             &map_memory,

@@ -7,8 +7,8 @@ use rand::{RngExt as _, rngs::StdRng};
 
 use walkers::sources;
 use walkers::{
-    HttpOptions, HttpTiles, Map, MapMemory, MercatorProjection, Position, Projection,
-    ScreenProjector, lon_lat,
+    HttpOptions, HttpTiles, Map, MapMemory, MercatorProjection, Position, Projection, Projector,
+    lon_lat,
 };
 use walkers_extras::{Group, GroupedPlacesTree, LabeledSymbol, LabeledSymbolStyle, Place, Symbol};
 
@@ -260,7 +260,7 @@ impl<P: Projection> walkers::Plugin<P> for StatsHandle {
         self: Box<Self>,
         ui: &mut egui::Ui,
         response: &egui::Response,
-        projector: &ScreenProjector<'_, P>,
+        projector: &Projector<'_, P>,
     ) {
         let (clusters, max_size) = self.inner.draw_with_stats(ui, response, projector);
         self.stats.set(ClusterStats::new(clusters, max_size));
@@ -275,7 +275,7 @@ impl Group for DemoClusterGroup {
         &self,
         places: &[&T],
         position: Position,
-        projector: &ScreenProjector<'_, P>,
+        projector: &Projector<'_, P>,
         ui: &mut egui::Ui,
     ) {
         let count = places.len();

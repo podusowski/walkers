@@ -6,7 +6,7 @@ use crate::{
     MapMemory, Options, Plugin, Position, Tiles,
     center::Center,
     position::AdjustedPosition,
-    projector::{Projection, ScreenProjector},
+    projector::{Projection, Projector},
     tiles::{Texts, draw_tiles},
 };
 
@@ -150,7 +150,7 @@ impl<'a, 'b, 'c, P: Projection> Map<'a, 'b, 'c, P> {
     pub fn show<R>(
         mut self,
         ui: &mut Ui,
-        add_contents: impl FnOnce(&mut Ui, &Response, &ScreenProjector<'_, P>, &MapMemory) -> R,
+        add_contents: impl FnOnce(&mut Ui, &Response, &Projector<'_, P>, &MapMemory) -> R,
     ) -> InnerResponse<R> {
         let (rect, mut response) =
             ui.allocate_exact_size(ui.available_size(), Sense::click_and_drag());
@@ -171,7 +171,7 @@ impl<'a, 'b, 'c, P: Projection> Map<'a, 'b, 'c, P> {
         let painter = ui.painter().with_clip_rect(rect);
         let mut texts = Texts::default();
 
-        let projector = ScreenProjector::new(
+        let projector = Projector::new(
             &self.projection,
             response.rect,
             self.memory,
