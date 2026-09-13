@@ -8,6 +8,7 @@ All notable changes to this project will be documented in this file.
   `walkers::install_renderer` needs to be called on startup. Raster tiles work as before.
 * `render_line` and `render_symbol` fill a `Vec<Drawable>`, and `tessellate_polygon` returns
   walkers' own `Mesh`.
+* Vector tiles now honor the transparency of the layer.
 
 ## 0.59.0
 

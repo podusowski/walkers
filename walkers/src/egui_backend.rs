@@ -93,6 +93,7 @@ pub mod wgpu {
         transform: TSTransform,
         viewport: Rect,
         frame: u64,
+        transparency: f32,
 
         /// Where this run goes, worked out by `prepare` for `paint`. One per callback rather
         /// than one per mesh, because a tile can be drawn more than once in a frame.
@@ -106,6 +107,7 @@ pub mod wgpu {
             transform: TSTransform,
             viewport: Rect,
             frame: u64,
+            transparency: f32,
         ) -> egui::Shape {
             egui_wgpu::Callback::new_paint_callback(
                 viewport,
@@ -115,6 +117,7 @@ pub mod wgpu {
                     transform,
                     viewport,
                     frame,
+                    transparency,
                     placement: Mutex::new(None),
                 },
             )
@@ -149,7 +152,12 @@ pub mod wgpu {
             renderer.forget_stale(self.frame);
 
             if let Ok(mut placement) = self.placement.lock() {
-                *placement = Some(renderer.placement(device, self.transform, self.viewport));
+                *placement = Some(renderer.placement(
+                    device,
+                    self.transform,
+                    self.viewport,
+                    self.transparency,
+                ));
             }
 
             Vec::new()

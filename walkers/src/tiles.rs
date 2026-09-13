@@ -226,12 +226,15 @@ impl Tile {
                         transform,
                         screen,
                         frame,
+                        transparency,
                     )
                 }));
 
-                texts
-                    .texts
-                    .extend(render::transformed_texts(from_tile, transform));
+                texts.texts.extend(render::transformed_texts(
+                    from_tile,
+                    transform,
+                    transparency,
+                ));
             }
         }
     }
