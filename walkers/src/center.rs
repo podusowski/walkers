@@ -304,7 +304,7 @@ mod tests {
     #[test]
     fn fling_does_not_depend_on_how_long_the_frames_take() {
         let pointer_speed = 1000.;
-        let expected = pointer_speed * INERTIA_TAU;
+        let expected = pointer_speed * INERTIA_MULTIPLIER * INERTIA_TAU;
 
         assert_relative_eq!(
             fling_distance(pointer_speed, 1. / 60.),
