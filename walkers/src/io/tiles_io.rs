@@ -14,7 +14,7 @@ use crate::{
 };
 
 /// Asynchronously load and cache tiles from different local and remote sources.
-pub struct TilesIo {
+pub(crate) struct TilesIo {
     /// Tiles to be fetched by the IO thread.
     request_tx: Sender<TileId>,
 
@@ -29,7 +29,7 @@ pub struct TilesIo {
 }
 
 impl TilesIo {
-    pub fn new(
+    pub(crate) fn new(
         fetch: impl Fetch + Send + Sync + 'static,
         tile_factory: impl TileFactory + Send + Sync + 'static,
         egui_ctx: Context,
@@ -66,7 +66,7 @@ impl TilesIo {
     }
 
     /// Takes a single fetched tile from the IO thread and puts it in the cache.
-    pub fn put_single_fetched_tile_in_cache(&mut self) {
+    pub(crate) fn put_single_fetched_tile_in_cache(&mut self) {
         // This is called every frame, so take just one at the time.
         match self.tile_rx.try_recv() {
             Ok((tile_id, tile)) => {
@@ -82,7 +82,7 @@ impl TilesIo {
     }
 
     /// Request a tile to be fetched, but only if it is not already being fetched.
-    pub fn make_sure_is_fetched(&mut self, tile_id: TileId) {
+    pub(crate) fn make_sure_is_fetched(&mut self, tile_id: TileId) {
         match self.cache.try_get_or_insert(
             tile_id,
             || -> Result<Option<Tile>, TrySendError<TileId>> {
@@ -102,7 +102,7 @@ impl TilesIo {
         }
     }
 
-    pub fn stats(&self) -> Stats {
+    pub(crate) fn stats(&self) -> Stats {
         if let Ok(stats) = self.stats.lock() {
             stats.clone()
         } else {

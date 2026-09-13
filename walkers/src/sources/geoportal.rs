@@ -1,11 +1,18 @@
 use super::{Attribution, TileSource};
 use crate::TileId;
+use crate::projector::MercatorProjection;
 
 /// Orthophotomap layer from Poland's Geoportal.
 /// <https://www.geoportal.gov.pl/uslugi/usluga-przegladania-wms>
 pub struct Geoportal;
 
 impl TileSource for Geoportal {
+    type Projection = MercatorProjection;
+
+    fn projection(&self) -> MercatorProjection {
+        MercatorProjection
+    }
+
     fn tile_url(&self, tile_id: TileId) -> String {
         format!(
             "https://mapy.geoportal.gov.pl/wss/service/PZGIK/ORTO/WMTS/StandardResolution?\

@@ -1,10 +1,17 @@
 use super::{Attribution, TileSource};
 use crate::TileId;
+use crate::projector::MercatorProjection;
 
 /// <https://www.openstreetmap.org/about>
 pub struct OpenStreetMap;
 
 impl TileSource for OpenStreetMap {
+    type Projection = MercatorProjection;
+
+    fn projection(&self) -> MercatorProjection {
+        MercatorProjection
+    }
+
     fn tile_url(&self, tile_id: TileId) -> String {
         format!(
             "https://tile.openstreetmap.org/{}/{}/{}.png",

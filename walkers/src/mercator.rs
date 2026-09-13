@@ -6,7 +6,6 @@
 use crate::{
     lon_lat,
     position::{Pixels, Position},
-    tiles::TileId,
 };
 use std::f64::consts::PI;
 
@@ -38,6 +37,12 @@ fn zoom_offset(source_tile_size: u32) -> i32 {
     (source_tile_size as f64 / TILE_SIZE as f64).log2().round() as i32
 }
 
+/// Adjust a map zoom level to the tile grid used by a source with the given tile size.
+pub(crate) fn tile_zoom(zoom: u8, source_tile_size: u32) -> u8 {
+    let zoom = (zoom as i32).saturating_sub(zoom_offset(source_tile_size));
+    zoom.clamp(0, MAX_TILE_ZOOM as i32) as u8
+}
+
 /// Project the position into the Mercator projection and normalize it to 0-1 range.
 fn mercator_normalized(position: Position) -> (f64, f64) {
     // Project into Mercator (cylindrical map projection).
@@ -51,29 +56,8 @@ fn mercator_normalized(position: Position) -> (f64, f64) {
     (x, y)
 }
 
-/// Calculate the tile coordinated for the given position.
-pub(crate) fn tile_id(position: Position, zoom: u8, source_tile_size: u32) -> TileId {
-    let (x, y) = mercator_normalized(position);
-
-    // Some sources provide tiles of a different size, effectively bundling e.g. 4 256px tiles
-    // in one 512px one, or splitting a single one into 4 128px ones. Walkers uses 256px
-    // internally, so we need to adjust the zoom level in either direction.
-    let zoom = (zoom as i32).saturating_sub(zoom_offset(source_tile_size));
-
-    // Clamp, since there is nothing below the single tile covering the whole world, and going
-    // too far up would overflow the number of tiles.
-    let zoom = zoom.clamp(0, MAX_TILE_ZOOM as i32) as u8;
-
-    // Map that into a big bitmap made out of web tiles.
-    let number_of_tiles = 2u32.pow(zoom as u32) as f64;
-    let x = (x * number_of_tiles).floor() as u32;
-    let y = (y * number_of_tiles).floor() as u32;
-
-    TileId { x, y, zoom }
-}
-
 /// Project geographical position into a 2D plane using Mercator.
-pub fn project(position: Position, zoom: f64) -> Pixels {
+pub(crate) fn project(position: Position, zoom: f64) -> Pixels {
     let total_pixels = total_pixels(zoom);
     let (x, y) = mercator_normalized(position);
     Pixels::new(x * total_pixels, y * total_pixels)
@@ -99,7 +83,27 @@ pub(crate) fn unproject(pixels: Pixels, zoom: f64) -> Position {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::lat_lon;
+    use crate::{lat_lon, tiles::TileId};
+
+    /// Calculate the tile coordinated for the given position.
+    #[cfg(test)]
+    pub(crate) fn tile_id(position: Position, zoom: u8, source_tile_size: u32) -> TileId {
+        let (x, y) = mercator_normalized(position);
+
+        // Some sources provide tiles of a different size, effectively bundling e.g. 4 256px tiles
+        // in one 512px one, or splitting a single one into 4 128px ones. Walkers uses 256px
+        // internally, so we need to adjust the zoom level in either direction.
+        // Clamp, since there is nothing below the single tile covering the whole world, and going
+        // too far up would overflow the number of tiles.
+        let zoom = tile_zoom(zoom, source_tile_size);
+
+        // Map that into a big bitmap made out of web tiles.
+        let number_of_tiles = 2u32.pow(zoom as u32) as f64;
+        let x = (x * number_of_tiles).floor() as u32;
+        let y = (y * number_of_tiles).floor() as u32;
+
+        TileId { x, y, zoom }
+    }
 
     #[test]
     fn projecting_position_and_tile() {

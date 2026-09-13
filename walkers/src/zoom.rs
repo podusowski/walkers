@@ -34,36 +34,33 @@ impl Default for Zoom {
 }
 
 impl Zoom {
-    pub fn round(&self) -> u8 {
-        self.0.round() as u8
-    }
-
-    pub fn zoom_in(&mut self) -> Result<(), InvalidZoom> {
+    pub(crate) fn zoom_in(&mut self) -> Result<(), InvalidZoom> {
         *self = Self::try_from(self.0 + 1.)?;
         Ok(())
     }
 
-    pub fn zoom_out(&mut self) -> Result<(), InvalidZoom> {
+    pub(crate) fn zoom_out(&mut self) -> Result<(), InvalidZoom> {
         *self = Self::try_from(self.0 - 1.)?;
         Ok(())
     }
 
     /// Zoom using a relative value.
-    pub fn zoom_by(&mut self, value: f64) {
+    pub(crate) fn zoom_by(&mut self, value: f64) {
         if let Ok(new_self) = Self::try_from(self.0 + value) {
             *self = new_self;
         }
     }
 }
 
+#[allow(clippy::unwrap_used)]
 #[cfg(test)]
 mod tests {
     use super::*;
 
     #[test]
     fn test_constructing_zoom() {
-        assert_eq!(16, Zoom::default().round());
-        assert_eq!(26, Zoom::try_from(26.).unwrap().round());
+        assert_eq!(16., Into::<f64>::into(Zoom::default()));
+        assert_eq!(26., Into::<f64>::into(Zoom::try_from(26.).unwrap()));
         assert_eq!(InvalidZoom, Zoom::try_from(27.).unwrap_err());
     }
 
@@ -71,7 +68,7 @@ mod tests {
     fn test_zooming_in() {
         let mut zoom = Zoom::try_from(25.).unwrap();
         assert!(zoom.zoom_in().is_ok());
-        assert_eq!(26, zoom.round());
+        assert_eq!(26., Into::<f64>::into(zoom));
         assert_eq!(Err(InvalidZoom), zoom.zoom_in());
     }
 
@@ -79,7 +76,7 @@ mod tests {
     fn test_zooming_out() {
         let mut zoom = Zoom::try_from(1.).unwrap();
         assert!(zoom.zoom_out().is_ok());
-        assert_eq!(0, zoom.round());
+        assert_eq!(0., Into::<f64>::into(zoom));
         assert_eq!(Err(InvalidZoom), zoom.zoom_out());
     }
 }
