@@ -243,7 +243,6 @@ impl<P: Projection> Map<'_, '_, '_, P> {
                 self.my_position,
                 self.options.pull_to_my_position_threshold,
                 self.options.drag_pan_buttons,
-                self.memory.zoom(),
             )
         };
 

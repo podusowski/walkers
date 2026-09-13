@@ -96,6 +96,7 @@ impl<P: Projection> MapMemory<P> {
             my_position,
             pull_to_my_position_threshold,
             drag_pan_buttons,
+            self.zoom(),
         )
     }
 
