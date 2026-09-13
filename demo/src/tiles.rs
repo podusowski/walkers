@@ -8,9 +8,9 @@ use walkers::Style;
 use walkers::{HttpOptions, HttpTiles, MercatorProjection, Tiles};
 
 pub(crate) enum TilesKind {
-    Http(HttpTiles<MercatorProjection>),
+    Http(HttpTiles),
     #[cfg(feature = "pmtiles")]
-    PmTiles(PmTiles<MercatorProjection>),
+    PmTiles(PmTiles),
 }
 
 impl AsMut<dyn Tiles<Projection = MercatorProjection>> for TilesKind {

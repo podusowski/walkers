@@ -535,11 +535,13 @@ mod tests {
         }
     }
 
-    fn projector_for_zoom(zoom: f64) -> (Rect, Projector<'static, MercatorProjection>) {
+    fn projector_for_zoom(
+        zoom: f64,
+        memory: &mut MapMemory,
+    ) -> (Rect, Projector<'_, MercatorProjection>) {
         let rect = Rect::from_min_size(Pos2::ZERO, Vec2::splat(512.0));
-        let mut memory = MapMemory::default();
         memory.set_zoom(zoom).unwrap();
-        let projector = Projector::new(&MercatorProjection, rect, &memory, lon_lat(0.0, 0.0));
+        let projector = Projector::new(rect, memory, lon_lat(0.0, 0.0));
         (rect, projector)
     }
 
@@ -553,12 +555,14 @@ mod tests {
             .with_screen_radius_px(50.0)
             .viewport_only(false);
 
-        let (rect_far, proj_far) = projector_for_zoom(8.0);
+        let mut far_memory = MapMemory::default();
+        let (rect_far, proj_far) = projector_for_zoom(8.0, &mut far_memory);
         let (clusters_far, max_far) = tree.cluster_stats(rect_far, &proj_far);
         assert_eq!(clusters_far, 1);
         assert_eq!(max_far, 2);
 
-        let (rect_near, proj_near) = projector_for_zoom(18.0);
+        let mut near_memory = MapMemory::default();
+        let (rect_near, proj_near) = projector_for_zoom(18.0, &mut near_memory);
         let (clusters_near, max_near) = tree.cluster_stats(rect_near, &proj_near);
         assert_eq!(clusters_near, 2);
         assert_eq!(max_near, 1);

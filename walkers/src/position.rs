@@ -18,11 +18,11 @@ pub fn lon_lat(lon: f64, lat: f64) -> Position {
     Position::new(lon, lat)
 }
 
-/// Geographical [`Position`] shifted by a number of pixels on the screen.
+/// World [`Position`] shifted by a number of pixels on the screen.
 #[derive(Debug, Clone, PartialEq)]
 #[cfg_attr(feature = "serde", derive(::serde::Serialize, ::serde::Deserialize))]
 pub(crate) struct AdjustedPosition {
-    /// Base geographical position.
+    /// Base world position.
     position: Position,
     /// Offset in pixels.
     offset: Pixels,

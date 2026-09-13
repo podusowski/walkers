@@ -117,7 +117,7 @@ struct ClusterApp {
     memory: MapMemory,
     rng: StdRng,
     points: Vec<LabeledSymbol>,
-    tiles: Option<HttpTiles<MercatorProjection>>,
+    tiles: Option<HttpTiles>,
     avg_frame_ms: RollingAvg<120>,
     plugin: Option<Rc<GroupedPlacesTree<LabeledSymbol, DemoClusterGroup, MercatorProjection>>>,
     stats: Arc<StatsCell>,
@@ -199,7 +199,7 @@ impl eframe::App for ClusterApp {
                 self.rebuild_plugin();
             }
 
-            let mut map = Map::new(MercatorProjection, &mut self.memory, Self::map_center());
+            let mut map = Map::new(&mut self.memory, Self::map_center());
             if let Some(tiles) = self.tiles.as_mut() {
                 map = map.with_layer(tiles, 1.0);
             }

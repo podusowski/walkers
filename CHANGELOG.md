@@ -4,14 +4,14 @@ All notable changes to this project will be documented in this file.
 
 ## Unreleased
 
-* The map now has a generic `Projection` parameter. `Map::new` takes a projection as its first argument instead of an optional tile source. Use `Map::with_layer` to add tile layers.
+* The map and its `MapMemory` now have a generic `Projection` parameter. Pass the projection to `MapMemory::new`, then pass that memory to `Map::new`. Use `Map::with_layer` to add tile layers.
 * New `Projection` trait with three built-in implementations.
 * `Plugin::run` no longer receives `&MapMemory`; it receives `&Projector` instead.
 * `Tiles` trait now has an associated type `Projection`, ensuring tile sources match the map's projection at compile time.
 * `TileSource` trait now has an associated type `Projection` and a `projection()` method.
 * `HttpTiles` and `PmTiles` are now generic over `P: Projection`. `PmTiles::new` and `PmTiles::with_style` take an additional `projection` parameter.
 * `LocalTiles` has been removed. Use `PmTiles` with a local `.pmtiles` file instead.
-* `MapMemory::detached` now requires a `P: Projection` argument.
+* `MapMemory`, `HttpTiles`, `PmTiles`, and `Plugin` default to `MercatorProjection` when their projection parameter is omitted.
 * New `OpenTopoMap` tile source.
 * `mercator` module is no longer public.
 * Several internal types made `pub(crate)`: `AdjustedPosition`, `Pixels`, `PixelsExt`, `Zoom` methods, `EguiTileFactory`, `HttpFetchError`, `HttpFetch`.

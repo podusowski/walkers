@@ -4,8 +4,6 @@ use egui::{
 
 use crate::{
     MapMemory, Options, Plugin, Position, Tiles,
-    center::Center,
-    position::AdjustedPosition,
     projector::{Projection, Projector},
     tiles::{Texts, draw_tiles},
 };
@@ -21,11 +19,11 @@ struct Layer<'a, P> {
 /// # Examples
 ///
 /// ```
-/// # use walkers::{Map, Tiles, MapMemory, Position, lon_lat, MercatorProjection, HttpTiles};
+/// # use walkers::{Map, Tiles, MapMemory, Position, lon_lat, HttpTiles};
 ///
-/// fn update(ui: &mut egui::Ui, tiles: &mut HttpTiles<MercatorProjection>, map_memory: &mut MapMemory) {
+/// fn update(ui: &mut egui::Ui, tiles: &mut HttpTiles, map_memory: &mut MapMemory) {
 ///     ui.add(
-///         Map::new(MercatorProjection, map_memory, lon_lat(17.03664, 51.09916))
+///         Map::new(map_memory, lon_lat(17.03664, 51.09916))
 ///             .with_layer(tiles, 1.0)
 ///     );
 /// }
@@ -35,18 +33,16 @@ struct Layer<'a, P> {
 /// other geo-localization method. If user drags the map, it enters a "detached state". You can use
 /// [`MapMemory`]'s methods to change the state programmatically.
 pub struct Map<'a, 'b, 'c, P: Projection> {
-    projection: P,
     layers: Vec<Layer<'b, P>>,
-    memory: &'a mut MapMemory,
+    memory: &'a mut MapMemory<P>,
     my_position: Position,
     plugins: Vec<Box<dyn Plugin<P> + 'c>>,
     options: Options,
 }
 
 impl<'a, 'b, 'c, P: Projection> Map<'a, 'b, 'c, P> {
-    pub fn new(projection: P, memory: &'a mut MapMemory, my_position: Position) -> Self {
+    pub fn new(memory: &'a mut MapMemory<P>, my_position: Position) -> Self {
         Self {
-            projection,
             layers: Vec::default(),
             memory,
             my_position,
@@ -78,7 +74,7 @@ impl<'a, 'b, 'c, P: Projection> Map<'a, 'b, 'c, P> {
     }
 
     pub fn projection(&self) -> &P {
-        &self.projection
+        self.memory.projection()
     }
 
     /// Set whether map should perform zoom gesture.
@@ -150,18 +146,15 @@ impl<'a, 'b, 'c, P: Projection> Map<'a, 'b, 'c, P> {
     pub fn show<R>(
         mut self,
         ui: &mut Ui,
-        add_contents: impl FnOnce(&mut Ui, &Response, &Projector<'_, P>, &MapMemory) -> R,
+        add_contents: impl FnOnce(&mut Ui, &Response, &Projector<'_, P>, &MapMemory<P>) -> R,
     ) -> InnerResponse<R> {
         let (rect, mut response) =
             ui.allocate_exact_size(ui.available_size(), Sense::click_and_drag());
 
         let mut changed = self.handle_gestures(ui, &response);
         let delta_time = ui.input(|reader| reader.stable_dt);
-        let zoom = self.memory.zoom;
-        changed |= self
-            .memory
-            .center_mode
-            .update_movement(delta_time, zoom.into());
+        let zoom = self.memory.zoom();
+        changed |= self.memory.update_movement(delta_time);
 
         if changed {
             response.mark_changed();
@@ -171,12 +164,7 @@ impl<'a, 'b, 'c, P: Projection> Map<'a, 'b, 'c, P> {
         let painter = ui.painter().with_clip_rect(rect);
         let mut texts = Texts::default();
 
-        let projector = Projector::new(
-            &self.projection,
-            response.rect,
-            self.memory,
-            self.my_position,
-        );
+        let projector = Projector::new(response.rect, self.memory, self.my_position);
 
         for layer in self.layers {
             draw_tiles(
@@ -225,34 +213,28 @@ impl<P: Projection> Map<'_, '_, '_, P> {
             // position.
             if let Some(offset) = offset {
                 // If map is tracking `my_position` and the input offset is close, just let it be.
-                if self.memory.detached(&self.projection).is_some()
+                if self.memory.detached().is_some()
                     || offset.length() > self.options.pull_to_my_position_threshold
                 {
-                    self.memory.center_mode = Center::Exact(
-                        AdjustedPosition::new(self.position()).shift(-offset, self.memory.zoom()),
-                    );
+                    let position = self.position();
+                    self.memory.center_at_with_offset(position, -offset);
                 }
             }
 
             // Shift by 1 because of the values given by zoom_delta(). Multiple by zoom_speed(defaults to 2.0),
             // because then it felt right with both mouse wheel, and an Android phone.
             self.memory
-                .zoom
                 .zoom_by((zoom_delta - 1.) * self.options.zoom_speed);
 
             if let Some(offset) = offset {
-                self.memory.center_mode = self
-                    .memory
-                    .center_mode
-                    .clone()
-                    .shift(offset, self.memory.zoom());
+                self.memory.shift_center(offset);
             }
 
             scroll_used |= zoom_delta_from_scroll;
 
             true
         } else {
-            self.memory.center_mode.handle_gestures(
+            self.memory.handle_gestures(
                 response,
                 self.my_position,
                 self.options.pull_to_my_position_threshold,
@@ -268,9 +250,8 @@ impl<P: Projection> Map<'_, '_, '_, P> {
             // Panning by scrolling, e.g. two-finger drag on a touchpad:
             let scroll_delta = ui.input(|i| i.smooth_scroll_delta);
             if scroll_delta != Vec2::ZERO {
-                self.memory.center_mode = Center::Exact(
-                    AdjustedPosition::new(self.position()).shift(scroll_delta, self.memory.zoom()),
-                );
+                let position = self.position();
+                self.memory.center_at_with_offset(position, scroll_delta);
                 scroll_used = true;
             }
         }
@@ -324,9 +305,7 @@ impl<P: Projection> Map<'_, '_, '_, P> {
 
     /// Get the real position at the map's center.
     fn position(&self) -> Position {
-        self.memory
-            .center_mode
-            .position(self.my_position, &self.projection)
+        self.memory.position(self.my_position)
     }
 }
 

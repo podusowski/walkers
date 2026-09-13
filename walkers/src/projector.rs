@@ -41,7 +41,8 @@ pub trait Projection {
 }
 
 /// Web Mercator projection for GPS (lat/lon) coordinates.
-#[derive(Debug, Clone)]
+#[derive(Debug, Default, Clone)]
+#[cfg_attr(feature = "serde", derive(::serde::Serialize, ::serde::Deserialize))]
 pub struct MercatorProjection;
 
 impl Projection for MercatorProjection {
@@ -74,7 +75,8 @@ impl Projection for MercatorProjection {
 ///
 /// Unlike Web Mercator, Equal Earth is not conformal: local distances can have different horizontal and vertical scales.
 /// [`Projection::scale_pixel_per_meter`] therefore returns the area-equivalent nominal linear scale.
-#[derive(Debug, Clone)]
+#[derive(Debug, Default, Clone)]
+#[cfg_attr(feature = "serde", derive(::serde::Serialize, ::serde::Deserialize))]
 pub struct EqualEarthProjection;
 
 impl Projection for EqualEarthProjection {
@@ -119,6 +121,7 @@ impl Projection for EqualEarthProjection {
 /// level doubles it. The y-axis is reversed so positive world y points
 /// upward while positive screen y points downward.
 #[derive(Debug, Clone)]
+#[cfg_attr(feature = "serde", derive(::serde::Serialize, ::serde::Deserialize))]
 pub struct PlanarProjection {
     /// Origin of the projection in world coordinates.
     pub origin: Position,
@@ -173,14 +176,10 @@ pub struct Projector<'a, P: Projection + ?Sized> {
     pub(crate) center_projected: Pixels,
 }
 
-impl<'a, P: Projection + ?Sized> Projector<'a, P> {
-    pub fn new(
-        projection: &'a P,
-        clip_rect: Rect,
-        map_memory: &MapMemory,
-        my_position: Position,
-    ) -> Self {
-        let center = map_memory.center_mode.position(my_position, projection);
+impl<'a, P: Projection> Projector<'a, P> {
+    pub fn new(clip_rect: Rect, map_memory: &'a MapMemory<P>, my_position: Position) -> Self {
+        let projection = map_memory.projection();
+        let center = map_memory.position(my_position);
         let zoom = map_memory.zoom();
         let center_projected = projection.position_to_pixels(center, zoom);
         Self {
@@ -190,7 +189,9 @@ impl<'a, P: Projection + ?Sized> Projector<'a, P> {
             center_projected,
         }
     }
+}
 
+impl<P: Projection + ?Sized> Projector<'_, P> {
     pub fn project(&self, position: Position) -> Pos2 {
         let projected = self.projection.position_to_pixels(position, self.zoom);
         (self.clip_rect.center().to_vec2() + (projected - self.center_projected).to_vec2())
@@ -247,7 +248,6 @@ mod tests {
         map_memory.set_zoom(18.).unwrap();
 
         let projector = Projector::new(
-            &MercatorProjection,
             Rect::from_min_size(Pos2::ZERO, Vec2::splat(100.)),
             &map_memory,
             original,
@@ -313,7 +313,6 @@ mod tests {
         map_memory.set_zoom(10.).unwrap();
 
         let projector = Projector::new(
-            &MercatorProjection,
             Rect::from_min_size(Pos2::ZERO, Vec2::splat(100.)),
             &map_memory,
             original,
@@ -330,12 +329,11 @@ mod tests {
     fn projected_roundtrip() {
         let original = Position::new(100.0, 200.0);
 
-        let mut map_memory = MapMemory::default();
+        let projection = PlanarProjection::new(original, 1.0);
+        let mut map_memory = MapMemory::new(projection);
         map_memory.set_zoom(10.).unwrap();
 
-        let projection = PlanarProjection::new(original, 1.0);
         let projector = Projector::new(
-            &projection,
             Rect::from_min_size(Pos2::ZERO, Vec2::splat(100.)),
             &map_memory,
             original,
