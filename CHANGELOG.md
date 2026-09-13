@@ -9,6 +9,8 @@ All notable changes to this project will be documented in this file.
 * `render_line` and `render_symbol` fill a `Vec<Drawable>`, and `tessellate_polygon` returns
   walkers' own `Mesh`.
 * Vector tiles now honor the transparency of the layer.
+* Fix the map being flinged way too far when the frame rate stutters.
+* Fix the map drifting when a drag turns into a pinch gesture.
 
 ## 0.59.0
 
