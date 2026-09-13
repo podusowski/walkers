@@ -20,11 +20,17 @@ pub enum Error {
     Tessellation(#[from] TessellationError),
 }
 
-pub(crate) fn transformed_texts(texts: &[Text], transform: TSTransform) -> Vec<Text> {
+pub(crate) fn transformed_texts(
+    texts: &[Text],
+    transform: TSTransform,
+    transparency: f32,
+) -> Vec<Text> {
     texts
         .iter()
         .map(|text| Text {
             position: text.position * transform.scaling + transform.translation,
+            text_color: text.text_color.gamma_multiply(transparency),
+            halo_color: text.halo_color.gamma_multiply(transparency),
             ..text.to_owned()
         })
         .collect()

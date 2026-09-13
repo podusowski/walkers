@@ -20,6 +20,10 @@ struct Uniform {
     offset: [f32; 2],
     viewport_origin: [f32; 2],
     viewport_size: [f32; 2],
+    transparency: f32,
+
+    /// A uniform buffer is bound in 16 byte chunks, so the struct has to fill whole ones.
+    _padding: [f32; 3],
 }
 
 #[repr(C)]
@@ -336,12 +340,15 @@ impl Renderer {
         device: &Device,
         transform: TSTransform,
         viewport: Rect,
+        transparency: f32,
     ) -> BindGroup {
         let uniform = Uniform {
             scale: [transform.scaling, transform.scaling],
             offset: [transform.translation.x, transform.translation.y],
             viewport_origin: [viewport.min.x, viewport.min.y],
             viewport_size: [viewport.width(), viewport.height()],
+            transparency,
+            _padding: Default::default(),
         };
 
         let buffer = device.create_buffer_init(&BufferInitDescriptor {
