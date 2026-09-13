@@ -7,6 +7,9 @@ const INERTIA_TAU: f32 = 0.2f32;
 /// Speed, in points per second, below which the inertia is considered to be over.
 const INERTIA_STOP_SPEED: f32 = 10f32;
 
+/// Multiplier for the inertia velocity, to make it feel more natural.
+const INERTIA_MULTIPLIER: f32 = 2.0;
+
 /// Position of the map's center. Initially, the map follows `my_position` argument which typically
 /// is meant to be fed by a GPS sensor or other geo-localization method. If user drags the map,
 /// it becomes "detached" and stays this way until [`MapMemory::center_mode`] is changed back to
@@ -73,7 +76,7 @@ impl Center {
                 .adjusted_position()
                 .unwrap_or(AdjustedPosition::new(my_position))
                 .shift(response.drag_delta(), zoom),
-            velocity: pointer_velocity(response),
+            velocity: pointer_velocity(response) * INERTIA_MULTIPLIER,
             from_detached,
         };
     }
