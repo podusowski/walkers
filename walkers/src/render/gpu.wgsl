@@ -8,7 +8,7 @@ struct Uniform {
     viewport_origin: vec2<f32>,
     viewport_size: vec2<f32>,
 
-    transparency: f32,
+    @size(16) transparency: f32,
 };
 
 @group(0) @binding(0) var<uniform> settings: Uniform;
