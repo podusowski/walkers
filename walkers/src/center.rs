@@ -131,7 +131,7 @@ impl Center {
 
     /// Returns exact position if map is detached (i.e. not following `my_position`),
     /// `None` otherwise.
-    pub(crate) fn detached<P: Projection + ?Sized>(&self, projection: &P) -> Option<Position> {
+    pub(crate) fn detached<P: Projection>(&self, projection: &P) -> Option<Position> {
         self.adjusted_position().map(|p| p.position(projection))
     }
 
@@ -150,7 +150,7 @@ impl Center {
     }
 
     /// Get the real position at the map's center.
-    pub(crate) fn position<P: Projection + ?Sized>(
+    pub(crate) fn position<P: Projection>(
         &self,
         my_position: Position,
         projection: &P,

@@ -8,7 +8,7 @@ pub struct OpenStreetMap;
 impl TileSource for OpenStreetMap {
     type Projection = MercatorProjection;
 
-    fn projection(&self) -> MercatorProjection {
+    fn projection(&self) -> Self::Projection {
         MercatorProjection
     }
 

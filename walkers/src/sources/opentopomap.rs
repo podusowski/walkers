@@ -25,7 +25,7 @@ pub struct OpenTopoMap(pub OpenTopoServer);
 impl TileSource for OpenTopoMap {
     type Projection = MercatorProjection;
 
-    fn projection(&self) -> MercatorProjection {
+    fn projection(&self) -> Self::Projection {
         MercatorProjection
     }
 

@@ -164,7 +164,7 @@ impl eframe::App for ScrollPerf {
         }
 
         egui::CentralPanel::default().show(ui, |ui| {
-            Map::new(MercatorProjection, &mut self.memory, start())
+            Map::new(&mut self.memory, start())
                 .with_layer(self.tiles.as_mut(), 1.0)
                 .show(ui, |_, _, _, _| {});
         });

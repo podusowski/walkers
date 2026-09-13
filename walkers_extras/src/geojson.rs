@@ -9,8 +9,8 @@ use rstar::primitives::{GeomWithData, Rectangle};
 use rstar::{AABB, RTree};
 use walkers::geo_types::Geometry;
 use walkers::{
-    Context, Filter, Layer, Position, Projection, Projector, Style, place_texts, render_fill, render_line,
-    render_symbol, to_shapes,
+    Context, Filter, Layer, Position, Projection, Projector, Style, place_texts, render_fill,
+    render_line, render_symbol, to_shapes,
 };
 
 struct Feature {
@@ -53,12 +53,7 @@ impl GeoJsonLayer {
         }
     }
 
-    pub fn render<P: Projection + ?Sized>(
-        &self,
-        ui: &mut Ui,
-        projector: &Projector<'_, P>,
-        zoom: u8,
-    ) {
+    pub fn render<P: Projection>(&self, ui: &mut Ui, projector: &Projector<'_, P>, zoom: u8) {
         let viewport = viewport(projector, ui.clip_rect());
 
         let mut drawables = Vec::new();
@@ -155,10 +150,7 @@ fn bounding_rect(geometry: &Geometry<f32>) -> Rectangle<[f64; 2]> {
 }
 
 /// Compute the geographic envelope of the current viewport by unprojecting its corners.
-fn viewport<P: Projection + ?Sized>(
-    projector: &Projector<'_, P>,
-    clip_rect: egui::Rect,
-) -> AABB<[f64; 2]> {
+fn viewport<P: Projection>(projector: &Projector<'_, P>, clip_rect: egui::Rect) -> AABB<[f64; 2]> {
     let top_left = projector.unproject(clip_rect.min);
     let bottom_right = projector.unproject(clip_rect.max);
 
@@ -171,7 +163,7 @@ fn viewport<P: Projection + ?Sized>(
     AABB::from_corners([min_lon, min_lat], [max_lon, max_lat])
 }
 
-fn project_geometry<P: Projection + ?Sized>(
+fn project_geometry<P: Projection>(
     geometry: &Geometry<f32>,
     projector: &Projector<'_, P>,
 ) -> Geometry<f32> {

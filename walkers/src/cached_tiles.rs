@@ -53,6 +53,7 @@ impl CachedTiles {
             zoom_candidate = zoom_candidate.checked_sub(1)?;
         }
     }
+
     pub(crate) fn at(&mut self, tile_id: TileId) -> Option<TilePiece> {
         self.io.put_single_fetched_tile_in_cache();
 

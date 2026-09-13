@@ -1,12 +1,13 @@
 use egui::{Response, Ui};
 
-use crate::{Projection, Projector};
+use crate::{MercatorProjection, Projection, Projector};
 
 /// Plugins allow drawing custom shapes on the map. After implementing this trait for your type,
 /// you can add it to the map with [`crate::Map::with_plugin`]
 ///
+/// Implementing `Plugin` without a projection parameter creates a Web Mercator plugin.
 /// Plugins that support every projection should use `impl<P: Projection> Plugin<P>`.
-pub trait Plugin<P: Projection> {
+pub trait Plugin<P: Projection = MercatorProjection> {
     /// Function called at each frame.
     ///
     /// The provided [`Ui`] has its [`Ui::max_rect`] set to the full rect that was allocated

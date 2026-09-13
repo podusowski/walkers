@@ -1,6 +1,6 @@
 use crate::{
-    Projection, TileId, TilePiece, Tiles, cached_tiles::CachedTiles, io::Fetch, sources::Attribution,
-    style::Style, tiles::EguiTileFactory,
+    MercatorProjection, Projection, TileId, TilePiece, Tiles, cached_tiles::CachedTiles, io::Fetch,
+    sources::Attribution, style::Style, tiles::EguiTileFactory,
 };
 use bytes::Bytes;
 use egui::Context;
@@ -20,7 +20,7 @@ const DEFAULT_MAX_ZOOM: u8 = 15;
 /// Provides tiles from a local PMTiles file.
 ///
 /// <https://docs.protomaps.com/guide/getting-started>
-pub struct PmTiles<P: Projection> {
+pub struct PmTiles<P: Projection = MercatorProjection> {
     cached_tiles: CachedTiles,
     projection: P,
 }
@@ -53,17 +53,17 @@ impl<P: Projection> PmTiles<P> {
     ) -> Self {
         Self {
             cached_tiles: CachedTiles::new(
-            PmTilesFetch::new(path.as_ref()),
-            EguiTileFactory::new(egui_ctx.clone(), style, tile_size),
-            Attribution {
-                text: "PMTiles",
-                url: "",
-                logo_light: None,
-                logo_dark: None,
-            },
-            tile_size,
-            DEFAULT_MAX_ZOOM,
-            egui_ctx,
+                PmTilesFetch::new(path.as_ref()),
+                EguiTileFactory::new(egui_ctx.clone(), style, tile_size),
+                Attribution {
+                    text: "PMTiles",
+                    url: "",
+                    logo_light: None,
+                    logo_dark: None,
+                },
+                tile_size,
+                DEFAULT_MAX_ZOOM,
+                egui_ctx,
             ),
             projection,
         }

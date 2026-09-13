@@ -227,7 +227,7 @@ impl eframe::App for Wanderers {
         let attribution = self.tiles.attribution();
         let pending = self.new_place.as_ref().map(|new_place| new_place.position);
 
-        let mut map = Map::new(MercatorProjection, &mut self.map_memory, home())
+        let mut map = Map::new(&mut self.map_memory, home())
             .with_layer(self.tiles.as_mut(), 1.0)
             .zoom_with_ctrl(false);
 
@@ -340,7 +340,7 @@ fn ask_for_name(ui: &Ui, new_place: &mut NewPlace) -> Outcome {
 
 /// Places are grouped, so that a journal which got dense in one city is still readable when
 /// the whole country is on the screen.
-fn places(places: &[journal::Place]) -> impl walkers::Plugin<MercatorProjection> {
+fn places(places: &[journal::Place]) -> impl walkers::Plugin {
     GroupedPlaces::new(
         places
             .iter()
@@ -405,7 +405,7 @@ fn zoom(ui: &Ui, map_memory: &mut MapMemory) {
 
 /// Once the map is dragged away, offer a way back.
 fn go_home(ui: &Ui, memory: &mut MapMemory) {
-    if memory.detached(&MercatorProjection).is_some() {
+    if memory.detached().is_some() {
         Window::new("Go home")
             .collapsible(false)
             .resizable(false)

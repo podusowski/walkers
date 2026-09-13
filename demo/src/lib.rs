@@ -8,9 +8,7 @@ use std::io;
 
 use basemaps::{TilesKind, basemaps};
 use egui::{Button, DragPanButtons, OpenUrl, Rect, Vec2};
-use walkers::{
-    Color, Filter, Float, Layer, Layout, Map, MapMemory, MercatorProjection, Paint, Style, json,
-};
+use walkers::{Color, Filter, Float, Layer, Layout, Map, MapMemory, Paint, Style, json};
 use walkers_extras::GeoJsonLayer;
 
 use crate::basemaps::Basemaps;
@@ -54,7 +52,7 @@ impl eframe::App for MyApp {
             .collect();
 
         // In egui, widgets are constructed and consumed in each frame.
-        let mut map = Map::new(MercatorProjection, &mut self.map_memory, my_position);
+        let mut map = Map::new(&mut self.map_memory, my_position);
 
         // Various aspects of the map can be configured.
         map = map
@@ -108,12 +106,10 @@ impl eframe::App for MyApp {
 
             let http_stats = tiles
                 .iter()
-                .filter_map(|tiles| {
-                    if let TilesKind::Http(tiles) = tiles {
-                        Some(tiles.stats())
-                    } else {
-                        None
-                    }
+                .filter_map(|tiles| match tiles {
+                    TilesKind::Http(tiles) => Some(tiles.stats()),
+                    #[cfg(feature = "pmtiles")]
+                    TilesKind::PmTiles(_) => None,
                 })
                 .collect();
 

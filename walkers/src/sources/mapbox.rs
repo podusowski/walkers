@@ -48,7 +48,7 @@ pub struct Mapbox {
 impl TileSource for Mapbox {
     type Projection = MercatorProjection;
 
-    fn projection(&self) -> MercatorProjection {
+    fn projection(&self) -> Self::Projection {
         MercatorProjection
     }
 

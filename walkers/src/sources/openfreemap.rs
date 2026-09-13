@@ -7,7 +7,7 @@ pub struct OpenFreeMap;
 impl TileSource for OpenFreeMap {
     type Projection = MercatorProjection;
 
-    fn projection(&self) -> MercatorProjection {
+    fn projection(&self) -> Self::Projection {
         MercatorProjection
     }
 
