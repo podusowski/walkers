@@ -1,5 +1,6 @@
 use egui::{
     DragPanButtons, InnerResponse, PointerButton, Response, Sense, Ui, UiBuilder, Vec2, Widget,
+    emath::NumExt as _,
 };
 
 use crate::{
@@ -152,7 +153,10 @@ impl<'a, 'b, 'c, P: Projection> Map<'a, 'b, 'c, P> {
             ui.allocate_exact_size(ui.available_size(), Sense::click_and_drag());
 
         let mut changed = self.handle_gestures(ui, &response);
-        let delta_time = ui.input(|reader| reader.stable_dt);
+
+        // Clamped, so that a single long frame does not teleport the map.
+        let delta_time = ui.input(|reader| reader.stable_dt).at_most(0.1);
+
         let zoom = self.memory.zoom();
         changed |= self.memory.update_movement(delta_time);
 
@@ -239,6 +243,7 @@ impl<P: Projection> Map<'_, '_, '_, P> {
                 self.my_position,
                 self.options.pull_to_my_position_threshold,
                 self.options.drag_pan_buttons,
+                self.memory.zoom(),
             )
         };
 
