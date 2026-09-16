@@ -7,6 +7,8 @@ struct Uniform {
     // have to be too - a host may well have narrowed the viewport down to one tile.
     viewport_origin: vec2<f32>,
     viewport_size: vec2<f32>,
+
+    @size(16) transparency: f32,
 };
 
 @group(0) @binding(0) var<uniform> settings: Uniform;
@@ -45,7 +47,7 @@ fn vs_fill(
     );
 
     // Colours stay in gamma space here, exactly as egui leaves them.
-    out.color = color;
+    out.color = color * settings.transparency;
     return out;
 }
 
@@ -93,7 +95,7 @@ fn vs_line(
     );
     let drawn_half = length(extrude);
 
-    out.color = color;
+    out.color = color * settings.transparency;
     out.distance = side * drawn_half;
     out.half_width = drawn_half - 0.5;
     return out;
