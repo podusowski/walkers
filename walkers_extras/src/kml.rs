@@ -20,7 +20,7 @@ impl KmlLayer {
     }
 }
 
-fn draw_line_layer<P: Projection + ?Sized>(
+fn draw_line_layer<P: Projection>(
     painter: &egui::Painter,
     projector: &Projector<'_, P>,
     element: &kml::Kml,
@@ -44,7 +44,7 @@ fn draw_line_layer<P: Projection + ?Sized>(
     }
 }
 
-fn draw_circle_layer<P: Projection + ?Sized>(
+fn draw_circle_layer<P: Projection>(
     painter: &egui::Painter,
     projector: &Projector<'_, P>,
     element: &kml::Kml,
@@ -68,7 +68,7 @@ fn draw_circle_layer<P: Projection + ?Sized>(
     }
 }
 
-fn draw_line_geometry<P: Projection + ?Sized>(
+fn draw_line_geometry<P: Projection>(
     painter: &egui::Painter,
     projector: &Projector<'_, P>,
     geometry: &kml::types::Geometry,
@@ -106,7 +106,7 @@ fn draw_line_geometry<P: Projection + ?Sized>(
     }
 }
 
-fn draw_circle_geometry<P: Projection + ?Sized>(
+fn draw_circle_geometry<P: Projection>(
     painter: &egui::Painter,
     projector: &Projector<'_, P>,
     geometry: &kml::types::Geometry,

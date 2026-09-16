@@ -271,7 +271,7 @@ impl<P: Projection> walkers::Plugin<P> for StatsHandle {
 struct DemoClusterGroup;
 
 impl Group for DemoClusterGroup {
-    fn draw<T: Place, P: Projection + ?Sized>(
+    fn draw<T: Place, P: Projection>(
         &self,
         places: &[&T],
         position: Position,

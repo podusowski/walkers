@@ -40,7 +40,7 @@ impl AdjustedPosition {
     }
 
     /// Calculate the real position, i.e. including the offset.
-    pub(crate) fn position<P: Projection + ?Sized>(&self, projection: &P) -> Position {
+    pub(crate) fn position<P: Projection>(&self, projection: &P) -> Position {
         projection.pixels_to_position(
             projection.position_to_pixels(self.position, self.zoom) - self.offset,
             self.zoom,

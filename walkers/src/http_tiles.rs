@@ -178,8 +178,8 @@ where
 
 #[cfg(test)]
 mod tests {
-    use crate::MaxParallelDownloads;
     use crate::projector::MercatorProjection;
+    use crate::{MaxParallelDownloads, PlanarProjection, Position};
 
     use super::*;
     use hypermocker::{
@@ -389,7 +389,7 @@ mod tests {
         awaiting_request.expect().await;
     }
 
-    async fn assert_tile_is_empty_forever(tiles: &mut HttpTiles<MercatorProjection>) {
+    async fn assert_tile_is_empty_forever<P: Projection>(tiles: &mut HttpTiles<P>) {
         // Should be None now, and forever.
         assert!(tiles.at(TILE_ID).is_none());
         tokio::time::sleep(Duration::from_secs(1)).await;
@@ -442,13 +442,15 @@ mod tests {
     }
 
     /// Tile source, which gives invalid urls.
-    struct GarbageSource;
+    struct GarbageSource {
+        planar_proj: PlanarProjection,
+    }
 
     impl TileSource for GarbageSource {
-        type Projection = MercatorProjection;
+        type Projection = PlanarProjection;
 
-        fn projection(&self) -> MercatorProjection {
-            MercatorProjection
+        fn projection(&self) -> PlanarProjection {
+            self.planar_proj.clone()
         }
 
         fn tile_url(&self, _: TileId) -> String {
@@ -468,7 +470,15 @@ mod tests {
     #[tokio::test]
     async fn tile_is_empty_forever_if_http_can_not_even_connect() {
         let _ = env_logger::try_init();
-        let mut tiles = HttpTiles::new(GarbageSource, Context::default());
+        let mut tiles = HttpTiles::new(
+            GarbageSource {
+                planar_proj: PlanarProjection {
+                    origin: Position::new(413320., 7244660.),
+                    pixels_per_meter_at_zoom_zero: 8192.,
+                },
+            },
+            Context::default(),
+        );
         assert_tile_is_empty_forever(&mut tiles).await;
     }
 }

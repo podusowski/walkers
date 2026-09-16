@@ -36,12 +36,12 @@ where
 
 pub trait Place {
     fn position(&self) -> Position;
-    fn draw<P: Projection + ?Sized>(&self, ui: &Ui, projector: &Projector<'_, P>);
+    fn draw<P: Projection>(&self, ui: &Ui, projector: &Projector<'_, P>);
 }
 
 /// A group of places that can be drawn together on the map.
 pub trait Group {
-    fn draw<T: Place, P: Projection + ?Sized>(
+    fn draw<T: Place, P: Projection>(
         &self,
         places: &[&T],
         position: Position,
@@ -71,7 +71,7 @@ where
     }
 
     /// Handle user interactions. Returns whether group should be expanded.
-    fn interact<P: Projection + ?Sized>(
+    fn interact<P: Projection>(
         &self,
         position: Position,
         projector: &Projector<'_, P>,
@@ -122,7 +122,7 @@ where
 fn groups<'a, T, P>(places: &'a [T], projector: &Projector<'_, P>) -> Vec<Vec<&'a T>>
 where
     T: Place,
-    P: Projection + ?Sized,
+    P: Projection,
 {
     let mut groups: Vec<Vec<&T>> = Vec::new();
 
@@ -141,7 +141,7 @@ where
 }
 
 /// Calculate the distance between two positions after being projected onto the screen.
-fn distance_projected<P: Projection + ?Sized>(
+fn distance_projected<P: Projection>(
     p1: Position,
     p2: Position,
     projector: &Projector<'_, P>,
@@ -207,7 +207,7 @@ impl PointDistance for Pt {
     }
 }
 
-fn interact_cluster<P: Projection + ?Sized>(
+fn interact_cluster<P: Projection>(
     ui: &Ui,
     projector: &Projector<'_, P>,
     center: Position,
@@ -404,7 +404,7 @@ impl<T: Place, G: Group, P: Projection> GroupedPlacesTree<T, G, P> {
         }
     }
 
-    pub fn draw_once<Q: Projection + ?Sized>(
+    pub fn draw_once<Q: Projection>(
         &self,
         ui: &mut Ui,
         response: &Response,
@@ -413,7 +413,7 @@ impl<T: Place, G: Group, P: Projection> GroupedPlacesTree<T, G, P> {
         self.draw_with_stats(ui, response, projector);
     }
 
-    pub fn draw_with_stats<Q: Projection + ?Sized>(
+    pub fn draw_with_stats<Q: Projection>(
         &self,
         ui: &mut Ui,
         response: &Response,
@@ -453,7 +453,7 @@ impl<T: Place, G: Group, P: Projection> GroupedPlacesTree<T, G, P> {
         (clusters, max_size)
     }
 
-    pub fn cluster_stats<Q: Projection + ?Sized>(
+    pub fn cluster_stats<Q: Projection>(
         &self,
         rect: egui::Rect,
         projector: &Projector<'_, Q>,
@@ -518,14 +518,14 @@ mod tests {
             self.0
         }
 
-        fn draw<P: Projection + ?Sized>(&self, _ui: &Ui, _projector: &Projector<'_, P>) {}
+        fn draw<P: Projection>(&self, _ui: &Ui, _projector: &Projector<'_, P>) {}
     }
 
     #[derive(Clone)]
     struct DummyGroup;
 
     impl Group for DummyGroup {
-        fn draw<T: Place, P: Projection + ?Sized>(
+        fn draw<T: Place, P: Projection>(
             &self,
             _places: &[&T],
             _position: Position,

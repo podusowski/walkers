@@ -9,7 +9,7 @@ pub struct Geoportal;
 impl TileSource for Geoportal {
     type Projection = MercatorProjection;
 
-    fn projection(&self) -> MercatorProjection {
+    fn projection(&self) -> Self::Projection {
         MercatorProjection
     }
 
