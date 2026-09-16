@@ -5,13 +5,16 @@ mod mapbox;
 #[cfg(feature = "mvt")]
 mod openfreemap;
 mod openstreetmap;
+mod opentopomap;
 
 use crate::TileId;
+use crate::projector::Projection;
 pub use geoportal::Geoportal;
 pub use mapbox::{Mapbox, MapboxStyle};
 #[cfg(feature = "mvt")]
 pub use openfreemap::OpenFreeMap;
 pub use openstreetmap::OpenStreetMap;
+pub use opentopomap::{OpenTopoMap, OpenTopoServer};
 
 #[derive(Clone)]
 pub struct Attribution {
@@ -23,11 +26,14 @@ pub struct Attribution {
 
 /// Remote tile server definition, source for the [`crate::HttpTiles`].
 pub trait TileSource {
+    /// The projection this tile source uses.
+    type Projection: Projection;
+
     fn tile_url(&self, tile_id: TileId) -> String;
     fn attribution(&self) -> Attribution;
+    fn projection(&self) -> Self::Projection;
 
-    /// Size of each tile, in pixels. Walkers works with 256px tiles internally, so this
-    /// should be 256 multiplied or divided by a power of two, for example 128, 256 or 512.
+    /// Size of each tile, should be a multiple of 256.
     fn tile_size(&self) -> u32 {
         256
     }

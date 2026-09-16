@@ -4,14 +4,13 @@ use egui::{
 };
 
 use crate::{
-    MapMemory, Options, Plugin, Position, Projector, Tiles,
-    center::Center,
-    position::AdjustedPosition,
+    MapMemory, Options, Plugin, Position, Tiles,
+    projector::{Projection, Projector},
     tiles::{Texts, draw_tiles},
 };
 
-struct Layer<'a> {
-    tiles: &'a mut dyn Tiles,
+struct Layer<'a, P> {
+    tiles: &'a mut dyn Tiles<Projection = P>,
     transparency: f32,
 }
 
@@ -21,37 +20,30 @@ struct Layer<'a> {
 /// # Examples
 ///
 /// ```
-/// # use walkers::{Map, Tiles, MapMemory, Position, lon_lat};
+/// # use walkers::{Map, Tiles, MapMemory, Position, lon_lat, HttpTiles};
 ///
-/// fn update(ui: &mut egui::Ui, tiles: &mut dyn Tiles, map_memory: &mut MapMemory) {
-///     ui.add(Map::new(
-///         Some(tiles), // `None`, if you don't want to show any tiles.
-///         map_memory,
-///         lon_lat(17.03664, 51.09916)
-///     ));
+/// fn update(ui: &mut egui::Ui, tiles: &mut HttpTiles, map_memory: &mut MapMemory) {
+///     ui.add(
+///         Map::new(map_memory, lon_lat(17.03664, 51.09916))
+///             .with_layer(tiles, 1.0)
+///     );
 /// }
 /// ```
 ///
 /// Initially, the map follows `my_position` argument which is typically fed by a GPS sensor or
 /// other geo-localization method. If user drags the map, it enters a "detached state". You can use
 /// [`MapMemory`]'s methods to change the state programmatically.
-pub struct Map<'a, 'b, 'c> {
-    tiles: Option<&'b mut dyn Tiles>,
-    layers: Vec<Layer<'b>>,
-    memory: &'a mut MapMemory,
+pub struct Map<'a, 'b, 'c, P: Projection> {
+    layers: Vec<Layer<'b, P>>,
+    memory: &'a mut MapMemory<P>,
     my_position: Position,
-    plugins: Vec<Box<dyn Plugin + 'c>>,
+    plugins: Vec<Box<dyn Plugin<P> + 'c>>,
     options: Options,
 }
 
-impl<'a, 'b, 'c> Map<'a, 'b, 'c> {
-    pub fn new(
-        tiles: Option<&'b mut dyn Tiles>,
-        memory: &'a mut MapMemory,
-        my_position: Position,
-    ) -> Self {
+impl<'a, 'b, 'c, P: Projection> Map<'a, 'b, 'c, P> {
+    pub fn new(memory: &'a mut MapMemory<P>, my_position: Position) -> Self {
         Self {
-            tiles,
             layers: Vec::default(),
             memory,
             my_position,
@@ -61,18 +53,29 @@ impl<'a, 'b, 'c> Map<'a, 'b, 'c> {
     }
 
     /// Add plugin to the drawing pipeline. Plugins allow drawing custom shapes on the map.
-    pub fn with_plugin(mut self, plugin: impl Plugin + 'c) -> Self {
+    pub fn with_plugin(mut self, plugin: impl Plugin<P> + 'c) -> Self {
         self.plugins.push(Box::new(plugin));
         self
     }
 
     /// Add a tile layer. All layers are drawn on top of each other with given transparency.
-    pub fn with_layer(mut self, tiles: &'b mut dyn Tiles, transparency: f32) -> Self {
+    ///
+    /// The tile source must use the same projection as the map, enforced at compile time
+    /// via the [`Tiles::Projection`] associated type.
+    pub fn with_layer(
+        mut self,
+        tiles: &'b mut dyn Tiles<Projection = P>,
+        transparency: f32,
+    ) -> Self {
         self.layers.push(Layer {
             tiles,
             transparency,
         });
         self
+    }
+
+    pub fn projection(&self) -> &P {
+        self.memory.projection()
     }
 
     /// Set whether map should perform zoom gesture.
@@ -144,7 +147,7 @@ impl<'a, 'b, 'c> Map<'a, 'b, 'c> {
     pub fn show<R>(
         mut self,
         ui: &mut Ui,
-        add_contents: impl FnOnce(&mut Ui, &Response, &Projector, &MapMemory) -> R,
+        add_contents: impl FnOnce(&mut Ui, &Response, &Projector<'_, P>, &MapMemory<P>) -> R,
     ) -> InnerResponse<R> {
         let (rect, mut response) =
             ui.allocate_exact_size(ui.available_size(), Sense::click_and_drag());
@@ -154,29 +157,23 @@ impl<'a, 'b, 'c> Map<'a, 'b, 'c> {
         // Clamped, so that a single long frame does not teleport the map.
         let delta_time = ui.input(|reader| reader.stable_dt).at_most(0.1);
 
-        let zoom = self.memory.zoom;
-        changed |= self
-            .memory
-            .center_mode
-            .update_movement(delta_time, zoom.into());
+        let zoom = self.memory.zoom();
+        changed |= self.memory.update_movement(delta_time);
 
         if changed {
             response.mark_changed();
             ui.request_repaint();
         }
 
-        let map_center = self.position();
         let painter = ui.painter().with_clip_rect(rect);
         let mut texts = Texts::default();
 
-        if let Some(tiles) = self.tiles {
-            draw_tiles(&painter, map_center, zoom, tiles, 1.0, &mut texts);
-        }
+        let projector = Projector::new(response.rect, self.memory, self.my_position);
 
         for layer in self.layers {
             draw_tiles(
                 &painter,
-                map_center,
+                projector.center_projected,
                 zoom,
                 layer.tiles,
                 layer.transparency,
@@ -187,10 +184,9 @@ impl<'a, 'b, 'c> Map<'a, 'b, 'c> {
         texts.paint(&painter);
 
         // Run plugins.
-        let projector = Projector::new(response.rect, self.memory, self.my_position);
         for (idx, plugin) in self.plugins.into_iter().enumerate() {
             let mut child_ui = ui.new_child(UiBuilder::new().max_rect(rect).id_salt(idx));
-            plugin.run(&mut child_ui, &response, &projector, self.memory);
+            plugin.run(&mut child_ui, &response, &projector);
         }
 
         let mut child_ui = ui.new_child(UiBuilder::new().max_rect(rect).id_salt("inner"));
@@ -200,7 +196,7 @@ impl<'a, 'b, 'c> Map<'a, 'b, 'c> {
     }
 }
 
-impl Map<'_, '_, '_> {
+impl<P: Projection> Map<'_, '_, '_, P> {
     /// Handle user inputs and recalculate everything accordingly. Returns whether something changed.
     fn handle_gestures(&mut self, ui: &mut Ui, response: &Response) -> bool {
         let (zoom_delta, zoom_delta_from_scroll) = self.zoom_delta(ui, response);
@@ -224,36 +220,29 @@ impl Map<'_, '_, '_> {
                 if self.memory.detached().is_some()
                     || offset.length() > self.options.pull_to_my_position_threshold
                 {
-                    self.memory.center_mode = Center::Exact(
-                        AdjustedPosition::new(self.position()).shift(-offset, self.memory.zoom()),
-                    );
+                    let position = self.position();
+                    self.memory.center_at_with_offset(position, -offset);
                 }
             }
 
             // Shift by 1 because of the values given by zoom_delta(). Multiple by zoom_speed(defaults to 2.0),
             // because then it felt right with both mouse wheel, and an Android phone.
             self.memory
-                .zoom
                 .zoom_by((zoom_delta - 1.) * self.options.zoom_speed);
 
             if let Some(offset) = offset {
-                self.memory.center_mode = self
-                    .memory
-                    .center_mode
-                    .clone()
-                    .shift(offset, self.memory.zoom());
+                self.memory.shift_center(offset);
             }
 
             scroll_used |= zoom_delta_from_scroll;
 
             true
         } else {
-            self.memory.center_mode.handle_gestures(
+            self.memory.handle_gestures(
                 response,
                 self.my_position,
                 self.options.pull_to_my_position_threshold,
                 self.options.drag_pan_buttons,
-                self.memory.zoom(),
             )
         };
 
@@ -265,9 +254,8 @@ impl Map<'_, '_, '_> {
             // Panning by scrolling, e.g. two-finger drag on a touchpad:
             let scroll_delta = ui.input(|i| i.smooth_scroll_delta);
             if scroll_delta != Vec2::ZERO {
-                self.memory.center_mode = Center::Exact(
-                    AdjustedPosition::new(self.position()).shift(scroll_delta, self.memory.zoom()),
-                );
+                let position = self.position();
+                self.memory.center_at_with_offset(position, scroll_delta);
                 scroll_used = true;
             }
         }
@@ -321,11 +309,11 @@ impl Map<'_, '_, '_> {
 
     /// Get the real position at the map's center.
     fn position(&self) -> Position {
-        self.memory.center_mode.position(self.my_position)
+        self.memory.position(self.my_position)
     }
 }
 
-impl Widget for Map<'_, '_, '_> {
+impl<P: Projection> Widget for Map<'_, '_, '_, P> {
     fn ui(self, ui: &mut Ui) -> Response {
         self.show(ui, |_, _, _, _| ()).response
     }
