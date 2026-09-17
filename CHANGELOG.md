@@ -4,6 +4,9 @@ All notable changes to this project will be documented in this file.
 
 ## Unreleased
 
+* `egui` is now a dependency with `default-features = false`, so `walkers` no longer
+  pulls in the bundled fonts (`epaint_default_fonts`). Applications using `eframe` still
+  get them, since `eframe` enables `default_fonts` by default.
 * Vector tiles are now drawn using wgpu. This means that egui has to be rendered with wgpu, and
   `walkers::install_renderer` needs to be called on startup. Raster tiles work as before.
 * `render_line` and `render_symbol` fill a `Vec<Drawable>`, and `tessellate_polygon` returns
