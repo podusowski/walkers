@@ -58,6 +58,8 @@ jobs:
           distribution: "temurin"
       - name: Setup Android SDK
         uses: android-actions/setup-android@v3
+        with:
+          packages: platform-tools
       - name: Install Cargo NDK
         run: cargo install cargo-ndk@3.5.4 --locked
       - name: Build APK
