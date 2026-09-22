@@ -2,22 +2,17 @@ use bytes::Bytes;
 use egui::Context;
 use reqwest_middleware::ClientWithMiddleware;
 
+use crate::cached_tiles::CachedTiles;
 use crate::io::Fetch;
 use crate::io::http::http_client;
-use crate::io::tiles_io::TilesIo;
 use crate::sources::{Attribution, TileSource};
 use crate::style::Style;
-use crate::tiles::{EguiTileFactory, interpolate_from_lower_zoom};
+use crate::tiles::EguiTileFactory;
 use crate::{HttpOptions, TilePiece, Tiles};
 use crate::{Stats, TileId};
 
 /// Downloads the tiles via HTTP. It must persist between frames.
-pub struct HttpTiles {
-    attribution: Attribution,
-    tiles_io: TilesIo,
-    tile_size: u32,
-    max_zoom: u8,
-}
+pub struct HttpTiles(CachedTiles);
 
 impl HttpTiles {
     /// Construct new [`Tiles`] with default [`HttpOptions`].
@@ -51,70 +46,32 @@ impl HttpTiles {
         let tile_size = source.tile_size();
         let max_zoom = source.max_zoom();
 
-        Self {
+        Self(CachedTiles::new(
+            HttpFetch::new(source, http_options),
+            EguiTileFactory::new(egui_ctx.clone(), style, tile_size),
             attribution,
-            tiles_io: TilesIo::new(
-                HttpFetch::new(source, http_options),
-                EguiTileFactory::new(egui_ctx.clone(), style, tile_size),
-                egui_ctx,
-            ),
             tile_size,
             max_zoom,
-        }
+            egui_ctx,
+        ))
     }
 
     pub fn stats(&self) -> Stats {
-        self.tiles_io.stats()
-    }
-
-    /// Get at tile, or interpolate it from lower zoom levels. This function does not start any
-    /// downloads.
-    fn get_from_cache_or_interpolate(&mut self, tile_id: TileId) -> Option<TilePiece> {
-        let mut zoom_candidate = tile_id.zoom;
-
-        loop {
-            let (zoomed_tile_id, uv) = interpolate_from_lower_zoom(tile_id, zoom_candidate);
-
-            if let Some(Some(tile)) = self.tiles_io.cache.get(&zoomed_tile_id) {
-                break Some(TilePiece {
-                    tile: tile.clone(),
-                    uv,
-                });
-            }
-
-            // Keep zooming out until we find a donor or there is no more zoom levels.
-            zoom_candidate = zoom_candidate.checked_sub(1)?;
-        }
+        self.0.stats()
     }
 }
 
 impl Tiles for HttpTiles {
-    /// Attribution of the source this tile cache pulls images from. Typically,
-    /// this should be displayed somewhere on the top of the map widget.
-    fn attribution(&self) -> Attribution {
-        self.attribution.clone()
+    fn at(&mut self, tile_id: TileId) -> Option<TilePiece> {
+        self.0.at(tile_id)
     }
 
-    /// Return a tile if already in cache, schedule a download otherwise.
-    fn at(&mut self, tile_id: TileId) -> Option<TilePiece> {
-        self.tiles_io.put_single_fetched_tile_in_cache();
-
-        if !tile_id.valid() {
-            return None;
-        }
-
-        let tile_id_to_download = if tile_id.zoom > self.max_zoom {
-            interpolate_from_lower_zoom(tile_id, self.max_zoom).0
-        } else {
-            tile_id
-        };
-
-        self.tiles_io.make_sure_is_fetched(tile_id_to_download);
-        self.get_from_cache_or_interpolate(tile_id)
+    fn attribution(&self) -> Attribution {
+        self.0.attribution()
     }
 
     fn tile_size(&self) -> u32 {
-        self.tile_size
+        self.0.tile_size()
     }
 }
 
