@@ -1,9 +1,6 @@
 use crate::{
-    TileId, TilePiece, Tiles,
-    io::{Fetch, tiles_io::TilesIo},
-    sources::Attribution,
-    style::Style,
-    tiles::{EguiTileFactory, interpolate_from_lower_zoom},
+    TileId, TilePiece, Tiles, cached_tiles::CachedTiles, io::Fetch, sources::Attribution,
+    style::Style, tiles::EguiTileFactory,
 };
 use bytes::Bytes;
 use egui::Context;
@@ -18,13 +15,12 @@ use thiserror::Error;
 /// covering the map, at less detail.
 const DEFAULT_TILE_SIZE: u32 = 1024;
 
+const DEFAULT_MAX_ZOOM: u8 = 15;
+
 /// Provides tiles from a local PMTiles file.
 ///
 /// <https://docs.protomaps.com/guide/getting-started>
-pub struct PmTiles {
-    tiles_io: TilesIo,
-    tile_size: u32,
-}
+pub struct PmTiles(CachedTiles);
 
 impl PmTiles {
     pub fn new(path: impl AsRef<Path>, egui_ctx: Context) -> Self {
@@ -46,67 +42,33 @@ impl PmTiles {
         tile_size: u32,
         egui_ctx: Context,
     ) -> Self {
-        Self {
-            tiles_io: TilesIo::new(
-                PmTilesFetch::new(path.as_ref()),
-                EguiTileFactory::new(egui_ctx.clone(), style, tile_size),
-                egui_ctx,
-            ),
+        Self(CachedTiles::new(
+            PmTilesFetch::new(path.as_ref()),
+            EguiTileFactory::new(egui_ctx.clone(), style, tile_size),
+            Attribution {
+                text: "PMTiles",
+                url: "",
+                logo_light: None,
+                logo_dark: None,
+            },
             tile_size,
-        }
-    }
-
-    /// Get at tile, or interpolate it from lower zoom levels. This function does not start any
-    /// downloads.
-    fn get_from_cache_or_interpolate(&mut self, tile_id: TileId) -> Option<TilePiece> {
-        let mut zoom_candidate = tile_id.zoom;
-
-        loop {
-            let (zoomed_tile_id, uv) = interpolate_from_lower_zoom(tile_id, zoom_candidate);
-
-            if let Some(Some(tile)) = self.tiles_io.cache.get(&zoomed_tile_id) {
-                break Some(TilePiece {
-                    tile: tile.clone(),
-                    uv,
-                });
-            }
-
-            // Keep zooming out until we find a donor or there is no more zoom levels.
-            zoom_candidate = zoom_candidate.checked_sub(1)?;
-        }
+            DEFAULT_MAX_ZOOM,
+            egui_ctx,
+        ))
     }
 }
 
 impl Tiles for PmTiles {
     fn at(&mut self, tile_id: TileId) -> Option<TilePiece> {
-        self.tiles_io.put_single_fetched_tile_in_cache();
-
-        if !tile_id.valid() {
-            return None;
-        }
-
-        // TODO: This is aligned with Protomaps, but it should be configurable.
-        let tile_id_to_download = if tile_id.zoom > 15 {
-            interpolate_from_lower_zoom(tile_id, 15).0
-        } else {
-            tile_id
-        };
-
-        self.tiles_io.make_sure_is_fetched(tile_id_to_download);
-        self.get_from_cache_or_interpolate(tile_id)
+        self.0.at(tile_id)
     }
 
     fn attribution(&self) -> Attribution {
-        Attribution {
-            text: "PMTiles",
-            url: "",
-            logo_light: None,
-            logo_dark: None,
-        }
+        self.0.attribution()
     }
 
     fn tile_size(&self) -> u32 {
-        self.tile_size
+        self.0.tile_size()
     }
 }
 
