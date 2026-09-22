@@ -63,7 +63,7 @@ pub use projector::Projector;
 pub use render::drawable::{Drawable, Line, Mesh, Vertex};
 #[cfg(feature = "mvt")]
 pub use render::{
-    Geometry, fill::tessellate_polygon, line::render as render_line,
+    Geometry, fill::render as render_fill, fill::tessellate_polygon, line::render as render_line,
     symbol::render as render_symbol,
 };
 pub use style::Style;

@@ -11,6 +11,8 @@ All notable changes to this project will be documented in this file.
   `walkers::install_renderer` needs to be called on startup. Raster tiles work as before.
 * `render_line` and `render_symbol` fill a `Vec<Drawable>`, and `tessellate_polygon` returns
   walkers' own `Mesh`.
+* `render_fill` is now public.
+* `GeoJsonLayer` now renders `fill` layers.
 * Vector tiles now honor the transparency of the layer.
 * Fix the map being flinged way too far when the frame rate stutters.
 * Fix the map drifting when a drag turns into a pinch gesture.

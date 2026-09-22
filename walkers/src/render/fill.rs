@@ -18,7 +18,7 @@ use crate::{
     style::Paint,
 };
 
-pub(crate) fn render(
+pub fn render(
     geometry: &Geometry<f32>,
     context: &Context,
     paint: &Paint,

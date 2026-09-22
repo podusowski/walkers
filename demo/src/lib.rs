@@ -141,7 +141,8 @@ fn geojson_layers() -> Result<Vec<GeoJsonLayer>, io::Error> {
 }
 
 /// One style for every `.geojson` found, with filters picking what each layer applies to.
-/// See `just overpass-trails-dolnoslaskie` and `just overpass-peaks-dolnoslaskie`.
+/// See `just overpass-trails-dolnoslaskie`, `just overpass-peaks-dolnoslaskie` and
+/// `just overpass-water-wroclaw`.
 fn hiking_style() -> Style {
     let width = |factor| {
         Float(json!([
@@ -157,6 +158,15 @@ fn hiking_style() -> Style {
 
     Style {
         layers: vec![
+            Layer::Fill {
+                source_layer: "".into(),
+                filter: Some(Filter(json!(["==", ["get", "natural"], "water"]))),
+                paint: Paint {
+                    fill_color: Some(Color(json!("#4a7fb5"))),
+                    fill_opacity: Some(Float(json!(0.6))),
+                    ..Default::default()
+                },
+            },
             Layer::Line {
                 source_layer: "".into(),
                 filter: Some(Filter(json!([

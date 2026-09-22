@@ -8,8 +8,8 @@ use log::warn;
 use rstar::primitives::{GeomWithData, Rectangle};
 use rstar::{AABB, RTree};
 use walkers::{
-    Context, Filter, Layer, Position, Projector, Style, place_texts, render_line, render_symbol,
-    to_shapes,
+    Context, Filter, Layer, Position, Projector, Style, place_texts, render_fill, render_line,
+    render_symbol, to_shapes,
 };
 
 struct Feature {
@@ -60,6 +60,12 @@ impl GeoJsonLayer {
 
         for layer in &self.style.layers {
             match layer {
+                Layer::Fill { paint, filter, .. } => {
+                    for (geometry, context) in self.features(viewport, filter.as_ref(), zoom) {
+                        let projected = project_geometry(geometry, projector);
+                        let _ = render_fill(&projected, &context, paint, &mut drawables);
+                    }
+                }
                 Layer::Line { paint, filter, .. } => {
                     for (geometry, context) in self.features(viewport, filter.as_ref(), zoom) {
                         let projected = project_geometry(geometry, projector);
