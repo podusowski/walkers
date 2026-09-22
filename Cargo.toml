@@ -12,7 +12,7 @@ members = [
 ]
 
 [workspace.package]
-version = "0.59.0"
+version = "0.60.0"
 edition = "2024"
 rust-version = "1.95"                                # Aligned to egui
 repository = "https://github.com/podusowski/walkers"
@@ -21,8 +21,8 @@ keywords = ["geography", "gis", "gui"]
 categories = ["gui", "science::geo"]
 
 [workspace.dependencies]
-walkers = { path = "walkers", version = "0.59.0" }
-walkers_extras = { path = "walkers_extras", version = "0.59.0" }
+walkers = { path = "walkers", version = "0.60.0" }
+walkers_extras = { path = "walkers_extras", version = "0.60.0" }
 
 android_logger = "0.15.1"
 approx = "0.5.1"

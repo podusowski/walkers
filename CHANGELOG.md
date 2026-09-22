@@ -2,11 +2,14 @@
 
 All notable changes to this project will be documented in this file.
 
-## Unreleased
+## 0.60.0
 
 * `egui` is now a dependency with `default-features = false`, so `walkers` no longer
   pulls in the bundled fonts (`epaint_default_fonts`). Applications using `eframe` still
   get them, since `eframe` enables `default_fonts` by default.
+* `reqwest` updated to 0.13, which always verifies certificates with
+  `rustls-platform-verifier`. On Android that reads the system trust store over JNI, so the
+  verifier has to be initialized with the activity before the first tile is fetched.
 * Vector tiles are now drawn using wgpu. This means that egui has to be rendered with wgpu, and
   `walkers::install_renderer` needs to be called on startup. Raster tiles work as before.
 * `render_line` and `render_symbol` fill a `Vec<Drawable>`, and `tessellate_polygon` returns
