@@ -48,6 +48,7 @@ pub use egui_backend::to_shapes;
 pub use egui_backend::wgpu::install_renderer;
 #[cfg(feature = "mvt")]
 pub use expression::Context;
+pub use geo_types;
 pub use http_tiles::HttpTiles;
 pub use io::tiles_io::Stats;
 pub use io::{HeaderValue, MaxParallelDownloads, http::HttpOptions};
@@ -64,7 +65,7 @@ pub use projector::Projector;
 pub use render::drawable::{Drawable, Line, Mesh, Vertex};
 #[cfg(feature = "mvt")]
 pub use render::{
-    Geometry, fill::render as render_fill, fill::tessellate_polygon, line::render as render_line,
+    fill::render as render_fill, fill::tessellate_polygon, line::render as render_line,
     symbol::render as render_symbol,
 };
 pub use style::Style;

@@ -7,13 +7,14 @@ use geojson::{Feature as GeoJsonFeature, GeoJson};
 use log::warn;
 use rstar::primitives::{GeomWithData, Rectangle};
 use rstar::{AABB, RTree};
+use walkers::geo_types::Geometry;
 use walkers::{
     Context, Filter, Layer, Position, Projector, Style, place_texts, render_fill, render_line,
     render_symbol, to_shapes,
 };
 
 struct Feature {
-    geometry: walkers::Geometry<f32>,
+    geometry: Geometry<f32>,
     properties: HashMap<String, walkers::Value>,
 }
 
@@ -29,7 +30,7 @@ impl GeoJsonLayer {
 
         visit_features(&geojson, |feature| {
             if let Some(geometry) = &feature.geometry
-                && let Ok(geometry) = walkers::Geometry::<f32>::try_from(geometry.clone())
+                && let Ok(geometry) = Geometry::<f32>::try_from(geometry.clone())
             {
                 indexed.push(GeomWithData::new(
                     bounding_rect(&geometry),
@@ -102,7 +103,7 @@ impl GeoJsonLayer {
         viewport: AABB<[f64; 2]>,
         filter: Option<&'a Filter>,
         zoom: u8,
-    ) -> impl Iterator<Item = (&'a walkers::Geometry<f32>, Context)> + 'a {
+    ) -> impl Iterator<Item = (&'a Geometry<f32>, Context)> + 'a {
         self.rtree
             .locate_in_envelope_intersecting(viewport)
             .filter_map(move |entry| {
@@ -121,7 +122,7 @@ impl GeoJsonLayer {
 }
 
 /// Compute the geographic bounding rectangle of a geometry (coordinates are lon/lat).
-fn bounding_rect(geometry: &walkers::Geometry<f32>) -> Rectangle<[f64; 2]> {
+fn bounding_rect(geometry: &Geometry<f32>) -> Rectangle<[f64; 2]> {
     use geo::CoordsIter;
 
     let mut min_lon = f64::MAX;
@@ -155,10 +156,7 @@ fn viewport(projector: &Projector, clip_rect: egui::Rect) -> AABB<[f64; 2]> {
     AABB::from_corners([min_lon, min_lat], [max_lon, max_lat])
 }
 
-fn project_geometry(
-    geometry: &walkers::Geometry<f32>,
-    projector: &Projector,
-) -> walkers::Geometry<f32> {
+fn project_geometry(geometry: &Geometry<f32>, projector: &Projector) -> Geometry<f32> {
     geometry.map_coords(|coord| {
         let projected = projector.project(Position::new(coord.x as f64, coord.y as f64));
         Coord {
