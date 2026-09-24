@@ -9,7 +9,7 @@ pub mod symbol;
 pub mod gpu;
 
 use emath::TSTransform;
-pub use geo_types::{Coord, Geometry, Line};
+pub(crate) use geo_types::{Coord, Geometry, Line};
 use lyon_tessellation::TessellationError;
 
 use crate::{render::drawable::Drawable, text::Text};
