@@ -74,14 +74,21 @@ impl GeoJsonLayer {
                     }
                 }
                 Layer::Symbol {
+                    minzoom,
                     layout,
                     paint,
                     filter,
                     ..
                 } => {
+                    if minzoom.is_some_and(|minzoom| (zoom as f32) < minzoom) {
+                        continue;
+                    }
+
                     for (geometry, context) in self.features(viewport, filter.as_ref(), zoom) {
                         let projected = project_geometry(geometry, projector);
-                        let _ = render_symbol(&projected, &context, &mut texts, layout, paint);
+                        let _ = render_symbol(
+                            &projected, &context, &mut texts, layout, paint, *minzoom,
+                        );
                     }
                 }
                 other => {

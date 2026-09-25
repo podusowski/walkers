@@ -24,9 +24,11 @@ pub(crate) fn transformed_texts(
     texts: &[Text],
     transform: TSTransform,
     transparency: f32,
+    zoom: f64,
 ) -> Vec<Text> {
     texts
         .iter()
+        .filter(|text| text.min_zoom.is_none_or(|min_zoom| zoom >= min_zoom as f64))
         .map(|text| Text {
             position: text.position * transform.scaling + transform.translation,
             text_color: text.text_color.gamma_multiply(transparency),

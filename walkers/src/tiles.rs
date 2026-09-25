@@ -179,7 +179,8 @@ impl Tile {
     }
 
     /// Draw the tile on the given `rect`. The `uv` parameter defines which part of the tile
-    /// should be drawn on the `rect`.
+    /// should be drawn on the `rect`. `zoom` is the map's.
+    #[allow(clippy::too_many_arguments)]
     fn draw(
         &self,
         painter: &egui::Painter,
@@ -187,10 +188,11 @@ impl Tile {
         uv: Rect,
         transparency: f32,
         tile_size: u32,
+        zoom: f64,
         texts: &mut Texts,
     ) {
         #[cfg(not(feature = "mvt"))]
-        let _ = (tile_size, texts);
+        let _ = (tile_size, zoom, texts);
 
         match self {
             Tile::Raster(texture_handle) => {
@@ -234,6 +236,7 @@ impl Tile {
                     from_tile,
                     transform,
                     transparency,
+                    zoom - crate::mercator::zoom_offset(tile_size) as f64,
                 ));
             }
         }
@@ -336,6 +339,7 @@ fn flood_fill_tiles(
                 tile.uv,
                 transparency,
                 tiles.tile_size(),
+                zoom,
                 texts,
             )
         }

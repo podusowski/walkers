@@ -21,6 +21,7 @@ pub struct Text {
     pub halo_width: f32,
     pub angle: f32,
     pub placement: Placement,
+    pub min_zoom: Option<f32>,
 }
 
 impl Text {
@@ -40,6 +41,7 @@ impl Text {
             halo_width: 0.0,
             angle,
             placement: Placement::Point,
+            min_zoom: None,
         }
     }
 
@@ -51,6 +53,11 @@ impl Text {
 
     pub fn with_placement(mut self, placement: Placement) -> Self {
         self.placement = placement;
+        self
+    }
+
+    pub fn with_min_zoom(mut self, min_zoom: Option<f32>) -> Self {
+        self.min_zoom = min_zoom;
         self
     }
 }
