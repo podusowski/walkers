@@ -34,7 +34,7 @@ const MAX_TILE_ZOOM: u8 = 31;
 
 /// How many zoom levels a source with `source_tile_size` tiles is off from the 256px grid
 /// Walkers uses internally. Positive for larger tiles, negative for smaller ones.
-fn zoom_offset(source_tile_size: u32) -> i32 {
+pub(crate) fn zoom_offset(source_tile_size: u32) -> i32 {
     (source_tile_size as f64 / TILE_SIZE as f64).log2().round() as i32
 }
 

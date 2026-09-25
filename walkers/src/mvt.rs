@@ -92,6 +92,7 @@ pub fn render(
             }
             Layer::Symbol {
                 source_layer,
+                minzoom,
                 filter,
                 layout,
                 paint,
@@ -99,9 +100,9 @@ pub fn render(
                 for (geometry, context) in
                     get_layer_features(&data, zoom, source_layer, filter.as_ref(), tile_size)?
                 {
-                    if let Err(err) =
-                        render::symbol::render(&geometry, &context, &mut texts, layout, paint)
-                    {
+                    if let Err(err) = render::symbol::render(
+                        &geometry, &context, &mut texts, layout, paint, *minzoom,
+                    ) {
                         warn!("{err}");
                     }
                 }

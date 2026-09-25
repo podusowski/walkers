@@ -15,24 +15,36 @@ pub fn render(
     texts: &mut Vec<Text>,
     layout: &Layout,
     paint: &Option<Paint>,
+    min_zoom: Option<f32>,
 ) -> Result<(), Error> {
     match geometry {
-        Geometry::Point(point) => {
-            label_points(std::slice::from_ref(point), context, layout, paint, texts)
-        }
+        Geometry::Point(point) => label_points(
+            std::slice::from_ref(point),
+            context,
+            layout,
+            paint,
+            min_zoom,
+            texts,
+        ),
         Geometry::MultiPoint(multi_point) => {
-            label_points(&multi_point.0, context, layout, paint, texts)
+            label_points(&multi_point.0, context, layout, paint, min_zoom, texts)
         }
         Geometry::LineString(line_string) => label_line_strings(
             std::slice::from_ref(line_string),
             context,
             layout,
             paint,
+            min_zoom,
             texts,
         ),
-        Geometry::MultiLineString(multi_line_string) => {
-            label_line_strings(&multi_line_string.0, context, layout, paint, texts)
-        }
+        Geometry::MultiLineString(multi_line_string) => label_line_strings(
+            &multi_line_string.0,
+            context,
+            layout,
+            paint,
+            min_zoom,
+            texts,
+        ),
         _ => (),
     }
     Ok(())
@@ -44,6 +56,7 @@ fn label_points(
     context: &Context,
     layout: &Layout,
     paint: &Option<Paint>,
+    min_zoom: Option<f32>,
     texts: &mut Vec<Text>,
 ) {
     let Some(text) = layout.text(context) else {
@@ -57,6 +70,7 @@ fn label_points(
     texts.extend(points.iter().map(|p| {
         Text::new(pos2(p.x(), p.y()), text.clone(), text_size, text_color, 0.0)
             .with_halo(halo_color, halo_width)
+            .with_min_zoom(min_zoom)
     }))
 }
 
@@ -66,6 +80,7 @@ fn label_line_strings(
     context: &Context,
     layout: &Layout,
     paint: &Option<Paint>,
+    min_zoom: Option<f32>,
     texts: &mut Vec<Text>,
 ) {
     let Some(text) = layout.text(context) else {
@@ -93,7 +108,8 @@ fn label_line_strings(
                     angle,
                 )
                 .with_halo(halo_color, halo_width)
-                .with_placement(Placement::Line),
+                .with_placement(Placement::Line)
+                .with_min_zoom(min_zoom),
             );
         }
     }
@@ -176,7 +192,7 @@ mod tests {
         };
 
         let mut texts = Vec::new();
-        render(&geometry, &context, &mut texts, &layout, &None).unwrap();
+        render(&geometry, &context, &mut texts, &layout, &None, None).unwrap();
         texts
     }
 

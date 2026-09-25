@@ -241,6 +241,7 @@ fn hiking_style() -> Style {
             },
             Layer::Symbol {
                 source_layer: "".into(),
+                minzoom: None,
                 filter: Some(Filter(json!(["==", ["get", "natural"], "peak"]))),
                 layout: Layout {
                     text_field: Some(json!(["get", "name"])),

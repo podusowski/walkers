@@ -1102,6 +1102,7 @@ fn build(palette: &Palette, schema: Schema) -> Style {
         // address_label
         Layer::Symbol {
             source_layer: schema.buildings.into(),
+            minzoom: Some(18.0),
             filter: Some(Filter(json!(["==", schema.kind, "address"]))),
             layout: Layout {
                 text_field: Some(json!(["get", "addr_housenumber"])),
@@ -1117,6 +1118,7 @@ fn build(palette: &Palette, schema: Schema) -> Style {
         // water_waterway_label
         Layer::Symbol {
             source_layer: schema.waterway.into(),
+            minzoom: None,
             filter: Some(Filter(json!(["in", schema.kind, "river", "stream"]))),
             layout: Layout {
                 text_field: Some(json!(["get", "name"])),
@@ -1132,6 +1134,7 @@ fn build(palette: &Palette, schema: Schema) -> Style {
         // roads_oneway
         Layer::Symbol {
             source_layer: schema.road_labels.into(),
+            minzoom: None,
             filter: Some(Filter(json!(["==", ["get", "oneway"], "yes"]))),
             layout: Layout {
                 text_field: None,
@@ -1142,6 +1145,7 @@ fn build(palette: &Palette, schema: Schema) -> Style {
         // roads_labels_minor
         Layer::Symbol {
             source_layer: schema.road_labels.into(),
+            minzoom: None,
             filter: Some(Filter(json!([
                 "in",
                 schema.kind,
@@ -1167,6 +1171,7 @@ fn build(palette: &Palette, schema: Schema) -> Style {
         // water_label_ocean
         Layer::Symbol {
             source_layer: schema.water_labels.into(),
+            minzoom: None,
             filter: Some(Filter(json!([
                 "in",
                 schema.kind,
@@ -1190,6 +1195,7 @@ fn build(palette: &Palette, schema: Schema) -> Style {
         // earth_label_islands
         Layer::Symbol {
             source_layer: schema.earth.into(),
+            minzoom: None,
             filter: Some(Filter(json!(["in", schema.kind, "island"]))),
             layout: Layout {
                 text_field: Some(json!(["get", "name"])),
@@ -1205,6 +1211,7 @@ fn build(palette: &Palette, schema: Schema) -> Style {
         // water_label_lakes
         Layer::Symbol {
             source_layer: schema.water_labels.into(),
+            minzoom: None,
             filter: Some(Filter(json!(["in", schema.kind, "lake", "water"]))),
             layout: Layout {
                 text_field: Some(json!(["get", "name"])),
@@ -1224,6 +1231,7 @@ fn build(palette: &Palette, schema: Schema) -> Style {
         // roads_shields
         Layer::Symbol {
             source_layer: schema.road_labels.into(),
+            minzoom: None,
             filter: Some(Filter(json!([
                 "all",
                 [
@@ -1256,6 +1264,7 @@ fn build(palette: &Palette, schema: Schema) -> Style {
         // roads_labels_major
         Layer::Symbol {
             source_layer: schema.road_labels.into(),
+            minzoom: None,
             filter: Some(Filter(json!([
                 "in",
                 schema.kind,
@@ -1280,6 +1289,7 @@ fn build(palette: &Palette, schema: Schema) -> Style {
         // places_subplace
         Layer::Symbol {
             source_layer: schema.places.into(),
+            minzoom: None,
             filter: Some(Filter(json!([
                 "in",
                 schema.kind,
@@ -1306,6 +1316,7 @@ fn build(palette: &Palette, schema: Schema) -> Style {
         // places_region
         Layer::Symbol {
             source_layer: schema.places.into(),
+            minzoom: None,
             filter: Some(Filter(json!(["in", schema.kind, "region", "state"]))),
             layout: Layout {
                 text_field: Some(json!(["get", "name"])),
@@ -1321,6 +1332,7 @@ fn build(palette: &Palette, schema: Schema) -> Style {
         // places_locality
         Layer::Symbol {
             source_layer: schema.places.into(),
+            minzoom: None,
             filter: Some(Filter(json!([
                 "in",
                 schema.kind,
@@ -1343,6 +1355,7 @@ fn build(palette: &Palette, schema: Schema) -> Style {
         // places_country
         Layer::Symbol {
             source_layer: schema.places.into(),
+            minzoom: None,
             filter: Some(Filter(json!(["==", schema.kind, "country"]))),
             layout: Layout {
                 text_field: Some(json!(["get", "name:en"])),
@@ -1358,6 +1371,7 @@ fn build(palette: &Palette, schema: Schema) -> Style {
         // stations
         Layer::Symbol {
             source_layer: schema.pois.into(),
+            minzoom: None,
             filter: Some(Filter(json!(["==", schema.kind, "station"]))),
             layout: Layout {
                 text_field: Some(json!(["get", "name"])),
@@ -1373,6 +1387,7 @@ fn build(palette: &Palette, schema: Schema) -> Style {
         // peaks
         Layer::Symbol {
             source_layer: schema.peaks.into(),
+            minzoom: None,
             filter: Some(Filter(json!(["in", schema.kind, "peak", "volcano"]))),
             layout: Layout {
                 text_field: Some(json!(["get", "name"])),
