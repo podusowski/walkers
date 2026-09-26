@@ -11,6 +11,7 @@ use serde_json::{Number, Value as JsonValue};
 use geo::MapCoordsInPlace;
 
 use crate::{
+    Drawable,
     expression::Context,
     render::{self, Coord, Geometry},
     style::{Filter, Layer, SourceLayer, Style},
@@ -39,7 +40,7 @@ pub fn render(
     style: &Style,
     zoom: u8,
     tile_size: u32,
-) -> Result<(Vec<crate::render::drawable::Drawable>, Vec<Text>), Error> {
+) -> Result<(Vec<Drawable>, Vec<Text>), Error> {
     let tile_layers = decode_needed_layers(data, style, zoom, tile_size)?;
     let mut drawables = Vec::new();
     let mut texts = Vec::new();
@@ -55,10 +56,7 @@ pub fn render(
                     Color32::WHITE
                 };
 
-                drawables.push(crate::render::drawable::Drawable::background(
-                    tile_size as f32,
-                    bg_color,
-                ));
+                drawables.push(Drawable::background(tile_size as f32, bg_color));
             }
             Layer::Fill {
                 source_layer,
