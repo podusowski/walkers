@@ -22,6 +22,7 @@ pub struct Text {
     pub angle: f32,
     pub placement: Placement,
     pub min_zoom: Option<f32>,
+    pub layer: usize,
 }
 
 impl Text {
@@ -42,6 +43,7 @@ impl Text {
             angle,
             placement: Placement::Point,
             min_zoom: None,
+            layer: 0,
         }
     }
 
@@ -58,6 +60,11 @@ impl Text {
 
     pub fn with_min_zoom(mut self, min_zoom: Option<f32>) -> Self {
         self.min_zoom = min_zoom;
+        self
+    }
+
+    pub fn with_layer(mut self, layer: usize) -> Self {
+        self.layer = layer;
         self
     }
 }

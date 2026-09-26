@@ -189,10 +189,11 @@ impl Tile {
         transparency: f32,
         tile_size: u32,
         zoom: f64,
+        map_layer: usize,
         texts: &mut Texts,
     ) {
         #[cfg(not(feature = "mvt"))]
-        let _ = (tile_size, zoom, texts);
+        let _ = (tile_size, zoom, map_layer, texts);
 
         match self {
             Tile::Raster(texture_handle) => {
@@ -232,12 +233,16 @@ impl Tile {
                     )
                 }));
 
-                texts.texts.extend(render::transformed_texts(
-                    from_tile,
-                    transform,
-                    transparency,
-                    zoom - crate::mercator::zoom_offset(tile_size) as f64,
-                ));
+                texts.texts.extend(
+                    render::transformed_texts(
+                        from_tile,
+                        transform,
+                        transparency,
+                        zoom - crate::mercator::zoom_offset(tile_size) as f64,
+                    )
+                    .into_iter()
+                    .map(|text| (map_layer, text)),
+                );
             }
         }
     }
@@ -247,16 +252,24 @@ impl Tile {
 /// viewport rather than one tile at a time.
 #[derive(Default)]
 pub(crate) struct Texts {
+    /// Each with the index of the map layer it comes from.
     #[cfg(feature = "mvt")]
-    texts: Vec<crate::text::Text>,
+    texts: Vec<(usize, crate::text::Text)>,
 }
 
 impl Texts {
     /// Lay them out, drop the ones which would overlap, and paint what is left above every
     /// layer.
     pub(crate) fn paint(self, painter: &egui::Painter) {
+        // Map layers in the order they are drawn, then style layers from the top, as in MapLibre.
+        // Stable, so that within a style layer the tiles nearest the center still go first.
         #[cfg(feature = "mvt")]
-        painter.extend(crate::text::place_texts(self.texts, painter.ctx()));
+        {
+            let mut texts = self.texts;
+            texts.sort_by_key(|(map_layer, text)| (*map_layer, std::cmp::Reverse(text.layer)));
+            let texts = texts.into_iter().map(|(_, text)| text).collect();
+            painter.extend(crate::text::place_texts(texts, painter.ctx()));
+        }
         #[cfg(not(feature = "mvt"))]
         let _ = painter;
     }
@@ -280,6 +293,7 @@ pub(crate) fn draw_tiles(
     zoom: Zoom,
     tiles: &mut dyn Tiles,
     transparency: f32,
+    map_layer: usize,
     texts: &mut Texts,
 ) {
     let mut meshes = Default::default();
@@ -289,6 +303,7 @@ pub(crate) fn draw_tiles(
             map_center_projected_position: project(map_center, zoom.into()),
             zoom: zoom.into(),
             transparency,
+            map_layer,
         },
         tile_id(map_center, zoom.round(), tiles.tile_size()),
         tiles,
@@ -303,6 +318,7 @@ struct Spread<'a> {
     map_center_projected_position: Pixels,
     zoom: f64,
     transparency: f32,
+    map_layer: usize,
 }
 
 /// Use simple [flood fill algorithm](https://en.wikipedia.org/wiki/Flood_fill) to draw tiles on the map.
@@ -318,6 +334,7 @@ fn flood_fill_tiles(
         map_center_projected_position,
         zoom,
         transparency,
+        map_layer,
     } = *spread;
     // The tile's zoom level can differ from the map's: it is rounded to an integer, adjusted
     // for sources with tiles larger than 256px, and clamped at 0. Scale the tile so that it
@@ -340,6 +357,7 @@ fn flood_fill_tiles(
                 transparency,
                 tiles.tile_size(),
                 zoom,
+                map_layer,
                 texts,
             )
         }
@@ -486,6 +504,7 @@ mod tests {
             Zoom::try_from(zoom).unwrap(),
             &mut tiles,
             1.0,
+            0,
             &mut Texts::default(),
         );
 
@@ -637,6 +656,7 @@ mod tests {
             Zoom::try_from(16.).unwrap(),
             &mut LabelAtBothEdges,
             1.0,
+            0,
             &mut texts,
         );
 
@@ -644,7 +664,7 @@ mod tests {
         let positions: std::collections::HashSet<_> = texts
             .texts
             .iter()
-            .map(|text| (text.position.x as i32, text.position.y as i32))
+            .map(|(_, text)| (text.position.x as i32, text.position.y as i32))
             .collect();
 
         // Neighbouring tiles put a label on the very same spot.
@@ -654,7 +674,8 @@ mod tests {
             positions.len()
         );
 
-        let placed = crate::text::place_texts(texts.texts, &ctx)
+        let texts = texts.texts.into_iter().map(|(_, text)| text).collect();
+        let placed = crate::text::place_texts(texts, &ctx)
             .into_iter()
             .filter(|shape| !matches!(shape, egui::Shape::Noop))
             .count();
