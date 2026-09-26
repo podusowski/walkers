@@ -8,7 +8,7 @@ use log::warn;
 use mvt_reader::{Reader, feature::Value};
 use serde_json::{Number, Value as JsonValue};
 
-use geo::MapCoords;
+use geo::MapCoordsInPlace;
 
 use crate::{
     expression::Context,
@@ -40,7 +40,7 @@ pub fn render(
     zoom: u8,
     tile_size: u32,
 ) -> Result<(Vec<crate::render::drawable::Drawable>, Vec<Text>), Error> {
-    let data = mvt_reader::Reader::new(data.to_vec())?;
+    let tile_layers = decode_needed_layers(data, style, zoom, tile_size)?;
     let mut drawables = Vec::new();
     let mut texts = Vec::new();
 
@@ -65,11 +65,8 @@ pub fn render(
                 filter,
                 paint,
             } => {
-                for (geometry, context) in
-                    get_layer_features(&data, zoom, source_layer, filter.as_ref(), tile_size)?
-                {
-                    if let Err(err) =
-                        render::fill::render(&geometry, &context, paint, &mut drawables)
+                for (geometry, context) in features(&tile_layers, source_layer, filter.as_ref()) {
+                    if let Err(err) = render::fill::render(geometry, context, paint, &mut drawables)
                     {
                         warn!("{err}");
                     }
@@ -80,11 +77,8 @@ pub fn render(
                 filter,
                 paint,
             } => {
-                for (geometry, context) in
-                    get_layer_features(&data, zoom, source_layer, filter.as_ref(), tile_size)?
-                {
-                    if let Err(err) =
-                        render::line::render(&geometry, &context, paint, &mut drawables)
+                for (geometry, context) in features(&tile_layers, source_layer, filter.as_ref()) {
+                    if let Err(err) = render::line::render(geometry, context, paint, &mut drawables)
                     {
                         warn!("{err}");
                     }
@@ -97,11 +91,9 @@ pub fn render(
                 layout,
                 paint,
             } => {
-                for (geometry, context) in
-                    get_layer_features(&data, zoom, source_layer, filter.as_ref(), tile_size)?
-                {
+                for (geometry, context) in features(&tile_layers, source_layer, filter.as_ref()) {
                     if let Err(err) = render::symbol::render(
-                        &geometry, &context, &mut texts, layout, paint, *minzoom,
+                        geometry, context, &mut texts, layout, paint, *minzoom,
                     ) {
                         warn!("{err}");
                     }
@@ -126,61 +118,87 @@ pub fn transform_onto(rect: egui::Rect, tile_size: u32) -> TSTransform {
     }
 }
 
-fn get_layer_features(
-    reader: &Reader,
+/// A layer of the tile, with its features decoded only if some style layer draws from it.
+struct TileLayer {
+    name: String,
+    features: Vec<(Geometry<f32>, Context)>,
+}
+
+/// Decodes each tile layer at most once, however many style layers draw from it.
+fn decode_needed_layers(
+    data: &[u8],
+    style: &Style,
     zoom: u8,
-    source_layer: &SourceLayer,
-    filter: Option<&Filter>,
     tile_size: u32,
-) -> Result<impl Iterator<Item = (Geometry<f32>, Context)>, Error> {
+) -> Result<Vec<TileLayer>, Error> {
+    let reader = Reader::new(data.to_vec())?;
     let into_pixels = tile_size as f32 / ONLY_SUPPORTED_EXTENT as f32;
-    let mut matched = 0usize;
-    let mut raw = Vec::new();
 
-    for layer in reader.get_layer_metadata()? {
-        if !source_layer.matches(&layer.name) {
-            continue;
-        }
+    let needed = |name: &str| {
+        style.layers.iter().any(|layer| match layer {
+            Layer::Fill { source_layer, .. }
+            | Layer::Line { source_layer, .. }
+            | Layer::Symbol { source_layer, .. } => source_layer.matches(name),
+            // Circle layers name a source layer, but are not drawn.
+            Layer::Background { .. }
+            | Layer::Circle { .. }
+            | Layer::Raster
+            | Layer::FillExtrusion => false,
+        })
+    };
 
-        matched += 1;
+    Ok(reader
+        .get_layer_metadata()?
+        .into_iter()
+        .map(|layer| {
+            let features = if !needed(&layer.name) {
+                Vec::new()
+            } else if layer.extent != ONLY_SUPPORTED_EXTENT {
+                warn!(
+                    "Unsupported extent in source layer '{}'. Skipping.",
+                    layer.name
+                );
+                Vec::new()
+            } else {
+                reader
+                    .get_features(layer.layer_index)
+                    .unwrap_or_default()
+                    .into_iter()
+                    .map(|mut feature| {
+                        let context = Context::new(
+                            render::geometry_type_to_str(&feature.geometry).to_string(),
+                            feature
+                                .properties
+                                .map_or(Default::default(), mvt_properties_to_json_properties),
+                            zoom,
+                        );
+                        feature.geometry.map_coords_in_place(|coord| Coord {
+                            x: coord.x * into_pixels,
+                            y: coord.y * into_pixels,
+                        });
+                        (feature.geometry, context)
+                    })
+                    .collect()
+            };
+            TileLayer {
+                name: layer.name,
+                features,
+            }
+        })
+        .collect())
+}
 
-        if layer.extent != ONLY_SUPPORTED_EXTENT {
-            warn!(
-                "Unsupported extent in source layer '{}'. Skipping.",
-                layer.name
-            );
-            continue;
-        }
-
-        raw.extend(reader.get_features(layer.layer_index).unwrap_or_default());
-    }
-
-    // Asking for everything and finding nothing is a tile without features, but asking for a
-    // layer by name and not finding it usually means the style does not fit the schema.
-    if matched == 0 && !source_layer.is_all() {
-        warn!("Source layer {source_layer} not found. Skipping.");
-    }
-
-    let features = raw.into_iter().filter_map(move |feature| {
-        let context = Context::new(
-            render::geometry_type_to_str(&feature.geometry).to_string(),
-            feature
-                .properties
-                .map_or(Default::default(), mvt_properties_to_json_properties),
-            zoom,
-        );
-
-        let geometry = feature.geometry.map_coords(|coord| Coord {
-            x: coord.x * into_pixels,
-            y: coord.y * into_pixels,
-        });
-
-        filter
-            .is_none_or(|filter| filter.matches(&context))
-            .then_some((geometry, context))
-    });
-
-    Ok(features)
+/// Features a style layer draws, in the order of the tile's layers.
+fn features<'a>(
+    tile_layers: &'a [TileLayer],
+    source_layer: &'a SourceLayer,
+    filter: Option<&'a Filter>,
+) -> impl Iterator<Item = &'a (Geometry<f32>, Context)> {
+    tile_layers
+        .iter()
+        .filter(|layer| source_layer.matches(&layer.name))
+        .flat_map(|layer| &layer.features)
+        .filter(move |(_, context)| filter.is_none_or(|filter| filter.matches(context)))
 }
 
 fn mvt_properties_to_json_properties(
