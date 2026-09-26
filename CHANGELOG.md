@@ -6,6 +6,7 @@ All notable changes to this project will be documented in this file.
 
 * `walkers::Geometry` is replaced by the re-exported `walkers::geo_types`.
 * `symbol` layers support `minzoom`.
+* Vector tile decoding optimizations.
 
 ## 0.60.0
 
