@@ -34,7 +34,7 @@ impl From<mvt_reader::error::ParserError> for Error {
 /// Currently this is the only supported extent.
 const ONLY_SUPPORTED_EXTENT: u32 = 4096;
 
-/// Render MVT data into a list of [`epaint::Shape`]s.
+/// Render MVT data into drawables and texts, according to the style.
 pub fn render(
     data: &[u8],
     style: &Style,
