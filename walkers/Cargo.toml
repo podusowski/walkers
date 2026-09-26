@@ -36,9 +36,15 @@ thiserror.workspace = true
 
 [dev-dependencies]
 approx.workspace = true
+criterion.workspace = true
 eframe.workspace = true
 env_logger.workspace = true
 hypermocker = { path = "../hypermocker" }
+
+[[bench]]
+name = "decode_mvt"
+harness = false
+required-features = ["mvt"]
 
 [target.'cfg(not(target_family = "wasm"))'.dependencies]
 http-cache-reqwest.workspace = true

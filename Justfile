@@ -32,6 +32,10 @@ lints:
 typos:
     typos .
 
+[group('develop')]
+bench:
+    cargo bench -p walkers --features mvt --bench decode_mvt
+
 [group('publish')]
 publish *args:
     cargo publish -p walkers {{ args }}
