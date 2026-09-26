@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+
+<head>
+    <title>Walkers</title>
+
+    <style>
+        /* Allow canvas to fill entire web page: */
+        html,
+        body {
+            overflow: hidden;
+            margin: 0 !important;
+            padding: 0 !important;
+            height: 100%;
+            width: 100%;
+        }
+
+        /* Position canvas in center-top: */
+        canvas {
+            margin-right: auto;
+            margin-left: auto;
+            display: block;
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+        }
+    </style>
+<link rel="modulepreload" href="./demo_web-e1686b31d3cfa61b.js" crossorigin="anonymous" integrity="sha384-7h7lGEHPUy0fCfQvEfwDfE89WObdl2nrp5MCcqg31tbOmRvtgeNMNsdMBaCOMTJr"><link rel="preload" href="./demo_web-e1686b31d3cfa61b_bg.wasm" crossorigin="anonymous" integrity="sha384-yHIjtXDE2GqAk+mMYyEqcTdNT5tRf9GhDV8F3icKT5LG9WTHVkNUNYpuBsbnbVNv" as="fetch" type="application/wasm"></head>
+
+<body>
+    <canvas id="the_canvas_id"></canvas>
+
+<script type="module">
+import init, * as bindings from './demo_web-e1686b31d3cfa61b.js';
+const wasm = await init({ module_or_path: './demo_web-e1686b31d3cfa61b_bg.wasm' });
+
+
+window.wasmBindings = bindings;
+
+
+dispatchEvent(new CustomEvent("TrunkApplicationStarted", {detail: {wasm}}));
+
+</script></body>
+
+</html>
