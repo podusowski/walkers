@@ -263,11 +263,12 @@ impl Filter {
     }
 }
 
-#[derive(Deserialize, Debug)]
+#[derive(Deserialize, Debug, Default)]
 #[serde(rename_all = "kebab-case")]
 pub struct Layout {
     pub text_field: Option<Value>,
     pub text_size: Option<Float>,
+    pub text_padding: Option<Float>,
 }
 
 impl Layout {

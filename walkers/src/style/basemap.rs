@@ -1107,6 +1107,7 @@ fn build(palette: &Palette, schema: Schema) -> Style {
             layout: Layout {
                 text_field: Some(json!(["get", "addr_housenumber"])),
                 text_size: Some(Float(json!(10))),
+                ..Default::default()
             },
             paint: Some(Paint {
                 text_color: Some(Color(json!(palette.label))),
@@ -1123,6 +1124,7 @@ fn build(palette: &Palette, schema: Schema) -> Style {
             layout: Layout {
                 text_field: Some(json!(["get", "name"])),
                 text_size: Some(Float(json!(12))),
+                ..Default::default()
             },
             paint: Some(Paint {
                 text_color: Some(Color(json!(palette.water_label))),
@@ -1139,6 +1141,7 @@ fn build(palette: &Palette, schema: Schema) -> Style {
             layout: Layout {
                 text_field: None,
                 text_size: None,
+                ..Default::default()
             },
             paint: None,
         },
@@ -1160,6 +1163,7 @@ fn build(palette: &Palette, schema: Schema) -> Style {
             layout: Layout {
                 text_field: Some(json!(["get", "name"])),
                 text_size: Some(Float(json!(12))),
+                ..Default::default()
             },
             paint: Some(Paint {
                 text_color: Some(Color(json!(palette.label_muted))),
@@ -1184,6 +1188,7 @@ fn build(palette: &Palette, schema: Schema) -> Style {
             layout: Layout {
                 text_field: Some(json!(["get", "name"])),
                 text_size: Some(linear_zoom_interpolation(&[(3.0, 10.0), (10.0, 12.0)])),
+                ..Default::default()
             },
             paint: Some(Paint {
                 text_color: Some(Color(json!(palette.water_label))),
@@ -1200,6 +1205,7 @@ fn build(palette: &Palette, schema: Schema) -> Style {
             layout: Layout {
                 text_field: Some(json!(["get", "name"])),
                 text_size: Some(Float(json!(10))),
+                ..Default::default()
             },
             paint: Some(Paint {
                 text_color: Some(Color(json!(palette.label_muted))),
@@ -1220,6 +1226,7 @@ fn build(palette: &Palette, schema: Schema) -> Style {
                     (6.0, 12.0),
                     (10.0, 12.0),
                 ])),
+                ..Default::default()
             },
             paint: Some(Paint {
                 text_color: Some(Color(json!(palette.water_label))),
@@ -1255,6 +1262,7 @@ fn build(palette: &Palette, schema: Schema) -> Style {
             layout: Layout {
                 text_field: Some(json!(["get", "shield_text"])),
                 text_size: Some(Float(json!(8))),
+                ..Default::default()
             },
             paint: Some(Paint {
                 text_color: Some(Color(json!(palette.label_muted))),
@@ -1278,6 +1286,7 @@ fn build(palette: &Palette, schema: Schema) -> Style {
             layout: Layout {
                 text_field: Some(json!(["get", "name"])),
                 text_size: Some(Float(json!(13))),
+                ..Default::default()
             },
             paint: Some(Paint {
                 text_color: Some(Color(json!(palette.label))),
@@ -1305,6 +1314,7 @@ fn build(palette: &Palette, schema: Schema) -> Style {
                     (14.0, 14.0),
                     (18.0, 24.0),
                 ])),
+                ..Default::default()
             },
             paint: Some(Paint {
                 text_color: Some(Color(json!(palette.label_muted))),
@@ -1321,6 +1331,7 @@ fn build(palette: &Palette, schema: Schema) -> Style {
             layout: Layout {
                 text_field: Some(json!(["get", "name"])),
                 text_size: Some(linear_zoom_interpolation(&[(3.0, 11.0), (7.0, 16.0)])),
+                ..Default::default()
             },
             paint: Some(Paint {
                 text_color: Some(Color(json!(palette.label))),
@@ -1344,6 +1355,12 @@ fn build(palette: &Palette, schema: Schema) -> Style {
             layout: Layout {
                 text_field: Some(json!(["get", "name"])),
                 text_size: Some(schema.settlement_text_size()),
+                // Keeps villages from packing edge to edge, the curve being Protomaps' own.
+                text_padding: Some(linear_zoom_interpolation(&[
+                    (5.0, 3.0),
+                    (8.0, 7.0),
+                    (12.0, 11.0),
+                ])),
             },
             paint: Some(Paint {
                 text_color: Some(Color(json!(palette.locality_text))),
@@ -1360,6 +1377,7 @@ fn build(palette: &Palette, schema: Schema) -> Style {
             layout: Layout {
                 text_field: Some(json!(["get", "name:en"])),
                 text_size: Some(Float(json!(18.0))),
+                ..Default::default()
             },
             paint: Some(Paint {
                 text_color: Some(Color(json!(palette.label))),
@@ -1376,6 +1394,7 @@ fn build(palette: &Palette, schema: Schema) -> Style {
             layout: Layout {
                 text_field: Some(json!(["get", "name"])),
                 text_size: Some(Float(json!(11))),
+                ..Default::default()
             },
             paint: Some(Paint {
                 text_color: Some(Color(json!(palette.station))),
@@ -1392,6 +1411,7 @@ fn build(palette: &Palette, schema: Schema) -> Style {
             layout: Layout {
                 text_field: Some(json!(["get", "name"])),
                 text_size: Some(linear_zoom_interpolation(&[(8.0, 10.0), (14.0, 14.0)])),
+                ..Default::default()
             },
             paint: Some(Paint {
                 text_color: Some(Color(json!(palette.peak))),
