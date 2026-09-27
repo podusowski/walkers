@@ -170,16 +170,17 @@ impl<'a, 'b, 'c> Map<'a, 'b, 'c> {
         let mut texts = Texts::default();
 
         if let Some(tiles) = self.tiles {
-            draw_tiles(&painter, map_center, zoom, tiles, 1.0, &mut texts);
+            draw_tiles(&painter, map_center, zoom, tiles, 1.0, 0, &mut texts);
         }
 
-        for layer in self.layers {
+        for (index, layer) in self.layers.into_iter().enumerate() {
             draw_tiles(
                 &painter,
                 map_center,
                 zoom,
                 layer.tiles,
                 layer.transparency,
+                index + 1,
                 &mut texts,
             );
         }

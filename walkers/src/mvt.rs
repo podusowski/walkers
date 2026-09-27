@@ -45,7 +45,7 @@ pub fn render(
     let mut drawables = Vec::new();
     let mut texts = Vec::new();
 
-    for layer in &style.layers {
+    for (index, layer) in style.layers.iter().enumerate() {
         match layer {
             Layer::Background { paint } => {
                 let context = Context::new("None".to_string(), HashMap::new(), zoom);
@@ -91,7 +91,7 @@ pub fn render(
             } => {
                 for (geometry, context) in features(&tile_layers, source_layer, filter.as_ref()) {
                     if let Err(err) = render::symbol::render(
-                        geometry, context, &mut texts, layout, paint, *minzoom,
+                        geometry, context, &mut texts, layout, paint, *minzoom, index,
                     ) {
                         warn!("{err}");
                     }

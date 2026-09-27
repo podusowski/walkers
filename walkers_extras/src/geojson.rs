@@ -59,7 +59,7 @@ impl GeoJsonLayer {
         let mut drawables = Vec::new();
         let mut texts = Vec::new();
 
-        for layer in &self.style.layers {
+        for (index, layer) in self.style.layers.iter().enumerate() {
             match layer {
                 Layer::Fill { paint, filter, .. } => {
                     for (geometry, context) in self.features(viewport, filter.as_ref(), zoom) {
@@ -87,7 +87,7 @@ impl GeoJsonLayer {
                     for (geometry, context) in self.features(viewport, filter.as_ref(), zoom) {
                         let projected = project_geometry(geometry, projector);
                         let _ = render_symbol(
-                            &projected, &context, &mut texts, layout, paint, *minzoom,
+                            &projected, &context, &mut texts, layout, paint, *minzoom, index,
                         );
                     }
                 }
