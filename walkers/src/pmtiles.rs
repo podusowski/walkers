@@ -13,7 +13,7 @@ use thiserror::Error;
 
 /// What a tile is rendered for, unless asked for something else. Larger means fewer tiles
 /// covering the map, at less detail.
-const DEFAULT_TILE_SIZE: u32 = 1024;
+const DEFAULT_TILE_SIZE: u32 = 512;
 
 const DEFAULT_MAX_ZOOM: u8 = 15;
 
