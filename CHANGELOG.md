@@ -9,6 +9,7 @@ All notable changes to this project will be documented in this file.
 * Vector tile decoding optimizations.
 * Labels of higher style layers take precedence.
 * `symbol` layers support `text-padding`.
+* `interpolate` supports `exponential`.
 
 ## 0.60.0
 

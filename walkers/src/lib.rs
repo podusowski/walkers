@@ -71,8 +71,8 @@ pub use render::{
 pub use style::Style;
 #[cfg(feature = "mvt")]
 pub use style::{
-    Color, Dasharray, Filter, Float, Layer, Layout, Paint, SourceLayer, Value, json,
-    linear_zoom_interpolation,
+    Color, Dasharray, Filter, Float, Layer, Layout, Paint, SourceLayer, Value,
+    exponential_zoom_interpolation, json, linear_zoom_interpolation,
 };
 #[cfg(feature = "mvt")]
 pub use text::{Placement, Text, place_texts};

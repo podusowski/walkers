@@ -237,7 +237,16 @@ impl Dasharray {
 
 /// Build an `["interpolate", ["linear"], ["zoom"], ...]` expression from its stops.
 pub fn linear_zoom_interpolation(stops: &[(f64, f64)]) -> Float {
-    let mut expression = vec![json!("interpolate"), json!(["linear"]), json!(["zoom"])];
+    zoom_interpolation(json!(["linear"]), stops)
+}
+
+/// Build an `["interpolate", ["exponential", base], ["zoom"], ...]` expression from its stops.
+pub fn exponential_zoom_interpolation(base: f64, stops: &[(f64, f64)]) -> Float {
+    zoom_interpolation(json!(["exponential", base]), stops)
+}
+
+fn zoom_interpolation(interpolation_type: Value, stops: &[(f64, f64)]) -> Float {
+    let mut expression = vec![json!("interpolate"), interpolation_type, json!(["zoom"])];
 
     for &(zoom, value) in stops {
         expression.push(json!(zoom));

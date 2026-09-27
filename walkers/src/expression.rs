@@ -185,7 +185,8 @@ impl Context {
                         })?
                         .into()),
                     "interpolate" => {
-                        let (_interpolation_type, args) = first_and_rest(arguments)?;
+                        let (interpolation_type, args) = first_and_rest(arguments)?;
+                        let base = interpolation_base(interpolation_type);
                         let (input, stops) = first_and_rest(args)?;
                         let input = self.evaluate(input)?;
 
@@ -206,8 +207,11 @@ impl Context {
                             let input_delta = numeric_difference(&stop_pair[1].0, &stop_pair[0].0)?;
 
                             // Position of the input value between the two stops (0.0 to 1.0).
-                            let input_position =
-                                numeric_difference(&input, &stop_pair[0].0)? / input_delta;
+                            let input_position = exponential_position(
+                                base,
+                                numeric_difference(&input, &stop_pair[0].0)?,
+                                input_delta,
+                            );
 
                             let result = lerp(
                                 &self.evaluate(&stop_pair[0].1)?,
@@ -357,6 +361,27 @@ fn two_elements(slice: &[Value]) -> Result<(&Value, &Value), Error> {
         Ok((a, b))
     } else {
         Err(Error::TwoElementsExpected(slice.to_vec()))
+    }
+}
+
+/// The base of `["exponential", base]`, and 1 for `["linear"]`. Other interpolations are drawn
+/// as linear.
+fn interpolation_base(interpolation_type: &Value) -> f64 {
+    match interpolation_type.as_array().map(Vec::as_slice) {
+        Some([name, base]) if name == "exponential" => base.as_f64().unwrap_or(1.0),
+        _ => 1.0,
+    }
+}
+
+/// How far `distance` is along a stretch of `length`, from 0 to 1, where a `base` above 1 makes
+/// the output grow faster towards the end.
+fn exponential_position(base: f64, distance: f64, length: f64) -> f64 {
+    if length == 0.0 {
+        0.0
+    } else if (base - 1.0).abs() < f64::EPSILON {
+        distance / length
+    } else {
+        (base.powf(distance) - 1.0) / (base.powf(length) - 1.0)
     }
 }
 

@@ -1,8 +1,8 @@
 //! A basemap for OpenFreeMap and Protomaps, or anything else following their schemas.
 
 use super::{
-    Color, Dasharray, Filter, Float, Layer, Layout, Paint, SourceLayer, Style, Value, json,
-    linear_zoom_interpolation,
+    Color, Dasharray, Filter, Float, Layer, Layout, Paint, SourceLayer, Style, Value,
+    exponential_zoom_interpolation, json, linear_zoom_interpolation,
 };
 
 /// Which vector tile schema the tiles follow.
@@ -592,7 +592,10 @@ fn build(palette: &Palette, schema: Schema) -> Style {
             paint: Paint {
                 line_color: Some(Color(json!(palette.structure))),
                 line_dasharray: Some(Dasharray(json!([2, 2]))),
-                line_width: Some(linear_zoom_interpolation(&[(14.0, 0.0), (20.0, 7.0)])),
+                line_width: Some(exponential_zoom_interpolation(
+                    1.6,
+                    &[(14.0, 0.0), (20.0, 7.0)],
+                )),
                 ..Default::default()
             },
         },
@@ -606,12 +609,10 @@ fn build(palette: &Palette, schema: Schema) -> Style {
             ]))),
             paint: Paint {
                 line_color: Some(Color(json!(palette.structure))),
-                line_width: Some(linear_zoom_interpolation(&[
-                    (11.0, 0.0),
-                    (12.5, 0.5),
-                    (15.0, 2.0),
-                    (18.0, 11.0),
-                ])),
+                line_width: Some(exponential_zoom_interpolation(
+                    1.6,
+                    &[(11.0, 0.0), (12.5, 0.5), (15.0, 2.0), (18.0, 11.0)],
+                )),
                 ..Default::default()
             },
         },
@@ -625,11 +626,10 @@ fn build(palette: &Palette, schema: Schema) -> Style {
             ]))),
             paint: Paint {
                 line_color: Some(Color(json!(palette.structure))),
-                line_width: Some(linear_zoom_interpolation(&[
-                    (13.0, 0.0),
-                    (13.5, 1.0),
-                    (18.0, 11.0),
-                ])),
+                line_width: Some(exponential_zoom_interpolation(
+                    1.6,
+                    &[(13.0, 0.0), (13.5, 1.0), (18.0, 11.0)],
+                )),
                 ..Default::default()
             },
         },
@@ -643,12 +643,10 @@ fn build(palette: &Palette, schema: Schema) -> Style {
             ]))),
             paint: Paint {
                 line_color: Some(Color(json!(palette.structure))),
-                line_width: Some(linear_zoom_interpolation(&[
-                    (6.0, 0.0),
-                    (12.0, 1.6),
-                    (15.0, 3.0),
-                    (18.0, 13.0),
-                ])),
+                line_width: Some(exponential_zoom_interpolation(
+                    1.6,
+                    &[(6.0, 0.0), (12.0, 1.6), (15.0, 3.0), (18.0, 13.0)],
+                )),
                 ..Default::default()
             },
         },
@@ -663,13 +661,16 @@ fn build(palette: &Palette, schema: Schema) -> Style {
             ]))),
             paint: Paint {
                 line_color: Some(Color(json!(palette.structure))),
-                line_width: Some(linear_zoom_interpolation(&[
-                    (3.0, 0.0),
-                    (6.0, 1.65),
-                    (12.0, 2.4),
-                    (15.0, 7.5),
-                    (18.0, 22.5),
-                ])),
+                line_width: Some(exponential_zoom_interpolation(
+                    1.6,
+                    &[
+                        (3.0, 0.0),
+                        (6.0, 1.65),
+                        (12.0, 2.4),
+                        (15.0, 7.5),
+                        (18.0, 22.5),
+                    ],
+                )),
                 ..Default::default()
             },
         },
@@ -790,11 +791,10 @@ fn build(palette: &Palette, schema: Schema) -> Style {
             ]))),
             paint: Paint {
                 line_color: Some(Color(json!(palette.structure))),
-                line_width: Some(linear_zoom_interpolation(&[
-                    (11.0, 0.0),
-                    (12.0, 1.0),
-                    (20.0, 7.0),
-                ])),
+                line_width: Some(exponential_zoom_interpolation(
+                    1.6,
+                    &[(14.0, 0.0), (20.0, 7.0)],
+                )),
                 ..Default::default()
             },
         },
@@ -804,11 +804,10 @@ fn build(palette: &Palette, schema: Schema) -> Style {
             filter: Some(Filter(json!(schema.is_link()))),
             paint: Paint {
                 line_color: Some(Color(json!(palette.bridge))),
-                line_width: Some(linear_zoom_interpolation(&[
-                    (13.0, 0.0),
-                    (13.5, 1.0),
-                    (18.0, 11.0),
-                ])),
+                line_width: Some(exponential_zoom_interpolation(
+                    1.6,
+                    &[(13.0, 0.0), (13.5, 1.0), (18.0, 11.0)],
+                )),
                 ..Default::default()
             },
         },
@@ -823,11 +822,10 @@ fn build(palette: &Palette, schema: Schema) -> Style {
             ]))),
             paint: Paint {
                 line_color: Some(Color(json!(palette.road))),
-                line_width: Some(linear_zoom_interpolation(&[
-                    (11.0, 0.0),
-                    (12.0, 1.0),
-                    (20.0, 7.0),
-                ])),
+                line_width: Some(exponential_zoom_interpolation(
+                    1.6,
+                    &[(11.0, 0.0), (12.5, 0.5), (15.0, 2.0), (18.0, 11.0)],
+                )),
                 ..Default::default()
             },
         },
@@ -842,12 +840,10 @@ fn build(palette: &Palette, schema: Schema) -> Style {
             ]))),
             paint: Paint {
                 line_color: Some(Color(json!(palette.major_road_border))),
-                line_width: Some(linear_zoom_interpolation(&[
-                    (6.0, 0.0),
-                    (12.0, 1.6),
-                    (15.0, 5.0),
-                    (18.0, 17.0),
-                ])),
+                line_width: Some(exponential_zoom_interpolation(
+                    1.6,
+                    &[(6.0, 0.0), (12.0, 1.6), (15.0, 5.0), (18.0, 17.0)],
+                )),
                 ..Default::default()
             },
         },
@@ -862,12 +858,10 @@ fn build(palette: &Palette, schema: Schema) -> Style {
             ]))),
             paint: Paint {
                 line_color: Some(Color(json!(palette.road))),
-                line_width: Some(linear_zoom_interpolation(&[
-                    (6.0, 0.0),
-                    (12.0, 1.6),
-                    (15.0, 3.0),
-                    (18.0, 13.0),
-                ])),
+                line_width: Some(exponential_zoom_interpolation(
+                    1.6,
+                    &[(6.0, 0.0), (12.0, 1.6), (15.0, 3.0), (18.0, 13.0)],
+                )),
                 ..Default::default()
             },
         },
@@ -883,13 +877,16 @@ fn build(palette: &Palette, schema: Schema) -> Style {
             ]))),
             paint: Paint {
                 line_color: Some(Color(json!(palette.highway))),
-                line_width: Some(linear_zoom_interpolation(&[
-                    (3.0, 0.0),
-                    (6.0, 1.65),
-                    (12.0, 2.4),
-                    (15.0, 7.5),
-                    (18.0, 22.5),
-                ])),
+                line_width: Some(exponential_zoom_interpolation(
+                    1.6,
+                    &[
+                        (3.0, 0.0),
+                        (6.0, 1.65),
+                        (12.0, 2.4),
+                        (15.0, 7.5),
+                        (18.0, 22.5),
+                    ],
+                )),
                 ..Default::default()
             },
         },
@@ -999,7 +996,10 @@ fn build(palette: &Palette, schema: Schema) -> Style {
             paint: Paint {
                 line_color: Some(Color(json!(palette.bridge))),
                 line_dasharray: Some(Dasharray(json!([2, 2]))),
-                line_width: Some(linear_zoom_interpolation(&[(14.0, 0.0), (20.0, 7.0)])),
+                line_width: Some(exponential_zoom_interpolation(
+                    1.6,
+                    &[(14.0, 0.0), (20.0, 7.0)],
+                )),
                 ..Default::default()
             },
         },
@@ -1013,12 +1013,10 @@ fn build(palette: &Palette, schema: Schema) -> Style {
             ]))),
             paint: Paint {
                 line_color: Some(Color(json!(palette.bridge))),
-                line_width: Some(linear_zoom_interpolation(&[
-                    (11.0, 0.0),
-                    (12.5, 0.5),
-                    (15.0, 2.0),
-                    (18.0, 11.0),
-                ])),
+                line_width: Some(exponential_zoom_interpolation(
+                    1.6,
+                    &[(11.0, 0.0), (12.5, 0.5), (15.0, 2.0), (18.0, 11.0)],
+                )),
                 ..Default::default()
             },
         },
@@ -1032,11 +1030,10 @@ fn build(palette: &Palette, schema: Schema) -> Style {
             ]))),
             paint: Paint {
                 line_color: Some(Color(json!(palette.bridge))),
-                line_width: Some(linear_zoom_interpolation(&[
-                    (13.0, 0.0),
-                    (13.5, 1.0),
-                    (18.0, 11.0),
-                ])),
+                line_width: Some(exponential_zoom_interpolation(
+                    1.6,
+                    &[(13.0, 0.0), (13.5, 1.0), (18.0, 11.0)],
+                )),
                 ..Default::default()
             },
         },
@@ -1050,12 +1047,10 @@ fn build(palette: &Palette, schema: Schema) -> Style {
             ]))),
             paint: Paint {
                 line_color: Some(Color(json!(palette.structure))),
-                line_width: Some(linear_zoom_interpolation(&[
-                    (6.0, 0.0),
-                    (12.0, 1.6),
-                    (15.0, 3.0),
-                    (18.0, 13.0),
-                ])),
+                line_width: Some(exponential_zoom_interpolation(
+                    1.6,
+                    &[(6.0, 0.0), (12.0, 1.6), (15.0, 3.0), (18.0, 13.0)],
+                )),
                 ..Default::default()
             },
         },
@@ -1089,13 +1084,16 @@ fn build(palette: &Palette, schema: Schema) -> Style {
             ]))),
             paint: Paint {
                 line_color: Some(Color(json!(palette.structure))),
-                line_width: Some(linear_zoom_interpolation(&[
-                    (3.0, 0.0),
-                    (6.0, 1.65),
-                    (12.0, 2.4),
-                    (15.0, 7.5),
-                    (18.0, 22.5),
-                ])),
+                line_width: Some(exponential_zoom_interpolation(
+                    1.6,
+                    &[
+                        (3.0, 0.0),
+                        (6.0, 1.65),
+                        (12.0, 2.4),
+                        (15.0, 7.5),
+                        (18.0, 22.5),
+                    ],
+                )),
                 ..Default::default()
             },
         },
