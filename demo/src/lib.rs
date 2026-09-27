@@ -254,6 +254,7 @@ fn hiking_style() -> Style {
                         16.0,
                         16.0
                     ]))),
+                    ..Default::default()
                 },
                 paint: Some(Paint {
                     text_color: Some(Color(json!("#3d2b1f"))),

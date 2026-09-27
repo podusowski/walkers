@@ -77,12 +77,14 @@ fn label_points(
     let text_size = evaluate_text_size(layout, context);
     let text_color = evaluate_text_color(paint, context);
     let (halo_color, halo_width) = evaluate_halo(paint, context);
+    let padding = evaluate_text_padding(layout, context);
 
     texts.extend(points.iter().map(|p| {
         Text::new(pos2(p.x(), p.y()), text.clone(), text_size, text_color, 0.0)
             .with_halo(halo_color, halo_width)
             .with_min_zoom(min_zoom)
             .with_layer(layer)
+            .with_padding(padding)
     }))
 }
 
@@ -103,6 +105,7 @@ fn label_line_strings(
     let text_size = evaluate_text_size(layout, context);
     let text_color = evaluate_text_color(paint, context);
     let (halo_color, halo_width) = evaluate_halo(paint, context);
+    let padding = evaluate_text_padding(layout, context);
 
     for line_string in line_strings {
         let lines: Vec<_> = line_string.lines().collect();
@@ -123,10 +126,18 @@ fn label_line_strings(
                 .with_halo(halo_color, halo_width)
                 .with_placement(Placement::Line)
                 .with_min_zoom(min_zoom)
-                .with_layer(layer),
+                .with_layer(layer)
+                .with_padding(padding),
             );
         }
     }
+}
+
+fn evaluate_text_padding(layout: &Layout, context: &Context) -> f32 {
+    layout
+        .text_padding
+        .as_ref()
+        .map_or(0.0, |padding| padding.evaluate(context))
 }
 
 fn evaluate_text_size(layout: &Layout, context: &Context) -> f32 {
@@ -202,7 +213,7 @@ mod tests {
 
         let layout = Layout {
             text_field: Some(crate::style::json!(["get", "name"])),
-            text_size: None,
+            ..Default::default()
         };
 
         let mut texts = Vec::new();

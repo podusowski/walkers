@@ -23,6 +23,7 @@ pub struct Text {
     pub placement: Placement,
     pub min_zoom: Option<f32>,
     pub layer: usize,
+    pub padding: f32,
 }
 
 impl Text {
@@ -44,6 +45,7 @@ impl Text {
             placement: Placement::Point,
             min_zoom: None,
             layer: 0,
+            padding: 0.0,
         }
     }
 
@@ -65,6 +67,11 @@ impl Text {
 
     pub fn with_layer(mut self, layer: usize) -> Self {
         self.layer = layer;
+        self
+    }
+
+    pub fn with_padding(mut self, padding: f32) -> Self {
+        self.padding = padding;
         self
     }
 }
@@ -210,8 +217,12 @@ fn place_text(text: Text, ctx: &egui::Context, placed_texts: &mut PlacedTexts) -
 
     let galley = ctx.fonts_mut(|fonts| fonts.layout_job(layout_job));
 
-    let area = OrientedRect::new(text.position, text.angle, galley.size());
-    let top_left = area.top_left();
+    let top_left = OrientedRect::new(text.position, text.angle, galley.size()).top_left();
+    let area = OrientedRect::new(
+        text.position,
+        text.angle,
+        galley.size() + Vec2::splat(2.0 * text.padding),
+    );
 
     if !placed_texts.try_place(&text, area) {
         return Shape::Noop;

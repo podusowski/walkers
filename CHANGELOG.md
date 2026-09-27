@@ -8,6 +8,7 @@ All notable changes to this project will be documented in this file.
 * `symbol` layers support `minzoom`.
 * Vector tile decoding optimizations.
 * Labels of higher style layers take precedence.
+* `symbol` layers support `text-padding`.
 
 ## 0.60.0
 
