@@ -244,7 +244,6 @@ struct Palette {
     highway: &'static str,
     road: &'static str,
     label_muted: &'static str,
-    major_road_border: &'static str,
     label: &'static str,
     locality_text: &'static str,
     water: &'static str,
@@ -270,7 +269,6 @@ const DARK: Palette = Palette {
     highway: "#352121",
     road: "#464646",
     label_muted: "#5c5c5c",
-    major_road_border: "#696868",
     label: "#707070",
     locality_text: "#999999",
     water: "#161e31",
@@ -297,7 +295,6 @@ const LIGHT: Palette = Palette {
     highway: "#bb5f5f",
     road: "#4a4a4a",
     label_muted: "#595959",
-    major_road_border: "#1e1e1e",
     label: "#1f1f1f",
     locality_text: "#1a1a1a",
     water: "#88b2e2",
@@ -825,24 +822,6 @@ fn build(palette: &Palette, schema: Schema) -> Style {
                 line_width: Some(exponential_zoom_interpolation(
                     1.6,
                     &[(11.0, 0.0), (12.5, 0.5), (15.0, 2.0), (18.0, 11.0)],
-                )),
-                ..Default::default()
-            },
-        },
-        // roads_major_border
-        Layer::Line {
-            source_layer: schema.roads.into(),
-            filter: Some(Filter(json!([
-                "all",
-                schema.is_not(Brunnel::Tunnel),
-                schema.is_not(Brunnel::Bridge),
-                ["in", schema.kind, "major_road", "primary", "secondary"]
-            ]))),
-            paint: Paint {
-                line_color: Some(Color(json!(palette.major_road_border))),
-                line_width: Some(exponential_zoom_interpolation(
-                    1.6,
-                    &[(6.0, 0.0), (12.0, 1.6), (15.0, 5.0), (18.0, 17.0)],
                 )),
                 ..Default::default()
             },
