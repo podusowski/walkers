@@ -549,8 +549,7 @@ fn build(palette: &Palette, schema: Schema) -> Style {
             source_layer: schema.roads.into(),
             filter: Some(Filter(json!([
                 "all",
-                schema.is_not(Brunnel::Tunnel),
-                schema.is_not(Brunnel::Bridge),
+                schema.is(Brunnel::Tunnel),
                 ["in", schema.kind, "major_road", "primary", "secondary"]
             ]))),
             paint: Paint {
@@ -565,8 +564,7 @@ fn build(palette: &Palette, schema: Schema) -> Style {
             source_layer: schema.roads.into(),
             filter: Some(Filter(json!([
                 "all",
-                schema.is_not(Brunnel::Tunnel),
-                schema.is_not(Brunnel::Bridge),
+                schema.is(Brunnel::Tunnel),
                 ["in", schema.kind, "highway", "motorway", "trunk"],
                 schema.is_not_link()
             ]))),
@@ -702,83 +700,6 @@ fn build(palette: &Palette, schema: Schema) -> Style {
                 ..Default::default()
             },
         },
-        // roads_minor_service_casing
-        Layer::Line {
-            source_layer: schema.roads.into(),
-            filter: Some(Filter(json!([
-                "all",
-                schema.is_not(Brunnel::Tunnel),
-                schema.is_not(Brunnel::Bridge),
-                ["in", schema.kind, "minor_road", "minor", "tertiary"],
-                ["==", schema.kind_detail, "service"]
-            ]))),
-            paint: Paint {
-                line_color: Some(Color(json!(palette.casing))),
-                line_width: Some(linear_zoom_interpolation(&[(13.0, 0.0), (13.5, 0.8)])),
-                ..Default::default()
-            },
-        },
-        // roads_minor_casing
-        Layer::Line {
-            source_layer: schema.roads.into(),
-            filter: Some(Filter(json!([
-                "all",
-                schema.is_not(Brunnel::Tunnel),
-                schema.is_not(Brunnel::Bridge),
-                ["in", schema.kind, "minor_road", "minor", "tertiary"],
-                ["!=", schema.kind_detail, "service"]
-            ]))),
-            paint: Paint {
-                line_color: Some(Color(json!(palette.casing))),
-                line_width: Some(linear_zoom_interpolation(&[(12.0, 0.0), (12.5, 1.0)])),
-                ..Default::default()
-            },
-        },
-        // roads_link_casing
-        Layer::Line {
-            source_layer: schema.roads.into(),
-            filter: Some(Filter(json!(schema.is_link()))),
-            paint: Paint {
-                line_color: Some(Color(json!(palette.casing))),
-                line_width: Some(linear_zoom_interpolation(&[(13.0, 0.0), (13.5, 1.5)])),
-                ..Default::default()
-            },
-        },
-        // roads_major_casing_late
-        Layer::Line {
-            source_layer: schema.roads.into(),
-            filter: Some(Filter(json!([
-                "all",
-                schema.is_not(Brunnel::Tunnel),
-                schema.is_not(Brunnel::Bridge),
-                ["in", schema.kind, "major_road", "primary", "secondary"]
-            ]))),
-            paint: Paint {
-                line_color: Some(Color(json!(palette.casing))),
-                line_width: Some(linear_zoom_interpolation(&[(9.0, 0.0), (9.5, 1.0)])),
-                ..Default::default()
-            },
-        },
-        // roads_highway_casing_late
-        Layer::Line {
-            source_layer: schema.roads.into(),
-            filter: Some(Filter(json!([
-                "all",
-                schema.is_not(Brunnel::Tunnel),
-                schema.is_not(Brunnel::Bridge),
-                ["in", schema.kind, "highway", "motorway", "trunk"],
-                schema.is_not_link()
-            ]))),
-            paint: Paint {
-                line_color: Some(Color(json!(palette.casing))),
-                line_width: Some(linear_zoom_interpolation(&[
-                    (7.0, 0.0),
-                    (7.5, 1.5),
-                    (20.0, 22.5),
-                ])),
-                ..Default::default()
-            },
-        },
         // roads_other
         Layer::Line {
             source_layer: schema.roads.into(),
@@ -909,61 +830,6 @@ fn build(palette: &Palette, schema: Schema) -> Style {
                 ..Default::default()
             },
         },
-        // roads_bridges_other_casing
-        Layer::Line {
-            source_layer: schema.roads.into(),
-            filter: Some(Filter(json!([
-                "all",
-                schema.is(Brunnel::Bridge),
-                ["in", schema.kind, "other", "path", "service", "track"]
-            ]))),
-            paint: Paint {
-                line_color: Some(Color(json!(palette.casing))),
-                ..Default::default()
-            },
-        },
-        // roads_bridges_link_casing
-        Layer::Line {
-            source_layer: schema.roads.into(),
-            filter: Some(Filter(json!([
-                "all",
-                schema.is(Brunnel::Bridge),
-                schema.is_link()
-            ]))),
-            paint: Paint {
-                line_color: Some(Color(json!(palette.casing))),
-                line_width: Some(linear_zoom_interpolation(&[(12.0, 0.0), (12.5, 1.5)])),
-                ..Default::default()
-            },
-        },
-        // roads_bridges_minor_casing
-        Layer::Line {
-            source_layer: schema.roads.into(),
-            filter: Some(Filter(json!([
-                "all",
-                schema.is(Brunnel::Bridge),
-                ["in", schema.kind, "minor_road", "minor", "tertiary"]
-            ]))),
-            paint: Paint {
-                line_color: Some(Color(json!(palette.casing))),
-                line_width: Some(linear_zoom_interpolation(&[(13.0, 0.0), (13.5, 0.8)])),
-                ..Default::default()
-            },
-        },
-        // roads_bridges_major_casing
-        Layer::Line {
-            source_layer: schema.roads.into(),
-            filter: Some(Filter(json!([
-                "all",
-                schema.is(Brunnel::Bridge),
-                ["in", schema.kind, "major_road", "primary", "secondary"]
-            ]))),
-            paint: Paint {
-                line_color: Some(Color(json!(palette.casing))),
-                line_width: Some(linear_zoom_interpolation(&[(9.0, 0.0), (9.5, 1.5)])),
-                ..Default::default()
-            },
-        },
         // roads_bridges_other
         Layer::Line {
             source_layer: schema.roads.into(),
@@ -973,12 +839,8 @@ fn build(palette: &Palette, schema: Schema) -> Style {
                 ["in", schema.kind, "other", "path", "service", "track"]
             ]))),
             paint: Paint {
-                line_color: Some(Color(json!(palette.bridge))),
-                line_dasharray: Some(Dasharray(json!([2, 2]))),
-                line_width: Some(exponential_zoom_interpolation(
-                    1.6,
-                    &[(14.0, 0.0), (20.0, 7.0)],
-                )),
+                line_color: Some(Color(json!(palette.path))),
+                line_width: Some(linear_zoom_interpolation(&[(14.0, 0.5), (15.0, 2.0)])),
                 ..Default::default()
             },
         },
@@ -991,7 +853,7 @@ fn build(palette: &Palette, schema: Schema) -> Style {
                 ["in", schema.kind, "minor_road", "minor", "tertiary"]
             ]))),
             paint: Paint {
-                line_color: Some(Color(json!(palette.bridge))),
+                line_color: Some(Color(json!(palette.road))),
                 line_width: Some(exponential_zoom_interpolation(
                     1.6,
                     &[(11.0, 0.0), (12.5, 0.5), (15.0, 2.0), (18.0, 11.0)],
@@ -1025,30 +887,11 @@ fn build(palette: &Palette, schema: Schema) -> Style {
                 ["in", schema.kind, "major_road", "primary", "secondary"]
             ]))),
             paint: Paint {
-                line_color: Some(Color(json!(palette.structure))),
+                line_color: Some(Color(json!(palette.road))),
                 line_width: Some(exponential_zoom_interpolation(
                     1.6,
                     &[(6.0, 0.0), (12.0, 1.6), (15.0, 3.0), (18.0, 13.0)],
                 )),
-                ..Default::default()
-            },
-        },
-        // roads_bridges_highway_casing
-        Layer::Line {
-            source_layer: schema.roads.into(),
-            filter: Some(Filter(json!([
-                "all",
-                schema.is(Brunnel::Bridge),
-                ["in", schema.kind, "highway", "motorway", "trunk"],
-                schema.is_not_link()
-            ]))),
-            paint: Paint {
-                line_color: Some(Color(json!(palette.casing))),
-                line_width: Some(linear_zoom_interpolation(&[
-                    (7.0, 0.0),
-                    (7.5, 1.5),
-                    (20.0, 22.5),
-                ])),
                 ..Default::default()
             },
         },
@@ -1062,7 +905,7 @@ fn build(palette: &Palette, schema: Schema) -> Style {
                 schema.is_not_link()
             ]))),
             paint: Paint {
-                line_color: Some(Color(json!(palette.structure))),
+                line_color: Some(Color(json!(palette.highway))),
                 line_width: Some(exponential_zoom_interpolation(
                     1.6,
                     &[
