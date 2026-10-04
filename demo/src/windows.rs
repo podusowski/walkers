@@ -38,16 +38,16 @@ pub fn controls(
         .show(ui.ctx(), |ui| {
             ui.heading("Map");
 
-            ComboBox::from_label("Tile Provider")
-                .selected_text(app.layers.selected.to_owned())
+            ComboBox::from_label("Basemap")
+                .selected_text(app.basemaps.selected.to_owned())
                 .show_ui(ui, |ui| {
-                    for p in app.layers.available.keys() {
-                        ui.selectable_value(&mut app.layers.selected, p.clone(), p);
+                    for p in app.basemaps.available.keys() {
+                        ui.selectable_value(&mut app.basemaps.selected, p.clone(), p);
                     }
                 });
 
             #[cfg(feature = "pmtiles")]
-            if !app.layers.have_some_pmtiles {
+            if !app.basemaps.have_some_pmtiles {
                 ui.label("No .pmtiles files found in the current directory. Go to");
                 ui.hyperlink("https://docs.protomaps.com/guide/getting-started");
                 ui.label(" to see how to fetch some.");
@@ -72,7 +72,7 @@ pub fn controls(
             for http_stats in http_stats {
                 ui.label(format!(
                     "{:?} requests in progress: {}",
-                    app.layers.selected, http_stats.in_progress
+                    app.basemaps.selected, http_stats.in_progress
                 ));
             }
 
