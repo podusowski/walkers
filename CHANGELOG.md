@@ -10,6 +10,7 @@ All notable changes to this project will be documented in this file.
 * Labels of higher style layers take precedence.
 * `symbol` layers support `text-padding`.
 * `interpolate` supports `exponential`.
+* Dashed lines keep their length when zooming, instead of stretching with the tile.
 
 ## 0.60.0
 
