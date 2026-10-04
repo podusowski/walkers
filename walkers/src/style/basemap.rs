@@ -1110,18 +1110,6 @@ fn build(palette: &Palette, schema: Schema) -> Style {
                 ..Default::default()
             }),
         },
-        // roads_oneway
-        Layer::Symbol {
-            source_layer: schema.road_labels.into(),
-            minzoom: None,
-            filter: Some(Filter(json!(["==", ["get", "oneway"], "yes"]))),
-            layout: Layout {
-                text_field: None,
-                text_size: None,
-                ..Default::default()
-            },
-            paint: None,
-        },
         // roads_labels_minor
         Layer::Symbol {
             source_layer: schema.road_labels.into(),
