@@ -1,20 +1,20 @@
+mod basemaps;
 mod kml;
 mod places;
 mod plugins;
-mod tiles;
 mod windows;
 
 use std::io;
 
+use basemaps::{TilesKind, basemaps};
 use egui::{Button, DragPanButtons, OpenUrl, Rect, Vec2};
-use tiles::{TilesKind, providers};
 use walkers::{Color, Filter, Float, Layer, Layout, Map, MapMemory, Paint, Style, json};
 use walkers_extras::GeoJsonLayer;
 
-use crate::tiles::Providers;
+use crate::basemaps::Basemaps;
 
 pub struct MyApp {
-    providers: Providers,
+    basemaps: Basemaps,
     map_memory: MapMemory,
     click_watcher: plugins::ClickWatcher,
     zoom_with_ctrl: bool,
@@ -27,7 +27,7 @@ impl MyApp {
         egui_extras::install_image_loaders(&egui_ctx);
 
         Self {
-            providers: providers(egui_ctx.to_owned()),
+            basemaps: basemaps(egui_ctx.to_owned()),
             map_memory: MapMemory::default(),
             click_watcher: Default::default(),
             zoom_with_ctrl: true,
@@ -42,9 +42,9 @@ impl eframe::App for MyApp {
         let my_position = places::wroclaw_glowny();
 
         let tiles = self
-            .providers
+            .basemaps
             .available
-            .get_mut(&self.providers.selected)
+            .get_mut(&self.basemaps.selected)
             .unwrap();
         let attributions: Vec<_> = tiles
             .iter()
