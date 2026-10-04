@@ -30,7 +30,7 @@ impl MyApp {
             basemaps: basemaps(egui_ctx.to_owned()),
             map_memory: MapMemory::default(),
             click_watcher: Default::default(),
-            zoom_with_ctrl: true,
+            zoom_with_ctrl: false,
             geojson_layers: geojson_layers().unwrap_or_default(),
         }
     }
