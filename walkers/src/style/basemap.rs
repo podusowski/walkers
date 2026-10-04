@@ -319,7 +319,7 @@ fn build(palette: &Palette, schema: Schema) -> Style {
         // earth
         Layer::Fill {
             source_layer: schema.earth.into(),
-            filter: Some(Filter(json!(["==", "$type", "Polygon"]))),
+            filter: Some(Filter(json!(["==", ["geometry-type"], "Polygon"]))),
             paint: Paint {
                 fill_color: Some(Color(json!(palette.background))),
                 ..Default::default()
@@ -454,7 +454,7 @@ fn build(palette: &Palette, schema: Schema) -> Style {
         // water
         Layer::Fill {
             source_layer: schema.water.into(),
-            filter: Some(Filter(json!(["==", "$type", "Polygon"]))),
+            filter: Some(Filter(json!(["==", ["geometry-type"], "Polygon"]))),
             paint: Paint {
                 fill_color: Some(Color(json!(palette.water))),
                 ..Default::default()
