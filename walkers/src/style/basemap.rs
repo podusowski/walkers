@@ -240,6 +240,7 @@ struct Palette {
     landuse_dark: &'static str,
     bridge: &'static str,
     structure: &'static str,
+    path: &'static str,
     muted: &'static str,
     highway: &'static str,
     road: &'static str,
@@ -265,6 +266,7 @@ const DARK: Palette = Palette {
     landuse_dark: "#191919",
     bridge: "#1f1f1f",
     structure: "#292929",
+    path: "#3a2312",
     muted: "#333333",
     highway: "#352121",
     road: "#464646",
@@ -291,6 +293,7 @@ const LIGHT: Palette = Palette {
     landuse_dark: "#e0e0e0",
     bridge: "#bfbfbf",
     structure: "#d4d4d4",
+    path: "#d4d4d4",
     muted: "#b3b3b3",
     highway: "#bb5f5f",
     road: "#4a4a4a",
@@ -787,11 +790,8 @@ fn build(palette: &Palette, schema: Schema) -> Style {
                 ["!=", schema.kind_detail, "pier"]
             ]))),
             paint: Paint {
-                line_color: Some(Color(json!(palette.structure))),
-                line_width: Some(exponential_zoom_interpolation(
-                    1.6,
-                    &[(14.0, 0.0), (20.0, 7.0)],
-                )),
+                line_color: Some(Color(json!(palette.path))),
+                line_width: Some(linear_zoom_interpolation(&[(14.0, 0.5), (15.0, 2.0)])),
                 ..Default::default()
             },
         },
