@@ -97,6 +97,7 @@ mod tests {
             points: vec![pos2(0., 0.), pos2(1., 1.)],
             width: 1.,
             color: Color32::WHITE,
+            dasharray: Vec::new(),
         }])
     }
 

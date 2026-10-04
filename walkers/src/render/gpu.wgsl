@@ -72,6 +72,11 @@ struct LineOut {
 
     /// Where the line's real edge is, which is half a pixel inside what was drawn.
     @location(2) half_width: f32,
+
+    /// How far along the line this is, in pixels.
+    @location(3) along: f32,
+
+    @location(4) @interpolate(flat) dasharray: vec4<f32>,
 };
 
 @vertex
@@ -80,6 +85,8 @@ fn vs_line(
     @location(1) extrude: vec2<f32>,
     @location(2) side: f32,
     @location(3) color: vec4<f32>,
+    @location(4) along: f32,
+    @location(5) dasharray: vec4<f32>,
 ) -> LineOut {
     // The line is pushed out sideways after the map's transform, so its width is in screen
     // pixels however far the map is zoomed.
@@ -98,13 +105,32 @@ fn vs_line(
     out.color = color * settings.transparency;
     out.distance = side * drawn_half;
     out.half_width = drawn_half - 0.5;
+    out.along = along * settings.scale.x;
+    out.dasharray = dasharray;
     return out;
+}
+
+// Whether this pixel falls on a dash rather than in a gap. A pattern which adds up to nothing
+// is a solid line.
+fn on_dash(in: LineOut) -> bool {
+    let pattern = in.dasharray;
+    let period = pattern.x + pattern.y + pattern.z + pattern.w;
+    if period <= 0.0 {
+        return true;
+    }
+
+    let position = in.along % period;
+    return position < pattern.x
+        || (position >= pattern.x + pattern.y && position < pattern.x + pattern.y + pattern.z);
 }
 
 // How much of this pixel the line covers. Full in the middle, fading over the last half pixel
 // at each edge, and never more than the line's own width - which is what keeps a road thinner
 // than a pixel looking thin rather than disappearing or turning into a solid one.
 fn line_alpha(in: LineOut) -> f32 {
+    if !on_dash(in) {
+        return 0.0;
+    }
     return clamp(in.half_width - abs(in.distance) + 0.5, 0.0, 1.0);
 }
 

@@ -54,6 +54,10 @@ pub struct Line {
     pub width: f32,
 
     pub color: Color32,
+
+    /// Alternating dash and gap lengths, starting with a dash, in screen pixels for the same
+    /// reason as `width`. Empty for a solid line.
+    pub dasharray: Vec<f32>,
 }
 
 #[derive(Clone, Debug, PartialEq)]

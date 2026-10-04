@@ -46,11 +46,37 @@ struct LineVertex {
     side: f32,
 
     color: [u8; 4],
+
+    /// How far along the line this is, in tile coordinates, for the shader to find the dashes.
+    along: f32,
+
+    dasharray: [f32; 4],
 }
 
 /// How far past its real edge a line is drawn, so that the edge can be faded rather than
 /// ending on a hard pixel.
 const FEATHER: f32 = 0.5;
+
+/// Dashes are worked out on the screen, so that they keep their length when a tile is
+/// stretched. A pattern is passed to the shader whole, so it has to fit a fixed size.
+fn dasharray_of(line: &Line) -> [f32; 4] {
+    let mut pattern = line.dasharray.clone();
+
+    // An odd pattern is repeated to make it even, like in SVG, otherwise its dashes and gaps
+    // would swap on every repetition.
+    if pattern.len() % 2 == 1 {
+        pattern.extend_from_within(..);
+    }
+
+    if pattern.len() > 4 {
+        log::warn!("Dash patterns longer than 4 are not supported, drawing a solid line.");
+        return [0.; 4];
+    }
+
+    let mut packed = [0.; 4];
+    packed[..pattern.len()].copy_from_slice(&pattern);
+    packed
+}
 
 /// Turn a run of lines into triangles. Segments are independent - no joins, no caps - which
 /// shows at corners of thick lines and is the first thing to improve here.
@@ -59,6 +85,9 @@ fn line_vertices(run: &[Line]) -> (Vec<LineVertex>, Vec<u32>) {
     let mut indices = Vec::new();
 
     for line in run {
+        let dasharray = dasharray_of(line);
+        let mut travelled = 0.;
+
         for pair in line.points.windows(2) {
             let (from, to) = (pair[0], pair[1]);
             let along = to - from;
@@ -74,12 +103,19 @@ fn line_vertices(run: &[Line]) -> (Vec<LineVertex>, Vec<u32>) {
             let across = emath::vec2(-along.y, along.x) / length * (line.width / 2. + FEATHER);
             let corner = vertices.len() as u32;
 
-            for (position, side) in [(from, 1.), (from, -1.), (to, 1.), (to, -1.)] {
+            for (position, along, side) in [
+                (from, travelled, 1.),
+                (from, travelled, -1.),
+                (to, travelled + length, 1.),
+                (to, travelled + length, -1.),
+            ] {
                 vertices.push(LineVertex {
                     position: [position.x, position.y],
                     extrude: [across.x * side, across.y * side],
                     side,
                     color: line.color.to_array(),
+                    along,
+                    dasharray,
                 });
             }
 
@@ -91,6 +127,8 @@ fn line_vertices(run: &[Line]) -> (Vec<LineVertex>, Vec<u32>) {
                 corner + 1,
                 corner + 3,
             ]);
+
+            travelled += length;
         }
     }
 
@@ -256,6 +294,16 @@ impl Renderer {
                     offset: 20,
                     shader_location: 3,
                 },
+                wgpu::VertexAttribute {
+                    format: wgpu::VertexFormat::Float32,
+                    offset: 24,
+                    shader_location: 4,
+                },
+                wgpu::VertexAttribute {
+                    format: wgpu::VertexFormat::Float32x4,
+                    offset: 28,
+                    shader_location: 5,
+                },
             ],
             std::mem::size_of::<LineVertex>() as u64,
         );
@@ -401,6 +449,7 @@ mod tests {
             points: vec![pos2(0., 0.), pos2(10., 0.)],
             width,
             color: Color32::WHITE,
+            dasharray: Vec::new(),
         }]
     }
 
@@ -437,6 +486,7 @@ mod tests {
             points: vec![pos2(3., 3.), pos2(3., 3.)],
             width: 2.,
             color: Color32::WHITE,
+            dasharray: Vec::new(),
         }]);
 
         assert!(vertices.is_empty());
