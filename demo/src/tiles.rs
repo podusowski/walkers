@@ -5,7 +5,7 @@ use egui::Context;
 use walkers::PmTiles;
 #[cfg(feature = "mvt")]
 use walkers::Style;
-use walkers::{HttpOptions, HttpTiles, LocalTiles, Tiles};
+use walkers::{HttpOptions, HttpTiles, LocalTiles, Tiles, sources::TileSource};
 
 pub(crate) enum TilesKind {
     Http(HttpTiles),
@@ -57,85 +57,55 @@ pub struct Providers {
 }
 
 pub(crate) fn providers(egui_ctx: Context) -> Providers {
-    let mut providers = Providers::default();
+    let mut providers = Providers {
+        selected: "OpenStreetMap".to_string(),
+        ..Default::default()
+    };
 
+    insert_raster_providers(&mut providers, &egui_ctx);
+    insert_local_providers(&mut providers, &egui_ctx);
+    insert_mapbox_providers(&mut providers, &egui_ctx);
+    // Each of these overrides `selected`, so the last available one becomes the default.
+    #[cfg(feature = "mvt")]
+    insert_openfreemap_providers(&mut providers, &egui_ctx);
+    #[cfg(feature = "pmtiles")]
+    insert_pmtiles_providers(&mut providers, &egui_ctx);
+
+    providers
+}
+
+fn http<S>(source: S, egui_ctx: &Context) -> TilesKind
+where
+    S: TileSource + Sync + Send + 'static,
+{
+    TilesKind::Http(HttpTiles::with_options(
+        source,
+        http_options(),
+        egui_ctx.to_owned(),
+    ))
+}
+
+fn insert_raster_providers(providers: &mut Providers, egui_ctx: &Context) {
     providers.available.insert(
         "OpenStreetMap".to_string(),
-        vec![TilesKind::Http(HttpTiles::with_options(
-            walkers::sources::OpenStreetMap,
-            http_options(),
-            egui_ctx.to_owned(),
-        ))],
-    );
-    providers.selected = "OpenStreetMap".to_string();
-
-    #[cfg(feature = "mvt")]
-    providers.available.insert(
-        "OpenFreeMap".to_string(),
-        vec![TilesKind::Http(HttpTiles::with_options_and_style(
-            walkers::sources::OpenFreeMap,
-            http_options(),
-            Style::openfreemap_bright(),
-            egui_ctx.to_owned(),
-        ))],
-    );
-
-    #[cfg(feature = "mvt")]
-    providers.available.insert(
-        "OpenFreeMap (Walkers basemap light)".to_string(),
-        vec![TilesKind::Http(HttpTiles::with_options_and_style(
-            walkers::sources::OpenFreeMap,
-            http_options(),
-            Style::openmaptiles_basemap_light(),
-            egui_ctx.to_owned(),
-        ))],
-    );
-
-    #[cfg(feature = "mvt")]
-    providers.available.insert(
-        "OpenFreeMap (Walkers basemap dark)".to_string(),
-        vec![TilesKind::Http(HttpTiles::with_options_and_style(
-            walkers::sources::OpenFreeMap,
-            http_options(),
-            Style::openmaptiles_basemap_dark(),
-            egui_ctx.to_owned(),
-        ))],
+        vec![http(walkers::sources::OpenStreetMap, egui_ctx)],
     );
 
     providers.available.insert(
         "Geoportal".to_string(),
-        vec![TilesKind::Http(HttpTiles::with_options(
-            walkers::sources::Geoportal,
-            http_options(),
-            egui_ctx.to_owned(),
-        ))],
+        vec![http(walkers::sources::Geoportal, egui_ctx)],
     );
 
     providers.available.insert(
         "OpenStreetMapWithGeoportal".to_string(),
         vec![
-            TilesKind::Http(HttpTiles::with_options(
-                walkers::sources::OpenStreetMap,
-                http_options(),
-                egui_ctx.to_owned(),
-            )),
-            TilesKind::Http(HttpTiles::with_options(
-                walkers::sources::Geoportal,
-                http_options(),
-                egui_ctx.to_owned(),
-            )),
+            http(walkers::sources::OpenStreetMap, egui_ctx),
+            http(walkers::sources::Geoportal, egui_ctx),
         ],
     );
+}
 
-    providers.available.insert(
-        "Geoportal".to_string(),
-        vec![TilesKind::Http(HttpTiles::with_options(
-            walkers::sources::Geoportal,
-            http_options(),
-            egui_ctx.to_owned(),
-        ))],
-    );
-
+fn insert_local_providers(providers: &mut Providers, egui_ctx: &Context) {
     #[allow(deprecated)]
     providers.available.insert(
         "LocalTiles".to_string(),
@@ -144,93 +114,113 @@ pub(crate) fn providers(egui_ctx: Context) -> Providers {
             egui_ctx.to_owned(),
         ))],
     );
+}
 
-    #[cfg(feature = "pmtiles")]
-    {
-        let pmtiles = find_pmtiles_files();
-        providers.have_some_pmtiles = !pmtiles.is_empty();
+#[cfg(feature = "mvt")]
+fn insert_openfreemap_providers(providers: &mut Providers, egui_ctx: &Context) {
+    let styles = [
+        ("OpenFreeMap", Style::openfreemap_bright()),
+        (
+            "OpenFreeMap (Walkers basemap light)",
+            Style::openmaptiles_basemap_light(),
+        ),
+        (
+            "OpenFreeMap (Walkers basemap dark)",
+            Style::openmaptiles_basemap_dark(),
+        ),
+    ];
 
-        for path in pmtiles {
-            let name = path.file_stem().unwrap().to_string_lossy().to_string();
-            providers.available.insert(
-                name.clone(),
-                vec![TilesKind::PmTiles(PmTiles::with_style(
-                    path.clone(),
-                    Style::protomaps_dark(),
-                    egui_ctx.to_owned(),
-                ))],
-            );
-            providers.selected = name.clone();
-
-            providers.available.insert(
-                format!("{} (Protomaps Dark Vis)", name.clone()),
-                vec![TilesKind::PmTiles(PmTiles::with_style(
-                    path.clone(),
-                    Style::protomaps_dark_vis(),
-                    egui_ctx.to_owned(),
-                ))],
-            );
-
-            providers.available.insert(
-                format!("{} (Protomaps Light)", name.clone()),
-                vec![TilesKind::PmTiles(PmTiles::with_style(
-                    path.clone(),
-                    Style::protomaps_light(),
-                    egui_ctx.to_owned(),
-                ))],
-            );
-
-            providers.available.insert(
-                format!("{name}WithGeoportal"),
-                vec![
-                    TilesKind::PmTiles(PmTiles::with_style(
-                        path,
-                        Style::protomaps_dark(),
-                        egui_ctx.to_owned(),
-                    )),
-                    TilesKind::Http(HttpTiles::with_options(
-                        walkers::sources::Geoportal,
-                        http_options(),
-                        egui_ctx.to_owned(),
-                    )),
-                ],
-            );
-        }
-    }
-
-    // Pass in a mapbox access token at compile time. May or may not be what you want to do,
-    // potentially loading it from application settings instead.
-    let mapbox_access_token = std::option_env!("MAPBOX_ACCESS_TOKEN");
-
-    // We only show the mapbox map if we have an access token
-    if let Some(token) = mapbox_access_token {
+    for (name, style) in styles {
         providers.available.insert(
-            "MapboxStreets".to_string(),
-            vec![TilesKind::Http(HttpTiles::with_options(
-                walkers::sources::Mapbox {
-                    style: walkers::sources::MapboxStyle::Streets,
-                    access_token: token.to_string(),
-                    high_resolution: false,
-                },
+            name.to_string(),
+            vec![TilesKind::Http(HttpTiles::with_options_and_style(
+                walkers::sources::OpenFreeMap,
                 http_options(),
-                egui_ctx.to_owned(),
-            ))],
-        );
-        providers.available.insert(
-            "MapboxSatellite".to_string(),
-            vec![TilesKind::Http(HttpTiles::with_options(
-                walkers::sources::Mapbox {
-                    style: walkers::sources::MapboxStyle::Satellite,
-                    access_token: token.to_string(),
-                    high_resolution: true,
-                },
-                http_options(),
+                style,
                 egui_ctx.to_owned(),
             ))],
         );
     }
 
-    providers
+    providers.selected = "OpenFreeMap (Walkers basemap dark)".to_string();
+}
+
+#[cfg(feature = "pmtiles")]
+fn insert_pmtiles_providers(providers: &mut Providers, egui_ctx: &Context) {
+    let pmtiles = find_pmtiles_files();
+    providers.have_some_pmtiles = !pmtiles.is_empty();
+
+    for path in pmtiles {
+        let name = path.file_stem().unwrap().to_string_lossy().to_string();
+        let pmtiles = |style| {
+            TilesKind::PmTiles(PmTiles::with_style(
+                path.clone(),
+                style,
+                egui_ctx.to_owned(),
+            ))
+        };
+
+        providers
+            .available
+            .insert(name.clone(), vec![pmtiles(Style::protomaps_dark())]);
+        providers.available.insert(
+            format!("{name} (Protomaps Dark Vis)"),
+            vec![pmtiles(Style::protomaps_dark_vis())],
+        );
+        providers.available.insert(
+            format!("{name} (Protomaps Light)"),
+            vec![pmtiles(Style::protomaps_light())],
+        );
+        providers.available.insert(
+            format!("{name} (Walkers basemap light)"),
+            vec![pmtiles(Style::protomaps_basemap_light())],
+        );
+        providers.available.insert(
+            format!("{name} (Walkers basemap dark)"),
+            vec![pmtiles(Style::protomaps_basemap_dark())],
+        );
+        providers.available.insert(
+            format!("{name}WithGeoportal"),
+            vec![
+                pmtiles(Style::protomaps_dark()),
+                http(walkers::sources::Geoportal, egui_ctx),
+            ],
+        );
+
+        providers.selected = format!("{name} (Walkers basemap dark)");
+    }
+}
+
+/// Mapbox is shown only if an access token was passed at compile time. May or may not be what you
+/// want to do, potentially loading it from application settings instead.
+fn insert_mapbox_providers(providers: &mut Providers, egui_ctx: &Context) {
+    let Some(token) = std::option_env!("MAPBOX_ACCESS_TOKEN") else {
+        return;
+    };
+
+    let styles = [
+        (
+            "MapboxStreets",
+            walkers::sources::MapboxStyle::Streets,
+            false,
+        ),
+        (
+            "MapboxSatellite",
+            walkers::sources::MapboxStyle::Satellite,
+            true,
+        ),
+    ];
+
+    for (name, style, high_resolution) in styles {
+        let source = walkers::sources::Mapbox {
+            style,
+            access_token: token.to_string(),
+            high_resolution,
+        };
+        providers
+            .available
+            .insert(name.to_string(), vec![http(source, egui_ctx)]);
+    }
 }
 
 #[cfg(feature = "pmtiles")]
