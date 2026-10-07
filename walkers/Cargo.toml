@@ -48,6 +48,7 @@ required-features = ["mvt"]
 
 [target.'cfg(not(target_family = "wasm"))'.dependencies]
 http-cache-reqwest.workspace = true
+rustls.workspace = true
 tokio.workspace = true
 
 [target.'cfg(target_family = "wasm")'.dependencies]
