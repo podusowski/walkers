@@ -11,6 +11,8 @@ All notable changes to this project will be documented in this file.
 * `symbol` layers support `text-padding`.
 * `interpolate` supports `exponential`.
 * Dashed lines keep their length when zooming, instead of stretching with the tile.
+* `HttpOptions::tls` sets the TLS configuration, e.g. to trust a fixed set of roots instead of
+  the platform's trust store.
 
 ## 0.60.0
 

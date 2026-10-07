@@ -25,6 +25,12 @@ pub struct HttpOptions {
     /// Many services have rate limits, and exceeding them may result in throttling, bans, or
     /// degraded service. Use the default value when in doubt.
     pub max_parallel_downloads: MaxParallelDownloads,
+
+    /// TLS configuration, such as the trusted roots. By default, certificates are verified with
+    /// `rustls-platform-verifier`, which on Android must be initialized before the first tile is
+    /// fetched.
+    #[cfg(not(target_arch = "wasm32"))]
+    pub tls: Option<rustls::ClientConfig>,
 }
 
 impl Default for HttpOptions {
@@ -43,6 +49,8 @@ impl Default for HttpOptions {
             cache: None,
             user_agent,
             max_parallel_downloads: MaxParallelDownloads::default(),
+            #[cfg(not(target_arch = "wasm32"))]
+            tls: None,
         }
     }
 }
@@ -120,6 +128,11 @@ fn bare_client(http_options: &HttpOptions) -> reqwest::Client {
 
     if let Some(user_agent) = &http_options.user_agent {
         builder = builder.user_agent(user_agent);
+    }
+
+    #[cfg(not(target_arch = "wasm32"))]
+    if let Some(tls) = &http_options.tls {
+        builder = builder.tls_backend_preconfigured(tls.clone());
     }
 
     builder
