@@ -1,5 +1,5 @@
 use super::{Attribution, TileSource};
-use crate::tiles::TileId;
+use crate::{MercatorProjection, tiles::TileId};
 
 #[derive(Debug, Clone, Copy)]
 pub enum OpenTopoServer {
@@ -22,6 +22,12 @@ impl std::fmt::Display for OpenTopoServer {
 pub struct OpenTopoMap(pub OpenTopoServer);
 
 impl TileSource for OpenTopoMap {
+    type Projection = MercatorProjection;
+
+    fn projection(&self) -> MercatorProjection {
+        MercatorProjection
+    }
+
     fn tile_url(&self, tile_id: TileId) -> String {
         format!(
             "https://{}.tile.opentopomap.org/{}/{}/{}.png",

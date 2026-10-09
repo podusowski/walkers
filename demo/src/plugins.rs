@@ -1,5 +1,5 @@
 use egui::Color32;
-use walkers::Plugin;
+use walkers::{Plugin, Projection};
 use walkers_extras::{
     GroupedPlaces, LabeledSymbol, LabeledSymbolGroup, LabeledSymbolGroupStyle, LabeledSymbolStyle,
     Symbol,
@@ -8,7 +8,7 @@ use walkers_extras::{
 use crate::places;
 
 /// Creates a built-in [`GroupedPlaces`] plugin populated with some predefined places.
-pub fn places() -> impl Plugin {
+pub fn places<P: Projection>() -> impl Plugin<P> {
     GroupedPlaces::new(
         vec![
             LabeledSymbol {

@@ -1,23 +1,23 @@
 use std::path::{Path, PathBuf};
 
 use log::warn;
-use walkers::{Map, Stats, Tiles, sources::Attribution};
+use walkers::{Map, MercatorProjection, Projection, Stats, Tiles, sources::Attribution};
 
-type Layers = Vec<(Box<dyn Tiles>, f32)>;
-type Build = Box<dyn Fn(&egui::Context) -> Layers>;
+type Layers<P> = Vec<(Box<dyn Tiles<Projection = P>>, f32)>;
+type Build<P> = Box<dyn Fn(&egui::Context) -> Layers<P>>;
 
 /// Basemaps to choose from, each a stack of tile layers with their transparency. Only the
 /// selected one is built, so that the others do not start loading tiles nobody looks at.
-pub struct Basemaps {
+pub struct Basemaps<P: Projection = MercatorProjection> {
     egui_ctx: egui::Context,
-    available: Vec<(String, Build)>,
+    available: Vec<(String, Build<P>)>,
     selected: usize,
 
     /// `None` until the selected basemap is needed.
-    layers: Option<Layers>,
+    layers: Option<Layers<P>>,
 }
 
-impl Basemaps {
+impl<P: Projection> Basemaps<P> {
     pub fn new(egui_ctx: egui::Context) -> Self {
         Self {
             egui_ctx,
@@ -31,7 +31,7 @@ impl Basemaps {
     pub fn add(
         &mut self,
         name: impl Into<String>,
-        build: impl Fn(&egui::Context) -> Layers + 'static,
+        build: impl Fn(&egui::Context) -> Layers<P> + 'static,
     ) {
         self.available.push((name.into(), Box::new(build)));
     }
@@ -80,7 +80,7 @@ impl Basemaps {
     }
 
     /// Put the layers of the selected basemap on the map.
-    pub fn add_to<'a, 'b, 'c>(&'b mut self, mut map: Map<'a, 'b, 'c>) -> Map<'a, 'b, 'c> {
+    pub fn add_to<'a, 'b, 'c>(&'b mut self, mut map: Map<'a, 'b, 'c, P>) -> Map<'a, 'b, 'c, P> {
         let layers = self.layers.get_or_insert_with(|| {
             self.available
                 .get(self.selected)

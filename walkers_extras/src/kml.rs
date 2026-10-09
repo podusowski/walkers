@@ -6,7 +6,8 @@ use geo::geometry::Coord;
 use log::warn;
 use walkers::geo_types::{Geometry, Point};
 use walkers::{
-    Context, Layer, Paint, Position, Projector, Style, render_fill, render_line, to_shapes,
+    Context, Layer, Paint, Position, Projection, Projector, Style, render_fill, render_line,
+    to_shapes,
 };
 
 /// Parsed KML features, drawn on top of a [`Map`](walkers::Map).
@@ -24,7 +25,7 @@ impl KmlLayer {
         }
     }
 
-    pub fn render(&self, ui: &mut Ui, projector: &Projector, zoom: u8) {
+    pub fn render<P: Projection>(&self, ui: &mut Ui, projector: &Projector<'_, P>, zoom: u8) {
         let painter = ui.painter();
 
         for layer in &self.style.layers {
@@ -45,7 +46,13 @@ impl KmlLayer {
         }
     }
 
-    fn draw_lines(&self, painter: &egui::Painter, projector: &Projector, paint: &Paint, zoom: u8) {
+    fn draw_lines<P: Projection>(
+        &self,
+        painter: &egui::Painter,
+        projector: &Projector<'_, P>,
+        paint: &Paint,
+        zoom: u8,
+    ) {
         let context = Context::new("LineString".to_string(), HashMap::new(), zoom);
         let mut drawables = Vec::new();
 
@@ -57,7 +64,13 @@ impl KmlLayer {
         painter.extend(to_shapes(&drawables));
     }
 
-    fn draw_fills(&self, painter: &egui::Painter, projector: &Projector, paint: &Paint, zoom: u8) {
+    fn draw_fills<P: Projection>(
+        &self,
+        painter: &egui::Painter,
+        projector: &Projector<'_, P>,
+        paint: &Paint,
+        zoom: u8,
+    ) {
         let context = Context::new("Polygon".to_string(), HashMap::new(), zoom);
         let mut drawables = Vec::new();
 
@@ -71,7 +84,7 @@ impl KmlLayer {
         painter.extend(to_shapes(&drawables));
     }
 
-    fn draw_circles(&self, painter: &egui::Painter, projector: &Projector) {
+    fn draw_circles<P: Projection>(&self, painter: &egui::Painter, projector: &Projector<'_, P>) {
         for point in self.geometries.iter().flat_map(points) {
             let center = projector.project(*point).to_pos2();
             let radius = 5.0;
@@ -94,7 +107,7 @@ fn points(geometry: &Geometry<f64>) -> Vec<&Point<f64>> {
 }
 
 /// From longitude and latitude onto the screen.
-fn project(geometry: &Geometry<f64>, projector: &Projector) -> Geometry<f32> {
+fn project<P: Projection>(geometry: &Geometry<f64>, projector: &Projector<'_, P>) -> Geometry<f32> {
     geometry.map_coords(|coord| {
         let projected = projector.project(Position::new(coord.x, coord.y));
         Coord {

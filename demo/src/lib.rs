@@ -50,7 +50,7 @@ impl eframe::App for MyApp {
         let my_position = places::wroclaw_glowny();
 
         // In egui, widgets are constructed and consumed in each frame.
-        let mut map = Map::new(None, &mut self.map_memory, my_position);
+        let mut map = Map::new(&mut self.map_memory, my_position);
 
         // Various aspects of the map can be configured.
         map = map

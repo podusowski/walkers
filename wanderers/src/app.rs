@@ -2,7 +2,8 @@ use std::path::{Path, PathBuf};
 
 use egui::{Align2, Color32, ComboBox, Image, Key, PointerButton, RichText, Ui, Window};
 use walkers::{
-    HttpOptions, HttpTiles, Map, MapMemory, PmTiles, Position, Style, Tiles, lon_lat, sources,
+    HttpOptions, HttpTiles, Map, MapMemory, MercatorProjection, PmTiles, Position, Projection,
+    Style, Tiles, lon_lat, sources,
 };
 use walkers_extras::{
     Basemaps, GroupedPlaces, LabeledSymbol, LabeledSymbolGroup, LabeledSymbolGroupStyle,
@@ -71,10 +72,10 @@ fn basemaps(egui_ctx: egui::Context) -> Basemaps {
 }
 
 fn http(
-    source: impl sources::TileSource + Send + Sync + 'static,
+    source: impl sources::TileSource<Projection = MercatorProjection> + Send + Sync + 'static,
     style: Option<Style>,
     egui_ctx: &egui::Context,
-) -> Box<dyn Tiles> {
+) -> Box<dyn Tiles<Projection = MercatorProjection>> {
     let egui_ctx = egui_ctx.to_owned();
     Box::new(match style {
         Some(style) => HttpTiles::with_options_and_style(source, http_options(), style, egui_ctx),
@@ -82,8 +83,17 @@ fn http(
     })
 }
 
-fn pmtiles(path: &Path, style: Style, egui_ctx: &egui::Context) -> Box<dyn Tiles> {
-    Box::new(PmTiles::with_style(path, style, egui_ctx.to_owned()))
+fn pmtiles(
+    path: &Path,
+    style: Style,
+    egui_ctx: &egui::Context,
+) -> Box<dyn Tiles<Projection = MercatorProjection>> {
+    Box::new(PmTiles::with_style(
+        path,
+        MercatorProjection,
+        style,
+        egui_ctx.to_owned(),
+    ))
 }
 
 /// A place clicked on the map, waiting to be named and added to the journal.
@@ -140,7 +150,7 @@ impl eframe::App for Wanderers {
     fn ui(&mut self, ui: &mut Ui, _frame: &mut eframe::Frame) {
         let pending = self.new_place.as_ref().map(|new_place| new_place.position);
 
-        let map = Map::new(None, &mut self.map_memory, home()).zoom_with_ctrl(false);
+        let map = Map::new(&mut self.map_memory, home()).zoom_with_ctrl(false);
         let mut map = self.basemaps.add_to(map);
 
         if let Ok(journal) = &self.journal {
@@ -249,7 +259,7 @@ fn ask_for_name(ui: &Ui, new_place: &mut NewPlace) -> Outcome {
 
 /// Places are grouped, so that a journal which got dense in one city is still readable when
 /// the whole country is on the screen.
-fn places(places: &[journal::Place]) -> impl walkers::Plugin {
+fn places<P: Projection>(places: &[journal::Place]) -> impl walkers::Plugin<P> {
     GroupedPlaces::new(
         places
             .iter()
@@ -312,8 +322,8 @@ fn zoom(ui: &Ui, map_memory: &mut MapMemory) {
 }
 
 /// Once the map is dragged away, offer a way back.
-fn go_home(ui: &Ui, map_memory: &mut MapMemory) {
-    if map_memory.detached().is_some() {
+fn go_home(ui: &Ui, memory: &mut MapMemory) {
+    if memory.detached().is_some() {
         Window::new("Go home")
             .collapsible(false)
             .resizable(false)
@@ -321,7 +331,7 @@ fn go_home(ui: &Ui, map_memory: &mut MapMemory) {
             .anchor(Align2::RIGHT_BOTTOM, [-10., -10.])
             .show(ui.ctx(), |ui| {
                 if ui.button(RichText::new("go back home").heading()).clicked() {
-                    map_memory.follow_my_position();
+                    memory.follow_my_position();
                 }
             });
     }
