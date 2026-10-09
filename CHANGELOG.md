@@ -4,6 +4,7 @@ All notable changes to this project will be documented in this file.
 
 ## Unreleased
 
+* New `OpenTopoMap` tile source.
 * `walkers::Geometry` is replaced by the re-exported `walkers::geo_types`.
 * `symbol` layers support `minzoom`.
 * Vector tile decoding optimizations.

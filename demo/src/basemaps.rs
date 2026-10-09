@@ -92,6 +92,14 @@ fn insert_raster_basemaps(basemaps: &mut Basemaps, egui_ctx: &Context) {
     );
 
     basemaps.available.insert(
+        "OpenTopoMap".to_string(),
+        vec![http(
+            walkers::sources::OpenTopoMap(walkers::sources::OpenTopoServer::A),
+            egui_ctx,
+        )],
+    );
+
+    basemaps.available.insert(
         "Geoportal".to_string(),
         vec![http(walkers::sources::Geoportal, egui_ctx)],
     );

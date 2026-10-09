@@ -5,6 +5,7 @@ mod mapbox;
 #[cfg(feature = "mvt")]
 mod openfreemap;
 mod openstreetmap;
+mod opentopomap;
 
 use crate::TileId;
 pub use geoportal::Geoportal;
@@ -12,6 +13,7 @@ pub use mapbox::{Mapbox, MapboxStyle};
 #[cfg(feature = "mvt")]
 pub use openfreemap::OpenFreeMap;
 pub use openstreetmap::OpenStreetMap;
+pub use opentopomap::{OpenTopoMap, OpenTopoServer};
 
 #[derive(Clone)]
 pub struct Attribution {
