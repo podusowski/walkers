@@ -2,7 +2,7 @@ use egui::{Id, Rect, Response, Sense, Ui, vec2};
 use rstar::{PointDistance, RTree, RTreeObject};
 use std::cell::RefCell;
 use std::sync::Arc;
-use walkers::{MapMemory, Plugin, Position, Projector, lon_lat, mercator};
+use walkers::{MapMemory, Plugin, Position, Projector, lon_lat};
 
 /// [`Plugin`] which shows places on the map. Place can be any type that implements the [`Place`]
 /// trait.
@@ -280,14 +280,21 @@ impl<T: Place, G: Group> GroupedPlacesTree<T, G> {
     }
 
     fn px_per_deg(&self, memory: &MapMemory, seed: [f64; 2]) -> (f64, f64) {
-        let zoom = memory.zoom();
         let pos = lon_lat(seed[0], seed[1]);
-        let base = mercator::project(pos, zoom);
+        let mut centered_memory = memory.clone();
+        centered_memory.center_at(pos);
+        // Center on the seed so f32 screen coordinates retain precision at high zoom.
+        let projector = Projector::new(
+            Rect::from_min_max(egui::Pos2::ZERO, egui::Pos2::ZERO),
+            &centered_memory,
+            pos,
+        );
+        let base = projector.project(pos);
         const D: f64 = 1e-4;
-        let lon_shift = mercator::project(lon_lat(seed[0] + D, seed[1]), zoom);
-        let lat_shift = mercator::project(lon_lat(seed[0], seed[1] + D), zoom);
-        let px_per_deg_lon = ((lon_shift.x() - base.x()).abs() / D).max(1e-9);
-        let px_per_deg_lat = ((lat_shift.y() - base.y()).abs() / D).max(1e-9);
+        let lon_shift = projector.project(lon_lat(seed[0] + D, seed[1]));
+        let lat_shift = projector.project(lon_lat(seed[0], seed[1] + D));
+        let px_per_deg_lon = ((lon_shift.x - base.x).abs() as f64 / D).max(1e-9);
+        let px_per_deg_lat = ((lat_shift.y - base.y).abs() as f64 / D).max(1e-9);
         (px_per_deg_lon, px_per_deg_lat)
     }
 

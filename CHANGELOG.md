@@ -4,6 +4,8 @@ All notable changes to this project will be documented in this file.
 
 ## Unreleased
 
+* `mercator` module is no longer public.
+* Several internal types made `pub(crate)`: `AdjustedPosition`, `Pixels`, `PixelsExt`, `Zoom` methods, `EguiTileFactory`, `HttpFetchError`, `HttpFetch`.
 * `walkers::Geometry` is replaced by the re-exported `walkers::geo_types`.
 * `symbol` layers support `minzoom`.
 * Vector tile decoding optimizations.
