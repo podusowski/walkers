@@ -4,6 +4,7 @@ All notable changes to this project will be documented in this file.
 
 ## Unreleased
 
+* The deprecated `LocalTiles` is removed. Use `PmTiles` with a local `.pmtiles` file.
 * New `OpenTopoMap` tile source.
 * `KmlLayer` draws `line` and `fill` layers with their paint, instead of hardcoded colors.
 * `render_line` and `render_fill` draw what is inside a `GeometryCollection`, so `GeoJsonLayer`
