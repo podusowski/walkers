@@ -38,8 +38,7 @@ bench:
 
 [group('publish')]
 publish *args:
-    cargo publish -p walkers {{ args }}
-    cargo publish -p walkers_extras {{ args }}
+    cargo publish -p walkers -p walkers_extras {{ args }}
 
 # Bounding box roughly covering Dolnośląskie
 DOLNOSLASKIE_BBOX := "14.757385,50.069481,17.341919,51.248163"
