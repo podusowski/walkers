@@ -1,113 +1,55 @@
-use std::str::FromStr;
+use std::{collections::HashMap, str::FromStr};
 
 use egui::{self, Color32, Response, Shape, Stroke, Ui};
-use kml::{KmlDocument, types::Folder};
-use log::{debug, warn};
-use walkers::{Layer, MapMemory, Plugin, Projector, Style, lon_lat};
+use geo::MapCoords;
+use geo::geometry::Coord;
+use log::warn;
+use walkers::geo_types::{Geometry, LineString, Point};
+use walkers::{
+    Context, Layer, MapMemory, Paint, Plugin, Position, Projector, Style, render_line, to_shapes,
+};
 
 /// Plugin that renders parsed KML features on top of a [`Map`](walkers::Map).
 pub struct KmlLayer {
-    kml: kml::Kml,
+    geometries: Vec<Geometry<f64>>,
     style: Style,
 }
 
 impl KmlLayer {
     pub fn from_string(s: &str, style: Style) -> Self {
+        let kml = kml::Kml::<f64>::from_str(s).unwrap();
         Self {
-            kml: kml::Kml::from_str(s).unwrap(),
+            geometries: Vec::try_from(kml).unwrap_or_default(),
             style,
         }
     }
-}
 
-fn draw_line_layer(painter: &egui::Painter, projector: &Projector, element: &kml::Kml) {
-    match element {
-        kml::Kml::Placemark(placemark) => {
-            if let Some(geometry) = &placemark.geometry {
-                draw_line_geometry(painter, projector, geometry);
-            }
+    fn draw_lines(&self, painter: &egui::Painter, projector: &Projector, paint: &Paint, zoom: u8) {
+        let context = Context::new("LineString".to_string(), HashMap::new(), zoom);
+        let mut drawables = Vec::new();
+
+        for line_string in self.geometries.iter().flat_map(line_strings) {
+            let projected = line_string.map_coords(|coord| {
+                let projected = projector.project(Position::new(coord.x, coord.y));
+                Coord {
+                    x: projected.x,
+                    y: projected.y,
+                }
+            });
+            let _ = render_line(
+                &Geometry::LineString(projected),
+                &context,
+                paint,
+                &mut drawables,
+            );
         }
-        kml::Kml::Document { elements, .. }
-        | kml::Kml::KmlDocument(KmlDocument { elements, .. })
-        | kml::Kml::Folder(Folder { elements, .. }) => {
-            for child in elements {
-                draw_line_layer(painter, projector, child);
-            }
-        }
-        _ => {
-            debug!("Skipping unsupported KML element: {element:?}");
-        }
+
+        painter.extend(to_shapes(&drawables));
     }
-}
 
-fn draw_circle_layer(painter: &egui::Painter, projector: &Projector, element: &kml::Kml) {
-    match element {
-        kml::Kml::Placemark(placemark) => {
-            if let Some(geometry) = &placemark.geometry {
-                draw_circle_geometry(painter, projector, geometry);
-            }
-        }
-        kml::Kml::Document { elements, .. }
-        | kml::Kml::KmlDocument(KmlDocument { elements, .. })
-        | kml::Kml::Folder(Folder { elements, .. }) => {
-            for child in elements {
-                draw_circle_layer(painter, projector, child);
-            }
-        }
-        _ => {
-            debug!("Skipping unsupported KML element: {element:?}");
-        }
-    }
-}
-
-fn draw_line_geometry(
-    painter: &egui::Painter,
-    projector: &Projector,
-    geometry: &kml::types::Geometry,
-) {
-    match geometry {
-        kml::types::Geometry::Polygon(polygon) => {
-            let line_width = 2.0;
-            let stroke = Stroke::new(line_width, Color32::BLACK);
-
-            let exterior: Vec<_> = polygon
-                .outer
-                .coords
-                .iter()
-                .map(|c| projector.project(lon_lat(c.x, c.y)).to_pos2())
-                .collect();
-
-            painter.add(Shape::closed_line(exterior, stroke));
-
-            for inner in &polygon.inner {
-                let hole: Vec<_> = inner
-                    .coords
-                    .iter()
-                    .map(|c| projector.project(lon_lat(c.x, c.y)).to_pos2())
-                    .collect();
-
-                painter.add(Shape::closed_line(hole, stroke));
-            }
-        }
-        kml::types::Geometry::MultiGeometry(multi_geometry) => {
-            for geom in &multi_geometry.geometries {
-                draw_line_geometry(painter, projector, geom);
-            }
-        }
-        _ => todo!(),
-    }
-}
-
-fn draw_circle_geometry(
-    painter: &egui::Painter,
-    projector: &Projector,
-    geometry: &kml::types::Geometry,
-) {
-    match geometry {
-        kml::types::Geometry::Point(point) => {
-            let center = projector
-                .project(lon_lat(point.coord.x, point.coord.y))
-                .to_pos2();
+    fn draw_circles(&self, painter: &egui::Painter, projector: &Projector) {
+        for point in self.geometries.iter().flat_map(points) {
+            let center = projector.project(*point).to_pos2();
             let radius = 5.0;
             let stroke = Stroke::new(1.0, Color32::BLACK);
             let fill = Color32::from_rgb(0, 255, 0);
@@ -115,12 +57,26 @@ fn draw_circle_geometry(
             painter.add(Shape::circle_filled(center, radius, fill));
             painter.add(Shape::circle_stroke(center, radius, stroke));
         }
-        kml::types::Geometry::MultiGeometry(multi_geometry) => {
-            for geom in &multi_geometry.geometries {
-                draw_circle_geometry(painter, projector, geom);
-            }
+    }
+}
+
+fn line_strings(geometry: &Geometry<f64>) -> Vec<&LineString<f64>> {
+    match geometry {
+        Geometry::LineString(line_string) => vec![line_string],
+        Geometry::MultiLineString(multi_line_string) => multi_line_string.iter().collect(),
+        Geometry::GeometryCollection(collection) => {
+            collection.iter().flat_map(line_strings).collect()
         }
-        _ => todo!(),
+        _ => Vec::new(),
+    }
+}
+
+fn points(geometry: &Geometry<f64>) -> Vec<&Point<f64>> {
+    match geometry {
+        Geometry::Point(point) => vec![point],
+        Geometry::MultiPoint(multi_point) => multi_point.iter().collect(),
+        Geometry::GeometryCollection(collection) => collection.iter().flat_map(points).collect(),
+        _ => Vec::new(),
     }
 }
 
@@ -130,15 +86,18 @@ impl Plugin for KmlLayer {
         ui: &mut Ui,
         response: &Response,
         projector: &Projector,
-        _map_memory: &MapMemory,
+        map_memory: &MapMemory,
     ) {
+        let painter = ui.painter_at(response.rect);
+        let zoom = map_memory.zoom().round() as u8;
+
         for layer in &self.style.layers {
             match layer {
-                Layer::Line { .. } => {
-                    draw_line_layer(&ui.painter_at(response.rect), projector, &self.kml);
+                Layer::Line { paint, .. } => {
+                    self.draw_lines(&painter, projector, paint, zoom);
                 }
                 Layer::Circle { .. } => {
-                    draw_circle_layer(&ui.painter_at(response.rect), projector, &self.kml);
+                    self.draw_circles(&painter, projector);
                 }
                 other => {
                     warn!("Unsupported style layer: {other:?}");

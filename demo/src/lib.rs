@@ -65,6 +65,7 @@ impl eframe::App for MyApp {
             .with_plugin(plugins::CustomShapes {})
             .with_plugin(&mut self.click_watcher)
             .with_plugin(kml::poland_borders())
+            .with_plugin(kml::high_speed_rail_poland())
             .with_plugin(kml::outgym_umea_layer());
 
         // Multiple layers can be added.

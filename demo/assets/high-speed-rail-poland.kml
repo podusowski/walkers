@@ -1,0 +1,1468 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<kml xmlns="http://www.opengis.net/kml/2.2">
+<Document id="root_doc">
+<Folder><name>High_speed_rail</name>
+  <Placemark id="High_speed_rail.1">
+	<name>Kolej Dużych Prędkości</name>
+      <LineString><coordinates>19.4546402,51.7696548 19.4488947,51.7690497 19.443669,51.767818 19.4389353,51.765948 19.4368235,51.7647983 19.4349118,51.7635209</coordinates></LineString>
+  </Placemark>
+  <Placemark id="High_speed_rail.2">
+	<name>Kolej Dużych Prędkości</name>
+      <LineString><coordinates>20.9515581,52.2171795 20.9536621,52.2174759</coordinates></LineString>
+  </Placemark>
+  <Placemark id="High_speed_rail.3">
+	<name>Kolej Dużych Prędkości</name>
+      <LineString><coordinates>20.956868,52.2185334 20.9539857,52.2178084</coordinates></LineString>
+  </Placemark>
+  <Placemark id="High_speed_rail.4">
+	<name>Kolej Dużych Prędkości</name>
+      <LineString><coordinates>20.9539857,52.2178084 20.9519219,52.2173097</coordinates></LineString>
+  </Placemark>
+  <Placemark id="High_speed_rail.5">
+	<name>Kolej Dużych Prędkości</name>
+      <LineString><coordinates>20.9519219,52.2173097 20.9482934,52.216889</coordinates></LineString>
+  </Placemark>
+  <Placemark id="High_speed_rail.6">
+	<name>Projektowana linia kolejowa nr 86 Sieradz - Kępno - Wrocław (wariant inwestycyjny) (trasa przybliżona, do poprawy)</name>
+      <LineString><coordinates>18.1218371,51.3341776 18.1062735,51.3304049 18.0686785,51.3192882 18.0556355,51.3173018 18.0256988,51.3133784 18.0164971,51.3129265 18.004354,51.3133581 17.9936411,51.3152987 17.9883104,51.31598 17.9820269,51.3163525 17.9752507,51.3160137 17.9662293,51.3138538 17.9614557,51.3114616 17.9519325,51.3072261 17.9364874,51.3012183 17.9247221,51.2979711 17.9159568,51.2952623 17.9040885,51.2922692 17.8932025,51.2897704 17.8911914,51.289017 17.8832259,51.2836042 17.8677512,51.2744995 17.8488913,51.2660837 17.8276934,51.2586328 17.8093202,51.2534524 17.7836244,51.2489605 17.7556049,51.2459006 17.7252873,51.2436087 17.7027212,51.2422405 17.6890838,51.2408839 17.6710949,51.2358433 17.6597065,51.2322453 17.6387174,51.2238648 17.6179341,51.2143634 17.6019066,51.2061367 17.5707363,51.1917568 17.5452787,51.1791101 17.5295619,51.1698129 17.5093668,51.1557544 17.5065056,51.1533221 17.4990074,51.1453409</coordinates></LineString>
+  </Placemark>
+  <Placemark id="High_speed_rail.7">
+	<name>Kolej Dużych Prędkości</name>
+      <LineString><coordinates>18.910274,51.6575982 18.8545892,51.6447573 18.7947852,51.6301259</coordinates></LineString>
+  </Placemark>
+  <Placemark id="High_speed_rail.8">
+	<name>Kolej Dużych Prędkości</name>
+      <LineString><coordinates>19.4349641,51.7634938 19.4368722,51.7647687 19.4389788,51.7659155 19.4437008,51.7677807 19.4488319,51.7689955 19.4546451,51.7696126</coordinates></LineString>
+  </Placemark>
+  <Placemark id="High_speed_rail.9">
+	<name>Kolej Dużych Prędkości</name>
+      <LineString><coordinates>19.6006462,51.7702297 19.5934175,51.7685963 19.5869105,51.7674201 19.5791892,51.7663644 19.5723703,51.7657262</coordinates></LineString>
+  </Placemark>
+  <Placemark id="High_speed_rail.10">
+	<name>Kolej Dużych Prędkości</name>
+      <LineString><coordinates>19.6006194,51.7702685 19.5933937,51.7686359 19.5868885,51.7674604 19.5791692,51.766405 19.572362,51.765768</coordinates></LineString>
+  </Placemark>
+  <Placemark id="High_speed_rail.11">
+	<name>Kolej Dużych Prędkości</name>
+      <LineString><coordinates>19.7083409,51.7969172 19.7017517,51.7939124 19.6957311,51.7915646 19.6883956,51.7891609 19.6818759,51.7873996 19.6717663,51.7852945 19.6419756,51.780497 19.6356057,51.7793188 19.6287638,51.7777313 19.6053024,51.771493</coordinates></LineString>
+  </Placemark>
+  <Placemark id="High_speed_rail.12">
+	<name>Kolej Dużych Prędkości</name>
+      <LineString><coordinates>19.7083827,51.7968839 19.7017906,51.7938778 19.6957658,51.7915282 19.6894927,51.7894437 19.6819009,51.7873602 19.6717842,51.7852533 19.6419929,51.7804564 19.635624,51.7792778 19.6287899,51.7776923 19.6053523,51.7714603</coordinates></LineString>
+  </Placemark>
+  <Placemark id="High_speed_rail.13">
+      <LineString><coordinates>19.6039097,51.7711891 19.6005581,51.7703656</coordinates></LineString>
+  </Placemark>
+  <Placemark id="High_speed_rail.14">
+      <LineString><coordinates>19.6040152,51.7710366 19.6007112,51.7701295</coordinates></LineString>
+  </Placemark>
+  <Placemark id="High_speed_rail.15">
+      <LineString><coordinates>19.6081346,51.7722014 19.6053939,51.7714328</coordinates></LineString>
+  </Placemark>
+  <Placemark id="High_speed_rail.16">
+      <LineString><coordinates>19.6053939,51.7714328 19.6051972,51.7713763</coordinates></LineString>
+  </Placemark>
+  <Placemark id="High_speed_rail.17">
+	<name>Kolej Dużych Prędkości</name>
+      <LineString><coordinates>19.6039755,51.7710939 19.6006462,51.7702297</coordinates></LineString>
+  </Placemark>
+  <Placemark id="High_speed_rail.18">
+	<name>Kolej Dużych Prędkości</name>
+      <LineString><coordinates>19.6053523,51.7714603 19.6051511,51.7714067</coordinates></LineString>
+  </Placemark>
+  <Placemark id="High_speed_rail.19">
+	<name>Kolej Dużych Prędkości</name>
+      <LineString><coordinates>19.6039487,51.7711327 19.6006194,51.7702685</coordinates></LineString>
+  </Placemark>
+  <Placemark id="High_speed_rail.20">
+	<name>Kolej Dużych Prędkości</name>
+      <LineString><coordinates>19.6053024,51.771493 19.6051012,51.7714394</coordinates></LineString>
+  </Placemark>
+  <Placemark id="High_speed_rail.21">
+      <LineString><coordinates>19.6081077,51.7722402 19.6052595,51.7715212</coordinates></LineString>
+  </Placemark>
+  <Placemark id="High_speed_rail.22">
+      <LineString><coordinates>19.6052595,51.7715212 19.6050539,51.7714706</coordinates></LineString>
+  </Placemark>
+  <Placemark id="High_speed_rail.23">
+      <LineString><coordinates>19.6051972,51.7713763 19.6040152,51.7710366</coordinates></LineString>
+  </Placemark>
+  <Placemark id="High_speed_rail.24">
+	<name>Kolej Dużych Prędkości</name>
+      <LineString><coordinates>19.6051511,51.7714067 19.6039755,51.7710939</coordinates></LineString>
+  </Placemark>
+  <Placemark id="High_speed_rail.25">
+	<name>Kolej Dużych Prędkości</name>
+      <LineString><coordinates>19.6051012,51.7714394 19.6039487,51.7711327</coordinates></LineString>
+  </Placemark>
+  <Placemark id="High_speed_rail.26">
+      <LineString><coordinates>19.6050539,51.7714706 19.6039097,51.7711891</coordinates></LineString>
+  </Placemark>
+  <Placemark id="High_speed_rail.27">
+      <LineString><coordinates>19.6005581,51.7703656 19.5894531,51.7680036 19.5765049,51.7660611 19.5747943,51.7654637 19.5735501,51.7648039 19.5725126,51.7640188 19.5716016,51.7629914</coordinates></LineString>
+  </Placemark>
+  <Placemark id="High_speed_rail.28">
+      <LineString><coordinates>19.6007112,51.7701295 19.5903935,51.7679038 19.5849301,51.7670039 19.5780621,51.7661048 19.5762155,51.765692 19.5742954,51.7649195 19.5729358,51.7640412 19.5720095,51.7631372 19.5701937,51.7607751 19.5691111,51.7599707 19.5678871,51.7594897 19.5667326,51.7592671 19.5652846,51.7592324 19.5640173,51.7594209</coordinates></LineString>
+  </Placemark>
+  <Placemark id="High_speed_rail.29">
+	<name>Kolej Dużych Prędkości</name>
+      <LineString><coordinates>19.5723703,51.7657262 19.566193,51.7653794</coordinates></LineString>
+  </Placemark>
+  <Placemark id="High_speed_rail.30">
+	<name>Kolej Dużych Prędkości</name>
+      <LineString><coordinates>19.572362,51.765768 19.5661889,51.7654215</coordinates></LineString>
+  </Placemark>
+  <Placemark id="High_speed_rail.31">
+	<name>Kolej Dużych Prędkości</name>
+      <LineString><coordinates>19.566193,51.7653794 19.5594673,51.7652453 19.5365119,51.7653452</coordinates></LineString>
+  </Placemark>
+  <Placemark id="High_speed_rail.32">
+	<name>Kolej Dużych Prędkości</name>
+      <LineString><coordinates>19.5661889,51.7654215 19.5594673,51.7652874 19.5365124,51.7653873</coordinates></LineString>
+  </Placemark>
+  <Placemark id="High_speed_rail.33">
+      <LineString><coordinates>19.5716016,51.7629914 19.5705388,51.7616156 19.5696383,51.7609155 19.5684574,51.7604003 19.5668528,51.7600872</coordinates></LineString>
+  </Placemark>
+  <Placemark id="High_speed_rail.34">
+      <LineString><coordinates>19.560681,51.7607773 19.5477753,51.7627664</coordinates></LineString>
+  </Placemark>
+  <Placemark id="High_speed_rail.35">
+      <LineString><coordinates>19.5640173,51.7594209 19.5602134,51.7606675</coordinates></LineString>
+  </Placemark>
+  <Placemark id="High_speed_rail.36">
+      <LineString><coordinates>19.5602134,51.7606675 19.5583948,51.7609674</coordinates></LineString>
+  </Placemark>
+  <Placemark id="High_speed_rail.37">
+	<name>Kolej Dużych Prędkości</name>
+      <LineString><coordinates>19.5356105,51.7653492 19.5350955,51.7653516</coordinates></LineString>
+  </Placemark>
+  <Placemark id="High_speed_rail.38">
+	<name>Kolej Dużych Prędkości</name>
+      <LineString><coordinates>19.535611,51.7653914 19.535096,51.7653937</coordinates></LineString>
+  </Placemark>
+  <Placemark id="High_speed_rail.39">
+	<name>Kolej Dużych Prędkości</name>
+      <LineString><coordinates>19.5365124,51.7653873 19.535611,51.7653914</coordinates></LineString>
+  </Placemark>
+  <Placemark id="High_speed_rail.40">
+	<name>Kolej Dużych Prędkości</name>
+      <LineString><coordinates>19.5365119,51.7653452 19.5356105,51.7653492</coordinates></LineString>
+  </Placemark>
+  <Placemark id="High_speed_rail.41">
+	<name>Kolej Dużych Prędkości</name>
+      <LineString><coordinates>19.535096,51.7653937 19.5281875,51.7654966 19.5203509,51.7658372</coordinates></LineString>
+  </Placemark>
+  <Placemark id="High_speed_rail.42">
+	<name>Kolej Dużych Prędkości</name>
+      <LineString><coordinates>19.5350955,51.7653516 19.528186,51.7654544 19.5203465,51.765795</coordinates></LineString>
+  </Placemark>
+  <Placemark id="High_speed_rail.43">
+	<name>Kolej Dużych Prędkości</name>
+      <LineString><coordinates>19.5203465,51.765795 19.5150209,51.766133</coordinates></LineString>
+  </Placemark>
+  <Placemark id="High_speed_rail.44">
+	<name>Kolej Dużych Prędkości</name>
+      <LineString><coordinates>19.5150209,51.766133 19.5076025,51.7666474</coordinates></LineString>
+  </Placemark>
+  <Placemark id="High_speed_rail.45">
+	<name>Kolej Dużych Prędkości</name>
+      <LineString><coordinates>19.5203509,51.7658372 19.515028,51.7661749</coordinates></LineString>
+  </Placemark>
+  <Placemark id="High_speed_rail.46">
+	<name>Kolej Dużych Prędkości</name>
+      <LineString><coordinates>19.515028,51.7661749 19.5076091,51.7666878</coordinates></LineString>
+  </Placemark>
+  <Placemark id="High_speed_rail.47">
+	<name>Kolej Dużych Prędkości</name>
+      <LineString><coordinates>19.7163307,51.8007253 19.7083827,51.7968839</coordinates></LineString>
+  </Placemark>
+  <Placemark id="High_speed_rail.48">
+	<name>Kolej Dużych Prędkości</name>
+      <LineString><coordinates>19.7330866,51.808872 19.716289,51.8007584</coordinates></LineString>
+  </Placemark>
+  <Placemark id="High_speed_rail.49">
+	<name>Kolej Dużych Prędkości</name>
+      <LineString><coordinates>19.7331284,51.8088387 19.7163307,51.8007253</coordinates></LineString>
+  </Placemark>
+  <Placemark id="High_speed_rail.50">
+	<name>Kolej Dużych Prędkości</name>
+      <LineString><coordinates>19.7497794,51.8168759 19.7331284,51.8088387</coordinates></LineString>
+  </Placemark>
+  <Placemark id="High_speed_rail.51">
+	<name>Kolej Dużych Prędkości</name>
+      <LineString><coordinates>19.7497376,51.8169092 19.7330866,51.808872</coordinates></LineString>
+  </Placemark>
+  <Placemark id="High_speed_rail.52">
+	<name>Kolej Dużych Prędkości</name>
+      <LineString><coordinates>19.716289,51.8007584 19.7083409,51.7969172</coordinates></LineString>
+  </Placemark>
+  <Placemark id="High_speed_rail.53">
+	<name>Kolej Dużych Prędkości</name>
+      <LineString><coordinates>19.799552,51.8490329 19.7920495,51.8424384 19.7875771,51.8389146 19.7828954,51.8354969 19.7780109,51.8321901 19.7729305,51.8289989 19.763315,51.8235599</coordinates></LineString>
+  </Placemark>
+  <Placemark id="High_speed_rail.54">
+	<name>Kolej Dużych Prędkości</name>
+      <LineString><coordinates>19.763315,51.8235599 19.7629786,51.8233824</coordinates></LineString>
+  </Placemark>
+  <Placemark id="High_speed_rail.55">
+	<name>Kolej Dużych Prędkości</name>
+      <LineString><coordinates>19.7629786,51.8233824 19.7559123,51.8198351</coordinates></LineString>
+  </Placemark>
+  <Placemark id="High_speed_rail.56">
+	<name>Kolej Dużych Prędkości</name>
+      <LineString><coordinates>19.7529853,51.8184228 19.7497794,51.8168759</coordinates></LineString>
+  </Placemark>
+  <Placemark id="High_speed_rail.57">
+	<name>Kolej Dużych Prędkości</name>
+      <LineString><coordinates>19.7559123,51.8198351 19.7529853,51.8184228</coordinates></LineString>
+  </Placemark>
+  <Placemark id="High_speed_rail.58">
+	<name>Kolej Dużych Prędkości</name>
+      <LineString><coordinates>19.8144433,51.8659234 19.8114515,51.8619633 19.8075563,51.8573044 19.8033358,51.8527556 19.7995759,51.8490554</coordinates></LineString>
+  </Placemark>
+  <Placemark id="High_speed_rail.59">
+	<name>Kolej Dużych Prędkości</name>
+      <LineString><coordinates>19.7995759,51.8490554 19.799552,51.8490329</coordinates></LineString>
+  </Placemark>
+  <Placemark id="High_speed_rail.60">
+	<name>Kolej Dużych Prędkości</name>
+      <LineString><coordinates>19.8249742,51.8845437 19.8231276,51.8804461 19.821047,51.8763917 19.8187351,51.8723857 19.8161948,51.8684331</coordinates></LineString>
+  </Placemark>
+  <Placemark id="High_speed_rail.61">
+	<name>Kolej Dużych Prędkości</name>
+      <LineString><coordinates>19.8161948,51.8684331 19.8161123,51.8683112</coordinates></LineString>
+  </Placemark>
+  <Placemark id="High_speed_rail.62">
+	<name>Kolej Dużych Prędkości</name>
+      <LineString><coordinates>19.8161123,51.8683112 19.8156377,51.8676175</coordinates></LineString>
+  </Placemark>
+  <Placemark id="High_speed_rail.63">
+	<name>Kolej Dużych Prędkości</name>
+      <LineString><coordinates>19.8156377,51.8676175 19.8144433,51.8659234</coordinates></LineString>
+  </Placemark>
+  <Placemark id="High_speed_rail.64">
+	<name>Kolej Dużych Prędkości</name>
+      <LineString><coordinates>19.8332504,51.9180875 19.8288972,51.8962687</coordinates></LineString>
+  </Placemark>
+  <Placemark id="High_speed_rail.65">
+	<name>Linia kolejowa nr 85</name>
+      <LineString><coordinates>19.8250169,51.8846455 19.8249742,51.8845437</coordinates></LineString>
+  </Placemark>
+  <Placemark id="High_speed_rail.66">
+	<name>Kolej Dużych Prędkości</name>
+      <LineString><coordinates>19.7994949,51.8490559 19.7954166,51.8453549 19.7911179,51.841751 19.7828442,51.8355247 19.7779615,51.8322191 19.7728829,51.829029 19.7632709,51.823592</coordinates></LineString>
+  </Placemark>
+  <Placemark id="High_speed_rail.67">
+	<name>Kolej Dużych Prędkości</name>
+      <LineString><coordinates>19.7558701,51.8198682 19.7529433,51.8184562</coordinates></LineString>
+  </Placemark>
+  <Placemark id="High_speed_rail.68">
+	<name>Kolej Dużych Prędkości</name>
+      <LineString><coordinates>19.7529433,51.8184562 19.7497376,51.8169092</coordinates></LineString>
+  </Placemark>
+  <Placemark id="High_speed_rail.69">
+	<name>Kolej Dużych Prędkości</name>
+      <LineString><coordinates>19.8143811,51.8659405 19.8107643,51.8611983 19.8074965,51.8573246 19.8040029,51.8535272 19.7995188,51.8490785</coordinates></LineString>
+  </Placemark>
+  <Placemark id="High_speed_rail.70">
+	<name>Kolej Dużych Prędkości</name>
+      <LineString><coordinates>19.7995188,51.8490785 19.7994949,51.8490559</coordinates></LineString>
+  </Placemark>
+  <Placemark id="High_speed_rail.71">
+	<name>Kolej Dużych Prędkości</name>
+      <LineString><coordinates>19.8284293,51.8947449 19.8262665,51.8879979 19.8234499,51.8812734 19.8200844,51.8747953 19.8161297,51.868446</coordinates></LineString>
+  </Placemark>
+  <Placemark id="High_speed_rail.72">
+	<name>Kolej Dużych Prędkości</name>
+      <LineString><coordinates>19.8161297,51.868446 19.8160472,51.8683241</coordinates></LineString>
+  </Placemark>
+  <Placemark id="High_speed_rail.73">
+	<name>Kolej Dużych Prędkości</name>
+      <LineString><coordinates>19.8160472,51.8683241 19.8155751,51.8676341</coordinates></LineString>
+  </Placemark>
+  <Placemark id="High_speed_rail.74">
+	<name>Kolej Dużych Prędkości</name>
+      <LineString><coordinates>19.8155751,51.8676341 19.8143811,51.8659405</coordinates></LineString>
+  </Placemark>
+  <Placemark id="High_speed_rail.75">
+	<name>Kolej Dużych Prędkości</name>
+      <LineString><coordinates>19.8331827,51.9180926 19.8288299,51.8962754</coordinates></LineString>
+  </Placemark>
+  <Placemark id="High_speed_rail.76">
+	<name>Kolej Dużych Prędkości</name>
+      <LineString><coordinates>19.8288299,51.8962754 19.8284293,51.8947449</coordinates></LineString>
+  </Placemark>
+  <Placemark id="High_speed_rail.77">
+	<name>Kolej Dużych Prędkości</name>
+      <LineString><coordinates>19.8284966,51.8947381 19.8269326,51.8896686 19.8250169,51.8846455</coordinates></LineString>
+  </Placemark>
+  <Placemark id="High_speed_rail.78">
+	<name>Kolej Dużych Prędkości</name>
+      <LineString><coordinates>19.8288972,51.8962687 19.8284966,51.8947381</coordinates></LineString>
+  </Placemark>
+  <Placemark id="High_speed_rail.79">
+	<name>Kolej Dużych Prędkości</name>
+      <LineString><coordinates>19.8380465,51.9395034 19.8365034,51.9345491 19.8349065,51.9266143</coordinates></LineString>
+  </Placemark>
+  <Placemark id="High_speed_rail.80">
+	<name>Kolej Dużych Prędkości</name>
+      <LineString><coordinates>19.8349065,51.9266143 19.8349013,51.9265875</coordinates></LineString>
+  </Placemark>
+  <Placemark id="High_speed_rail.81">
+	<name>Kolej Dużych Prędkości</name>
+      <LineString><coordinates>19.8349013,51.9265875 19.8332764,51.9182216</coordinates></LineString>
+  </Placemark>
+  <Placemark id="High_speed_rail.82">
+	<name>Kolej Dużych Prędkości</name>
+      <LineString><coordinates>19.8332764,51.9182216 19.8332504,51.9180875</coordinates></LineString>
+  </Placemark>
+  <Placemark id="High_speed_rail.83">
+	<name>Kolej Dużych Prędkości</name>
+      <LineString><coordinates>20.5047263,52.1497918 20.363063,52.1346186 20.3554208,52.1334456 20.3472202,52.1317519 20.3387254,52.1294533 20.3294948,52.1263581</coordinates></LineString>
+  </Placemark>
+  <Placemark id="High_speed_rail.84">
+	<name>Kolej Dużych Prędkości</name>
+      <LineString><coordinates>20.5047155,52.1498356 20.4180742,52.1406287 20.3611374,52.1344019 20.3518697,52.1328195 20.345134,52.131287 20.3373424,52.1290775 20.3294653,52.1263952</coordinates></LineString>
+  </Placemark>
+  <Placemark id="High_speed_rail.85">
+	<name>Kolej Dużych Prędkości</name>
+      <LineString><coordinates>19.852453,51.9600987 19.8481844,51.9557573 19.8444929,51.9512185 19.841402,51.9465116 19.8389314,51.9416668</coordinates></LineString>
+  </Placemark>
+  <Placemark id="High_speed_rail.86">
+	<name>Kolej Dużych Prędkości</name>
+      <LineString><coordinates>19.8389314,51.9416668 19.8388744,51.9415366</coordinates></LineString>
+  </Placemark>
+  <Placemark id="High_speed_rail.87">
+	<name>Kolej Dużych Prędkości</name>
+      <LineString><coordinates>19.8388744,51.9415366 19.8380965,51.9396347</coordinates></LineString>
+  </Placemark>
+  <Placemark id="High_speed_rail.88">
+	<name>Kolej Dużych Prędkości</name>
+      <LineString><coordinates>19.8380965,51.9396347 19.8380465,51.9395034</coordinates></LineString>
+  </Placemark>
+  <Placemark id="High_speed_rail.89">
+	<name>Kolej Dużych Prędkości</name>
+      <LineString><coordinates>19.8650131,51.9696972 19.8583743,51.9650664 19.852453,51.9600987</coordinates></LineString>
+  </Placemark>
+  <Placemark id="High_speed_rail.90">
+	<name>Kolej Dużych Prędkości</name>
+      <LineString><coordinates>19.9029374,51.9950918 19.8650131,51.9696972</coordinates></LineString>
+  </Placemark>
+  <Placemark id="High_speed_rail.91">
+	<name>Kolej Dużych Prędkości</name>
+      <LineString><coordinates>19.8379827,51.9395193 19.8364365,51.9345559 19.8348386,51.9266184</coordinates></LineString>
+  </Placemark>
+  <Placemark id="High_speed_rail.92">
+	<name>Kolej Dużych Prędkości</name>
+      <LineString><coordinates>19.8348386,51.9266184 19.8348333,51.926591</coordinates></LineString>
+  </Placemark>
+  <Placemark id="High_speed_rail.93">
+	<name>Kolej Dużych Prędkości</name>
+      <LineString><coordinates>19.8348333,51.926591 19.8332087,51.9182266</coordinates></LineString>
+  </Placemark>
+  <Placemark id="High_speed_rail.94">
+	<name>Kolej Dużych Prędkości</name>
+      <LineString><coordinates>19.8332087,51.9182266 19.8331827,51.9180926</coordinates></LineString>
+  </Placemark>
+  <Placemark id="High_speed_rail.95">
+	<name>Kolej Dużych Prędkości</name>
+      <LineString><coordinates>19.8523961,51.9601223 19.8481246,51.9557779 19.8444308,51.951236 19.8413378,51.9465259 19.8388657,51.9416778</coordinates></LineString>
+  </Placemark>
+  <Placemark id="High_speed_rail.96">
+	<name>Kolej Dużych Prędkości</name>
+      <LineString><coordinates>19.8388657,51.9416778 19.838809,51.9415483</coordinates></LineString>
+  </Placemark>
+  <Placemark id="High_speed_rail.97">
+	<name>Kolej Dużych Prędkości</name>
+      <LineString><coordinates>19.838809,51.9415483 19.8380327,51.9396506</coordinates></LineString>
+  </Placemark>
+  <Placemark id="High_speed_rail.98">
+	<name>Kolej Dużych Prędkości</name>
+      <LineString><coordinates>19.8380327,51.9396506 19.8379827,51.9395193</coordinates></LineString>
+  </Placemark>
+  <Placemark id="High_speed_rail.99">
+	<name>Kolej Dużych Prędkości</name>
+      <LineString><coordinates>19.8649629,51.9697257 19.8583212,51.9650934 19.8523961,51.9601223</coordinates></LineString>
+  </Placemark>
+  <Placemark id="High_speed_rail.100">
+	<name>Kolej Dużych Prędkości</name>
+      <LineString><coordinates>19.9029037,51.9951318 19.8649629,51.9697257</coordinates></LineString>
+  </Placemark>
+  <Placemark id="High_speed_rail.101">
+	<name>Kolej Dużych Prędkości</name>
+      <LineString><coordinates>19.9101,51.9998106 19.9072531,51.9979769</coordinates></LineString>
+  </Placemark>
+  <Placemark id="High_speed_rail.102">
+	<name>Kolej Dużych Prędkości</name>
+      <LineString><coordinates>19.9072531,51.9979769 19.907134,51.9978979</coordinates></LineString>
+  </Placemark>
+  <Placemark id="High_speed_rail.103">
+	<name>Kolej Dużych Prędkości</name>
+      <LineString><coordinates>19.907134,51.9978979 19.903086,51.9951912</coordinates></LineString>
+  </Placemark>
+  <Placemark id="High_speed_rail.104">
+	<name>Kolej Dużych Prędkości</name>
+      <LineString><coordinates>19.903086,51.9951912 19.9029374,51.9950918</coordinates></LineString>
+  </Placemark>
+  <Placemark id="High_speed_rail.105">
+	<name>Kolej Dużych Prędkości</name>
+      <LineString><coordinates>19.9100522,51.9998412 19.9072025,51.9980053</coordinates></LineString>
+  </Placemark>
+  <Placemark id="High_speed_rail.106">
+	<name>Kolej Dużych Prędkości</name>
+      <LineString><coordinates>19.9072025,51.9980053 19.9070834,51.9979263</coordinates></LineString>
+  </Placemark>
+  <Placemark id="High_speed_rail.107">
+	<name>Kolej Dużych Prędkości</name>
+      <LineString><coordinates>19.9070834,51.9979263 19.9030529,51.9952316</coordinates></LineString>
+  </Placemark>
+  <Placemark id="High_speed_rail.108">
+	<name>Kolej Dużych Prędkości</name>
+      <LineString><coordinates>19.9030529,51.9952316 19.9029037,51.9951318</coordinates></LineString>
+  </Placemark>
+  <Placemark id="High_speed_rail.109">
+      <LineString><coordinates>19.8838431,51.9823109 19.8808037,51.9803383</coordinates></LineString>
+  </Placemark>
+  <Placemark id="High_speed_rail.110">
+      <LineString><coordinates>19.8861065,51.9838886 19.8843363,51.9826412</coordinates></LineString>
+  </Placemark>
+  <Placemark id="High_speed_rail.111">
+      <LineString><coordinates>19.8894653,51.9860747 19.8994626,51.9927671</coordinates></LineString>
+  </Placemark>
+  <Placemark id="High_speed_rail.112">
+      <LineString><coordinates>19.8894149,51.9861036 19.8994122,51.9927955</coordinates></LineString>
+  </Placemark>
+  <Placemark id="High_speed_rail.113">
+      <LineString><coordinates>19.9030814,51.9951971 19.905211,51.9966755</coordinates></LineString>
+  </Placemark>
+  <Placemark id="High_speed_rail.114">
+      <LineString><coordinates>19.9022713,51.9946461 19.9029356,51.9950963</coordinates></LineString>
+  </Placemark>
+  <Placemark id="High_speed_rail.115">
+      <LineString><coordinates>19.9029356,51.9950963 19.9030814,51.9951971</coordinates></LineString>
+  </Placemark>
+  <Placemark id="High_speed_rail.116">
+	<name>Korytów - CPK - Płock - Grudziądz</name>
+      <LineString><coordinates>20.5040585,52.0484068 20.5070446,52.0567766 20.5149029,52.0804247 20.5156032,52.0838074 20.5157572,52.0854298 20.5157399,52.0880695 20.515435,52.090561 20.5149051,52.0928583 20.5140237,52.0953585 20.5128005,52.0979446 20.5111031,52.1007029 20.5092055,52.1031812 20.5006638,52.1126737 20.4997079,52.113955 20.4990566,52.1151895 20.4940008,52.1278437 20.4936013,52.130202 20.4939762,52.1324867 20.4948881,52.134345 20.4983542,52.1395889 20.4987989,52.1408936 20.4988152,52.1420381 20.4984761,52.1431955 20.4978388,52.1442477 20.4969669,52.1451476 20.4950548,52.1464005 20.4927777,52.1472602 20.4899487,52.1477457 20.4873119,52.1477494 20.4680179,52.1456139 20.4446946,52.1432641 20.4308079,52.1414541 20.4193847,52.1402455 20.4137374,52.139837 20.3974643,52.1382218 20.3681896,52.1350291 20.3648753,52.1349258 20.3615485,52.1352452 20.3588562,52.1358562 20.3567455,52.1365975 20.3545205,52.1377186 20.3528651,52.1388914 20.3516247,52.1401043 20.350537,52.1417071 20.3500162,52.1430012 20.3497762,52.1446793 20.3499633,52.1462257 20.3508096,52.1483075 20.3599275,52.1669175</coordinates></LineString>
+  </Placemark>
+  <Placemark id="High_speed_rail.117">
+	<name>Korytów - CPK - Płock - Grudziądz</name>
+      <LineString><coordinates>20.5057059,52.0513928 20.5073716,52.0557211 20.5116249,52.0640594 20.5126602,52.0669537 20.5130791,52.0686569 20.5155951,52.0833045 20.5158189,52.085427 20.5157445,52.088746 20.5152618,52.0917348 20.5147278,52.0936214 20.5137096,52.0962385 20.5126208,52.0983959 20.511168,52.100719 20.5095015,52.1029025 20.500723,52.1126957 20.4997688,52.1139654 20.4991236,52.1151982 20.4940681,52.1278512 20.4937375,52.1291966 20.4936705,52.1302047 20.493791,52.1315203 20.49414,52.1327874 20.4950596,52.1345168 20.4985988,52.1397848 20.4991796,52.1413436 20.4991969,52.1425079 20.4988289,52.1437202 20.498008,52.1449578 20.4969994,52.1458895 20.4948598,52.1471238 20.492777,52.1478128 20.49018,52.1482148 20.4875793,52.1481975 20.4678266,52.1462024 20.4437554,52.1434942 20.4304669,52.1423774 20.4207382,52.1413584 20.4136415,52.1403901 20.4001752,52.1388461 20.3699598,52.135624 20.3657995,52.1353178 20.3621648,52.1355608 20.3599331,52.1359872 20.3576262,52.1367036 20.355821,52.1374961 20.3538835,52.1386819 20.352513,52.1398637 20.3512841,52.1414108 20.3506843,52.1426315 20.3503277,52.1443029 20.3504081,52.1458564 20.3508192,52.1471944 20.3538451,52.1534074 20.3551693,52.1570303 20.3599828,52.1669021</coordinates></LineString>
+  </Placemark>
+  <Placemark id="High_speed_rail.118">
+	<name>Kolej Dużych Prędkości</name>
+      <LineString><coordinates>20.6004427,52.1472951 20.6075205,52.1479431 20.6129818,52.1486283 20.6315222,52.1517803 20.6402597,52.1537367 20.6491928,52.1564507 20.6534575,52.158037 20.6583692,52.1601295 20.7187552,52.1880491 20.7252572,52.1905726 20.7327209,52.1928214 20.7379035,52.1940305 20.7441146,52.1951372 20.7504587,52.1959088 20.7568878,52.1963394 20.7633535,52.1964259 20.769807,52.1961675 20.7752921,52.1956729 20.7820887,52.1947335</coordinates></LineString>
+  </Placemark>
+  <Placemark id="High_speed_rail.119">
+	<name>Kolej Dużych Prędkości</name>
+      <LineString><coordinates>20.8417881,52.2060437 20.846608,52.2060828 20.8506779,52.2064083 20.8639744,52.2082169 20.8941103,52.2118532 20.9055787,52.2135651 20.9119109,52.2143162 20.931204,52.2161783 20.9350722,52.2163404 20.9429496,52.2162554 20.9515581,52.2171795</coordinates></LineString>
+  </Placemark>
+  <Placemark id="High_speed_rail.120">
+	<name>Kolej Dużych Prędkości</name>
+      <LineString><coordinates>20.600433,52.1473369 20.6075099,52.1479848 20.6129653,52.1486693 20.6315029,52.1518209 20.6402331,52.1537756 20.6491586,52.1564873 20.6534197,52.1580723 20.658328,52.1601633 20.7184689,52.1879762 20.7252229,52.1906092 20.7326939,52.1928603 20.7387598,52.1942491 20.744999,52.1953094 20.7513644,52.1960332 20.7568846,52.1963816 20.7633566,52.1964681 20.7698165,52.1962093 20.7753069,52.1957142 20.7821051,52.1947745</coordinates></LineString>
+  </Placemark>
+  <Placemark id="High_speed_rail.121">
+	<name>Kolej Dużych Prędkości</name>
+      <LineString><coordinates>20.9389126,52.2164811 20.9432157,52.2164809 20.9482934,52.216889</coordinates></LineString>
+  </Placemark>
+  <Placemark id="High_speed_rail.122">
+	<name>Kolej Dużych Prędkości</name>
+      <LineString><coordinates>20.2681183,52.1011687 20.251638,52.0927416 20.2444755,52.0894662 20.2370774,52.0863964 20.2294591,52.0835388 20.2216367,52.0808993 20.2136267,52.0784834 20.2047697,52.0761276 20.126026,52.0567738 20.114577,52.0542524 20.1032485,52.0522325 20.0931892,52.0508152 20.0580686,52.0473347 20.048062,52.0460224 20.0409797,52.044782 20.0340218,52.0432982 20.0272104,52.0415756 20.0205662,52.0396194</coordinates></LineString>
+  </Placemark>
+  <Placemark id="High_speed_rail.123">
+	<name>Kolej Dużych Prędkości</name>
+      <LineString><coordinates>20.0205352,52.0396571 20.0271823,52.0416141 20.0339974,52.0433377 20.0409592,52.0448223 20.0480454,52.0460634 20.0580576,52.0473764 20.0931759,52.0508566 20.1032315,52.0522734 20.1145559,52.0542925 20.1260008,52.0568131 20.2047442,52.0761668 20.2135981,52.0785218 20.2216053,52.0809368 20.2294248,52.0835754 20.2370403,52.086432 20.2444358,52.0895006 20.2515957,52.0927748 20.2680719,52.1011998</coordinates></LineString>
+  </Placemark>
+  <Placemark id="High_speed_rail.124">
+	<name>Kolej Dużych Prędkości</name>
+      <LineString><coordinates>20.7821051,52.1947745 20.786807,52.1941727 20.7911775,52.1939639 20.7955552,52.1941059 20.7998656,52.1945965 20.8040358,52.1954272 20.807995,52.196584 20.8120324,52.1982123 20.8155319,52.2000688</coordinates></LineString>
+  </Placemark>
+  <Placemark id="High_speed_rail.125">
+	<name>Kolej Dużych Prędkości</name>
+      <LineString><coordinates>20.8155319,52.2000688 20.8181868,52.2015159 20.8212103,52.2028714 20.8244576,52.204015 20.8278896,52.2049328 20.8308608,52.2055171 20.8345224,52.2059942 20.8382472,52.2062217 20.8417966,52.2062301</coordinates></LineString>
+  </Placemark>
+  <Placemark id="High_speed_rail.126">
+	<name>Kolej Dużych Prędkości</name>
+      <LineString><coordinates>20.7820887,52.1947335 20.7867521,52.1941349 20.7910317,52.1939229 20.7953204,52.1940469 20.7995488,52.1945047 20.8042195,52.1954269 20.8080905,52.1965684 20.8116101,52.1979647 20.8151506,52.1997771</coordinates></LineString>
+  </Placemark>
+  <Placemark id="High_speed_rail.127">
+	<name>Kolej Dużych Prędkości</name>
+      <LineString><coordinates>20.8151506,52.1997771 20.8183229,52.2014305 20.8213615,52.2027326 20.8246003,52.2038493 20.8278529,52.2047228 20.8308304,52.2053164 20.8345024,52.2058013 20.8376139,52.2060118 20.8417881,52.2060437</coordinates></LineString>
+  </Placemark>
+  <Placemark id="High_speed_rail.128">
+	<name>Kolej Dużych Prędkości</name>
+      <LineString><coordinates>20.8417967,52.2062301 20.8466002,52.2062693 20.8508182,52.2066143 20.863918,52.2083997 20.8911104,52.2116906 20.9105505,52.2143673 20.9311654,52.216363 20.9346316,52.2165209 20.9389126,52.2164811</coordinates></LineString>
+  </Placemark>
+  <Placemark id="High_speed_rail.129">
+	<name>Kolej Dużych Prędkości</name>
+      <LineString><coordinates>20.2681183,52.1011687 20.2828431,52.1087651 20.2906161,52.112354 20.2984774,52.1154672 20.3294948,52.1263581</coordinates></LineString>
+  </Placemark>
+  <Placemark id="High_speed_rail.130">
+	<name>Kolej Dużych Prędkości</name>
+      <LineString><coordinates>20.2680719,52.1011998 20.282792,52.1087989 20.2905775,52.1123884 20.2996919,52.1159566 20.3294653,52.1263952</coordinates></LineString>
+  </Placemark>
+  <Placemark id="High_speed_rail.131">
+	<name>Kolej Dużych Prędkości</name>
+      <LineString><coordinates>19.7629346,51.8234146 19.7558701,51.8198682</coordinates></LineString>
+  </Placemark>
+  <Placemark id="High_speed_rail.132">
+	<name>Kolej Dużych Prędkości</name>
+      <LineString><coordinates>19.7632709,51.823592 19.7629346,51.8234146</coordinates></LineString>
+  </Placemark>
+  <Placemark id="High_speed_rail.133">
+	<name>Kolej Dużych Prędkości</name>
+      <LineString><coordinates>19.9138669,52.002031 19.9101307,51.9998297</coordinates></LineString>
+  </Placemark>
+  <Placemark id="High_speed_rail.134">
+	<name>Kolej Dużych Prędkości</name>
+      <LineString><coordinates>19.9101307,51.9998297 19.9101,51.9998106</coordinates></LineString>
+  </Placemark>
+  <Placemark id="High_speed_rail.135">
+	<name>Kolej Dużych Prędkości</name>
+      <LineString><coordinates>19.92642,52.0080377 19.920041,52.0052258 19.9140289,52.0021215</coordinates></LineString>
+  </Placemark>
+  <Placemark id="High_speed_rail.136">
+	<name>Kolej Dużych Prędkości</name>
+      <LineString><coordinates>19.9140289,52.0021215 19.9138669,52.002031</coordinates></LineString>
+  </Placemark>
+  <Placemark id="High_speed_rail.137">
+	<name>Kolej Dużych Prędkości</name>
+      <LineString><coordinates>19.9395491,52.0126894 19.9313393,52.009915 19.926566,52.0080968</coordinates></LineString>
+  </Placemark>
+  <Placemark id="High_speed_rail.138">
+	<name>Kolej Dużych Prędkości</name>
+      <LineString><coordinates>19.926566,52.0080968 19.92642,52.0080377</coordinates></LineString>
+  </Placemark>
+  <Placemark id="High_speed_rail.139">
+	<name>Kolej Dużych Prędkości</name>
+      <LineString><coordinates>19.9804821,52.0263192 19.9469544,52.0151572</coordinates></LineString>
+  </Placemark>
+  <Placemark id="High_speed_rail.140">
+	<name>Kolej Dużych Prędkości</name>
+      <LineString><coordinates>19.9397414,52.0127535 19.9395491,52.0126894</coordinates></LineString>
+  </Placemark>
+  <Placemark id="High_speed_rail.141">
+	<name>Kolej Dużych Prędkości</name>
+      <LineString><coordinates>19.9450459,52.0145213 19.9397414,52.0127535</coordinates></LineString>
+  </Placemark>
+  <Placemark id="High_speed_rail.142">
+	<name>Kolej Dużych Prędkości</name>
+      <LineString><coordinates>19.9469544,52.0151572 19.9467623,52.0150932</coordinates></LineString>
+  </Placemark>
+  <Placemark id="High_speed_rail.143">
+	<name>Kolej Dużych Prędkości</name>
+      <LineString><coordinates>20.0023879,52.0336044 19.9971345,52.0318579</coordinates></LineString>
+  </Placemark>
+  <Placemark id="High_speed_rail.144">
+	<name>Kolej Dużych Prędkości</name>
+      <LineString><coordinates>19.9971345,52.0318579 19.9969815,52.031807</coordinates></LineString>
+  </Placemark>
+  <Placemark id="High_speed_rail.145">
+	<name>Kolej Dużych Prędkości</name>
+      <LineString><coordinates>19.9969815,52.031807 19.9916247,52.0300256</coordinates></LineString>
+  </Placemark>
+  <Placemark id="High_speed_rail.146">
+	<name>Kolej Dużych Prędkości</name>
+      <LineString><coordinates>19.9916247,52.0300256 19.9914703,52.0299743</coordinates></LineString>
+  </Placemark>
+  <Placemark id="High_speed_rail.147">
+	<name>Kolej Dużych Prędkości</name>
+      <LineString><coordinates>20.0205662,52.0396194 20.0191422,52.0391633</coordinates></LineString>
+  </Placemark>
+  <Placemark id="High_speed_rail.148">
+	<name>Kolej Dużych Prędkości</name>
+      <LineString><coordinates>20.0176848,52.0386865 20.0176078,52.0386611</coordinates></LineString>
+  </Placemark>
+  <Placemark id="High_speed_rail.149">
+	<name>Kolej Dużych Prędkości</name>
+      <LineString><coordinates>20.0176078,52.0386611 20.0128517,52.0370821</coordinates></LineString>
+  </Placemark>
+  <Placemark id="High_speed_rail.150">
+	<name>Kolej Dużych Prędkości</name>
+      <LineString><coordinates>20.0128517,52.0370821 20.0126592,52.0370182</coordinates></LineString>
+  </Placemark>
+  <Placemark id="High_speed_rail.151">
+	<name>Kolej Dużych Prędkości</name>
+      <LineString><coordinates>20.0126592,52.0370182 20.0056695,52.0346953</coordinates></LineString>
+  </Placemark>
+  <Placemark id="High_speed_rail.152">
+	<name>Kolej Dużych Prędkości</name>
+      <LineString><coordinates>20.0056695,52.0346953 20.0023879,52.0336044</coordinates></LineString>
+  </Placemark>
+  <Placemark id="High_speed_rail.153">
+	<name>Kolej Dużych Prędkości</name>
+      <LineString><coordinates>20.0189728,52.0391079 20.0176848,52.0386865</coordinates></LineString>
+  </Placemark>
+  <Placemark id="High_speed_rail.154">
+	<name>Kolej Dużych Prędkości</name>
+      <LineString><coordinates>20.0191422,52.0391633 20.0189728,52.0391079</coordinates></LineString>
+  </Placemark>
+  <Placemark id="High_speed_rail.155">
+	<name>Kolej Dużych Prędkości</name>
+      <LineString><coordinates>19.9138021,52.002052 19.910083,51.9998603</coordinates></LineString>
+  </Placemark>
+  <Placemark id="High_speed_rail.156">
+	<name>Kolej Dużych Prędkości</name>
+      <LineString><coordinates>19.910083,51.9998603 19.9100522,51.9998412</coordinates></LineString>
+  </Placemark>
+  <Placemark id="High_speed_rail.157">
+	<name>Kolej Dużych Prędkości</name>
+      <LineString><coordinates>19.9263931,52.0080773 19.919994,52.0052568 19.9139638,52.0021424</coordinates></LineString>
+  </Placemark>
+  <Placemark id="High_speed_rail.158">
+	<name>Kolej Dużych Prędkości</name>
+      <LineString><coordinates>19.9139638,52.0021424 19.9138021,52.002052</coordinates></LineString>
+  </Placemark>
+  <Placemark id="High_speed_rail.159">
+	<name>Kolej Dużych Prędkości</name>
+      <LineString><coordinates>19.9449792,52.014547 19.9326245,52.0104157 19.9265392,52.0081365</coordinates></LineString>
+  </Placemark>
+  <Placemark id="High_speed_rail.160">
+	<name>Kolej Dużych Prędkości</name>
+      <LineString><coordinates>19.9265392,52.0081365 19.9263931,52.0080773</coordinates></LineString>
+  </Placemark>
+  <Placemark id="High_speed_rail.161">
+	<name>Kolej Dużych Prędkości</name>
+      <LineString><coordinates>19.9804358,52.0263513 19.9451332,52.0145983</coordinates></LineString>
+  </Placemark>
+  <Placemark id="High_speed_rail.162">
+	<name>Kolej Dużych Prędkości</name>
+      <LineString><coordinates>19.9451332,52.0145983 19.9449792,52.014547</coordinates></LineString>
+  </Placemark>
+  <Placemark id="High_speed_rail.163">
+	<name>Kolej Dużych Prędkości</name>
+      <LineString><coordinates>19.9467623,52.0150932 19.9452,52.0145726</coordinates></LineString>
+  </Placemark>
+  <Placemark id="High_speed_rail.164">
+	<name>Kolej Dużych Prędkości</name>
+      <LineString><coordinates>19.9452,52.0145726 19.9450459,52.0145213</coordinates></LineString>
+  </Placemark>
+  <Placemark id="High_speed_rail.165">
+	<name>Kolej Dużych Prędkości</name>
+      <LineString><coordinates>19.9969549,52.0318461 19.9915969,52.0300644</coordinates></LineString>
+  </Placemark>
+  <Placemark id="High_speed_rail.166">
+	<name>Kolej Dużych Prędkości</name>
+      <LineString><coordinates>19.9915969,52.0300644 19.9914425,52.030013</coordinates></LineString>
+  </Placemark>
+  <Placemark id="High_speed_rail.167">
+	<name>Kolej Dużych Prędkości</name>
+      <LineString><coordinates>20.0175737,52.0386976 20.0128331,52.0371242</coordinates></LineString>
+  </Placemark>
+  <Placemark id="High_speed_rail.168">
+	<name>Kolej Dużych Prędkości</name>
+      <LineString><coordinates>20.0128331,52.0371242 20.0126406,52.0370602</coordinates></LineString>
+  </Placemark>
+  <Placemark id="High_speed_rail.169">
+	<name>Kolej Dużych Prędkości</name>
+      <LineString><coordinates>20.0126406,52.0370602 20.0056371,52.0347326</coordinates></LineString>
+  </Placemark>
+  <Placemark id="High_speed_rail.170">
+	<name>Kolej Dużych Prędkości</name>
+      <LineString><coordinates>20.0056371,52.0347326 20.0023554,52.0336416</coordinates></LineString>
+  </Placemark>
+  <Placemark id="High_speed_rail.171">
+	<name>Kolej Dużych Prędkości</name>
+      <LineString><coordinates>20.0023554,52.0336416 19.997108,52.031897</coordinates></LineString>
+  </Placemark>
+  <Placemark id="High_speed_rail.172">
+	<name>Kolej Dużych Prędkości</name>
+      <LineString><coordinates>19.997108,52.031897 19.9969549,52.0318461</coordinates></LineString>
+  </Placemark>
+  <Placemark id="High_speed_rail.173">
+	<name>Kolej Dużych Prędkości</name>
+      <LineString><coordinates>20.0205352,52.0396571 20.0191105,52.0392005</coordinates></LineString>
+  </Placemark>
+  <Placemark id="High_speed_rail.174">
+	<name>Kolej Dużych Prędkości</name>
+      <LineString><coordinates>20.0191105,52.0392005 20.0189397,52.0391451</coordinates></LineString>
+  </Placemark>
+  <Placemark id="High_speed_rail.175">
+	<name>Kolej Dużych Prędkości</name>
+      <LineString><coordinates>20.0189397,52.0391451 20.0176508,52.0387231</coordinates></LineString>
+  </Placemark>
+  <Placemark id="High_speed_rail.176">
+	<name>Kolej Dużych Prędkości</name>
+      <LineString><coordinates>20.0176508,52.0387231 20.0175737,52.0386976</coordinates></LineString>
+  </Placemark>
+  <Placemark id="High_speed_rail.177">
+	<name>Kolej Dużych Prędkości</name>
+      <LineString><coordinates>19.9914425,52.030013 19.9804807,52.0263662</coordinates></LineString>
+  </Placemark>
+  <Placemark id="High_speed_rail.178">
+	<name>Kolej Dużych Prędkości</name>
+      <LineString><coordinates>19.9804807,52.0263662 19.9804358,52.0263513</coordinates></LineString>
+  </Placemark>
+  <Placemark id="High_speed_rail.179">
+	<name>Kolej Dużych Prędkości</name>
+      <LineString><coordinates>19.9914703,52.0299743 19.9805264,52.0263338</coordinates></LineString>
+  </Placemark>
+  <Placemark id="High_speed_rail.180">
+	<name>Kolej Dużych Prędkości</name>
+      <LineString><coordinates>19.9805264,52.0263338 19.9804821,52.0263192</coordinates></LineString>
+  </Placemark>
+  <Placemark id="High_speed_rail.181">
+	<name>Kolej Dużych Prędkości</name>
+      <LineString><coordinates>20.6004427,52.1472951 20.5853023,52.1461094 20.5776068,52.1459036 20.5718052,52.1459653 20.5660496,52.1462207 20.5591967,52.1467624 20.5364139,52.1494569 20.5282277,52.1501667 20.5171142,52.1504345 20.5103056,52.1502038 20.5047263,52.1497918</coordinates></LineString>
+  </Placemark>
+  <Placemark id="High_speed_rail.182">
+	<name>Kolej Dużych Prędkości</name>
+      <LineString><coordinates>20.600433,52.1473369 20.5852932,52.1461485 20.5795302,52.1459637 20.5718076,52.1460114 20.5601343,52.1467193 20.5364326,52.1495003 20.5282406,52.1502118 20.5210401,52.1504725 20.5160779,52.1504567 20.5103042,52.1502487 20.5047155,52.1498356</coordinates></LineString>
+  </Placemark>
+  <Placemark id="High_speed_rail.183">
+	<name>Sieradz - Wrocław</name>
+      <LineString><coordinates>18.7225694,51.6145172 18.7079453,51.6111466 18.6995367,51.6089265 18.6919331,51.6065333 18.6810077,51.6025557 18.6738547,51.6001623 18.6664059,51.5980045 18.6571403,51.5957856 18.6451903,51.5936502 18.5895084,51.5856242</coordinates></LineString>
+  </Placemark>
+  <Placemark id="High_speed_rail.184">
+	<name>Kolej Dużych Prędkości</name>
+      <LineString><coordinates>18.7956695,51.6302668 18.7104096,51.6118996 18.7030098,51.6105386 18.6955304,51.6095308 18.6881364,51.6089003 18.6809513,51.6086167 18.6737,51.6086491 18.6678823,51.6089144 18.6599347,51.6096087 18.6534489,51.6104864 18.6476277,51.6115112 18.6404143,51.6130923</coordinates></LineString>
+  </Placemark>
+  <Placemark id="High_speed_rail.185">
+	<name>Sieradz - Wrocław</name>
+      <LineString><coordinates>18.7225427,51.6145547 18.7003523,51.6100602 18.6947912,51.6087115 18.6887874,51.6067695 18.6776963,51.6022414 18.6710211,51.5998269 18.6637135,51.5975983 18.6545648,51.5953716 18.6451521,51.5936944 18.586348,51.5852168</coordinates></LineString>
+  </Placemark>
+  <Placemark id="High_speed_rail.186">
+	<name>Kolej Dużych Prędkości</name>
+      <LineString><coordinates>18.7956613,51.6303174 18.7103918,51.6119382 18.7029986,51.6105767 18.6955178,51.6095734 18.6881319,51.6089517 18.68211,51.6086834 18.6748895,51.6086671 18.6678847,51.6089544 18.6621555,51.6094187 18.6545206,51.6103648 18.6476373,51.6115528 18.6404433,51.6131305</coordinates></LineString>
+  </Placemark>
+  <Placemark id="High_speed_rail.187">
+	<name>Rail Baltica (trasa przybliżona)</name>
+      <LineString><coordinates>22.9691893,54.1116455 22.9704714,54.1124395 22.9727258,54.1133264 22.9870617,54.1176998 22.9935993,54.1201154 22.997892,54.1219717 23.0029392,54.1245971 23.0076429,54.1278137 23.0098696,54.1296705 23.0120344,54.1318957 23.0141858,54.1344378 23.0155711,54.1366502 23.0191847,54.1431912 23.0204662,54.1450833 23.0222407,54.1470939 23.0262461,54.1506249 23.0306175,54.1535612 23.0708826,54.1754485 23.0749707,54.1774333 23.0785619,54.1789527 23.1175423,54.1922503 23.1250606,54.1959653 23.142347,54.2073033 23.1465462,54.2096724 23.1505951,54.2116678 23.1554685,54.2137451 23.1624515,54.2162962 23.1869358,54.2243846 23.1913139,54.2260937 23.1949321,54.2278858 23.1980087,54.2296859 23.2003476,54.2312169 23.2048905,54.2349764 23.2093058,54.2412984 23.2218322,54.2610121 23.2234744,54.2629595 23.2278225,54.2671167</coordinates></LineString>
+  </Placemark>
+  <Placemark id="High_speed_rail.188">
+	<name>Rail Baltica (trasa przybliżona)</name>
+      <LineString><coordinates>22.9386547,54.0720502 22.9378686,54.070557 22.9364629,54.0691623 22.9348613,54.0683174 22.9327656,54.0675375 22.9072422,54.0626929 22.9036897,54.0618654 22.9008443,54.0609679 22.8981267,54.0597179 22.8894201,54.0550774 22.8807476,54.0518267 22.8765732,54.049326 22.8690678,54.0444143 22.8625592,54.0407526 22.8599012,54.039572 22.8511009,54.0364402 22.8358772,54.0321724 22.8306464,54.0304411 22.8278095,54.0292502 22.8226725,54.0268132 22.8177399,54.0242359 22.8130373,54.0211931 22.809144,54.0179548 22.8034021,54.0125988 22.7945337,54.004924 22.7896522,54.0008082 22.7866705,53.9987701 22.7811841,53.9959107 22.7770012,53.9941228 22.7747437,53.9932464 22.7665823,53.9906771 22.7051165,53.9736621 22.6964696,53.972001 22.689043,53.9714511 22.683874,53.9714172 22.640848,53.9746065 22.6335854,53.9749372 22.6238693,53.9747669 22.6037811,53.9738474 22.5992873,53.9734341 22.5955133,53.9728829 22.5808987,53.9698563 22.5550643,53.9642436 22.5425156,53.9607803 22.5358621,53.9580711 22.5308315,53.9552741 22.5259288,53.9519655 22.5234326,53.9498073 22.5206384,53.9470723 22.5110756,53.9367702 22.4949659,53.9200166 22.4922483,53.9176485 22.4782981,53.9070003 22.4708061,53.9008179</coordinates></LineString>
+  </Placemark>
+  <Placemark id="High_speed_rail.189">
+	<name>Rail Baltica (trasa przybliżona)</name>
+      <LineString><coordinates>22.4708668,53.9007959 22.4783515,53.9069744 22.4923107,53.9176213 22.4950395,53.9199863 22.51114,53.9367398 22.5207037,53.9470406 22.5234889,53.9497772 22.5260014,53.9519365 22.5308796,53.9552464 22.5359061,53.9580385 22.5425678,53.9607401 22.5550855,53.9642014 22.5809338,53.9698169 22.5955322,53.9728426 22.5992957,53.9733826 22.6037905,53.9738039 22.6238729,53.9747309 22.6335866,53.974892 22.6408406,53.9745627 22.6824142,53.9714497 22.68677,53.9713325 22.6932193,53.9716434 22.6964783,53.971957 22.7051442,53.9736196 22.7666173,53.9906204 22.7711242,53.9919864 22.7770778,53.9940772 22.7812419,53.995872 22.7867377,53.998726 22.7897263,54.000766 22.7946105,54.0048833 22.803479,54.0125506 22.8092154,54.0179156 22.8131152,54.0211479 22.8178045,54.024186 22.8227262,54.0267646 22.8307194,54.0303871 22.8359386,54.032113 22.8511525,54.0363939 22.8575116,54.0385966 22.8626214,54.0406927 22.869141,54.0443666 22.8766368,54.0492841 22.8808179,54.0517846 22.8907225,54.0555901 22.8982142,54.0596581 22.9009044,54.0609251 22.9037325,54.0618104 22.9072848,54.0626354 22.9328252,54.067485 22.9349498,54.0682805 22.9365566,54.0691348 22.9379682,54.0705277 22.9387699,54.0720391</coordinates></LineString>
+  </Placemark>
+  <Placemark id="High_speed_rail.190">
+      <LineString><coordinates>19.4083833,51.7407289 19.4033542,51.7395262 19.3944142,51.7368044</coordinates></LineString>
+  </Placemark>
+  <Placemark id="High_speed_rail.191">
+      <LineString><coordinates>19.408131,51.740608 19.3992858,51.7379251 19.386743,51.7345175</coordinates></LineString>
+  </Placemark>
+  <Placemark id="High_speed_rail.192">
+      <LineString><coordinates>19.414269,51.7425739 19.4051638,51.7396212 19.397874,51.7376049</coordinates></LineString>
+  </Placemark>
+  <Placemark id="High_speed_rail.193">
+	<name>Rail Baltica (trasa przybliżona)</name>
+      <LineString><coordinates>22.9691403,54.1116692 22.9681371,54.1107116 22.9634601,54.1047107 22.9622248,54.1036718 22.9599673,54.1025929</coordinates></LineString>
+  </Placemark>
+  <Placemark id="High_speed_rail.194">
+	<name>Kolej Dużych Prędkości</name>
+      <LineString><coordinates>19.3767234,51.7313458 19.3726593,51.730041 19.3697389,51.7286268 19.3677771,51.727282 19.3608495,51.7216485 19.3586188,51.7202139 19.3556855,51.7186626 19.3525039,51.7173133 19.3485262,51.7160147 19.3443205,51.7150318 19.3405831,51.714452 19.3010168,51.7113252 19.2918544,51.7108665 19.2139104,51.7114554</coordinates></LineString>
+  </Placemark>
+  <Placemark id="High_speed_rail.195">
+	<name>Kolej Dużych Prędkości</name>
+      <LineString><coordinates>19.3766944,51.731384 19.3726244,51.7300773 19.3696913,51.728657 19.3677229,51.7273075 19.3607979,51.7216761 19.3585715,51.7202443 19.355644,51.718696 19.3524686,51.7173494 19.3484986,51.7160534 19.3449123,51.7151925 19.3405711,51.7144936 19.3010085,51.7113671 19.2918518,51.7109087 19.2139108,51.7114976</coordinates></LineString>
+  </Placemark>
+  <Placemark id="High_speed_rail.196">
+	<name>Sieradz - Wrocław</name>
+      <LineString><coordinates>18.5286107,51.5686341 18.4401805,51.5293094</coordinates></LineString>
+  </Placemark>
+  <Placemark id="High_speed_rail.197">
+	<name>Sieradz - Wrocław</name>
+      <LineString><coordinates>18.230289,51.3663907 18.205342,51.3564817</coordinates></LineString>
+  </Placemark>
+  <Placemark id="High_speed_rail.198">
+	<name>Sieradz - Wrocław</name>
+      <LineString><coordinates>18.4119104,51.5113025 18.3623637,51.4660081 18.3578348,51.4616816 18.3537136,51.4571863 18.3200533,51.4181199 18.3151543,51.4129406 18.3111218,51.409241 18.3067703,51.4056858 18.3029098,51.4028412 18.2980085,51.3995783</coordinates></LineString>
+  </Placemark>
+  <Placemark id="High_speed_rail.199">
+	<name>Sieradz - Wrocław</name>
+      <LineString><coordinates>18.205342,51.3564817 18.1819945,51.347318</coordinates></LineString>
+  </Placemark>
+  <Placemark id="High_speed_rail.200">
+	<name>Sieradz - Wrocław</name>
+      <LineString><coordinates>18.2710203,51.3843175 18.2347015,51.3681995</coordinates></LineString>
+  </Placemark>
+  <Placemark id="High_speed_rail.201">
+	<name>Sieradz - Wrocław</name>
+      <LineString><coordinates>18.5991011,51.5870067 18.5787452,51.5840496 18.5683849,51.5821279 18.557219,51.5793731 18.5518012,51.5777581 18.5454663,51.5756172 18.5351942,51.5715012 18.4402205,51.5292753 18.4335037,51.5259261 18.4280364,51.5228426 18.4220204,51.5190106 18.4164189,51.5149416 18.4106396,51.5101026 18.3853566,51.4869881</coordinates></LineString>
+  </Placemark>
+  <Placemark id="High_speed_rail.202">
+	<name>Sieradz - Wrocław</name>
+      <LineString><coordinates>18.1819945,51.347318 18.17147,51.343959 18.1603555,51.3411802 18.1538306,51.3398824 18.1218371,51.3341776</coordinates></LineString>
+  </Placemark>
+  <Placemark id="High_speed_rail.203">
+	<name>Sieradz - Wrocław</name>
+      <LineString><coordinates>18.2347015,51.3681995 18.2039331,51.3559718</coordinates></LineString>
+  </Placemark>
+  <Placemark id="High_speed_rail.204">
+	<name>Sieradz - Wrocław</name>
+      <LineString><coordinates>18.586348,51.5852168 18.5775652,51.5839036 18.570644,51.5826414 18.5638457,51.5811426 18.5560975,51.579101 18.5485773,51.576752 18.5423368,51.5745015 18.5372957,51.572464 18.5286107,51.5686341</coordinates></LineString>
+  </Placemark>
+  <Placemark id="High_speed_rail.205">
+	<name>Sieradz - Wrocław</name>
+      <LineString><coordinates>18.4401805,51.5293094 18.4325292,51.5254576 18.4245007,51.5207123 18.4179234,51.5161542 18.4119104,51.5113025</coordinates></LineString>
+  </Placemark>
+  <Placemark id="High_speed_rail.206">
+	<name>Sieradz - Wrocław</name>
+      <LineString><coordinates>18.3853566,51.4869881 18.3733998,51.4760421</coordinates></LineString>
+  </Placemark>
+  <Placemark id="High_speed_rail.207">
+	<name>Sieradz - Wrocław</name>
+      <LineString><coordinates>18.203921,51.355967 18.18262,51.3475914</coordinates></LineString>
+  </Placemark>
+  <Placemark id="High_speed_rail.208">
+	<name>Sieradz - Wrocław</name>
+      <LineString><coordinates>18.2980085,51.3995783 18.2818386,51.3898409 18.2765478,51.3869883 18.2710203,51.3843175</coordinates></LineString>
+  </Placemark>
+  <Placemark id="High_speed_rail.209">
+	<name>Sieradz - Wrocław</name>
+      <LineString><coordinates>18.3733998,51.4760421 18.3607317,51.4644239 18.3567439,51.4604677 18.3189146,51.4167528 18.3132347,51.4110498 18.3068227,51.4056592 18.3021627,51.4022572 18.2970867,51.3989434 18.2835935,51.3908002 18.2765905,51.3869555 18.2705949,51.3840717 18.2399531,51.3703825 18.230289,51.3663907</coordinates></LineString>
+  </Placemark>
+  <Placemark id="High_speed_rail.210">
+	<name>Sieradz - Wrocław</name>
+      <LineString><coordinates>18.18262,51.3475914 18.1768319,51.3456232 18.1714422,51.3439974 18.1603337,51.3412202 18.1540876,51.3399732 18.1214378,51.3341463</coordinates></LineString>
+  </Placemark>
+  <Placemark id="High_speed_rail.211">
+	<name>Sieradz - Wrocław</name>
+      <LineString><coordinates>17.4589573,51.1113372 17.4565567,51.1096738</coordinates></LineString>
+  </Placemark>
+  <Placemark id="High_speed_rail.212">
+	<name>Sieradz - Wrocław</name>
+      <LineString><coordinates>17.2271503,51.047511 17.2259787,51.0466054</coordinates></LineString>
+  </Placemark>
+  <Placemark id="High_speed_rail.213">
+	<name>Sieradz - Wrocław</name>
+      <LineString><coordinates>17.2188307,51.0408644 17.2165317,51.0391024</coordinates></LineString>
+  </Placemark>
+  <Placemark id="High_speed_rail.214">
+	<name>Sieradz - Wrocław</name>
+      <LineString><coordinates>17.375034,51.0750877 17.3399566,51.075066 17.3308182,51.0746612 17.3243037,51.0739687 17.3169967,51.0727725 17.3107715,51.0713793 17.3039046,51.0694035</coordinates></LineString>
+  </Placemark>
+  <Placemark id="High_speed_rail.215">
+	<name>Sieradz - Wrocław</name>
+      <LineString><coordinates>17.3392883,51.0750161 17.3298913,51.0745409 17.320645,51.0733832 17.3116742,51.0715585 17.3039359,51.0693662</coordinates></LineString>
+  </Placemark>
+  <Placemark id="High_speed_rail.216">
+	<name>Sieradz - Wrocław</name>
+      <LineString><coordinates>17.4408365,51.0963481 17.4365574,51.0930313 17.4325627,51.0903685 17.4282864,51.0878853 17.4229686,51.0852312 17.4181534,51.0831766 17.4122681,51.0810506 17.4061308,51.0792294 17.3997813,51.0777247 17.3951386,51.0768492 17.3894736,51.0760225 17.3837318,51.0754435 17.3789079,51.0751524 17.3732504,51.075032 17.3392883,51.0750161</coordinates></LineString>
+  </Placemark>
+  <Placemark id="High_speed_rail.217">
+	<name>Sieradz - Wrocław</name>
+      <LineString><coordinates>17.2614816,51.057385 17.2543965,51.0568632</coordinates></LineString>
+  </Placemark>
+  <Placemark id="High_speed_rail.218">
+	<name>Sieradz - Wrocław</name>
+      <LineString><coordinates>17.3039359,51.0693662 17.2765829,51.0601439 17.2691894,51.0584228 17.2614816,51.057385</coordinates></LineString>
+  </Placemark>
+  <Placemark id="High_speed_rail.219">
+	<name>Sieradz - Wrocław</name>
+      <LineString><coordinates>17.3039046,51.0694035 17.2786857,51.060826</coordinates></LineString>
+  </Placemark>
+  <Placemark id="High_speed_rail.220">
+	<name>Sieradz - Wrocław</name>
+      <LineString><coordinates>17.4407823,51.096373 17.4377712,51.0939835 17.4345473,51.0917069 17.4311212,51.0895507 17.4275043,51.087522 17.4197462,51.0838734 17.4122371,51.0810881 17.4034094,51.0785846 17.3941847,51.0767354 17.3846844,51.0755646 17.375034,51.0750877</coordinates></LineString>
+  </Placemark>
+  <Placemark id="High_speed_rail.221">
+	<name>Sieradz - Wrocław</name>
+      <LineString><coordinates>17.4515095,51.1057638 17.4407823,51.096373</coordinates></LineString>
+  </Placemark>
+  <Placemark id="High_speed_rail.222">
+	<name>Sieradz - Wrocław</name>
+      <LineString><coordinates>17.4821663,51.1285431 17.4777141,51.1245738 17.4735596,51.1213322 17.4574001,51.1102032 17.4540192,51.1077259 17.450859,51.1051359 17.4408365,51.0963481</coordinates></LineString>
+  </Placemark>
+  <Placemark id="High_speed_rail.223">
+	<name>Sieradz - Wrocław</name>
+      <LineString><coordinates>17.4565567,51.1096738 17.4515095,51.1057638</coordinates></LineString>
+  </Placemark>
+  <Placemark id="High_speed_rail.224">
+	<name>Sieradz - Wrocław</name>
+      <LineString><coordinates>17.4821098,51.1285659 17.4783226,51.125154 17.4742218,51.121889 17.4589573,51.1113372</coordinates></LineString>
+  </Placemark>
+  <Placemark id="High_speed_rail.225">
+	<name>Sieradz - Wrocław</name>
+      <LineString><coordinates>17.4990074,51.1453409 17.4821098,51.1285659</coordinates></LineString>
+  </Placemark>
+  <Placemark id="High_speed_rail.226">
+	<name>Sieradz - Wrocław</name>
+      <LineString><coordinates>17.4989155,51.1451706 17.4821663,51.1285431</coordinates></LineString>
+  </Placemark>
+  <Placemark id="High_speed_rail.227">
+	<name>Sieradz - Wrocław</name>
+      <LineString><coordinates>17.1085826,51.044488 17.1013195,51.0520016</coordinates></LineString>
+  </Placemark>
+  <Placemark id="High_speed_rail.228">
+	<name>Sieradz - Wrocław</name>
+      <LineString><coordinates>17.1085265,51.0444649 17.1036816,51.0494473</coordinates></LineString>
+  </Placemark>
+  <Placemark id="High_speed_rail.229">
+	<name>Sieradz - Wrocław</name>
+      <LineString><coordinates>17.2080899,51.0357884 17.2019032,51.0349655 17.1996994,51.0348974 17.1970623,51.035042 17.1664602,51.0397879 17.1613307,51.0403751 17.1560817,51.0407272 17.1482319,51.0407957 17.1244324,51.0397776 17.1206973,51.0398524 17.117258,51.040365 17.1136663,51.0414375 17.1108581,51.0427904 17.1085265,51.0444649</coordinates></LineString>
+  </Placemark>
+  <Placemark id="High_speed_rail.230">
+	<name>Sieradz - Wrocław</name>
+      <LineString><coordinates>17.2027636,51.035082 17.1997003,51.0349397 17.1964437,51.0351554 17.1670729,51.0397452 17.1578422,51.0406792 17.1488379,51.040852 17.1243258,51.0398164 17.1202682,51.0399348 17.116864,51.0404987 17.1137019,51.0414733 17.1109051,51.0428206 17.1085826,51.044488</coordinates></LineString>
+  </Placemark>
+  <Placemark id="High_speed_rail.231">
+	<name>Sieradz - Wrocław</name>
+      <LineString><coordinates>17.2187285,51.0409162 17.2153886,51.0384703 17.2121654,51.0369411 17.2084795,51.035908 17.2027636,51.035082</coordinates></LineString>
+  </Placemark>
+  <Placemark id="High_speed_rail.232">
+	<name>Sieradz - Wrocław</name>
+      <LineString><coordinates>17.2165317,51.0391024 17.2146329,51.037959 17.2124919,51.0370006 17.2105551,51.0363581 17.2080899,51.0357884</coordinates></LineString>
+  </Placemark>
+  <Placemark id="High_speed_rail.233">
+	<name>Sieradz - Wrocław</name>
+      <LineString><coordinates>17.2259787,51.0466054 17.2187285,51.0409162</coordinates></LineString>
+  </Placemark>
+  <Placemark id="High_speed_rail.234">
+	<name>Sieradz - Wrocław</name>
+      <LineString><coordinates>17.2272756,51.0474773 17.2188307,51.0408644</coordinates></LineString>
+  </Placemark>
+  <Placemark id="High_speed_rail.235">
+	<name>Sieradz - Wrocław</name>
+      <LineString><coordinates>17.2786857,51.060826 17.2736486,51.0594147 17.2676514,51.0582006 17.2622528,51.0574992 17.2515556,51.0566134 17.2475505,51.0559832 17.2436606,51.0551126 17.2387155,51.0535922 17.2346737,51.0519429 17.2304491,51.0497215 17.2271503,51.047511</coordinates></LineString>
+  </Placemark>
+  <Placemark id="High_speed_rail.236">
+	<name>Sieradz - Wrocław</name>
+      <LineString><coordinates>17.2543965,51.0568632 17.2503354,51.0563967 17.2463646,51.0556856 17.2425211,51.0547366 17.2394414,51.0537703 17.236495,51.0526511 17.2331619,51.0511165 17.2300792,51.0493865 17.2272756,51.0474773</coordinates></LineString>
+  </Placemark>
+  <Placemark id="High_speed_rail.237">
+	<name>Rail Baltica (trasa przybliżona)</name>
+      <LineString><coordinates>22.3758705,53.8388093 22.3824475,53.8407362 22.3892678,53.8432023 22.3942345,53.8453449 22.3987289,53.847594 22.4048179,53.8511619 22.4389153,53.8719697 22.4429107,53.8748436 22.4503053,53.8814225 22.4658779,53.8966772 22.4708668,53.9007959</coordinates></LineString>
+  </Placemark>
+  <Placemark id="High_speed_rail.238">
+	<name>Rail Baltica (trasa przybliżona)</name>
+      <LineString><coordinates>22.4708061,53.9008179 22.4658176,53.8967008 22.4502573,53.8814477 22.4428627,53.8748663 22.4388709,53.871994 22.4047782,53.8511848 22.4011598,53.8490177 22.396575,53.8465383 22.3915646,53.8441979 22.3846043,53.8415152 22.3799438,53.8400105 22.3702292,53.8373046</coordinates></LineString>
+  </Placemark>
+  <Placemark id="High_speed_rail.239">
+	<name>Rail Baltica (trasa przybliżona)</name>
+      <LineString><coordinates>22.9599673,54.1025929 22.9575585,54.1017712 22.9556651,54.100852 22.9548302,54.1002151 22.9530385,54.0980969</coordinates></LineString>
+  </Placemark>
+  <Placemark id="High_speed_rail.240">
+	<name>Rail Baltica (trasa przybliżona)</name>
+      <LineString><coordinates>22.9531015,54.0980793 22.9548938,54.1001949 22.9557368,54.1008271 22.9576014,54.101737 22.9615391,54.1032223 22.9630682,54.1042562 22.968201,54.1106916 22.9691893,54.1116455</coordinates></LineString>
+  </Placemark>
+  <Placemark id="High_speed_rail.241">
+	<name>Kolej Dużych Prędkości</name>
+      <LineString><coordinates>19.2138512,51.7114842 19.1325976,51.7005079</coordinates></LineString>
+  </Placemark>
+  <Placemark id="High_speed_rail.242">
+	<name>Kolej Dużych Prędkości</name>
+      <LineString><coordinates>19.1315145,51.700508 18.960979,51.6709745 18.952275,51.6692111 18.9443341,51.6672204</coordinates></LineString>
+  </Placemark>
+  <Placemark id="High_speed_rail.243">
+	<name>Kolej Dużych Prędkości</name>
+      <LineString><coordinates>19.1187655,51.6983542 18.9580479,51.6704718 18.9511039,51.6689862 18.9454281,51.6675634 18.9103523,51.6576377</coordinates></LineString>
+  </Placemark>
+  <Placemark id="High_speed_rail.244">
+	<name>Kolej Dużych Prędkości</name>
+      <LineString><coordinates>18.0867779,51.7405625 18.0832527,51.7431197</coordinates></LineString>
+  </Placemark>
+  <Placemark id="High_speed_rail.245">
+	<name>Kolej Dużych Prędkości</name>
+      <LineString><coordinates>18.0875014,51.7399739 18.0867779,51.7405625</coordinates></LineString>
+  </Placemark>
+  <Placemark id="High_speed_rail.246">
+	<name>Kolej Dużych Prędkości</name>
+      <LineString><coordinates>18.088143,51.7393694 18.0875014,51.7399739</coordinates></LineString>
+  </Placemark>
+  <Placemark id="High_speed_rail.247">
+	<name>Kolej Dużych Prędkości</name>
+      <LineString><coordinates>18.0930229,51.7372967 18.0914645,51.7375179 18.090391,51.7378517 18.0891721,51.7384939 18.088143,51.7393694</coordinates></LineString>
+  </Placemark>
+  <Placemark id="High_speed_rail.248">
+	<name>Kolej Dużych Prędkości</name>
+      <LineString><coordinates>18.0968193,51.7374082 18.0930229,51.7372967</coordinates></LineString>
+  </Placemark>
+  <Placemark id="High_speed_rail.249">
+	<name>Kolej Dużych Prędkości</name>
+      <LineString><coordinates>18.0987067,51.7373961 18.0968193,51.7374082</coordinates></LineString>
+  </Placemark>
+  <Placemark id="High_speed_rail.250">
+	<name>Kolej Dużych Prędkości</name>
+      <LineString><coordinates>18.1051906,51.7369304 18.1023289,51.7372734 18.0987067,51.7373961</coordinates></LineString>
+  </Placemark>
+  <Placemark id="High_speed_rail.251">
+	<name>Kolej Dużych Prędkości</name>
+      <LineString><coordinates>18.1179208,51.7344721 18.1051906,51.7369304</coordinates></LineString>
+  </Placemark>
+  <Placemark id="High_speed_rail.252">
+	<name>Kolej Dużych Prędkości</name>
+      <LineString><coordinates>18.1319623,51.7328489 18.1291464,51.7329646 18.1235718,51.7335038 18.1179208,51.7344721</coordinates></LineString>
+  </Placemark>
+  <Placemark id="High_speed_rail.253">
+	<name>Kolej Dużych Prędkości</name>
+      <LineString><coordinates>18.1428597,51.7327959 18.1319623,51.7328489</coordinates></LineString>
+  </Placemark>
+  <Placemark id="High_speed_rail.254">
+	<name>Kolej Dużych Prędkości</name>
+      <LineString><coordinates>18.0868304,51.7405894 18.0831822,51.7432394</coordinates></LineString>
+  </Placemark>
+  <Placemark id="High_speed_rail.255">
+	<name>Kolej Dużych Prędkości</name>
+      <LineString><coordinates>18.0875575,51.7399977 18.0868304,51.7405894</coordinates></LineString>
+  </Placemark>
+  <Placemark id="High_speed_rail.256">
+	<name>Kolej Dużych Prędkości</name>
+      <LineString><coordinates>18.0881999,51.7393926 18.0875575,51.7399977</coordinates></LineString>
+  </Placemark>
+  <Placemark id="High_speed_rail.257">
+	<name>Kolej Dużych Prędkości</name>
+      <LineString><coordinates>18.0930289,51.7373388 18.0918637,51.7374783 18.0904275,51.7378873 18.0892228,51.7385221 18.0881999,51.7393926</coordinates></LineString>
+  </Placemark>
+  <Placemark id="High_speed_rail.258">
+	<name>Kolej Dużych Prędkości</name>
+      <LineString><coordinates>18.0968188,51.7374505 18.0930289,51.7373388</coordinates></LineString>
+  </Placemark>
+  <Placemark id="High_speed_rail.259">
+	<name>Kolej Dużych Prędkości</name>
+      <LineString><coordinates>18.0987075,51.7374383 18.0968188,51.7374505</coordinates></LineString>
+  </Placemark>
+  <Placemark id="High_speed_rail.260">
+	<name>Kolej Dużych Prędkości</name>
+      <LineString><coordinates>18.1052078,51.7369712 18.1023374,51.7373153 18.0987075,51.7374383</coordinates></LineString>
+  </Placemark>
+  <Placemark id="High_speed_rail.261">
+	<name>Kolej Dużych Prędkości</name>
+      <LineString><coordinates>18.1179411,51.7345124 18.1052078,51.7369712</coordinates></LineString>
+  </Placemark>
+  <Placemark id="High_speed_rail.262">
+	<name>Kolej Dużych Prędkości</name>
+      <LineString><coordinates>18.1319648,51.7328911 18.1263568,51.7332249 18.1235862,51.7335451 18.1179411,51.7345124</coordinates></LineString>
+  </Placemark>
+  <Placemark id="High_speed_rail.263">
+	<name>Kolej Dużych Prędkości</name>
+      <LineString><coordinates>18.14286,51.7328382 18.1319648,51.7328911</coordinates></LineString>
+  </Placemark>
+  <Placemark id="High_speed_rail.264">
+	<name>Kolej Dużych Prędkości</name>
+      <LineString><coordinates>17.9686646,51.748154 17.8876846,51.7922773</coordinates></LineString>
+  </Placemark>
+  <Placemark id="High_speed_rail.265">
+	<name>Kolej Dużych Prędkości</name>
+      <LineString><coordinates>17.988082,51.7393251 17.9822911,51.7415716 17.9767229,51.7440255 17.9686646,51.748154</coordinates></LineString>
+  </Placemark>
+  <Placemark id="High_speed_rail.266">
+	<name>Kolej Dużych Prędkości</name>
+      <LineString><coordinates>17.9942003,51.7371695 17.988082,51.7393251</coordinates></LineString>
+  </Placemark>
+  <Placemark id="High_speed_rail.267">
+	<name>Kolej Dużych Prędkości</name>
+      <LineString><coordinates>18.042014,51.7332878 18.0337158,51.7322071 18.0294961,51.7319382 18.0252565,51.7318522 18.0167997,51.7322301 18.0085092,51.7333335 18.0044767,51.7341511 18.0005455,51.735141 17.9942003,51.7371695</coordinates></LineString>
+  </Placemark>
+  <Placemark id="High_speed_rail.268">
+	<name>Kolej Dużych Prędkości</name>
+      <LineString><coordinates>18.0466899,51.7343954 18.042014,51.7332878</coordinates></LineString>
+  </Placemark>
+  <Placemark id="High_speed_rail.269">
+	<name>Kolej Dużych Prędkości</name>
+      <LineString><coordinates>18.0610224,51.7393802 18.0466899,51.7343954</coordinates></LineString>
+  </Placemark>
+  <Placemark id="High_speed_rail.270">
+	<name>Kolej Dużych Prędkości</name>
+      <LineString><coordinates>18.063743,51.7402533 18.0610224,51.7393802</coordinates></LineString>
+  </Placemark>
+  <Placemark id="High_speed_rail.271">
+	<name>Kolej Dużych Prędkości</name>
+      <LineString><coordinates>18.0675017,51.7413322 18.063743,51.7402533</coordinates></LineString>
+  </Placemark>
+  <Placemark id="High_speed_rail.272">
+	<name>Kolej Dużych Prędkości</name>
+      <LineString><coordinates>18.0735553,51.7434271 18.0675017,51.7413322</coordinates></LineString>
+  </Placemark>
+  <Placemark id="High_speed_rail.273">
+	<name>Kolej Dużych Prędkości</name>
+      <LineString><coordinates>18.0832527,51.7431197 18.0810721,51.7439789 18.078552,51.74433 18.075989,51.7441316 18.0735553,51.7434271</coordinates></LineString>
+  </Placemark>
+  <Placemark id="High_speed_rail.274">
+	<name>Kolej Dużych Prędkości</name>
+      <LineString><coordinates>18.1836843,51.725223 18.1798928,51.7267108 18.1718931,51.7292252 18.1634458,51.7310921 18.1546862,51.7322816 18.150233,51.732616 18.1428597,51.7327959</coordinates></LineString>
+  </Placemark>
+  <Placemark id="High_speed_rail.275">
+	<name>Kolej Dużych Prędkości</name>
+      <LineString><coordinates>18.1987928,51.7186004 18.1836843,51.725223</coordinates></LineString>
+  </Placemark>
+  <Placemark id="High_speed_rail.276">
+	<name>Kolej Dużych Prędkości</name>
+      <LineString><coordinates>18.2163478,51.7095469 18.2114849,51.7123861 18.2063945,51.7150672 18.1987928,51.7186004</coordinates></LineString>
+  </Placemark>
+  <Placemark id="High_speed_rail.277">
+	<name>Kolej Dużych Prędkości</name>
+      <LineString><coordinates>18.2297672,51.7011274 18.2163478,51.7095469</coordinates></LineString>
+  </Placemark>
+  <Placemark id="High_speed_rail.278">
+	<name>Kolej Dużych Prędkości</name>
+      <LineString><coordinates>18.3294211,51.6764107 18.320448,51.6763667 18.311491,51.6767047 18.3025922,51.6774232 18.2937931,51.6785187 18.2851351,51.6799862 18.2766588,51.6818187 18.2684037,51.6840077 18.2604088,51.686543 18.2527114,51.6894125 18.2453478,51.692603 18.2383525,51.6960994 18.2297672,51.7011274</coordinates></LineString>
+  </Placemark>
+  <Placemark id="High_speed_rail.279">
+	<name>Kolej Dużych Prędkości</name>
+      <LineString><coordinates>18.3604528,51.6774223 18.3294211,51.6764107</coordinates></LineString>
+  </Placemark>
+  <Placemark id="High_speed_rail.280">
+	<name>Kolej Dużych Prędkości</name>
+      <LineString><coordinates>17.9687095,51.7481857 17.8877295,51.7923091</coordinates></LineString>
+  </Placemark>
+  <Placemark id="High_speed_rail.281">
+	<name>Kolej Dużych Prędkości</name>
+      <LineString><coordinates>17.9881163,51.7393616 17.9823289,51.7416067 17.9767639,51.7440592 17.9687095,51.7481857</coordinates></LineString>
+  </Placemark>
+  <Placemark id="High_speed_rail.282">
+	<name>Kolej Dużych Prędkości</name>
+      <LineString><coordinates>17.9942337,51.7372063 17.9881163,51.7393616</coordinates></LineString>
+  </Placemark>
+  <Placemark id="High_speed_rail.283">
+	<name>Kolej Dużych Prędkości</name>
+      <LineString><coordinates>18.0419954,51.7333285 18.0337065,51.7322489 18.0294915,51.7319803 18.0210224,51.7319918 18.0168093,51.732272 18.0085281,51.7333741 18.0045001,51.7341908 18.0005733,51.7351796 17.9942337,51.7372063</coordinates></LineString>
+  </Placemark>
+  <Placemark id="High_speed_rail.284">
+	<name>Kolej Dużych Prędkości</name>
+      <LineString><coordinates>18.0466593,51.7344331 18.0419954,51.7333285</coordinates></LineString>
+  </Placemark>
+  <Placemark id="High_speed_rail.285">
+	<name>Kolej Dużych Prędkości</name>
+      <LineString><coordinates>18.0619989,51.7397698 18.0466593,51.7344331</coordinates></LineString>
+  </Placemark>
+  <Placemark id="High_speed_rail.286">
+	<name>Kolej Dużych Prędkości</name>
+      <LineString><coordinates>18.0641914,51.7404898 18.0619989,51.7397698</coordinates></LineString>
+  </Placemark>
+  <Placemark id="High_speed_rail.287">
+	<name>Kolej Dużych Prędkości</name>
+      <LineString><coordinates>18.0674028,51.7414421 18.0641914,51.7404898</coordinates></LineString>
+  </Placemark>
+  <Placemark id="High_speed_rail.288">
+	<name>Kolej Dużych Prędkości</name>
+      <LineString><coordinates>18.0734847,51.7435468 18.0674028,51.7414421</coordinates></LineString>
+  </Placemark>
+  <Placemark id="High_speed_rail.289">
+	<name>Kolej Dużych Prędkości</name>
+      <LineString><coordinates>18.0831822,51.7432394 18.0810015,51.7440986 18.0784814,51.7444496 18.0759184,51.7442513 18.0734847,51.7435468</coordinates></LineString>
+  </Placemark>
+  <Placemark id="High_speed_rail.290">
+	<name>Kolej Dużych Prędkości</name>
+      <LineString><coordinates>18.1837225,51.725258 18.1799273,51.7267472 18.1719199,51.729264 18.1634645,51.7311327 18.1546965,51.7323234 18.150239,51.7326581 18.14286,51.7328382</coordinates></LineString>
+  </Placemark>
+  <Placemark id="High_speed_rail.291">
+	<name>Kolej Dużych Prędkości</name>
+      <LineString><coordinates>18.198832,51.7186349 18.1837225,51.725258</coordinates></LineString>
+  </Placemark>
+  <Placemark id="High_speed_rail.292">
+	<name>Kolej Dużych Prędkości</name>
+      <LineString><coordinates>18.2163956,51.7095769 18.2115302,51.7124176 18.2064371,51.7151001 18.198832,51.7186349</coordinates></LineString>
+  </Placemark>
+  <Placemark id="High_speed_rail.293">
+	<name>Kolej Dużych Prędkości</name>
+      <LineString><coordinates>18.2298156,51.7011571 18.2163956,51.7095769</coordinates></LineString>
+  </Placemark>
+  <Placemark id="High_speed_rail.294">
+	<name>Kolej Dużych Prędkości</name>
+      <LineString><coordinates>18.3294183,51.6764529 18.3204498,51.6764089 18.3114974,51.6767468 18.3026032,51.6774649 18.2938087,51.6785598 18.2851552,51.6800265 18.2766833,51.6818581 18.2684325,51.684046 18.2604417,51.6865799 18.2527484,51.689448 18.2453886,51.6926368 18.2383969,51.6961314 18.2298156,51.7011571</coordinates></LineString>
+  </Placemark>
+  <Placemark id="High_speed_rail.295">
+	<name>Kolej Dużych Prędkości</name>
+      <LineString><coordinates>18.3604493,51.6774645 18.3294183,51.6764529</coordinates></LineString>
+  </Placemark>
+  <Placemark id="High_speed_rail.296">
+	<name>Kolej Dużych Prędkości (trasa uproszczona ~20 m)</name>
+      <LineString><coordinates>18.3711346,51.6776064 18.3604493,51.6774645</coordinates></LineString>
+  </Placemark>
+  <Placemark id="High_speed_rail.297">
+	<name>Kolej Dużych Prędkości (trasa uproszczona ~20 m)</name>
+      <LineString><coordinates>18.5259252,51.642773 18.4792372,51.6600895 18.4660741,51.6636443 18.4592527,51.6650358 18.4022377,51.674895 18.3868181,51.6768347 18.3711346,51.6776064</coordinates></LineString>
+  </Placemark>
+  <Placemark id="High_speed_rail.298">
+	<name>Kolej Dużych Prędkości (trasa uproszczona ~20 m)</name>
+      <LineString><coordinates>18.6204125,51.6181455 18.5696505,51.6298152 18.5259252,51.642773</coordinates></LineString>
+  </Placemark>
+  <Placemark id="High_speed_rail.299">
+	<name>Kolej Dużych Prędkości (trasa uproszczona ~20 m)</name>
+      <LineString><coordinates>18.6404433,51.6131305 18.6365597,51.6139996 18.6204125,51.6181455</coordinates></LineString>
+  </Placemark>
+  <Placemark id="High_speed_rail.300">
+	<name>Kolej Dużych Prędkości (trasa uproszczona ~20 m)</name>
+      <LineString><coordinates>16.9342785,52.3665801 16.9144836,52.3719624 16.9103064,52.3736545 16.9072096,52.3753516</coordinates></LineString>
+  </Placemark>
+  <Placemark id="High_speed_rail.301">
+	<name>Kolej Dużych Prędkości (trasa uproszczona ~20 m)</name>
+      <LineString><coordinates>16.9717047,52.3430913 16.96149,52.3481535 16.9581372,52.3508098 16.9536923,52.3553932 16.9488484,52.3586427 16.9342785,52.3665801</coordinates></LineString>
+  </Placemark>
+  <Placemark id="High_speed_rail.302">
+	<name>Kolej Dużych Prędkości (trasa uproszczona ~20 m)</name>
+      <LineString><coordinates>17.0967184,52.2776136 17.0608794,52.2904105 17.0510657,52.294577 17.0422516,52.2995132 17.0270358,52.3103866 16.9949472,52.3297048 16.9717047,52.3430913</coordinates></LineString>
+  </Placemark>
+  <Placemark id="High_speed_rail.303">
+	<name>Kolej Dużych Prędkości (trasa uproszczona ~20 m)</name>
+      <LineString><coordinates>17.1660164,52.2312521 17.1585012,52.2370202 17.119525,52.2650813 17.1134138,52.2691376 17.1081428,52.2721761 17.0967184,52.2776136</coordinates></LineString>
+  </Placemark>
+  <Placemark id="High_speed_rail.304">
+	<name>Kolej Dużych Prędkości (trasa uproszczona ~20 m)</name>
+      <LineString><coordinates>17.2769972,52.1387511 17.2460707,52.1596852 17.2390256,52.1650006 17.2045462,52.1940537 17.1660164,52.2312521</coordinates></LineString>
+  </Placemark>
+  <Placemark id="High_speed_rail.305">
+	<name>Kolej Dużych Prędkości (trasa uproszczona ~20 m)</name>
+      <LineString><coordinates>17.3771882,52.0918905 17.2938471,52.1294452 17.287946,52.1323481 17.2769972,52.1387511</coordinates></LineString>
+  </Placemark>
+  <Placemark id="High_speed_rail.306">
+	<name>Kolej Dużych Prędkości (trasa uproszczona ~20 m)</name>
+      <LineString><coordinates>17.4885819,52.0297458 17.484113,52.0330297 17.4742625,52.0390756 17.4247141,52.0652636 17.3771882,52.0918905</coordinates></LineString>
+  </Placemark>
+  <Placemark id="High_speed_rail.307">
+	<name>Kolej Dużych Prędkości (trasa uproszczona ~20 m)</name>
+      <LineString><coordinates>17.5751748,51.9806737 17.5432557,51.9929083 17.5356661,51.996088 17.5284374,51.9995739 17.5216021,52.0033504 17.5151909,52.0074007 17.5092324,52.0117065 17.4885819,52.0297458</coordinates></LineString>
+  </Placemark>
+  <Placemark id="High_speed_rail.308">
+	<name>Kolej Dużych Prędkości (trasa uproszczona ~20 m)</name>
+      <LineString><coordinates>17.6821522,51.9397365 17.5983107,51.9702469 17.5882625,51.9744854 17.5751748,51.9806737</coordinates></LineString>
+  </Placemark>
+  <Placemark id="High_speed_rail.309">
+	<name>Kolej Dużych Prędkości (trasa uproszczona ~20 m)</name>
+      <LineString><coordinates>17.7652412,51.8698554 17.7552778,51.877316 17.7508534,51.8813093 17.7431988,51.8897507 17.7318629,51.9061268 17.7236453,51.9150312 17.7136699,51.9232209 17.7020964,51.9305639 17.6957674,51.9338804 17.6821522,51.9397365</coordinates></LineString>
+  </Placemark>
+  <Placemark id="High_speed_rail.310">
+	<name>Kolej Dużych Prędkości (trasa uproszczona ~20 m)</name>
+      <LineString><coordinates>17.8877295,51.7923091 17.8763103,51.7980691 17.8494568,51.8096937 17.8373182,51.8158931 17.8317216,51.8193211 17.8215752,51.8267714 17.8013449,51.8443176 17.7871096,51.8552462 17.7808083,51.8597416 17.7652412,51.8698554</coordinates></LineString>
+  </Placemark>
+  <Placemark id="High_speed_rail.311">
+	<name>Katowice - Ostrawa</name>
+      <LineString><coordinates>18.7333385,50.0982415 18.7221633,50.0923319 18.7175509,50.0901354 18.6828506,50.076656 18.6778766,50.0742482</coordinates></LineString>
+  </Placemark>
+  <Placemark id="High_speed_rail.312">
+	<name>Katowice - Ostrawa</name>
+      <LineString><coordinates>18.6778766,50.0742482 18.6726228,50.0709245 18.6494843,50.055045 18.6460557,50.0531559 18.6423014,50.051544 18.6394499,50.0505753 18.6207602,50.0455608</coordinates></LineString>
+  </Placemark>
+  <Placemark id="High_speed_rail.313">
+	<name>Katowice - Ostrawa</name>
+      <LineString><coordinates>18.5947223,50.0227937 18.5926639,50.0197311 18.5902587,50.0167752 18.5875201,50.0139424 18.5833169,50.0101568 18.5800679,50.0069448 18.5656821,49.9909709</coordinates></LineString>
+  </Placemark>
+  <Placemark id="High_speed_rail.314">
+	<name>Katowice - Ostrawa</name>
+      <LineString><coordinates>18.5656821,49.9909709 18.5631883,49.987875 18.5613967,49.9849413 18.5537485,49.9690448 18.5466561,49.9584657</coordinates></LineString>
+  </Placemark>
+  <Placemark id="High_speed_rail.315">
+	<name>Katowice - Ostrawa</name>
+      <LineString><coordinates>18.5131513,49.9385508 18.4955664,49.9347596 18.477987,49.9316667</coordinates></LineString>
+  </Placemark>
+  <Placemark id="High_speed_rail.316">
+	<name>Katowice - Ostrawa</name>
+      <LineString><coordinates>18.477987,49.9316667 18.4725778,49.9303693 18.4668252,49.9284288 18.4523345,49.9218859</coordinates></LineString>
+  </Placemark>
+  <Placemark id="High_speed_rail.317">
+	<name>Katowice - Ostrawa</name>
+      <LineString><coordinates>18.5466561,49.9584657 18.5438651,49.9551859 18.5409429,49.9525088 18.5372484,49.9498065 18.5304295,49.9455289 18.5259699,49.9430609 18.52178,49.9412214 18.5159987,49.9392856 18.5131513,49.9385508</coordinates></LineString>
+  </Placemark>
+  <Placemark id="High_speed_rail.318">
+	<name>Katowice - Ostrawa</name>
+      <LineString><coordinates>18.8269783,50.1360709 18.7927339,50.1305996 18.7854877,50.1286874 18.7793783,50.1264252 18.7755726,50.1246501 18.7725874,50.1230183 18.7333385,50.0982415</coordinates></LineString>
+  </Placemark>
+  <Placemark id="High_speed_rail.319">
+	<name>Katowice - Ostrawa</name>
+      <LineString><coordinates>18.8813853,50.170021 18.8693256,50.1677015 18.8666816,50.166901 18.8639925,50.1656294 18.8617677,50.16403 18.8606562,50.1628937 18.8597822,50.1616747 18.8590672,50.1601317 18.8576964,50.1548473 18.8565785,50.1525021 18.8554362,50.1506137 18.8539975,50.1487619 18.8520717,50.1466743 18.8502211,50.1450923 18.8477687,50.1432898 18.8453059,50.1418098 18.84099,50.1397081 18.8380721,50.1385946 18.8346043,50.1375572 18.8269783,50.1360709</coordinates></LineString>
+  </Placemark>
+  <Placemark id="High_speed_rail.320">
+	<name>Katowice - Ostrawa</name>
+      <LineString><coordinates>18.9532843,50.2065946 18.9194292,50.1927497 18.9166853,50.1915622 18.9146303,50.1904714 18.9123915,50.1890043 18.910735,50.1876629 18.9028988,50.1800461 18.9020119,50.1787191</coordinates></LineString>
+  </Placemark>
+  <Placemark id="High_speed_rail.321">
+	<name>Katowice - Ostrawa</name>
+      <LineString><coordinates>18.9020119,50.1787191 18.9012193,50.1756408 18.9007955,50.1747627 18.8993118,50.1729215 18.8975071,50.1717229 18.8959988,50.1711716 18.8940493,50.1708244 18.8836377,50.1702961 18.8813853,50.170021</coordinates></LineString>
+  </Placemark>
+  <Placemark id="High_speed_rail.322">
+	<name>Katowice - Ostrawa</name>
+      <LineString><coordinates>18.6207602,50.0455608 18.6150855,50.0436713 18.6114733,50.0420127 18.6081883,50.0400925 18.605276,50.0379375 18.6027764,50.0355772 18.6007242,50.0330444 18.5947223,50.0227937</coordinates></LineString>
+  </Placemark>
+  <Placemark id="High_speed_rail.323">
+	<name>Bohumin-Wodzisław Śląski</name>
+      <LineString><coordinates>18.5095165,49.9377672 18.5156098,49.9392657 18.5189799,49.9402977 18.5237904,49.9423384 18.5253418,49.943356 18.5258622,49.9438249 18.5262181,49.944761 18.5258259,49.9459936 18.5244089,49.9476466 18.521984,49.948796</coordinates></LineString>
+  </Placemark>
+  <Placemark id="High_speed_rail.324">
+      <LineString><coordinates>19.560808,51.7607585 19.560681,51.7607773</coordinates></LineString>
+  </Placemark>
+  <Placemark id="High_speed_rail.325">
+      <LineString><coordinates>19.5668528,51.7600872 19.5651972,51.7601125 19.560808,51.7607585</coordinates></LineString>
+  </Placemark>
+  <Placemark id="High_speed_rail.326">
+	<name>Rail Baltica (approximate route)</name>
+      <LineString><coordinates>23.2278225,54.2671167 23.2340425,54.2733547 23.24073,54.2777665 23.2537357,54.2838926 23.278343,54.296239 23.2875431,54.3011226 23.2937873,54.3048631 23.2977592,54.3087111 23.2997913,54.3112654 23.3020073,54.3145318 23.3098363,54.3279517 23.3149647,54.3390617 23.3249425,54.3598723 23.3298134,54.3687236 23.3323668,54.3753734 23.3332681,54.3822594 23.332517,54.3984766 23.3314656,54.415836 23.3311008,54.4258363 23.3298134,54.4473016 23.3310579,54.4603126 23.3333539,54.4674464 23.3393757,54.4823493 23.3447726,54.493125 23.3466137,54.4959893 23.3524958,54.5016755 23.3570984,54.5050909 23.3664813,54.5102703 23.3779078,54.5170273 23.3844118,54.5213388 23.3897205,54.5258407 23.3941344,54.5299224 23.3969654,54.5343446 23.3977394,54.5377395 23.3976465,54.5453012 23.3970686,54.5497788 23.397275,54.5547347 23.3981419,54.5587924 23.3996074,54.5631368 23.4011967,54.5663919 23.4059028,54.571944 23.4132716,54.5792899 23.4263991,54.5931764 23.4322404,54.6002793 23.4381436,54.6050019 23.4533971,54.6120669 23.4744713,54.6228832 23.5064025,54.6374955 23.5297387,54.6483686 23.5495744,54.6580809 23.5837454,54.6711587 23.607224,54.679617 23.6173928,54.6840092 23.651301,54.6966984 23.6971291,54.7145202 23.7022428,54.7174629 23.7096064,54.7226193 23.717785,54.7292312 23.723247,54.7331102 23.7296046,54.7364721 23.7449419,54.743254 23.7639603,54.7511879 23.7782852,54.7549095 23.7949193,54.7588676 23.8123253,54.7635107 23.820956,54.7668326 23.8326104,54.7731279 23.8369042,54.7757871 23.8445036,54.7817302 23.8535007,54.7884905 23.8596318,54.7916063 23.8692264,54.7954088 23.8723603,54.7965017 23.8753751,54.7973097</coordinates></LineString>
+  </Placemark>
+  <Placemark id="High_speed_rail.327">
+	<name>Kolej Dużych Prędkości</name>
+      <LineString><coordinates>19.4636664,51.7695984 19.4591536,51.7696717</coordinates></LineString>
+  </Placemark>
+  <Placemark id="High_speed_rail.328">
+	<name>Kolej Dużych Prędkości</name>
+      <LineString><coordinates>19.4591496,51.7696295 19.4617065,51.76958</coordinates></LineString>
+  </Placemark>
+  <Placemark id="High_speed_rail.329">
+	<name>Kolej Dużych Prędkości</name>
+      <LineString><coordinates>19.4575334,51.7696665 19.4591496,51.7696295</coordinates></LineString>
+  </Placemark>
+  <Placemark id="High_speed_rail.330">
+	<name>Kolej Dużych Prędkości</name>
+      <LineString><coordinates>19.4591536,51.7696717 19.4575345,51.7697087</coordinates></LineString>
+  </Placemark>
+  <Placemark id="High_speed_rail.331">
+	<name>Kolej Dużych Prędkości</name>
+      <LineString><coordinates>19.4575345,51.7697087 19.4546402,51.7696548</coordinates></LineString>
+  </Placemark>
+  <Placemark id="High_speed_rail.332">
+	<name>Kolej Dużych Prędkości</name>
+      <LineString><coordinates>19.4546451,51.7696126 19.4575334,51.7696665</coordinates></LineString>
+  </Placemark>
+  <Placemark id="High_speed_rail.333">
+	<name>Kolej Dużych Prędkości</name>
+      <LineString><coordinates>19.4617065,51.76958 19.4659826,51.7694083</coordinates></LineString>
+  </Placemark>
+  <Placemark id="High_speed_rail.334">
+	<name>Kolej Dużych Prędkości</name>
+      <LineString><coordinates>19.4349118,51.7635209 19.4330995,51.7620179 19.4315199,51.7603498</coordinates></LineString>
+  </Placemark>
+  <Placemark id="High_speed_rail.335">
+	<name>Kolej Dużych Prędkości</name>
+      <LineString><coordinates>19.4315804,51.7603302 19.4331571,51.7619954 19.4349641,51.7634938</coordinates></LineString>
+  </Placemark>
+  <Placemark id="High_speed_rail.336">
+	<name>Kolej Dużych Prędkości</name>
+      <LineString><coordinates>19.4315199,51.7603498 19.4232152,51.7498645</coordinates></LineString>
+  </Placemark>
+  <Placemark id="High_speed_rail.337">
+	<name>Kolej Dużych Prędkości</name>
+      <LineString><coordinates>19.4232763,51.7498459 19.4315804,51.7603302</coordinates></LineString>
+  </Placemark>
+  <Placemark id="High_speed_rail.338">
+	<name>Kolej Dużych Prędkości</name>
+      <LineString><coordinates>19.4199768,51.7463578 19.4217423,51.7480143 19.4232763,51.7498459</coordinates></LineString>
+  </Placemark>
+  <Placemark id="High_speed_rail.339">
+	<name>Kolej Dużych Prędkości</name>
+      <LineString><coordinates>19.4232152,51.7498645 19.4216393,51.7479887 19.4199223,51.746383</coordinates></LineString>
+  </Placemark>
+  <Placemark id="High_speed_rail.340">
+	<name>Kolej Dużych Prędkości</name>
+      <LineString><coordinates>19.4143128,51.7428265 19.4173031,51.7444392 19.4199768,51.7463578</coordinates></LineString>
+  </Placemark>
+  <Placemark id="High_speed_rail.341">
+	<name>Kolej Dużych Prędkości</name>
+      <LineString><coordinates>19.4199223,51.746383 19.4173162,51.7445071 19.4142718,51.7428602</coordinates></LineString>
+  </Placemark>
+  <Placemark id="High_speed_rail.342">
+	<name>Kolej Dużych Prędkości</name>
+      <LineString><coordinates>19.3766879,51.731405 19.4096267,51.7410497 19.4143128,51.7428265</coordinates></LineString>
+  </Placemark>
+  <Placemark id="High_speed_rail.343">
+	<name>Kolej Dużych Prędkości</name>
+      <LineString><coordinates>19.4142718,51.7428602 19.4096658,51.7411085 19.3766589,51.7314432</coordinates></LineString>
+  </Placemark>
+  <Placemark id="High_speed_rail.344">
+	<name>Kolej Dużych Prędkości</name>
+      <LineString><coordinates>20.9536621,52.2174759 20.9539653,52.2175342</coordinates></LineString>
+  </Placemark>
+  <Placemark id="High_speed_rail.345">
+	<name>Korytów - CPK - Płock - Grudziądz</name>
+      <LineString><coordinates>20.3599828,52.1669021 20.3638011,52.1745719 20.3643957,52.1765904 20.3646292,52.1780315 20.3646929,52.179785 20.3643957,52.1823718 20.363617,52.1852015 20.3618828,52.1894456 20.3613024,52.1918171 20.3608069,52.1957614 20.3605745,52.201944 20.3608022,52.2037977 20.3612412,52.2054521 20.3632252,52.2100791 20.3645424,52.2139154 20.3651441,52.2185284 20.3648676,52.2249838 20.3638757,52.2397827 20.3628674,52.246016 20.3619405,52.248087 20.3607859,52.2498691 20.3538909,52.2576314 20.3520175,52.2591065 20.3487224,52.2611925 20.3416278,52.2651538 20.3384568,52.2664177 20.332173,52.2685398 20.3247576,52.2706992 20.3187295,52.272228 20.2899228,52.2768589 20.2866669,52.2775565 20.2743355,52.281449 20.2635934,52.2850536 20.2581217,52.2873638 20.2504685,52.2913431 20.2317314,52.3026379 20.2192288,52.3095094 20.2038158,52.3173624 20.1966214,52.3223337 20.1926517,52.3255206 20.1824094,52.3357184 20.1766418,52.3440564 20.1750539,52.3467961 20.1736806,52.3504007 20.1712418,52.3583027 20.170877,52.3611987 20.1708126,52.3675405 20.1700839,52.3853601</coordinates></LineString>
+  </Placemark>
+  <Placemark id="High_speed_rail.346">
+	<name>Korytów - CPK - Płock - Grudziądz</name>
+      <LineString><coordinates>20.3599275,52.1669175 20.3637019,52.1745806 20.3643248,52.1765883 20.3645882,52.1780273 20.3646472,52.1797772 20.3643521,52.1823515 20.363585,52.1851705 20.3618362,52.1894179 20.3612569,52.1918095 20.360758,52.1957616 20.3605166,52.2019611 20.3607472,52.2037989 20.3611925,52.2054731 20.3631879,52.2100789 20.3644861,52.213898 20.3650979,52.2184913 20.364827,52.2249779 20.363823,52.2397842 20.3628236,52.246017 20.3618989,52.2480726 20.3607597,52.2498446 20.3538674,52.2576027 20.3519977,52.2590895 20.3487397,52.2611577 20.3416217,52.265132 20.3384394,52.2664003 20.3321723,52.2685221 20.3247287,52.2706798 20.3187201,52.2722025 20.289923,52.2768493 20.2866654,52.2775448 20.2743279,52.281439 20.2635749,52.2850458 20.2580804,52.2873563 20.2504597,52.2913351 20.2317258,52.3026104 20.2192005,52.3094965 20.2037888,52.3173269 20.1965876,52.3223238 20.1926022,52.3255132 20.1823936,52.3357115 20.1766178,52.3440462 20.1750342,52.3467903 20.1736645,52.3503985 20.1712108,52.3582943 20.1708546,52.3611999 20.1707953,52.3675377 20.1700572,52.3853596</coordinates></LineString>
+  </Placemark>
+  <Placemark id="High_speed_rail.347">
+	<name>Korytów - CPK - Płock - Grudziądz</name>
+      <LineString><coordinates>19.8821668,52.5381076 19.8270195,52.578372 19.8174275,52.5847599 19.8118459,52.5878106 19.8028183,52.5915223 19.7909907,52.5956775 19.7682985,52.6027996</coordinates></LineString>
+  </Placemark>
+  <Placemark id="High_speed_rail.348">
+	<name>Korytów - CPK - Płock - Grudziądz</name>
+      <LineString><coordinates>19.7682851,52.6027222 19.7909514,52.595629 19.8027878,52.5914617 19.8118006,52.5877627 19.8173935,52.5847494 19.8269751,52.5783305 19.8821946,52.5380379</coordinates></LineString>
+  </Placemark>
+  <Placemark id="High_speed_rail.349">
+	<name>Korytów - CPK - Płock - Grudziądz</name>
+      <LineString><coordinates>19.8821946,52.5380379 19.8967447,52.5282972 19.9035682,52.5242573 19.9083962,52.5218942 19.9143237,52.519355 19.9241728,52.5158948 19.9312538,52.5137271 19.9837752,52.4983287 19.9907363,52.4966958 20.0756225,52.4800064 20.0828467,52.4783086 20.091324,52.4756489 20.0985238,52.473092 20.1041417,52.4708362 20.1111611,52.4670185 20.1231304,52.4599961 20.1336187,52.4511091 20.1450125,52.4392706 20.1589464,52.4239131 20.1612209,52.4201837 20.1622723,52.4177888 20.1694135,52.3989505 20.1697006,52.3966959 20.1700572,52.3853596</coordinates></LineString>
+  </Placemark>
+  <Placemark id="High_speed_rail.350">
+	<name>Korytów - CPK - Płock - Grudziądz</name>
+      <LineString><coordinates>20.1700839,52.3853601 20.1697386,52.3966901 20.1694601,52.3989551 20.1623514,52.4178035 20.161296,52.4202244 20.1589824,52.4239496 20.1450555,52.439326 20.1336505,52.451137 20.1231513,52.4600171 20.1112377,52.4670361 20.1041689,52.4708719 20.0985785,52.4731234 20.0913663,52.4757113 20.0828626,52.4783835 20.0756147,52.4800586 19.9908242,52.4967473 19.983837,52.4983792 19.9312985,52.5137681 19.9242057,52.5159232 19.9143462,52.5193805 19.9084362,52.5219193 19.9035973,52.5242911 19.8967863,52.5283154 19.8821668,52.5381076</coordinates></LineString>
+  </Placemark>
+  <Placemark id="High_speed_rail.351">
+	<name>Korytów - CPK - Płock - Grudziądz</name>
+      <LineString><coordinates>19.145042,52.8736356 19.1477479,52.8590269 19.1515998,52.8471805 19.1596736,52.8290902 19.1770637,52.7889997 19.1784584,52.7863264 19.184508,52.7768897 19.2079586,52.7513509 19.2226988,52.7367958</coordinates></LineString>
+  </Placemark>
+  <Placemark id="High_speed_rail.352">
+	<name>Korytów - CPK - Płock - Grudziądz</name>
+      <LineString><coordinates>19.2227282,52.7368025 19.2079922,52.7513747 19.184556,52.7768948 19.1797928,52.7841593 19.1785172,52.7863442 19.1771246,52.7890166 19.1597078,52.8290994 19.1516813,52.8472068 19.1478642,52.8590516 19.1451124,52.8736433</coordinates></LineString>
+  </Placemark>
+  <Placemark id="High_speed_rail.353">
+	<name>Korytów - CPK - Płock - Włocławek</name>
+      <LineString><coordinates>19.0656151,52.64247 19.0665024,52.6405082 19.0670535,52.637837 19.067417,52.6369665 19.0707785,52.6237082 19.0712598,52.6225867 19.0721659,52.6217187 19.0749665,52.6199296 19.0778847,52.6189135 19.081275,52.6184445 19.0842898,52.6187572 19.0877163,52.6195006 19.0892666,52.6200868 19.0909675,52.6211778 19.0920051,52.6225287 19.1005139,52.639867 19.1009522,52.6404641 19.1026319,52.6420965 19.1106064,52.6470994 19.1119074,52.6482864 19.1129659,52.6494771 19.1286176,52.6709285 19.1308771,52.6734374 19.1335272,52.6756715 19.1382652,52.6783983 19.1443913,52.6810587 19.182191,52.698352 19.2008689,52.7083007 19.2087032,52.7121424 19.214841,52.7142976 19.2169748,52.7148461 19.2215693,52.7157606 19.2282753,52.716477 19.2395285,52.7167403 19.2463984,52.7165225 19.2499366,52.7161305 19.2576662,52.7143038 19.2673202,52.7108977 19.274569,52.7080272 19.2981563,52.7002737</coordinates></LineString>
+  </Placemark>
+  <Placemark id="High_speed_rail.354">
+	<name>Korytów - CPK - Płock - Włocławek</name>
+      <LineString><coordinates>19.2981319,52.7001882 19.2794445,52.7060222 19.255752,52.7143602 19.2505703,52.7157042 19.2469194,52.7162226 19.239572,52.71666 19.2340678,52.7166362 19.2283111,52.7164293 19.2216112,52.71572 19.2170131,52.714804 19.2148531,52.7142538 19.2087913,52.7121248 19.2009256,52.7082847 19.182269,52.6983307 19.1443772,52.6810689 19.1382699,52.6784222 19.1334838,52.6757019 19.1308514,52.6734578 19.1291496,52.6716395 19.1129471,52.6494827 19.1118882,52.6482954 19.1105905,52.6471086 19.1026012,52.6421082 19.100922,52.6404639 19.1004566,52.6398596 19.0919193,52.6225604 19.0908913,52.6212052 19.089209,52.6201315 19.0876795,52.6195728 19.0842483,52.6188175 19.0812642,52.6185065 19.0779536,52.6189644 19.0750265,52.6199961 19.0723955,52.6218099 19.0711533,52.6232955 19.0676658,52.6369698 19.0675484,52.6380721 19.0667951,52.6406263 19.0662062,52.6418858</coordinates></LineString>
+  </Placemark>
+  <Placemark id="High_speed_rail.355">
+	<name>Korytów - CPK - Płock - Grudziądz</name>
+      <LineString><coordinates>19.2226988,52.7367958 19.2274928,52.7327806 19.2415264,52.7223864 19.2483667,52.7177561 19.2569455,52.7142216 19.279628,52.7060913 19.3021295,52.6989181 19.4464362,52.6598625 19.4523134,52.6587646 19.4821407,52.6548269 19.4901251,52.6540867 19.5127624,52.6523626 19.5282336,52.6517508 19.5344006,52.6518289 19.550381,52.6523944 19.5591466,52.6522883 19.5687984,52.6517914 19.6035856,52.6486972 19.628337,52.6449958 19.6452885,52.6411418 19.6893704,52.6254282 19.7125461,52.6174449 19.7309949,52.6114584 19.7502964,52.607234 19.759293,52.605099 19.7682851,52.6027222</coordinates></LineString>
+  </Placemark>
+  <Placemark id="High_speed_rail.356">
+	<name>Korytów - CPK - Płock - Grudziądz</name>
+      <LineString><coordinates>19.7682985,52.6027996 19.7583357,52.6054438 19.7503856,52.6073203 19.7310214,52.611522 19.7125879,52.6175484 19.6894635,52.6254799 19.6453654,52.6412403 19.6283227,52.6450876 19.6035939,52.648793 19.5688432,52.6518547 19.5591549,52.6523425 19.5503111,52.6524371 19.534404,52.6518704 19.5282402,52.6518049 19.512789,52.6524381 19.4901311,52.6541718 19.4822333,52.6549014 19.4524399,52.6587962 19.4464746,52.659919 19.3021099,52.6989969 19.2795729,52.7061704 19.2567984,52.7143515 19.2484198,52.7177841 19.2415518,52.7224091 19.227525,52.7327858 19.2227282,52.7368025</coordinates></LineString>
+  </Placemark>
+  <Placemark id="High_speed_rail.357">
+	<name>Katowice - Ostrawa</name>
+      <LineString><coordinates>18.6680388,50.0805561 18.6755558,50.0781216 18.6787422,50.0774533 18.6810306,50.0773629 18.6823523,50.0774941 18.685658,50.0781475</coordinates></LineString>
+  </Placemark>
+  <Placemark id="High_speed_rail.358">
+	<name>Katowice - Ostrawa</name>
+      <LineString><coordinates>18.685658,50.0781475 18.6882876,50.0790698</coordinates></LineString>
+  </Placemark>
+  <Placemark id="High_speed_rail.359">
+	<name>Katowice - Ostrawa</name>
+      <LineString><coordinates>18.6882876,50.0790698 18.6842006,50.0782013 18.6809695,50.0779245 18.6788425,50.0781628 18.671645,50.0798959 18.6683186,50.0805298</coordinates></LineString>
+  </Placemark>
+  <Placemark id="High_speed_rail.360">
+	<name>Katowice - Ostrawa</name>
+      <LineString><coordinates>18.7416932,50.103863 18.7330467,50.0982962 18.7238384,50.0934624 18.7190049,50.0910426 18.7094178,50.087271</coordinates></LineString>
+  </Placemark>
+  <Placemark id="High_speed_rail.361">
+	<name>Katowice - Ostrawa</name>
+      <LineString><coordinates>18.7465987,50.1066296 18.7416932,50.103863</coordinates></LineString>
+  </Placemark>
+  <Placemark id="High_speed_rail.362">
+	<name>Katowice - Ostrawa</name>
+      <LineString><coordinates>18.7094178,50.087271 18.7143227,50.0886285 18.717375,50.0897304 18.7216193,50.0917103 18.7294423,50.095837 18.7351756,50.0990875 18.742147,50.1034965 18.7465987,50.1066296</coordinates></LineString>
+  </Placemark>
+  <Placemark id="High_speed_rail.363">
+	<name>Katowice - Ostrawa</name>
+      <LineString><coordinates>18.6984245,50.0615993 18.6973835,50.064644 18.694997,50.0706409 18.6930784,50.0749787 18.6925754,50.0765176 18.6925164,50.0782404 18.6930796,50.0799204 18.6934754,50.0805626 18.6943673,50.0813119 18.6956777,50.082004</coordinates></LineString>
+  </Placemark>
+  <Placemark id="High_speed_rail.364">
+	<name>Katowice - Ostrawa</name>
+      <LineString><coordinates>18.6882876,50.0790698 18.6897451,50.0796894</coordinates></LineString>
+  </Placemark>
+  <Placemark id="High_speed_rail.365">
+	<name>Katowice - Ostrawa</name>
+      <LineString><coordinates>18.6897451,50.0796894 18.7094178,50.087271</coordinates></LineString>
+  </Placemark>
+  <Placemark id="High_speed_rail.366">
+	<name>Katowice - Ostrawa</name>
+      <LineString><coordinates>18.533896,49.9476944 18.5422066,49.9523147 18.5452835,49.9532429 18.5474533,49.9536694</coordinates></LineString>
+  </Placemark>
+  <Placemark id="High_speed_rail.367">
+	<name>Katowice - Ostrawa</name>
+      <LineString><coordinates>18.5541077,49.95409 18.5524748,49.9542104 18.5506515,49.9548088 18.5494555,49.9556595 18.5480358,49.9570952 18.5475051,49.958287 18.5475958,49.959063 18.5478891,49.9596821 18.5506623,49.9643703</coordinates></LineString>
+  </Placemark>
+  <Placemark id="High_speed_rail.368">
+	<name>Katowice - Ostrawa</name>
+      <LineString><coordinates>18.5506623,49.9643703 18.547644,49.9603731 18.5471559,49.9594841 18.5468726,49.9581283 18.5472834,49.9570427 18.549494,49.9550001 18.5511949,49.9542528 18.5525581,49.9540453</coordinates></LineString>
+  </Placemark>
+  <Placemark id="High_speed_rail.369">
+	<name>Katowice - Ostrawa</name>
+      <LineString><coordinates>18.7625199,50.1166991 18.765429,50.118713 18.7669706,50.1201605 18.7693637,50.1239164 18.7734677,50.1294367 18.7769727,50.1322697 18.7822803,50.1357538 18.7826118,50.1365655 18.7825542,50.1370627 18.7823162,50.137979 18.7819338,50.1385403 18.7802085,50.1399227 18.7770159,50.1411262</coordinates></LineString>
+  </Placemark>
+  <Placemark id="High_speed_rail.370">
+	<name>Katowice - Ostrawa</name>
+      <LineString><coordinates>18.8064159,50.1327934 18.8148391,50.1336274 18.8286405,50.132998</coordinates></LineString>
+  </Placemark>
+  <Placemark id="High_speed_rail.371">
+	<name>Katowice - Ostrawa</name>
+      <LineString><coordinates>18.8255628,50.1331632 18.8128898,50.1339418 18.8103107,50.1336117 18.8064159,50.1327934</coordinates></LineString>
+  </Placemark>
+  <Placemark id="High_speed_rail.372">
+	<name>Katowice - Ostrawa</name>
+      <LineString><coordinates>18.8233215,50.1354574 18.8137998,50.1343888 18.8041282,50.1348471</coordinates></LineString>
+  </Placemark>
+</Folder>
+</Document></kml>

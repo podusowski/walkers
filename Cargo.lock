@@ -2786,6 +2786,7 @@ version = "0.14.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "1ad943f54e9e575b0c01c2260a3cdacf54c898ca6840022c171a967cd01a2237"
 dependencies = [
+ "geo-types",
  "num-traits",
  "quick-xml 0.41.0",
  "thiserror 2.0.20",
