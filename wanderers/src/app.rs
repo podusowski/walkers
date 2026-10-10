@@ -1,12 +1,12 @@
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 
 use egui::{Align2, Color32, ComboBox, Image, Key, PointerButton, RichText, Ui, Window};
 use walkers::{
     HttpOptions, HttpTiles, Map, MapMemory, PmTiles, Position, Style, Tiles, lon_lat, sources,
 };
 use walkers_extras::{
-    GroupedPlaces, LabeledSymbol, LabeledSymbolGroup, LabeledSymbolGroupStyle, LabeledSymbolStyle,
-    Symbol,
+    Basemaps, GroupedPlaces, LabeledSymbol, LabeledSymbolGroup, LabeledSymbolGroupStyle,
+    LabeledSymbolStyle, Symbol, pmtiles_files,
 };
 
 use crate::journal::{self, Journal, Place};
@@ -31,129 +31,59 @@ fn cache_dir() -> Option<PathBuf> {
     Some(base.join("wanderers").join("tiles"))
 }
 
-/// Map the places are drawn on top of.
-#[derive(Clone, PartialEq)]
-enum Basemap {
-    OpenStreetMap,
-    Geoportal,
-    OpenFreeMapLight,
-    OpenFreeMapDark,
-    ProtomapsLight(PathBuf),
-    ProtomapsDark(PathBuf),
+/// Maps the places can be drawn on top of. Protomaps only shows up when there is a file for it.
+fn basemaps(egui_ctx: egui::Context) -> Basemaps {
+    let mut basemaps = Basemaps::new(egui_ctx);
+
+    basemaps.add("OpenStreetMap", |ctx| {
+        vec![(http(sources::OpenStreetMap, None, ctx), 1.0)]
+    });
+    basemaps.add("OpenFreeMap (light)", |ctx| {
+        let style = Style::openmaptiles_basemap_light();
+        vec![(http(sources::OpenFreeMap, Some(style), ctx), 1.0)]
+    });
+    basemaps.add("OpenFreeMap (dark)", |ctx| {
+        let style = Style::openmaptiles_basemap_dark();
+        vec![(http(sources::OpenFreeMap, Some(style), ctx), 1.0)]
+    });
+    basemaps.add("Geoportal", |ctx| {
+        vec![(http(sources::Geoportal, None, ctx), 1.0)]
+    });
+
+    // See `just protomaps-dolnoslaskie` in `walkers` for one way of getting a file.
+    for path in pmtiles_files(Path::new(".")) {
+        let name = path.file_stem().unwrap_or_default().to_string_lossy();
+
+        let light = path.to_owned();
+        basemaps.add(format!("{name} (light)"), move |ctx| {
+            let style = Style::protomaps_basemap_light();
+            vec![(pmtiles(&light, style, ctx), 1.0)]
+        });
+
+        let dark = path.to_owned();
+        basemaps.add(format!("{name} (dark)"), move |ctx| {
+            let style = Style::protomaps_basemap_dark();
+            vec![(pmtiles(&dark, style, ctx), 1.0)]
+        });
+    }
+
+    basemaps
 }
 
-impl Basemap {
-    /// In the order they are offered. Protomaps only shows up when there is a file for it.
-    fn all() -> Vec<Basemap> {
-        let mut all = vec![Basemap::OpenStreetMap];
-        all.push(Basemap::OpenFreeMapLight);
-        all.push(Basemap::OpenFreeMapDark);
-        all.push(Basemap::Geoportal);
-
-        for path in pmtiles_files() {
-            all.push(Basemap::ProtomapsLight(path.to_owned()));
-            all.push(Basemap::ProtomapsDark(path.to_owned()));
-        }
-
-        all
-    }
-
-    fn name(&self) -> String {
-        match self {
-            Basemap::OpenStreetMap => "OpenStreetMap".to_owned(),
-            Basemap::OpenFreeMapLight => "OpenFreeMap (light)".to_owned(),
-            Basemap::OpenFreeMapDark => "OpenFreeMap (dark)".to_owned(),
-            Basemap::Geoportal => "Geoportal".to_owned(),
-            Basemap::ProtomapsLight(path) => format!(
-                "{} (light)",
-                path.file_stem().unwrap_or_default().to_string_lossy()
-            ),
-            Basemap::ProtomapsDark(path) => format!(
-                "{} (dark)",
-                path.file_stem().unwrap_or_default().to_string_lossy()
-            ),
-        }
-    }
-
-    fn tiles(&self, egui_ctx: egui::Context) -> Basetiles {
-        match self {
-            Basemap::OpenStreetMap => Basetiles::Http(Box::new(HttpTiles::with_options(
-                sources::OpenStreetMap,
-                http_options(),
-                egui_ctx,
-            ))),
-            Basemap::Geoportal => Basetiles::Http(Box::new(HttpTiles::with_options(
-                sources::Geoportal,
-                http_options(),
-                egui_ctx,
-            ))),
-            Basemap::OpenFreeMapLight => {
-                Basetiles::Http(Box::new(HttpTiles::with_options_and_style(
-                    sources::OpenFreeMap,
-                    http_options(),
-                    Style::openmaptiles_basemap_light(),
-                    egui_ctx,
-                )))
-            }
-            Basemap::OpenFreeMapDark => {
-                Basetiles::Http(Box::new(HttpTiles::with_options_and_style(
-                    sources::OpenFreeMap,
-                    http_options(),
-                    Style::openmaptiles_basemap_dark(),
-                    egui_ctx,
-                )))
-            }
-            Basemap::ProtomapsLight(path) => Basetiles::PmTiles(Box::new(PmTiles::with_style(
-                path,
-                Style::protomaps_basemap_light(),
-                egui_ctx,
-            ))),
-            Basemap::ProtomapsDark(path) => Basetiles::PmTiles(Box::new(PmTiles::with_style(
-                path,
-                Style::protomaps_basemap_dark(),
-                egui_ctx,
-            ))),
-        }
-    }
+fn http(
+    source: impl sources::TileSource + Send + Sync + 'static,
+    style: Option<Style>,
+    egui_ctx: &egui::Context,
+) -> Box<dyn Tiles> {
+    let egui_ctx = egui_ctx.to_owned();
+    Box::new(match style {
+        Some(style) => HttpTiles::with_options_and_style(source, http_options(), style, egui_ctx),
+        None => HttpTiles::with_options(source, http_options(), egui_ctx),
+    })
 }
 
-/// `.pmtiles` files in the current directory. See `just protomaps-dolnoslaskie` in `walkers`
-/// for one way of getting one.
-fn pmtiles_files() -> Vec<PathBuf> {
-    let Ok(dir) = std::fs::read_dir(".") else {
-        return Vec::new();
-    };
-
-    let mut files: Vec<_> = dir
-        .filter_map(|entry| {
-            let path = entry.ok()?.path();
-            (path.extension()?.to_str()? == "pmtiles").then_some(path)
-        })
-        .collect();
-    files.sort();
-    files
-}
-
-/// Tiles either come over HTTP or out of a local file.
-enum Basetiles {
-    Http(Box<HttpTiles>),
-    PmTiles(Box<PmTiles>),
-}
-
-impl Basetiles {
-    fn as_mut(&mut self) -> &mut dyn Tiles {
-        match self {
-            Basetiles::Http(tiles) => tiles.as_mut(),
-            Basetiles::PmTiles(tiles) => tiles.as_mut(),
-        }
-    }
-
-    fn attribution(&self) -> sources::Attribution {
-        match self {
-            Basetiles::Http(tiles) => tiles.attribution(),
-            Basetiles::PmTiles(tiles) => tiles.attribution(),
-        }
-    }
+fn pmtiles(path: &Path, style: Style, egui_ctx: &egui::Context) -> Box<dyn Tiles> {
+    Box::new(PmTiles::with_style(path, style, egui_ctx.to_owned()))
 }
 
 /// A place clicked on the map, waiting to be named and added to the journal.
@@ -170,11 +100,9 @@ enum Outcome {
 }
 
 pub struct Wanderers {
-    /// Kept so that switching the basemap can build the tiles for it.
-    egui_ctx: egui::Context,
-
-    basemap: Basemap,
-    tiles: Basetiles,
+    /// Only the selected one is kept around. Switching back and forth costs a rebuild, but the
+    /// tiles themselves are cached on disk, so it is not a re-download.
+    basemaps: Basemaps,
     map_memory: MapMemory,
     journal: Result<Journal, journal::Error>,
     new_place: Option<NewPlace>,
@@ -185,24 +113,13 @@ pub struct Wanderers {
 
 impl Wanderers {
     pub fn new(egui_ctx: egui::Context, journal: PathBuf) -> Self {
-        let basemap = Basemap::OpenStreetMap;
-
         Self {
-            tiles: basemap.tiles(egui_ctx.to_owned()),
-            egui_ctx,
-            basemap,
+            basemaps: basemaps(egui_ctx),
             map_memory: MapMemory::default(),
             journal: Journal::load(journal),
             new_place: None,
             problem: None,
         }
-    }
-
-    /// Only one basemap is kept around at a time. Switching back and forth costs a rebuild,
-    /// but the tiles themselves are cached on disk, so it is not a re-download.
-    fn switch_basemap_to(&mut self, basemap: Basemap) {
-        self.tiles = basemap.tiles(self.egui_ctx.to_owned());
-        self.basemap = basemap;
     }
 
     /// Every addition is written out right away, so that there is no unsaved journal to lose.
@@ -221,11 +138,10 @@ impl Wanderers {
 
 impl eframe::App for Wanderers {
     fn ui(&mut self, ui: &mut Ui, _frame: &mut eframe::Frame) {
-        let attribution = self.tiles.attribution();
         let pending = self.new_place.as_ref().map(|new_place| new_place.position);
 
-        let mut map =
-            Map::new(Some(self.tiles.as_mut()), &mut self.map_memory, home()).zoom_with_ctrl(false);
+        let map = Map::new(None, &mut self.map_memory, home()).zoom_with_ctrl(false);
+        let mut map = self.basemaps.add_to(map);
 
         if let Ok(journal) = &self.journal {
             map = map.with_plugin(places(&journal.places));
@@ -276,13 +192,10 @@ impl eframe::App for Wanderers {
             }
         }
 
-        if let Some(chosen) = basemap(ui, &self.basemap) {
-            self.switch_basemap_to(chosen);
-        }
-
+        basemap(ui, &mut self.basemaps);
         zoom(ui, &mut self.map_memory);
         go_home(ui, &mut self.map_memory);
-        acknowledge(ui, attribution);
+        acknowledge(ui, self.basemaps.attributions());
 
         match (&self.journal, &self.problem) {
             (Err(error), _) => complain(ui, &error.to_string()),
@@ -356,9 +269,9 @@ fn places(places: &[journal::Place]) -> impl walkers::Plugin {
     )
 }
 
-/// Lets one swap the map the places are drawn on. Returns the pick, if it changed.
-fn basemap(ui: &Ui, current: &Basemap) -> Option<Basemap> {
-    let mut chosen = current.to_owned();
+/// Lets one swap the map the places are drawn on.
+fn basemap(ui: &Ui, basemaps: &mut Basemaps) {
+    let mut chosen = basemaps.selected().to_owned();
 
     Window::new("Basemap")
         .collapsible(false)
@@ -367,16 +280,15 @@ fn basemap(ui: &Ui, current: &Basemap) -> Option<Basemap> {
         .anchor(Align2::RIGHT_TOP, [-10., 10.])
         .show(ui.ctx(), |ui| {
             ComboBox::from_id_salt("basemap")
-                .selected_text(current.name())
+                .selected_text(&chosen)
                 .show_ui(ui, |ui| {
-                    for basemap in Basemap::all() {
-                        let name = basemap.name();
-                        ui.selectable_value(&mut chosen, basemap, name);
+                    for name in basemaps.names() {
+                        ui.selectable_value(&mut chosen, name.to_owned(), name);
                     }
                 });
         });
 
-    (&chosen != current).then_some(chosen)
+    basemaps.select(&chosen);
 }
 
 /// Buttons to zoom in and out, for when there is no scroll wheel around.
@@ -428,19 +340,21 @@ fn complain(ui: &Ui, problem: &str) {
 }
 
 /// OpenStreetMap requires the map to be credited, wherever it is shown.
-fn acknowledge(ui: &Ui, attribution: sources::Attribution) {
+fn acknowledge(ui: &Ui, attributions: Vec<sources::Attribution>) {
     Window::new("Acknowledge")
         .collapsible(false)
         .resizable(false)
         .title_bar(false)
         .anchor(Align2::LEFT_TOP, [10., 10.])
         .show(ui.ctx(), |ui| {
-            ui.horizontal(|ui| {
-                if let Some(logo) = attribution.logo_light {
-                    ui.add(Image::new(logo).max_height(30.).max_width(80.));
-                }
-                ui.hyperlink_to(attribution.text, attribution.url);
-            });
+            for attribution in attributions {
+                ui.horizontal(|ui| {
+                    if let Some(logo) = attribution.logo_light {
+                        ui.add(Image::new(logo).max_height(30.).max_width(80.));
+                    }
+                    ui.hyperlink_to(attribution.text, attribution.url);
+                });
+            }
         });
 }
 
@@ -451,14 +365,18 @@ mod tests {
     /// Vector maps come in both shades, and each is its own entry in the picker.
     #[test]
     fn every_shade_of_a_vector_basemap_is_offered_separately() {
-        let names: Vec<_> = Basemap::all().iter().map(Basemap::name).collect();
+        let basemaps = basemaps(egui::Context::default());
+        let names: Vec<_> = basemaps.names().collect();
 
-        assert!(names.contains(&"OpenFreeMap (light)".to_owned()));
-        assert!(names.contains(&"OpenFreeMap (dark)".to_owned()));
+        assert!(names.contains(&"OpenFreeMap (light)"));
+        assert!(names.contains(&"OpenFreeMap (dark)"));
 
         // Raster ones have nothing to shade, so they stay single.
         assert_eq!(
-            names.iter().filter(|name| *name == "OpenStreetMap").count(),
+            names
+                .iter()
+                .filter(|name| **name == "OpenStreetMap")
+                .count(),
             1
         );
     }
@@ -466,7 +384,8 @@ mod tests {
     /// Two entries which look the same in the picker would be indistinguishable to click.
     #[test]
     fn basemap_names_are_unique() {
-        let names: Vec<_> = Basemap::all().iter().map(Basemap::name).collect();
+        let basemaps = basemaps(egui::Context::default());
+        let names: Vec<_> = basemaps.names().collect();
         let unique: std::collections::HashSet<_> = names.iter().collect();
 
         assert_eq!(names.len(), unique.len(), "duplicate names in {names:?}");
