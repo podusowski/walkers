@@ -2,7 +2,7 @@
 
 All notable changes to this project will be documented in this file.
 
-## Unreleased
+## 0.61.0
 
 * `walkers::Geometry` is replaced by the re-exported `walkers::geo_types`.
 * `symbol` layers support `minzoom`.
@@ -13,6 +13,7 @@ All notable changes to this project will be documented in this file.
 * Dashed lines keep their length when zooming, instead of stretching with the tile.
 * `HttpOptions::tls` sets the TLS configuration, e.g. to trust a fixed set of roots instead of
   the platform's trust store.
+* `PmTiles` renders tiles at 512px by default instead of 1024px.
 
 ## 0.60.0
 
