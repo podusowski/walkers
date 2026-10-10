@@ -1246,6 +1246,7 @@ fn source_layer_of(layer: &Layer) -> Option<&SourceLayer> {
     }
 }
 
+#[expect(clippy::unwrap_used)]
 #[cfg(test)]
 mod tests {
     use super::*;

@@ -1,4 +1,4 @@
-use crate::{Position, position::AdjustedPosition};
+use crate::{Position, position::AdjustedPosition, projector::Projection};
 use egui::{DragPanButtons, PointerButton, Response, Vec2};
 
 /// Time constant of inertia stopping filter
@@ -131,8 +131,8 @@ impl Center {
 
     /// Returns exact position if map is detached (i.e. not following `my_position`),
     /// `None` otherwise.
-    pub(crate) fn detached(&self) -> Option<Position> {
-        self.adjusted_position().map(|p| p.position())
+    pub(crate) fn detached<P: Projection>(&self, projection: &P) -> Option<Position> {
+        self.adjusted_position().map(|p| p.position(projection))
     }
 
     pub fn animating(&self) -> bool {
@@ -150,8 +150,8 @@ impl Center {
     }
 
     /// Get the real position at the map's center.
-    pub fn position(&self, my_position: Position) -> Position {
-        self.detached().unwrap_or(my_position)
+    pub fn position<P: Projection>(&self, my_position: Position, projection: &P) -> Position {
+        self.detached(projection).unwrap_or(my_position)
     }
 
     /// Shift position by given number of pixels, if detached.

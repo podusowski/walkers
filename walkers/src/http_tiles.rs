@@ -5,6 +5,7 @@ use reqwest_middleware::ClientWithMiddleware;
 use crate::cached_tiles::CachedTiles;
 use crate::io::Fetch;
 use crate::io::http::http_client;
+use crate::projector::{MercatorProjection, Projection};
 use crate::sources::{Attribution, TileSource};
 use crate::style::Style;
 use crate::tiles::EguiTileFactory;
@@ -12,13 +13,16 @@ use crate::{HttpOptions, TilePiece, Tiles};
 use crate::{Stats, TileId};
 
 /// Downloads the tiles via HTTP. It must persist between frames.
-pub struct HttpTiles(CachedTiles);
+pub struct HttpTiles<P: Projection = MercatorProjection> {
+    cached_tiles: CachedTiles,
+    projection: P,
+}
 
-impl HttpTiles {
+impl<P: Projection> HttpTiles<P> {
     /// Construct new [`Tiles`] with default [`HttpOptions`].
     pub fn new<S>(source: S, egui_ctx: Context) -> Self
     where
-        S: TileSource + Sync + Send + 'static,
+        S: TileSource<Projection = P> + Sync + Send + 'static,
     {
         Self::with_options(source, HttpOptions::default(), egui_ctx)
     }
@@ -26,7 +30,7 @@ impl HttpTiles {
     /// Construct new [`Tiles`] with supplied [`HttpOptions`].
     pub fn with_options<S>(source: S, http_options: HttpOptions, egui_ctx: Context) -> Self
     where
-        S: TileSource + Sync + Send + 'static,
+        S: TileSource<Projection = P> + Sync + Send + 'static,
     {
         Self::with_options_and_style(source, http_options, Style::default(), egui_ctx)
     }
@@ -40,38 +44,47 @@ impl HttpTiles {
         egui_ctx: Context,
     ) -> Self
     where
-        S: TileSource + Sync + Send + 'static,
+        S: TileSource<Projection = P> + Sync + Send + 'static,
     {
         let attribution = source.attribution();
         let tile_size = source.tile_size();
         let max_zoom = source.max_zoom();
+        let projection = source.projection();
 
-        Self(CachedTiles::new(
-            HttpFetch::new(source, http_options),
-            EguiTileFactory::new(egui_ctx.clone(), style, tile_size),
-            attribution,
-            tile_size,
-            max_zoom,
-            egui_ctx,
-        ))
+        Self {
+            cached_tiles: CachedTiles::new(
+                HttpFetch::new(source, http_options),
+                EguiTileFactory::new(egui_ctx.clone(), style, tile_size),
+                attribution,
+                tile_size,
+                max_zoom,
+                egui_ctx,
+            ),
+            projection,
+        }
+    }
+
+    pub fn projection(&self) -> &P {
+        &self.projection
     }
 
     pub fn stats(&self) -> Stats {
-        self.0.stats()
+        self.cached_tiles.stats()
     }
 }
 
-impl Tiles for HttpTiles {
+impl<P: Projection> Tiles for HttpTiles<P> {
+    type Projection = P;
     fn at(&mut self, tile_id: TileId) -> Option<TilePiece> {
-        self.0.at(tile_id)
+        self.cached_tiles.at(tile_id)
     }
 
     fn attribution(&self) -> Attribution {
-        self.0.attribution()
+        self.cached_tiles.attribution()
     }
 
     fn tile_size(&self) -> u32 {
-        self.0.tile_size()
+        self.cached_tiles.tile_size()
     }
 }
 
@@ -126,7 +139,8 @@ where
 
 #[cfg(test)]
 mod tests {
-    use crate::MaxParallelDownloads;
+    use crate::projector::MercatorProjection;
+    use crate::{MaxParallelDownloads, PlanarProjection, Position};
 
     use super::*;
     use hypermocker::{
@@ -152,6 +166,12 @@ mod tests {
     }
 
     impl TileSource for TestSource {
+        type Projection = MercatorProjection;
+
+        fn projection(&self) -> MercatorProjection {
+            MercatorProjection
+        }
+
         fn tile_url(&self, tile_id: TileId) -> String {
             format!(
                 "{}/{}/{}/{}.png",
@@ -176,7 +196,10 @@ mod tests {
         (server, TestSource::new(url))
     }
 
-    async fn assert_tile_to_become_available_eventually(tiles: &mut HttpTiles, tile_id: TileId) {
+    async fn assert_tile_to_become_available_eventually(
+        tiles: &mut HttpTiles<MercatorProjection>,
+        tile_id: TileId,
+    ) {
         log::info!("Waiting for {tile_id:?} to become available.");
         while tiles.at(tile_id).is_none() {
             // Need to yield to the runtime for things to move.
@@ -327,7 +350,7 @@ mod tests {
         awaiting_request.expect().await;
     }
 
-    async fn assert_tile_is_empty_forever(tiles: &mut HttpTiles) {
+    async fn assert_tile_is_empty_forever<P: Projection>(tiles: &mut HttpTiles<P>) {
         // Should be None now, and forever.
         assert!(tiles.at(TILE_ID).is_none());
         tokio::time::sleep(Duration::from_secs(1)).await;
@@ -380,9 +403,17 @@ mod tests {
     }
 
     /// Tile source, which gives invalid urls.
-    struct GarbageSource;
+    struct GarbageSource {
+        planar_proj: PlanarProjection,
+    }
 
     impl TileSource for GarbageSource {
+        type Projection = PlanarProjection;
+
+        fn projection(&self) -> PlanarProjection {
+            self.planar_proj.clone()
+        }
+
         fn tile_url(&self, _: TileId) -> String {
             "totally invalid url".to_string()
         }
@@ -400,7 +431,15 @@ mod tests {
     #[tokio::test]
     async fn tile_is_empty_forever_if_http_can_not_even_connect() {
         let _ = env_logger::try_init();
-        let mut tiles = HttpTiles::new(GarbageSource, Context::default());
+        let mut tiles = HttpTiles::new(
+            GarbageSource {
+                planar_proj: PlanarProjection {
+                    origin: Position::new(413320., 7244660.),
+                    pixels_per_meter_at_zoom_zero: 8192.,
+                },
+            },
+            Context::default(),
+        );
         assert_tile_is_empty_forever(&mut tiles).await;
     }
 }

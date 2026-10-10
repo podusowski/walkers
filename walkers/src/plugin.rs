@@ -1,10 +1,13 @@
 use egui::{Response, Ui};
 
-use crate::{MapMemory, Projector};
+use crate::{MercatorProjection, Projection, Projector};
 
 /// Plugins allow drawing custom shapes on the map. After implementing this trait for your type,
 /// you can add it to the map with [`crate::Map::with_plugin`]
-pub trait Plugin {
+///
+/// Implementing `Plugin` without a projection parameter creates a Web Mercator plugin.
+/// Plugins that support every projection should use `impl<P: Projection> Plugin<P>`.
+pub trait Plugin<P: Projection = MercatorProjection> {
     /// Function called at each frame.
     ///
     /// The provided [`Ui`] has its [`Ui::max_rect`] set to the full rect that was allocated
@@ -14,11 +17,5 @@ pub trait Plugin {
     ///
     /// The provided [`Response`] is the response of the map widget itself and can be used to test
     /// if the mouse is hovering or clicking on the map.
-    fn run(
-        self: Box<Self>,
-        ui: &mut Ui,
-        response: &Response,
-        projector: &Projector,
-        map_memory: &MapMemory,
-    );
+    fn run(self: Box<Self>, ui: &mut Ui, response: &Response, projector: &Projector<'_, P>);
 }
