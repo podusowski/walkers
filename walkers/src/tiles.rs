@@ -9,13 +9,13 @@ use image::{ImageError, ImageReader};
 use std::collections::HashSet;
 use thiserror::Error;
 
-use crate::Position;
 use crate::io::TileFactory;
 use crate::mercator::{TILE_SIZE, project, tile_id, total_tiles};
 use crate::position::{Pixels, PixelsExt};
 use crate::sources::Attribution;
 use crate::style::Style;
 use crate::zoom::Zoom;
+use crate::{Position, Stats};
 
 #[derive(Error, Debug)]
 pub enum TileError {
@@ -102,6 +102,11 @@ pub trait Tiles {
     /// Size of each tile, in pixels. Walkers works with 256px tiles internally, so this
     /// should be 256 multiplied or divided by a power of two, for example 128, 256 or 512.
     fn tile_size(&self) -> u32;
+
+    /// Tiles being loaded right now.
+    fn stats(&self) -> Stats {
+        Stats::default()
+    }
 }
 
 #[derive(Clone)]

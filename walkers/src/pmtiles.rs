@@ -1,5 +1,5 @@
 use crate::{
-    TileId, TilePiece, Tiles, cached_tiles::CachedTiles, io::Fetch, sources::Attribution,
+    Stats, TileId, TilePiece, Tiles, cached_tiles::CachedTiles, io::Fetch, sources::Attribution,
     style::Style, tiles::EguiTileFactory,
 };
 use bytes::Bytes;
@@ -69,6 +69,10 @@ impl Tiles for PmTiles {
 
     fn tile_size(&self) -> u32 {
         self.0.tile_size()
+    }
+
+    fn stats(&self) -> Stats {
+        self.0.stats()
     }
 }
 

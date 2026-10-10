@@ -55,10 +55,6 @@ impl HttpTiles {
             egui_ctx,
         ))
     }
-
-    pub fn stats(&self) -> Stats {
-        self.0.stats()
-    }
 }
 
 impl Tiles for HttpTiles {
@@ -72,6 +68,10 @@ impl Tiles for HttpTiles {
 
     fn tile_size(&self) -> u32 {
         self.0.tile_size()
+    }
+
+    fn stats(&self) -> Stats {
+        self.0.stats()
     }
 }
 

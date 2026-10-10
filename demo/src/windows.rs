@@ -23,12 +23,7 @@ pub fn acknowledge(ui: &Ui, attributions: Vec<Attribution>) {
         });
 }
 
-pub fn controls(
-    app: &mut MyApp,
-    ui: &Ui,
-    http_stats: Vec<walkers::Stats>,
-    frame: &mut eframe::Frame,
-) {
+pub fn controls(app: &mut MyApp, ui: &Ui, frame: &mut eframe::Frame) {
     Window::new("Controls")
         .collapsible(false)
         .resizable(false)
@@ -38,16 +33,18 @@ pub fn controls(
         .show(ui.ctx(), |ui| {
             ui.heading("Map");
 
+            let mut selected = app.basemaps.selected().to_owned();
             ComboBox::from_label("Basemap")
-                .selected_text(app.basemaps.selected.to_owned())
+                .selected_text(&selected)
                 .show_ui(ui, |ui| {
-                    for p in app.basemaps.available.keys() {
-                        ui.selectable_value(&mut app.basemaps.selected, p.clone(), p);
+                    for name in app.basemaps.names() {
+                        ui.selectable_value(&mut selected, name.to_owned(), name);
                     }
                 });
+            app.basemaps.select(&selected);
 
             #[cfg(feature = "pmtiles")]
-            if !app.basemaps.have_some_pmtiles {
+            if !app.have_some_pmtiles {
                 ui.label("No .pmtiles files found in the current directory. Go to");
                 ui.hyperlink("https://docs.protomaps.com/guide/getting-started");
                 ui.label(" to see how to fetch some.");
@@ -69,12 +66,10 @@ pub fn controls(
                 ui.label("Map is not animating");
             }
 
-            for http_stats in http_stats {
-                ui.label(format!(
-                    "{:?} requests in progress: {}",
-                    app.basemaps.selected, http_stats.in_progress
-                ));
-            }
+            ui.label(format!(
+                "Tiles loading: {}",
+                app.basemaps.stats().in_progress
+            ));
 
             if let Some(cpu_usage) = frame.info().cpu_usage {
                 ui.label(format!("CPU usage: {:.2}ms", cpu_usage * 1000.0));

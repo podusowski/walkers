@@ -6,15 +6,15 @@ mod windows;
 
 use std::io;
 
-use basemaps::{TilesKind, basemaps};
+use basemaps::basemaps;
 use egui::{Button, Color32, DragPanButtons, OpenUrl, PointerButton, Rect, Vec2};
 use walkers::{Color, Filter, Float, Layer, Layout, Map, MapMemory, Paint, Position, Style, json};
-use walkers_extras::{GeoJsonLayer, KmlLayer};
-
-use crate::basemaps::Basemaps;
+use walkers_extras::{Basemaps, GeoJsonLayer, KmlLayer};
 
 pub struct MyApp {
     basemaps: Basemaps,
+    #[cfg(feature = "pmtiles")]
+    have_some_pmtiles: bool,
     map_memory: MapMemory,
     clicked_at: Option<Position>,
     zoom_with_ctrl: bool,
@@ -29,6 +29,8 @@ impl MyApp {
 
         Self {
             basemaps: basemaps(egui_ctx.to_owned()),
+            #[cfg(feature = "pmtiles")]
+            have_some_pmtiles: !walkers_extras::pmtiles_files(std::path::Path::new(".")).is_empty(),
             map_memory: MapMemory::default(),
             clicked_at: None,
             zoom_with_ctrl: false,
@@ -47,16 +49,6 @@ impl eframe::App for MyApp {
         // Typically this would be a GPS acquired position which is tracked by the map.
         let my_position = places::wroclaw_glowny();
 
-        let tiles = self
-            .basemaps
-            .available
-            .get_mut(&self.basemaps.selected)
-            .unwrap();
-        let attributions: Vec<_> = tiles
-            .iter()
-            .map(|tile| tile.as_ref().attribution())
-            .collect();
-
         // In egui, widgets are constructed and consumed in each frame.
         let mut map = Map::new(None, &mut self.map_memory, my_position);
 
@@ -68,12 +60,8 @@ impl eframe::App for MyApp {
         // Optionally, plugins can be attached.
         map = map.with_plugin(plugins::places());
 
-        // Multiple layers can be added.
-        for (n, tiles) in tiles.iter_mut().enumerate() {
-            // With a different transparency.
-            let transparency = if n == 0 { 1.0 } else { 0.25 };
-            map = map.with_layer(tiles.as_mut(), transparency);
-        }
+        // Tile layers of the selected basemap.
+        map = self.basemaps.add_to(map);
 
         // Draw the map widget.
         let response = map.show(ui, |ui, response, projector, map_memory| {
@@ -131,18 +119,8 @@ impl eframe::App for MyApp {
 
             zoom(ui, &mut self.map_memory);
             go_to_my_position(ui, &mut self.map_memory);
-
-            let http_stats = tiles
-                .iter()
-                .filter_map(|tiles| match tiles {
-                    TilesKind::Http(tiles) => Some(tiles.stats()),
-                    #[cfg(feature = "pmtiles")]
-                    TilesKind::PmTiles(_) => None,
-                })
-                .collect();
-
-            controls(self, ui, http_stats, _frame);
-            acknowledge(ui, attributions);
+            controls(self, ui, _frame);
+            acknowledge(ui, self.basemaps.attributions());
         }
     }
 }

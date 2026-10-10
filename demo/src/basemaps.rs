@@ -1,39 +1,13 @@
-use std::collections::BTreeMap;
-#[cfg(feature = "pmtiles")]
-use std::path::PathBuf;
-
 use egui::Context;
 #[cfg(feature = "pmtiles")]
 use walkers::PmTiles;
+use walkers::{
+    HttpOptions, HttpTiles, Tiles,
+    sources::{Geoportal, OpenStreetMap, OpenTopoMap, OpenTopoServer, TileSource},
+};
 #[cfg(feature = "mvt")]
-use walkers::Style;
-use walkers::{HttpOptions, HttpTiles, Tiles, sources::TileSource};
-
-pub(crate) enum TilesKind {
-    Http(HttpTiles),
-    #[cfg(feature = "pmtiles")]
-    PmTiles(PmTiles),
-}
-
-impl AsMut<dyn Tiles> for TilesKind {
-    fn as_mut(&mut self) -> &mut (dyn Tiles + 'static) {
-        match self {
-            TilesKind::Http(tiles) => tiles,
-            #[cfg(feature = "pmtiles")]
-            TilesKind::PmTiles(tiles) => tiles,
-        }
-    }
-}
-
-impl AsRef<dyn Tiles> for TilesKind {
-    fn as_ref(&self) -> &(dyn Tiles + 'static) {
-        match self {
-            TilesKind::Http(tiles) => tiles,
-            #[cfg(feature = "pmtiles")]
-            TilesKind::PmTiles(tiles) => tiles,
-        }
-    }
-}
+use walkers::{Style, sources::OpenFreeMap};
+use walkers_extras::Basemaps;
 
 fn http_options() -> HttpOptions {
     HttpOptions {
@@ -47,148 +21,116 @@ fn http_options() -> HttpOptions {
     }
 }
 
-#[derive(Default)]
-pub struct Basemaps {
-    pub available: BTreeMap<String, Vec<TilesKind>>,
-    pub selected: String,
-    #[cfg(feature = "pmtiles")]
-    pub have_some_pmtiles: bool,
-}
-
 pub(crate) fn basemaps(egui_ctx: Context) -> Basemaps {
-    let mut basemaps = Basemaps {
-        selected: "OpenStreetMap".to_string(),
-        ..Default::default()
-    };
+    let mut basemaps = Basemaps::new(egui_ctx);
 
-    insert_raster_basemaps(&mut basemaps, &egui_ctx);
-    insert_mapbox_basemaps(&mut basemaps, &egui_ctx);
-    // Each of these overrides `selected`, so the last available one becomes the default.
+    add_raster_basemaps(&mut basemaps);
+    add_mapbox_basemaps(&mut basemaps);
+    // Each of these selects one of its own, so the last available one becomes the default.
     #[cfg(feature = "mvt")]
-    insert_openfreemap_basemaps(&mut basemaps, &egui_ctx);
+    add_openfreemap_basemaps(&mut basemaps);
     #[cfg(feature = "pmtiles")]
-    insert_pmtiles_basemaps(&mut basemaps, &egui_ctx);
+    add_pmtiles_basemaps(&mut basemaps);
 
     basemaps
 }
 
-fn http<S>(source: S, egui_ctx: &Context) -> TilesKind
+fn http<S>(source: S, egui_ctx: &Context) -> Box<dyn Tiles>
 where
     S: TileSource + Sync + Send + 'static,
 {
-    TilesKind::Http(HttpTiles::with_options(
+    Box::new(HttpTiles::with_options(
         source,
         http_options(),
         egui_ctx.to_owned(),
     ))
 }
 
-fn insert_raster_basemaps(basemaps: &mut Basemaps, egui_ctx: &Context) {
-    basemaps.available.insert(
-        "OpenStreetMap".to_string(),
-        vec![http(walkers::sources::OpenStreetMap, egui_ctx)],
-    );
+fn add_raster_basemaps(basemaps: &mut Basemaps) {
+    basemaps.add("OpenStreetMap", |ctx| vec![(http(OpenStreetMap, ctx), 1.0)]);
 
-    basemaps.available.insert(
-        "OpenTopoMap".to_string(),
-        vec![http(
-            walkers::sources::OpenTopoMap(walkers::sources::OpenTopoServer::A),
-            egui_ctx,
-        )],
-    );
+    basemaps.add("OpenTopoMap", |ctx| {
+        vec![(http(OpenTopoMap(OpenTopoServer::A), ctx), 1.0)]
+    });
 
-    basemaps.available.insert(
-        "Geoportal".to_string(),
-        vec![http(walkers::sources::Geoportal, egui_ctx)],
-    );
+    basemaps.add("Geoportal", |ctx| vec![(http(Geoportal, ctx), 1.0)]);
 
-    basemaps.available.insert(
-        "OpenStreetMapWithGeoportal".to_string(),
+    // Layers can be stacked, each with its own transparency.
+    basemaps.add("OpenStreetMapWithGeoportal", |ctx| {
         vec![
-            http(walkers::sources::OpenStreetMap, egui_ctx),
-            http(walkers::sources::Geoportal, egui_ctx),
-        ],
-    );
+            (http(OpenStreetMap, ctx), 1.0),
+            (http(Geoportal, ctx), 0.25),
+        ]
+    });
 }
 
 #[cfg(feature = "mvt")]
-fn insert_openfreemap_basemaps(basemaps: &mut Basemaps, egui_ctx: &Context) {
+fn add_openfreemap_basemaps(basemaps: &mut Basemaps) {
     let styles = [
-        ("OpenFreeMap", Style::openfreemap_bright()),
+        ("OpenFreeMap", Style::openfreemap_bright as fn() -> Style),
         (
-            "OpenFreeMap (Walkers basemap light)",
-            Style::openmaptiles_basemap_light(),
+            "OpenFreeMap (Walkers light)",
+            Style::openmaptiles_basemap_light,
         ),
         (
-            "OpenFreeMap (Walkers basemap dark)",
-            Style::openmaptiles_basemap_dark(),
+            "OpenFreeMap (Walkers dark)",
+            Style::openmaptiles_basemap_dark,
         ),
     ];
 
     for (name, style) in styles {
-        basemaps.available.insert(
-            name.to_string(),
-            vec![TilesKind::Http(HttpTiles::with_options_and_style(
-                walkers::sources::OpenFreeMap,
+        basemaps.add(name, move |ctx| {
+            let tiles = HttpTiles::with_options_and_style(
+                OpenFreeMap,
                 http_options(),
-                style,
-                egui_ctx.to_owned(),
-            ))],
-        );
+                style(),
+                ctx.to_owned(),
+            );
+            vec![(Box::new(tiles) as Box<dyn Tiles>, 1.0)]
+        });
     }
 
-    basemaps.selected = "OpenFreeMap (Walkers basemap dark)".to_string();
+    basemaps.select("OpenFreeMap (Walkers dark)");
 }
 
 #[cfg(feature = "pmtiles")]
-fn insert_pmtiles_basemaps(basemaps: &mut Basemaps, egui_ctx: &Context) {
-    let pmtiles = find_pmtiles_files();
-    basemaps.have_some_pmtiles = !pmtiles.is_empty();
+fn add_pmtiles_basemaps(basemaps: &mut Basemaps) {
+    let styles = [
+        ("", Style::protomaps_dark as fn() -> Style),
+        (" (Protomaps Dark Vis)", Style::protomaps_dark_vis),
+        (" (Protomaps Light)", Style::protomaps_light),
+        (" (Walkers light)", Style::protomaps_basemap_light),
+        (" (Walkers dark)", Style::protomaps_basemap_dark),
+    ];
 
-    for path in pmtiles {
+    for path in walkers_extras::pmtiles_files(std::path::Path::new(".")) {
         let name = path.file_stem().unwrap().to_string_lossy().to_string();
-        let pmtiles = |style| {
-            TilesKind::PmTiles(PmTiles::with_style(
-                path.clone(),
-                style,
-                egui_ctx.to_owned(),
-            ))
+
+        let pmtiles = move |style: fn() -> Style, ctx: &Context| -> Box<dyn Tiles> {
+            Box::new(PmTiles::with_style(path.clone(), style(), ctx.to_owned()))
         };
 
-        basemaps
-            .available
-            .insert(name.clone(), vec![pmtiles(Style::protomaps_dark())]);
-        basemaps.available.insert(
-            format!("{name} (Protomaps Dark Vis)"),
-            vec![pmtiles(Style::protomaps_dark_vis())],
-        );
-        basemaps.available.insert(
-            format!("{name} (Protomaps Light)"),
-            vec![pmtiles(Style::protomaps_light())],
-        );
-        basemaps.available.insert(
-            format!("{name} (Walkers basemap light)"),
-            vec![pmtiles(Style::protomaps_basemap_light())],
-        );
-        basemaps.available.insert(
-            format!("{name} (Walkers basemap dark)"),
-            vec![pmtiles(Style::protomaps_basemap_dark())],
-        );
-        basemaps.available.insert(
-            format!("{name}WithGeoportal"),
-            vec![
-                pmtiles(Style::protomaps_dark()),
-                http(walkers::sources::Geoportal, egui_ctx),
-            ],
-        );
+        for (suffix, style) in styles {
+            let pmtiles = pmtiles.clone();
+            basemaps.add(format!("{name}{suffix}"), move |ctx| {
+                vec![(pmtiles(style, ctx), 1.0)]
+            });
+        }
 
-        basemaps.selected = format!("{name} (Walkers basemap dark)");
+        basemaps.add(format!("{name}WithGeoportal"), move |ctx| {
+            vec![
+                (pmtiles(Style::protomaps_dark, ctx), 1.0),
+                (http(Geoportal, ctx), 0.25),
+            ]
+        });
+
+        basemaps.select(&format!("{name} (Walkers dark)"));
     }
 }
 
 /// Mapbox is shown only if an access token was passed at compile time. May or may not be what you
 /// want to do, potentially loading it from application settings instead.
-fn insert_mapbox_basemaps(basemaps: &mut Basemaps, egui_ctx: &Context) {
+fn add_mapbox_basemaps(basemaps: &mut Basemaps) {
     let Some(token) = std::option_env!("MAPBOX_ACCESS_TOKEN") else {
         return;
     };
@@ -207,26 +149,13 @@ fn insert_mapbox_basemaps(basemaps: &mut Basemaps, egui_ctx: &Context) {
     ];
 
     for (name, style, high_resolution) in styles {
-        let source = walkers::sources::Mapbox {
-            style,
-            access_token: token.to_string(),
-            high_resolution,
-        };
-        basemaps
-            .available
-            .insert(name.to_string(), vec![http(source, egui_ctx)]);
+        basemaps.add(name, move |ctx| {
+            let source = walkers::sources::Mapbox {
+                style,
+                access_token: token.to_string(),
+                high_resolution,
+            };
+            vec![(http(source, ctx), 1.0)]
+        });
     }
-}
-
-#[cfg(feature = "pmtiles")]
-fn find_pmtiles_files() -> Vec<PathBuf> {
-    let Ok(dir) = std::fs::read_dir(".") else {
-        return Vec::new();
-    };
-
-    dir.filter_map(|entry| {
-        let path = entry.ok()?.path();
-        (path.extension()?.to_str()? == "pmtiles").then_some(path)
-    })
-    .collect()
 }
