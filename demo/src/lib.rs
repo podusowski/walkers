@@ -7,18 +7,19 @@ mod windows;
 use std::io;
 
 use basemaps::{TilesKind, basemaps};
-use egui::{Button, DragPanButtons, OpenUrl, Rect, Vec2};
-use walkers::{Color, Filter, Float, Layer, Layout, Map, MapMemory, Paint, Style, json};
-use walkers_extras::GeoJsonLayer;
+use egui::{Button, Color32, DragPanButtons, OpenUrl, PointerButton, Rect, Vec2};
+use walkers::{Color, Filter, Float, Layer, Layout, Map, MapMemory, Paint, Position, Style, json};
+use walkers_extras::{GeoJsonLayer, KmlLayer};
 
 use crate::basemaps::Basemaps;
 
 pub struct MyApp {
     basemaps: Basemaps,
     map_memory: MapMemory,
-    click_watcher: plugins::ClickWatcher,
+    clicked_at: Option<Position>,
     zoom_with_ctrl: bool,
     geojson_layers: Vec<GeoJsonLayer>,
+    kml_layers: Vec<KmlLayer>,
 }
 
 impl MyApp {
@@ -29,9 +30,14 @@ impl MyApp {
         Self {
             basemaps: basemaps(egui_ctx.to_owned()),
             map_memory: MapMemory::default(),
-            click_watcher: Default::default(),
+            clicked_at: None,
             zoom_with_ctrl: false,
             geojson_layers: geojson_layers().unwrap_or_default(),
+            kml_layers: vec![
+                kml::kampinos_national_park(),
+                kml::high_speed_rail_poland(),
+                kml::outgym_umea_layer(),
+            ],
         }
     }
 }
@@ -60,13 +66,7 @@ impl eframe::App for MyApp {
             .drag_pan_buttons(DragPanButtons::PRIMARY | DragPanButtons::SECONDARY);
 
         // Optionally, plugins can be attached.
-        map = map
-            .with_plugin(plugins::places())
-            .with_plugin(plugins::CustomShapes {})
-            .with_plugin(&mut self.click_watcher)
-            .with_plugin(kml::kampinos_national_park())
-            .with_plugin(kml::high_speed_rail_poland())
-            .with_plugin(kml::outgym_umea_layer());
+        map = map.with_plugin(plugins::places());
 
         // Multiple layers can be added.
         for (n, tiles) in tiles.iter_mut().enumerate() {
@@ -76,12 +76,40 @@ impl eframe::App for MyApp {
         }
 
         // Draw the map widget.
-        let response = map.show(ui, |ui, _, projector, map_memory| {
-            for layer in &self.geojson_layers {
-                layer.render(ui, projector, map_memory.zoom().round() as u8);
+        let response = map.show(ui, |ui, response, projector, map_memory| {
+            let zoom = map_memory.zoom().round() as u8;
+
+            for layer in &self.kml_layers {
+                layer.render(ui, projector, zoom);
             }
 
-            // You can add any additional contents to the map's UI here.
+            for layer in &self.geojson_layers {
+                layer.render(ui, projector, zoom);
+            }
+
+            // You can add any additional contents to the map's UI here, like remembering where
+            // the map was clicked...
+            if !response.changed() && response.clicked_by(PointerButton::Primary) {
+                self.clicked_at = response
+                    .interact_pointer_pos()
+                    .map(|position| projector.unproject(position.to_vec2()));
+            }
+
+            // ...drawing shapes which react to the mouse...
+            if let Some(clicked_at) = self.clicked_at {
+                let center = projector.project(clicked_at).to_pos2();
+                let radius = 5.0;
+                let hovered = response
+                    .hover_pos()
+                    .is_some_and(|hover_pos| hover_pos.distance(center) < radius);
+                ui.painter().circle_filled(
+                    center,
+                    if hovered { 2.0 * radius } else { radius },
+                    Color32::BLUE,
+                );
+            }
+
+            // ...or putting widgets on it.
             let bastion = projector.project(places::bastion_sakwowy()).to_pos2();
             ui.put(
                 Rect::from_center_size(bastion, Vec2::new(140., 20.)),
@@ -103,7 +131,6 @@ impl eframe::App for MyApp {
 
             zoom(ui, &mut self.map_memory);
             go_to_my_position(ui, &mut self.map_memory);
-            self.click_watcher.show_position(ui);
 
             let http_stats = tiles
                 .iter()

@@ -15,12 +15,6 @@ pub fn dworcowa_bus_stop() -> Position {
     lon_lat(17.03940, 51.10005)
 }
 
-/// Musical Theatre Capitol.
-/// https://www.teatr-capitol.pl/
-pub fn capitol() -> Position {
-    lon_lat(17.03018, 51.10073)
-}
-
 /// Main square of the city, with many restaurants and historical buildings.
 pub fn rynek() -> Position {
     lon_lat(17.032094, 51.110090)

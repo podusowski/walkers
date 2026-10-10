@@ -1,16 +1,15 @@
 use std::{collections::HashMap, str::FromStr};
 
-use egui::{self, Color32, Response, Shape, Stroke, Ui};
+use egui::{self, Color32, Shape, Stroke, Ui};
 use geo::MapCoords;
 use geo::geometry::Coord;
 use log::warn;
 use walkers::geo_types::{Geometry, Point};
 use walkers::{
-    Context, Layer, MapMemory, Paint, Plugin, Position, Projector, Style, render_fill, render_line,
-    to_shapes,
+    Context, Layer, Paint, Position, Projector, Style, render_fill, render_line, to_shapes,
 };
 
-/// Plugin that renders parsed KML features on top of a [`Map`](walkers::Map).
+/// Parsed KML features, drawn on top of a [`Map`](walkers::Map).
 pub struct KmlLayer {
     geometries: Vec<Geometry<f64>>,
     style: Style,
@@ -22,6 +21,27 @@ impl KmlLayer {
         Self {
             geometries: Vec::try_from(kml).unwrap_or_default(),
             style,
+        }
+    }
+
+    pub fn render(&self, ui: &mut Ui, projector: &Projector, zoom: u8) {
+        let painter = ui.painter();
+
+        for layer in &self.style.layers {
+            match layer {
+                Layer::Fill { paint, .. } => {
+                    self.draw_fills(painter, projector, paint, zoom);
+                }
+                Layer::Line { paint, .. } => {
+                    self.draw_lines(painter, projector, paint, zoom);
+                }
+                Layer::Circle { .. } => {
+                    self.draw_circles(painter, projector);
+                }
+                other => {
+                    warn!("Unsupported style layer: {other:?}");
+                }
+            }
         }
     }
 
@@ -82,34 +102,4 @@ fn project(geometry: &Geometry<f64>, projector: &Projector) -> Geometry<f32> {
             y: projected.y,
         }
     })
-}
-
-impl Plugin for KmlLayer {
-    fn run(
-        self: Box<Self>,
-        ui: &mut Ui,
-        response: &Response,
-        projector: &Projector,
-        map_memory: &MapMemory,
-    ) {
-        let painter = ui.painter_at(response.rect);
-        let zoom = map_memory.zoom().round() as u8;
-
-        for layer in &self.style.layers {
-            match layer {
-                Layer::Fill { paint, .. } => {
-                    self.draw_fills(&painter, projector, paint, zoom);
-                }
-                Layer::Line { paint, .. } => {
-                    self.draw_lines(&painter, projector, paint, zoom);
-                }
-                Layer::Circle { .. } => {
-                    self.draw_circles(&painter, projector);
-                }
-                other => {
-                    warn!("Unsupported style layer: {other:?}");
-                }
-            }
-        }
-    }
 }
