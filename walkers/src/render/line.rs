@@ -1,6 +1,8 @@
 use ecolor::Color32;
 use emath::pos2;
 
+use geo_types::LineString;
+
 use crate::{
     expression::Context,
     render::{
@@ -39,40 +41,45 @@ pub fn render(
         .as_ref()
         .and_then(|dasharray| dasharray.evaluate(context));
 
-    match geometry {
-        Geometry::LineString(line_string) => {
-            let points = line_string
-                .0
-                .iter()
-                .map(|p| pos2(p.x, p.y))
-                .collect::<Vec<_>>();
-            push_line(points, width, color, dasharray.as_deref(), drawables);
-        }
-        Geometry::MultiLineString(multi_line_string) => {
-            for line_string in multi_line_string {
-                let points = line_string
-                    .0
-                    .iter()
-                    .map(|p| pos2(p.x, p.y))
-                    .collect::<Vec<_>>();
-                push_line(points, width, color, dasharray.as_deref(), drawables);
-            }
-        }
-        _ => (),
-    }
+    render_inner(geometry, width, color, dasharray.as_deref(), drawables);
 
     Ok(())
 }
 
+fn render_inner(
+    geometry: &Geometry<f32>,
+    width: f32,
+    color: Color32,
+    dasharray: Option<&[f32]>,
+    drawables: &mut Vec<Drawable>,
+) {
+    match geometry {
+        Geometry::LineString(line_string) => {
+            push_line(line_string, width, color, dasharray, drawables);
+        }
+        Geometry::MultiLineString(multi_line_string) => {
+            for line_string in multi_line_string {
+                push_line(line_string, width, color, dasharray, drawables);
+            }
+        }
+        Geometry::GeometryCollection(collection) => {
+            for geometry in collection {
+                render_inner(geometry, width, color, dasharray, drawables);
+            }
+        }
+        _ => (),
+    }
+}
+
 fn push_line(
-    points: Vec<emath::Pos2>,
+    line_string: &LineString<f32>,
     width: f32,
     color: Color32,
     dasharray: Option<&[f32]>,
     drawables: &mut Vec<Drawable>,
 ) {
     drawables.push(Drawable::Lines(vec![Line {
-        points,
+        points: line_string.0.iter().map(|p| pos2(p.x, p.y)).collect(),
         width,
         color,
         // A style gives dashes in line widths.

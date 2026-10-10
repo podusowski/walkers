@@ -4,7 +4,7 @@ use egui::{self, Color32, Response, Shape, Stroke, Ui};
 use geo::MapCoords;
 use geo::geometry::Coord;
 use log::warn;
-use walkers::geo_types::{Geometry, LineString, Point, Polygon};
+use walkers::geo_types::{Geometry, Point};
 use walkers::{
     Context, Layer, MapMemory, Paint, Plugin, Position, Projector, Style, render_fill, render_line,
     to_shapes,
@@ -29,8 +29,8 @@ impl KmlLayer {
         let context = Context::new("LineString".to_string(), HashMap::new(), zoom);
         let mut drawables = Vec::new();
 
-        for line_string in self.geometries.iter().flat_map(line_strings) {
-            let projected = Geometry::LineString(project(line_string, projector));
+        for geometry in &self.geometries {
+            let projected = project(geometry, projector);
             let _ = render_line(&projected, &context, paint, &mut drawables);
         }
 
@@ -41,8 +41,8 @@ impl KmlLayer {
         let context = Context::new("Polygon".to_string(), HashMap::new(), zoom);
         let mut drawables = Vec::new();
 
-        for polygon in self.geometries.iter().flat_map(polygons) {
-            let projected = Geometry::Polygon(project(polygon, projector));
+        for geometry in &self.geometries {
+            let projected = project(geometry, projector);
             if let Err(err) = render_fill(&projected, &context, paint, &mut drawables) {
                 warn!("{err}");
             }
@@ -64,26 +64,6 @@ impl KmlLayer {
     }
 }
 
-fn line_strings(geometry: &Geometry<f64>) -> Vec<&LineString<f64>> {
-    match geometry {
-        Geometry::LineString(line_string) => vec![line_string],
-        Geometry::MultiLineString(multi_line_string) => multi_line_string.iter().collect(),
-        Geometry::GeometryCollection(collection) => {
-            collection.iter().flat_map(line_strings).collect()
-        }
-        _ => Vec::new(),
-    }
-}
-
-fn polygons(geometry: &Geometry<f64>) -> Vec<&Polygon<f64>> {
-    match geometry {
-        Geometry::Polygon(polygon) => vec![polygon],
-        Geometry::MultiPolygon(multi_polygon) => multi_polygon.iter().collect(),
-        Geometry::GeometryCollection(collection) => collection.iter().flat_map(polygons).collect(),
-        _ => Vec::new(),
-    }
-}
-
 fn points(geometry: &Geometry<f64>) -> Vec<&Point<f64>> {
     match geometry {
         Geometry::Point(point) => vec![point],
@@ -94,7 +74,7 @@ fn points(geometry: &Geometry<f64>) -> Vec<&Point<f64>> {
 }
 
 /// From longitude and latitude onto the screen.
-fn project<G: MapCoords<f64, f32>>(geometry: &G, projector: &Projector) -> G::Output {
+fn project(geometry: &Geometry<f64>, projector: &Projector) -> Geometry<f32> {
     geometry.map_coords(|coord| {
         let projected = projector.project(Position::new(coord.x, coord.y));
         Coord {

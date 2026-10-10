@@ -24,12 +24,6 @@ pub fn render(
     paint: &Paint,
     drawables: &mut Vec<Drawable>,
 ) -> Result<(), Error> {
-    let polygons: &[geo_types::Polygon<f32>] = match geometry {
-        Geometry::Polygon(polygon) => std::slice::from_ref(polygon),
-        Geometry::MultiPolygon(multi_polygon) => &multi_polygon.0,
-        _ => return Ok(()),
-    };
-
     let Some(fill_color) = &paint.fill_color else {
         warn!("Fill layer without fill color. Skipping.");
         return Ok(());
@@ -44,18 +38,46 @@ pub fn render(
         fill_color
     };
 
-    for polygon in polygons {
-        let exterior = lyon_points(&polygon.exterior().0);
-        let interiors = polygon
-            .interiors()
-            .iter()
-            .map(|hole| lyon_points(&hole.0))
-            .collect::<Vec<_>>();
-        drawables.push(Drawable::Fill(tessellate_polygon(
-            &exterior, &interiors, fill_color,
-        )?));
+    render_inner(geometry, fill_color, drawables)
+}
+
+fn render_inner(
+    geometry: &Geometry<f32>,
+    fill_color: Color32,
+    drawables: &mut Vec<Drawable>,
+) -> Result<(), Error> {
+    match geometry {
+        Geometry::Polygon(polygon) => fill_polygon(polygon, fill_color, drawables)?,
+        Geometry::MultiPolygon(multi_polygon) => {
+            for polygon in multi_polygon {
+                fill_polygon(polygon, fill_color, drawables)?;
+            }
+        }
+        Geometry::GeometryCollection(collection) => {
+            for geometry in collection {
+                render_inner(geometry, fill_color, drawables)?;
+            }
+        }
+        _ => (),
     }
 
+    Ok(())
+}
+
+fn fill_polygon(
+    polygon: &geo_types::Polygon<f32>,
+    fill_color: Color32,
+    drawables: &mut Vec<Drawable>,
+) -> Result<(), Error> {
+    let exterior = lyon_points(&polygon.exterior().0);
+    let interiors = polygon
+        .interiors()
+        .iter()
+        .map(|hole| lyon_points(&hole.0))
+        .collect::<Vec<_>>();
+    drawables.push(Drawable::Fill(tessellate_polygon(
+        &exterior, &interiors, fill_color,
+    )?));
     Ok(())
 }
 
