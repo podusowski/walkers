@@ -5,6 +5,7 @@ All notable changes to this project will be documented in this file.
 ## Unreleased
 
 * New `OpenTopoMap` tile source.
+* `KmlLayer` draws `line` and `fill` layers with their paint, instead of hardcoded colors.
 
 ## 0.61.0
 

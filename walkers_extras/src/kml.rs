@@ -4,9 +4,10 @@ use egui::{self, Color32, Response, Shape, Stroke, Ui};
 use geo::MapCoords;
 use geo::geometry::Coord;
 use log::warn;
-use walkers::geo_types::{Geometry, LineString, Point};
+use walkers::geo_types::{Geometry, LineString, Point, Polygon};
 use walkers::{
-    Context, Layer, MapMemory, Paint, Plugin, Position, Projector, Style, render_line, to_shapes,
+    Context, Layer, MapMemory, Paint, Plugin, Position, Projector, Style, render_fill, render_line,
+    to_shapes,
 };
 
 /// Plugin that renders parsed KML features on top of a [`Map`](walkers::Map).
@@ -29,19 +30,22 @@ impl KmlLayer {
         let mut drawables = Vec::new();
 
         for line_string in self.geometries.iter().flat_map(line_strings) {
-            let projected = line_string.map_coords(|coord| {
-                let projected = projector.project(Position::new(coord.x, coord.y));
-                Coord {
-                    x: projected.x,
-                    y: projected.y,
-                }
-            });
-            let _ = render_line(
-                &Geometry::LineString(projected),
-                &context,
-                paint,
-                &mut drawables,
-            );
+            let projected = Geometry::LineString(project(line_string, projector));
+            let _ = render_line(&projected, &context, paint, &mut drawables);
+        }
+
+        painter.extend(to_shapes(&drawables));
+    }
+
+    fn draw_fills(&self, painter: &egui::Painter, projector: &Projector, paint: &Paint, zoom: u8) {
+        let context = Context::new("Polygon".to_string(), HashMap::new(), zoom);
+        let mut drawables = Vec::new();
+
+        for polygon in self.geometries.iter().flat_map(polygons) {
+            let projected = Geometry::Polygon(project(polygon, projector));
+            if let Err(err) = render_fill(&projected, &context, paint, &mut drawables) {
+                warn!("{err}");
+            }
         }
 
         painter.extend(to_shapes(&drawables));
@@ -71,6 +75,15 @@ fn line_strings(geometry: &Geometry<f64>) -> Vec<&LineString<f64>> {
     }
 }
 
+fn polygons(geometry: &Geometry<f64>) -> Vec<&Polygon<f64>> {
+    match geometry {
+        Geometry::Polygon(polygon) => vec![polygon],
+        Geometry::MultiPolygon(multi_polygon) => multi_polygon.iter().collect(),
+        Geometry::GeometryCollection(collection) => collection.iter().flat_map(polygons).collect(),
+        _ => Vec::new(),
+    }
+}
+
 fn points(geometry: &Geometry<f64>) -> Vec<&Point<f64>> {
     match geometry {
         Geometry::Point(point) => vec![point],
@@ -78,6 +91,17 @@ fn points(geometry: &Geometry<f64>) -> Vec<&Point<f64>> {
         Geometry::GeometryCollection(collection) => collection.iter().flat_map(points).collect(),
         _ => Vec::new(),
     }
+}
+
+/// From longitude and latitude onto the screen.
+fn project<G: MapCoords<f64, f32>>(geometry: &G, projector: &Projector) -> G::Output {
+    geometry.map_coords(|coord| {
+        let projected = projector.project(Position::new(coord.x, coord.y));
+        Coord {
+            x: projected.x,
+            y: projected.y,
+        }
+    })
 }
 
 impl Plugin for KmlLayer {
@@ -93,6 +117,9 @@ impl Plugin for KmlLayer {
 
         for layer in &self.style.layers {
             match layer {
+                Layer::Fill { paint, .. } => {
+                    self.draw_fills(&painter, projector, paint, zoom);
+                }
                 Layer::Line { paint, .. } => {
                     self.draw_lines(&painter, projector, paint, zoom);
                 }
