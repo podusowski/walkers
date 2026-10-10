@@ -9,7 +9,7 @@ use std::io;
 use basemaps::{TilesKind, basemaps};
 use egui::{Button, DragPanButtons, OpenUrl, Rect, Vec2};
 use walkers::{Color, Filter, Float, Layer, Layout, Map, MapMemory, Paint, Style, json};
-use walkers_extras::GeoJsonLayer;
+use walkers_extras::{GeoJsonLayer, KmlLayer};
 
 use crate::basemaps::Basemaps;
 
@@ -19,6 +19,7 @@ pub struct MyApp {
     click_watcher: plugins::ClickWatcher,
     zoom_with_ctrl: bool,
     geojson_layers: Vec<GeoJsonLayer>,
+    kml_layers: Vec<KmlLayer>,
 }
 
 impl MyApp {
@@ -32,6 +33,11 @@ impl MyApp {
             click_watcher: Default::default(),
             zoom_with_ctrl: false,
             geojson_layers: geojson_layers().unwrap_or_default(),
+            kml_layers: vec![
+                kml::kampinos_national_park(),
+                kml::high_speed_rail_poland(),
+                kml::outgym_umea_layer(),
+            ],
         }
     }
 }
@@ -63,10 +69,7 @@ impl eframe::App for MyApp {
         map = map
             .with_plugin(plugins::places())
             .with_plugin(plugins::CustomShapes {})
-            .with_plugin(&mut self.click_watcher)
-            .with_plugin(kml::kampinos_national_park())
-            .with_plugin(kml::high_speed_rail_poland())
-            .with_plugin(kml::outgym_umea_layer());
+            .with_plugin(&mut self.click_watcher);
 
         // Multiple layers can be added.
         for (n, tiles) in tiles.iter_mut().enumerate() {
@@ -77,8 +80,14 @@ impl eframe::App for MyApp {
 
         // Draw the map widget.
         let response = map.show(ui, |ui, _, projector, map_memory| {
+            let zoom = map_memory.zoom().round() as u8;
+
+            for layer in &self.kml_layers {
+                layer.render(ui, projector, zoom);
+            }
+
             for layer in &self.geojson_layers {
-                layer.render(ui, projector, map_memory.zoom().round() as u8);
+                layer.render(ui, projector, zoom);
             }
 
             // You can add any additional contents to the map's UI here.

@@ -8,6 +8,8 @@ All notable changes to this project will be documented in this file.
 * `KmlLayer` draws `line` and `fill` layers with their paint, instead of hardcoded colors.
 * `render_line` and `render_fill` draw what is inside a `GeometryCollection`, so `GeoJsonLayer`
   draws collections too.
+* `KmlLayer` is no longer a `Plugin`. Like `GeoJsonLayer`, it is built once and drawn with
+  `render(ui, projector, zoom)` each frame.
 
 ## 0.61.0
 
