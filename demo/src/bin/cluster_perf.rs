@@ -6,10 +6,7 @@ use egui::{self, Align2, Color32, Stroke};
 use rand::{RngExt as _, rngs::StdRng};
 
 use walkers::sources;
-use walkers::{
-    HttpOptions, HttpTiles, Map, MapMemory, MercatorProjection, Position, Projection, Projector,
-    lon_lat,
-};
+use walkers::{HttpOptions, HttpTiles, Map, MapMemory, Position, Projector, lon_lat};
 use walkers_extras::{Group, GroupedPlacesTree, LabeledSymbol, LabeledSymbolStyle, Place, Symbol};
 
 const POI_COUNT: usize = 2_000;
@@ -119,7 +116,7 @@ struct ClusterApp {
     points: Vec<LabeledSymbol>,
     tiles: Option<HttpTiles>,
     avg_frame_ms: RollingAvg<120>,
-    plugin: Option<Rc<GroupedPlacesTree<LabeledSymbol, DemoClusterGroup, MercatorProjection>>>,
+    plugin: Option<Rc<GroupedPlacesTree<LabeledSymbol, DemoClusterGroup>>>,
     stats: Arc<StatsCell>,
 }
 
@@ -154,12 +151,11 @@ impl ClusterApp {
     }
 
     fn rebuild_plugin(&mut self) {
-        let plugin =
-            GroupedPlacesTree::new(self.points.clone(), DemoClusterGroup, MercatorProjection)
-                .with_screen_radius_px(RADIUS_PX)
-                .viewport_only(true)
-                .include_offscreen_neighbors(true)
-                .with_max_group_size(None);
+        let plugin = GroupedPlacesTree::new(self.points.clone(), DemoClusterGroup)
+            .with_screen_radius_px(RADIUS_PX)
+            .viewport_only(true)
+            .include_offscreen_neighbors(true)
+            .with_max_group_size(None);
         self.plugin = Some(Rc::new(plugin));
     }
 }
@@ -251,16 +247,16 @@ impl eframe::App for ClusterApp {
 
 #[derive(Clone)]
 struct StatsHandle {
-    inner: Rc<GroupedPlacesTree<LabeledSymbol, DemoClusterGroup, MercatorProjection>>,
+    inner: Rc<GroupedPlacesTree<LabeledSymbol, DemoClusterGroup>>,
     stats: Arc<StatsCell>,
 }
 
-impl<P: Projection> walkers::Plugin<P> for StatsHandle {
+impl walkers::Plugin for StatsHandle {
     fn run(
         self: Box<Self>,
         ui: &mut egui::Ui,
         response: &egui::Response,
-        projector: &Projector<'_, P>,
+        projector: &Projector<'_>,
     ) {
         let (clusters, max_size) = self.inner.draw_with_stats(ui, response, projector);
         self.stats.set(ClusterStats::new(clusters, max_size));
@@ -271,11 +267,11 @@ impl<P: Projection> walkers::Plugin<P> for StatsHandle {
 struct DemoClusterGroup;
 
 impl Group for DemoClusterGroup {
-    fn draw<T: Place, P: Projection>(
+    fn draw<T: Place>(
         &self,
         places: &[&T],
         position: Position,
-        projector: &Projector<'_, P>,
+        projector: &Projector<'_>,
         ui: &mut egui::Ui,
     ) {
         let count = places.len();

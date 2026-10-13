@@ -2,8 +2,8 @@ use std::path::{Path, PathBuf};
 
 use egui::{Align2, Color32, ComboBox, Image, Key, PointerButton, RichText, Ui, Window};
 use walkers::{
-    HttpOptions, HttpTiles, Map, MapMemory, MercatorProjection, PmTiles, Position, Projection,
-    Style, Tiles, lon_lat, sources,
+    HttpOptions, HttpTiles, Map, MapMemory, MercatorProjection, PmTiles, Position, Style, Tiles,
+    lon_lat, sources,
 };
 use walkers_extras::{
     Basemaps, GroupedPlaces, LabeledSymbol, LabeledSymbolGroup, LabeledSymbolGroupStyle,
@@ -259,7 +259,7 @@ fn ask_for_name(ui: &Ui, new_place: &mut NewPlace) -> Outcome {
 
 /// Places are grouped, so that a journal which got dense in one city is still readable when
 /// the whole country is on the screen.
-fn places<P: Projection>(places: &[journal::Place]) -> impl walkers::Plugin<P> {
+fn places(places: &[journal::Place]) -> impl walkers::Plugin {
     GroupedPlaces::new(
         places
             .iter()

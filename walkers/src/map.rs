@@ -37,7 +37,7 @@ pub struct Map<'a, 'b, 'c, P: Projection> {
     layers: Vec<Layer<'b, P>>,
     memory: &'a mut MapMemory<P>,
     my_position: Position,
-    plugins: Vec<Box<dyn Plugin<P> + 'c>>,
+    plugins: Vec<Box<dyn Plugin + 'c>>,
     options: Options,
 }
 
@@ -53,7 +53,7 @@ impl<'a, 'b, 'c, P: Projection> Map<'a, 'b, 'c, P> {
     }
 
     /// Add plugin to the drawing pipeline. Plugins allow drawing custom shapes on the map.
-    pub fn with_plugin(mut self, plugin: impl Plugin<P> + 'c) -> Self {
+    pub fn with_plugin(mut self, plugin: impl Plugin + 'c) -> Self {
         self.plugins.push(Box::new(plugin));
         self
     }
@@ -147,7 +147,7 @@ impl<'a, 'b, 'c, P: Projection> Map<'a, 'b, 'c, P> {
     pub fn show<R>(
         mut self,
         ui: &mut Ui,
-        add_contents: impl FnOnce(&mut Ui, &Response, &Projector<'_, P>, &MapMemory<P>) -> R,
+        add_contents: impl FnOnce(&mut Ui, &Response, &Projector<'_>, &MapMemory<P>) -> R,
     ) -> InnerResponse<R> {
         let (rect, mut response) =
             ui.allocate_exact_size(ui.available_size(), Sense::click_and_drag());

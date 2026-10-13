@@ -168,16 +168,19 @@ impl Projection for PlanarProjection {
 ///
 /// It combines a raw [`Projection`] with the current clip rectangle and map memory
 /// to convert between world coordinates and screen pixels.
-#[derive(Debug, Clone)]
-pub struct Projector<'a, P: Projection> {
-    projection: &'a P,
+pub struct Projector<'a> {
+    projection: &'a dyn Projection,
     clip_rect: Rect,
     zoom: f64,
     pub(crate) center_projected: Pixels,
 }
 
-impl<'a, P: Projection> Projector<'a, P> {
-    pub fn new(clip_rect: Rect, map_memory: &'a MapMemory<P>, my_position: Position) -> Self {
+impl<'a> Projector<'a> {
+    pub fn new<P: Projection>(
+        clip_rect: Rect,
+        map_memory: &'a MapMemory<P>,
+        my_position: Position,
+    ) -> Self {
         let projection = map_memory.projection();
         let center = map_memory.position(my_position);
         let zoom = map_memory.zoom();
@@ -191,7 +194,7 @@ impl<'a, P: Projection> Projector<'a, P> {
     }
 }
 
-impl<P: Projection> Projector<'_, P> {
+impl Projector<'_> {
     pub fn project(&self, position: Position) -> Vec2 {
         let projected = self.projection.position_to_pixels(position, self.zoom);
         self.clip_rect.center().to_vec2() + (projected - self.center_projected).to_vec2()
@@ -214,7 +217,7 @@ impl<P: Projection> Projector<'_, P> {
         self.zoom
     }
 
-    pub fn projection(&self) -> &P {
+    pub fn projection(&self) -> &dyn Projection {
         self.projection
     }
 
