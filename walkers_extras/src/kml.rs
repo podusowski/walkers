@@ -24,7 +24,7 @@ impl KmlLayer {
         }
     }
 
-    pub fn render(&self, ui: &mut Ui, projector: &Projector, zoom: u8) {
+    pub fn render(&self, ui: &mut Ui, projector: &Projector<'_>, zoom: u8) {
         let painter = ui.painter();
 
         for layer in &self.style.layers {
@@ -45,7 +45,13 @@ impl KmlLayer {
         }
     }
 
-    fn draw_lines(&self, painter: &egui::Painter, projector: &Projector, paint: &Paint, zoom: u8) {
+    fn draw_lines(
+        &self,
+        painter: &egui::Painter,
+        projector: &Projector<'_>,
+        paint: &Paint,
+        zoom: u8,
+    ) {
         let context = Context::new("LineString".to_string(), HashMap::new(), zoom);
         let mut drawables = Vec::new();
 
@@ -57,7 +63,13 @@ impl KmlLayer {
         painter.extend(to_shapes(&drawables));
     }
 
-    fn draw_fills(&self, painter: &egui::Painter, projector: &Projector, paint: &Paint, zoom: u8) {
+    fn draw_fills(
+        &self,
+        painter: &egui::Painter,
+        projector: &Projector<'_>,
+        paint: &Paint,
+        zoom: u8,
+    ) {
         let context = Context::new("Polygon".to_string(), HashMap::new(), zoom);
         let mut drawables = Vec::new();
 
@@ -71,7 +83,7 @@ impl KmlLayer {
         painter.extend(to_shapes(&drawables));
     }
 
-    fn draw_circles(&self, painter: &egui::Painter, projector: &Projector) {
+    fn draw_circles(&self, painter: &egui::Painter, projector: &Projector<'_>) {
         for point in self.geometries.iter().flat_map(points) {
             let center = projector.project(*point).to_pos2();
             let radius = 5.0;
@@ -94,7 +106,7 @@ fn points(geometry: &Geometry<f64>) -> Vec<&Point<f64>> {
 }
 
 /// From longitude and latitude onto the screen.
-fn project(geometry: &Geometry<f64>, projector: &Projector) -> Geometry<f32> {
+fn project(geometry: &Geometry<f64>, projector: &Projector<'_>) -> Geometry<f32> {
     geometry.map_coords(|coord| {
         let projected = projector.project(Position::new(coord.x, coord.y));
         Coord {

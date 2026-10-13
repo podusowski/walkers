@@ -195,7 +195,7 @@ impl eframe::App for ClusterApp {
                 self.rebuild_plugin();
             }
 
-            let mut map = Map::new(None, &mut self.memory, Self::map_center());
+            let mut map = Map::new(&mut self.memory, Self::map_center());
             if let Some(tiles) = self.tiles.as_mut() {
                 map = map.with_layer(tiles, 1.0);
             }
@@ -256,10 +256,9 @@ impl walkers::Plugin for StatsHandle {
         self: Box<Self>,
         ui: &mut egui::Ui,
         response: &egui::Response,
-        projector: &walkers::Projector,
-        memory: &MapMemory,
+        projector: &Projector<'_>,
     ) {
-        let (clusters, max_size) = self.inner.draw_with_stats(ui, response, projector, memory);
+        let (clusters, max_size) = self.inner.draw_with_stats(ui, response, projector);
         self.stats.set(ClusterStats::new(clusters, max_size));
     }
 }
@@ -272,7 +271,7 @@ impl Group for DemoClusterGroup {
         &self,
         places: &[&T],
         position: Position,
-        projector: &Projector,
+        projector: &Projector<'_>,
         ui: &mut egui::Ui,
     ) {
         let count = places.len();

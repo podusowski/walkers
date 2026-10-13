@@ -125,6 +125,7 @@ fn lyon_points(points: &[Coord<f32>]) -> Vec<Point<f32>> {
     points.iter().map(|p| point(p.x, p.y)).collect()
 }
 
+#[expect(clippy::unwrap_used)]
 #[cfg(test)]
 mod tests {
     use super::*;

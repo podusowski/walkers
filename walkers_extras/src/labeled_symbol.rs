@@ -31,7 +31,7 @@ impl Place for LabeledSymbol {
         self.position
     }
 
-    fn draw(&self, ui: &Ui, projector: &Projector) {
+    fn draw(&self, ui: &Ui, projector: &Projector<'_>) {
         let screen_position = projector.project(self.position);
         let painter = ui.painter();
 
@@ -188,7 +188,7 @@ impl Group for LabeledSymbolGroup {
         &self,
         places: &[&T],
         position: Position,
-        projector: &Projector,
+        projector: &Projector<'_>,
         ui: &mut Ui,
     ) {
         let screen_position = projector.project(position);
