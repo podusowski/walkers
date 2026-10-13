@@ -31,6 +31,11 @@ impl<P: Projection> MapMemory<P> {
         &self.projection
     }
 
+    /// A mutable ref to the projection used by this map state.
+    pub fn projection_mut(&mut self) -> &mut P {
+        &mut self.projection
+    }
+
     /// Try to zoom in, returning `Err(InvalidZoom)` if already at maximum.
     pub fn zoom_in(&mut self) -> Result<(), InvalidZoom> {
         self.zoom.zoom_in()
