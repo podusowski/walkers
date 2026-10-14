@@ -11,6 +11,7 @@ All notable changes to this project will be documented in this file.
   draws collections too.
 * `KmlLayer` is no longer a `Plugin`. Like `GeoJsonLayer`, it is built once and drawn with
   `render(ui, projector, zoom)` each frame.
+* `concat` and `to-string` expressions are supported.
 
 ## 0.61.0
 
