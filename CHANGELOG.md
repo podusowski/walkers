@@ -2,6 +2,10 @@
 
 All notable changes to this project will be documented in this file.
 
+## Unreleased
+
+* `egui` updated to 0.37.
+
 ## 0.62.0
 
 * The deprecated `LocalTiles` is removed. Use `PmTiles` with a local `.pmtiles` file.
