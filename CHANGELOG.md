@@ -2,7 +2,7 @@
 
 All notable changes to this project will be documented in this file.
 
-## Unreleased
+## 0.62.0
 
 * The deprecated `LocalTiles` is removed. Use `PmTiles` with a local `.pmtiles` file.
 * New `OpenTopoMap` tile source.
@@ -11,6 +11,10 @@ All notable changes to this project will be documented in this file.
   draws collections too.
 * `KmlLayer` is no longer a `Plugin`. Like `GeoJsonLayer`, it is built once and drawn with
   `render(ui, projector, zoom)` each frame.
+* `Tiles::stats` reports the tiles being loaded, for any kind of tiles. `HttpTiles::stats` moved
+  there, so `Tiles` has to be in scope to call it.
+* New `walkers_extras::Basemaps`, which keeps named stacks of tile layers and builds only the
+  selected one.
 
 ## 0.61.0
 
