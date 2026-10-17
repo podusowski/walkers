@@ -128,6 +128,16 @@ impl Context {
                         }
                         Ok(Value::Null)
                     }
+                    "concat" => {
+                        let mut result = String::new();
+                        for argument in arguments {
+                            result.push_str(&to_string(self.evaluate(argument)?));
+                        }
+                        Ok(Value::String(result))
+                    }
+                    "to-string" => Ok(Value::String(to_string(
+                        self.evaluate(&single_value(arguments)?)?,
+                    ))),
                     "in" => {
                         let (value, list) = first_and_rest(arguments)?;
                         let value = self.property_or_expression(value)?;
@@ -285,6 +295,20 @@ fn string(v: &Value) -> Result<String, Error> {
         Ok(s.clone())
     } else {
         Err(Error::ExpectedString(v.clone()))
+    }
+}
+
+/// Convert a value to a string the way `to-string` does.
+/// <https://maplibre.org/maplibre-style-spec/expressions/#to-string>
+fn to_string(v: Value) -> String {
+    match v {
+        Value::Null => String::new(),
+        Value::String(s) => s,
+        // MapLibre's numbers are doubles, written as JavaScript's `String` writes them,
+        // which `f64`'s `Display` matches but for exponents and -0.
+        // `Number`'s own `Display` would write 3.0 as "3.0", to keep it a float.
+        Value::Number(n) => n.as_f64().map_or_else(|| n.to_string(), |f| f.to_string()),
+        other => other.to_string(),
     }
 }
 
@@ -788,6 +812,126 @@ mod tests {
         let context = Context::new("Point".to_string(), properties, 1);
 
         assert_eq!(context.evaluate(&json!(["!", false])).unwrap(), json!(true));
+    }
+
+    /// Cases from maplibre-style-spec's test/integration/expression/tests/concat.
+    #[test]
+    fn test_concat_operator() {
+        let properties = HashMap::from([
+            ("a".to_string(), json!("a")),
+            ("1".to_string(), json!(1)),
+            ("true".to_string(), json!(true)),
+        ]);
+        let context = Context::new("Point".to_string(), properties, 1);
+
+        assert_eq!(context.evaluate(&json!(["concat"])).unwrap(), json!(""));
+        assert_eq!(
+            context.evaluate(&json!(["concat", "foo"])).unwrap(),
+            json!("foo")
+        );
+        assert_eq!(
+            context.evaluate(&json!(["concat", "a", "b", "c"])).unwrap(),
+            json!("abc")
+        );
+        assert_eq!(
+            context
+                .evaluate(&json!([
+                    "concat",
+                    ["get", "a"],
+                    ["get", "1"],
+                    ["get", "true"]
+                ]))
+                .unwrap(),
+            json!("a1true")
+        );
+    }
+
+    /// A missing property is null, which concatenates as an empty string rather than failing
+    /// the whole expression.
+    #[test]
+    fn test_concat_operator_with_missing_property() {
+        let properties = HashMap::from([("name:nonlatin".to_string(), json!("東京"))]);
+        let context = Context::new("Point".to_string(), properties, 1);
+
+        assert_eq!(
+            context
+                .evaluate(&json!([
+                    "concat",
+                    ["get", "name:latin"],
+                    "\n",
+                    ["get", "name:nonlatin"]
+                ]))
+                .unwrap(),
+            json!("\n東京")
+        );
+    }
+
+    /// Vector tiles may hold an integer as a float. MapLibre writes it without a fraction,
+    /// as JavaScript's `String(3)` does.
+    #[test]
+    fn test_concat_operator_with_float_property() {
+        let properties = HashMap::from([
+            ("integral".to_string(), json!(3.0)),
+            ("fractional".to_string(), json!(1.5)),
+        ]);
+        let context = Context::new("Point".to_string(), properties, 1);
+
+        assert_eq!(
+            context
+                .evaluate(&json!([
+                    "concat",
+                    ["get", "integral"],
+                    " ",
+                    ["get", "fractional"]
+                ]))
+                .unwrap(),
+            json!("3 1.5")
+        );
+    }
+
+    /// Cases from maplibre-style-spec's test/integration/expression/tests/to-string,
+    /// except `color`, as Walkers has no `rgba` operator.
+    #[test]
+    fn test_to_string_operator() {
+        for (property, expected) in [
+            (json!(1), "1"),
+            (json!(false), "false"),
+            (json!(null), ""),
+            (json!("string"), "string"),
+            (json!([1, 2]), "[1,2]"),
+            (json!({"y": 1}), r#"{"y":1}"#),
+        ] {
+            let properties = HashMap::from([("x".to_string(), property)]);
+            let context = Context::new("Point".to_string(), properties, 1);
+
+            assert_eq!(
+                context
+                    .evaluate(&json!(["to-string", ["get", "x"]]))
+                    .unwrap(),
+                json!(expected)
+            );
+        }
+
+        let context = Context::new("Point".to_string(), HashMap::new(), 1);
+        assert!(
+            context
+                .evaluate(&json!(["to-string", ["get", "x"], ["get", "y"]]))
+                .is_err()
+        );
+    }
+
+    /// MapLibre's numbers are doubles, so an integer beyond 2^53 loses precision there too.
+    #[test]
+    fn test_to_string_operator_with_large_integer() {
+        let properties = HashMap::from([("x".to_string(), json!(9007199254740993u64))]);
+        let context = Context::new("Point".to_string(), properties, 1);
+
+        assert_eq!(
+            context
+                .evaluate(&json!(["to-string", ["get", "x"]]))
+                .unwrap(),
+            json!("9007199254740992")
+        );
     }
 
     #[test]
