@@ -125,6 +125,7 @@ fn label_line_strings(
                 )
                 .with_halo(halo_color, halo_width)
                 .with_placement(Placement::Line)
+                .with_max_width(Some(length(&line)))
                 .with_min_zoom(min_zoom)
                 .with_layer(layer)
                 .with_padding(padding),
@@ -202,7 +203,9 @@ fn midpoint(p1: &geo_types::Point<f32>, p2: &geo_types::Point<f32>) -> geo_types
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::render::geometry_type_to_str;
+    use crate::render::{geometry_type_to_str, transformed_texts};
+    use crate::text::place_texts;
+    use emath::TSTransform;
     use std::collections::HashMap;
     fn label(geometry: Geometry<f32>) -> Vec<Text> {
         let context = Context::new(
@@ -254,6 +257,31 @@ mod tests {
             ))),
             ["Śnieżka", "Śnieżka"]
         );
+    }
+
+    /// A street name is only drawn once the street, as seen on the screen, is long enough to
+    /// hold it, the label keeping its size while the map is zoomed.
+    #[test]
+    fn a_street_name_waits_until_the_street_is_long_enough_to_hold_it() {
+        let ctx = egui::Context::default();
+        // Fonts only exist once a pass has been run.
+        let mut output = ctx.run_ui(egui::RawInput::default(), |_| {});
+        output.textures_delta.clear();
+
+        let line_string =
+            geo_types::LineString::from(vec![(0.0f32, 0.0f32), (10.0, 0.0), (10.0, 30.0)]);
+        let texts = label(Geometry::LineString(line_string));
+
+        let placed = |scaling: f32| {
+            let texts = transformed_texts(&texts, TSTransform::from_scaling(scaling), 1., 0.);
+            place_texts(texts, &ctx)
+                .into_iter()
+                .filter(|shape| !matches!(shape, egui::Shape::Noop))
+                .count()
+        };
+
+        assert_eq!(placed(1.), 0);
+        assert_eq!(placed(10.), 1);
     }
 
     /// Labels are placed on the geometry, not at the origin.

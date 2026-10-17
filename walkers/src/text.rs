@@ -24,6 +24,7 @@ pub struct Text {
     pub min_zoom: Option<f32>,
     pub layer: usize,
     pub padding: f32,
+    pub max_width: Option<f32>,
 }
 
 impl Text {
@@ -46,6 +47,7 @@ impl Text {
             min_zoom: None,
             layer: 0,
             padding: 0.0,
+            max_width: None,
         }
     }
 
@@ -72,6 +74,11 @@ impl Text {
 
     pub fn with_padding(mut self, padding: f32) -> Self {
         self.padding = padding;
+        self
+    }
+
+    pub fn with_max_width(mut self, max_width: Option<f32>) -> Self {
+        self.max_width = max_width;
         self
     }
 }
@@ -216,6 +223,13 @@ fn place_text(text: Text, ctx: &egui::Context, placed_texts: &mut PlacedTexts) -
     );
 
     let galley = ctx.fonts_mut(|fonts| fonts.layout_job(layout_job));
+
+    if text
+        .max_width
+        .is_some_and(|max_width| galley.size().x > max_width)
+    {
+        return Shape::Noop;
+    }
 
     let top_left = OrientedRect::new(text.position, text.angle, galley.size()).top_left();
     let area = OrientedRect::new(

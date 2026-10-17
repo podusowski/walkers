@@ -31,6 +31,9 @@ pub(crate) fn transformed_texts(
         .filter(|text| text.min_zoom.is_none_or(|min_zoom| zoom >= min_zoom as f64))
         .map(|text| Text {
             position: text.position * transform.scaling + transform.translation,
+            max_width: text
+                .max_width
+                .map(|max_width| max_width * transform.scaling),
             text_color: text.text_color.gamma_multiply(transparency),
             halo_color: text.halo_color.gamma_multiply(transparency),
             ..text.to_owned()
