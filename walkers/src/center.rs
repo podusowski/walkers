@@ -1,5 +1,5 @@
 use crate::{
-    Position,
+    Position, Projection,
     position::{halfway, pixel_distance, shifted},
 };
 use egui::{DragPanButtons, PointerButton, Response, Vec2};
@@ -50,20 +50,27 @@ impl Center {
         my_position: Position,
         pull_to_my_position_threshold: f32,
         drag_pan_buttons: DragPanButtons,
+        projection: &dyn Projection,
         zoom: f64,
     ) -> bool {
         if dragged_by(response, drag_pan_buttons) {
-            self.dragged_by(my_position, response, zoom);
+            self.dragged_by(my_position, response, projection, zoom);
             true
         } else if response.drag_stopped() {
-            self.drag_stopped(my_position, pull_to_my_position_threshold, zoom);
+            self.drag_stopped(my_position, pull_to_my_position_threshold, projection, zoom);
             true
         } else {
             false
         }
     }
 
-    fn dragged_by(&mut self, my_position: Position, response: &Response, zoom: f64) {
+    fn dragged_by(
+        &mut self,
+        my_position: Position,
+        response: &Response,
+        projection: &dyn Projection,
+        zoom: f64,
+    ) {
         let from_detached = if let Center::Moving { from_detached, .. } = self {
             *from_detached
         } else {
@@ -71,7 +78,12 @@ impl Center {
         };
 
         *self = Center::Moving {
-            position: shifted(self.position(my_position), response.drag_delta(), zoom),
+            position: shifted(
+                projection,
+                self.position(my_position),
+                response.drag_delta(),
+                zoom,
+            ),
             velocity: pointer_velocity(response) * INERTIA_MULTIPLIER,
             from_detached,
         };
@@ -81,6 +93,7 @@ impl Center {
         &mut self,
         my_position: Position,
         pull_to_my_position_threshold: f32,
+        projection: &dyn Projection,
         zoom: f64,
     ) {
         if let Center::Moving {
@@ -90,7 +103,8 @@ impl Center {
         } = *self
         {
             if from_detached
-                || pixel_distance(position, my_position, zoom) > pull_to_my_position_threshold
+                || pixel_distance(projection, position, my_position, zoom)
+                    > pull_to_my_position_threshold
             {
                 *self = Center::Inertia { position, velocity };
             } else {
@@ -103,6 +117,7 @@ impl Center {
         &mut self,
         delta_time: f32,
         my_position: Position,
+        projection: &dyn Projection,
         zoom: f64,
     ) -> bool {
         match *self {
@@ -115,7 +130,7 @@ impl Center {
                     Center::Exact(position)
                 } else {
                     Center::Inertia {
-                        position: shifted(position, velocity * delta_time, zoom),
+                        position: shifted(projection, position, velocity * delta_time, zoom),
                         velocity,
                     }
                 };
@@ -123,8 +138,8 @@ impl Center {
             }
             Center::PulledToMyPosition(position) => {
                 // Close half of the distance on each frame.
-                let position = halfway(position, my_position, zoom);
-                *self = if pixel_distance(position, my_position, zoom) < 1.0 {
+                let position = halfway(projection, position, my_position, zoom);
+                *self = if pixel_distance(projection, position, my_position, zoom) < 1.0 {
                     Center::MyPosition
                 } else {
                     Center::PulledToMyPosition(position)
@@ -157,24 +172,24 @@ impl Center {
     }
 
     /// Shift position by given number of pixels, if detached.
-    pub(crate) fn shift(self, offset: Vec2, zoom: f64) -> Self {
+    pub(crate) fn shift(self, offset: Vec2, projection: &dyn Projection, zoom: f64) -> Self {
         match self {
             Center::MyPosition => Center::MyPosition,
             Center::PulledToMyPosition(position) => {
-                Center::PulledToMyPosition(shifted(position, offset, zoom))
+                Center::PulledToMyPosition(shifted(projection, position, offset, zoom))
             }
-            Center::Exact(position) => Center::Exact(shifted(position, offset, zoom)),
+            Center::Exact(position) => Center::Exact(shifted(projection, position, offset, zoom)),
             Center::Moving {
                 position,
                 velocity,
                 from_detached,
             } => Center::Moving {
-                position: shifted(position, offset, zoom),
+                position: shifted(projection, position, offset, zoom),
                 velocity,
                 from_detached,
             },
             Center::Inertia { position, velocity } => Center::Inertia {
-                position: shifted(position, offset, zoom),
+                position: shifted(projection, position, offset, zoom),
                 velocity,
             },
         }
@@ -209,6 +224,7 @@ fn pointer_velocity(response: &Response) -> Vec2 {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::MercatorProjection;
     use crate::lat_lon;
     use approx::assert_relative_eq;
 
@@ -240,7 +256,7 @@ mod tests {
         let dragged = distance_from(&center, position);
 
         for _ in 0..10000 {
-            if !center.update_movement(frame_time, Position::default(), ZOOM) {
+            if !center.update_movement(frame_time, Position::default(), &MercatorProjection, ZOOM) {
                 break;
             }
         }
@@ -266,6 +282,7 @@ mod tests {
                 Position::default(),
                 0.,
                 DragPanButtons::PRIMARY,
+                &MercatorProjection,
                 ZOOM,
             );
         });
@@ -300,7 +317,7 @@ mod tests {
     fn distance_from(center: &Center, start: Position) -> f32 {
         center
             .detached()
-            .map(|position| pixel_distance(position, start, ZOOM))
+            .map(|position| pixel_distance(&MercatorProjection, position, start, ZOOM))
             .unwrap_or_default()
     }
 

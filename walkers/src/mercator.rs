@@ -51,10 +51,19 @@ fn mercator_normalized(position: Position) -> (f64, f64) {
     (x, y)
 }
 
-/// Calculate the tile coordinated for the given position.
-pub(crate) fn tile_id(position: Position, zoom: u8, source_tile_size: u32) -> TileId {
-    let (x, y) = mercator_normalized(position);
+/// Calculate the tile coordinates for the given pixels of the map at `zoom`.
+pub(crate) fn tile_id_at(pixels: Pixels, zoom: f64, source_tile_size: u32) -> TileId {
+    let total_pixels = total_pixels(zoom);
+    tile_id_normalized(
+        pixels.x() / total_pixels,
+        pixels.y() / total_pixels,
+        zoom.round() as u8,
+        source_tile_size,
+    )
+}
 
+/// Calculate the tile coordinates for the given position normalized to 0-1 range.
+fn tile_id_normalized(x: f64, y: f64, zoom: u8, source_tile_size: u32) -> TileId {
     // Some sources provide tiles of a different size, effectively bundling e.g. 4 256px tiles
     // in one 512px one, or splitting a single one into 4 128px ones. Walkers uses 256px
     // internally, so we need to adjust the zoom level in either direction.
@@ -79,6 +88,18 @@ pub fn project(position: Position, zoom: f64) -> Pixels {
     Pixels::new(x * total_pixels, y * total_pixels)
 }
 
+/// How many pixels there are in a meter at the given latitude and zoom level.
+pub(crate) fn pixels_per_meter(latitude: f64, zoom: f64) -> f64 {
+    const EARTH_CIRCUMFERENCE: f64 = 40_075_016.686;
+
+    // Number of pixels for width of world at this zoom level
+    let total_pixels = total_pixels(zoom);
+
+    let pixel_per_meter_equator = total_pixels / EARTH_CIRCUMFERENCE;
+    let latitude_rad = latitude.abs().to_radians();
+    pixel_per_meter_equator / latitude_rad.cos()
+}
+
 /// Transforms screen pixels into a geographical position.
 pub(crate) fn unproject(pixels: Pixels, zoom: f64) -> Position {
     let number_of_pixels: f64 = 2f64.powf(zoom) * (TILE_SIZE as f64);
@@ -100,6 +121,21 @@ pub(crate) fn unproject(pixels: Pixels, zoom: f64) -> Position {
 mod tests {
     use super::*;
     use crate::lat_lon;
+    use approx::assert_abs_diff_eq;
+
+    #[test]
+    fn test_equator_zoom_0() {
+        // At zoom 0 (whole world), equator should be about 156.5km per pixel
+        let scale = pixels_per_meter(0.0, 0.);
+        assert_abs_diff_eq!(scale, 1. / 156_543.03, epsilon = 0.01);
+    }
+
+    #[test]
+    fn test_equator_zoom_19() {
+        // At max zoom (19), equator should be about 0.3m per pixel
+        let scale = pixels_per_meter(0.0, 19.);
+        assert_abs_diff_eq!(scale, 1. / 0.298, epsilon = 0.01);
+    }
 
     #[test]
     fn projecting_position_and_tile() {
@@ -115,7 +151,7 @@ mod tests {
                 y: 345104,
                 zoom
             },
-            tile_id(citadel, zoom, 256)
+            tile_id_at(project(citadel, zoom as f64), zoom as f64, 256)
         );
 
         // Automatically zooms out for larger tiles
@@ -125,13 +161,13 @@ mod tests {
                 y: 172552,
                 zoom: zoom - 1
             },
-            tile_id(citadel, zoom, 512)
+            tile_id_at(project(citadel, zoom as f64), zoom as f64, 512)
         );
 
         // Projected tile is just its x, y multiplied by the size of tiles.
         assert_eq!(
             Pixels::new(585455. * 256., 345104. * 256.),
-            tile_id(citadel, zoom, 256).project(256.)
+            tile_id_at(project(citadel, zoom as f64), zoom as f64, 256).project(256.)
         );
 
         // Projected Citadel position should be somewhere near projected tile, shifted only by the
@@ -158,14 +194,14 @@ mod tests {
                 y: 345104 * 2,
                 zoom: zoom + 1
             },
-            tile_id(citadel, zoom, 128)
+            tile_id_at(project(citadel, zoom as f64), zoom as f64, 128)
         );
 
         // Whatever the tile size, the smaller tile has to lie within the 256px one covering
         // the same position.
         for (tile_size, levels) in [(128, 1), (64, 2), (32, 3)] {
-            let base = tile_id(citadel, zoom, 256);
-            let smaller = tile_id(citadel, zoom, tile_size);
+            let base = tile_id_at(project(citadel, zoom as f64), zoom as f64, 256);
+            let smaller = tile_id_at(project(citadel, zoom as f64), zoom as f64, tile_size);
             let ratio = 2u32.pow(levels);
 
             assert_eq!(base.zoom + levels as u8, smaller.zoom);
@@ -180,10 +216,16 @@ mod tests {
     fn zoomed_in_further_than_tile_coordinates_allow() {
         let citadel = lon_lat(21.00027, 52.26470);
 
-        assert_eq!(MAX_TILE_ZOOM, tile_id(citadel, 26, 1).zoom);
+        assert_eq!(
+            MAX_TILE_ZOOM,
+            tile_id_at(project(citadel, 26.), 26., 1).zoom
+        );
 
         // Degenerate, but it should not panic either.
-        assert_eq!(MAX_TILE_ZOOM, tile_id(citadel, 26, 0).zoom);
+        assert_eq!(
+            MAX_TILE_ZOOM,
+            tile_id_at(project(citadel, 26.), 26., 0).zoom
+        );
     }
 
     #[test]
@@ -198,7 +240,7 @@ mod tests {
                 y: 0,
                 zoom: 0
             },
-            tile_id(citadel, 0, 512)
+            tile_id_at(project(citadel, 0.), 0., 512)
         );
         assert_eq!(
             TileId {
@@ -206,7 +248,7 @@ mod tests {
                 y: 0,
                 zoom: 0
             },
-            tile_id(citadel, 1, 1024)
+            tile_id_at(project(citadel, 1.), 1., 1024)
         );
     }
 
