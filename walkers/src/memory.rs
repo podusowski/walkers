@@ -1,4 +1,4 @@
-use crate::{InvalidZoom, Position, center::Center, position::AdjustedPosition, zoom::Zoom};
+use crate::{InvalidZoom, Position, center::Center, zoom::Zoom};
 
 /// State of the map widget which must persist between frames.
 #[derive(Debug, Default, Clone)]
@@ -45,7 +45,7 @@ impl MapMemory {
 
     /// Point the map exactly at the given geographical position.
     pub fn center_at(&mut self, position: Position) {
-        self.center_mode = Center::Exact(AdjustedPosition::new(position));
+        self.center_mode = Center::Exact(position);
     }
 
     /// Start following `my_position` given in [`crate::Map::new`].

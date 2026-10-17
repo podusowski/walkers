@@ -1,4 +1,7 @@
-use crate::{Position, position::AdjustedPosition};
+use crate::{
+    Position,
+    position::{halfway, pixel_distance, shifted},
+};
 use egui::{DragPanButtons, PointerButton, Response, Vec2};
 
 /// Time constant of inertia stopping filter
@@ -22,25 +25,22 @@ pub(crate) enum Center {
     MyPosition,
 
     /// Centered at the exact position.
-    Exact(AdjustedPosition),
+    Exact(Position),
 
     /// Map is being dragged by mouse or finger.
     Moving {
-        position: AdjustedPosition,
+        position: Position,
         velocity: Vec2,
         /// Whether the drag was started from a detached state.
         from_detached: bool,
     },
 
     /// Map is moving, but due to inertia, and will slow down and stop in a short while.
-    Inertia {
-        position: AdjustedPosition,
-        velocity: Vec2,
-    },
+    Inertia { position: Position, velocity: Vec2 },
 
     /// Map is being pulled back to the `my_position`. This happens when the user releases the
     /// dragging gesture, but the map is too close to the `my_position`.
-    PulledToMyPosition(AdjustedPosition),
+    PulledToMyPosition(Position),
 }
 
 impl Center {
@@ -56,7 +56,7 @@ impl Center {
             self.dragged_by(my_position, response, zoom);
             true
         } else if response.drag_stopped() {
-            self.drag_stopped(pull_to_my_position_threshold);
+            self.drag_stopped(my_position, pull_to_my_position_threshold, zoom);
             true
         } else {
             false
@@ -67,58 +67,64 @@ impl Center {
         let from_detached = if let Center::Moving { from_detached, .. } = self {
             *from_detached
         } else {
-            // Only `MyPosition` state has no adjusted position.
-            self.adjusted_position().is_some()
+            self.detached().is_some()
         };
 
         *self = Center::Moving {
-            position: self
-                .adjusted_position()
-                .unwrap_or(AdjustedPosition::new(my_position))
-                .shift(response.drag_delta(), zoom),
+            position: shifted(self.position(my_position), response.drag_delta(), zoom),
             velocity: pointer_velocity(response) * INERTIA_MULTIPLIER,
             from_detached,
         };
     }
 
-    fn drag_stopped(&mut self, pull_to_my_position_threshold: f32) {
+    fn drag_stopped(
+        &mut self,
+        my_position: Position,
+        pull_to_my_position_threshold: f32,
+        zoom: f64,
+    ) {
         if let Center::Moving {
             position,
             velocity,
             from_detached,
-        } = &self
+        } = *self
         {
-            if *from_detached || position.offset_length() > pull_to_my_position_threshold {
-                *self = Center::Inertia {
-                    position: position.clone(),
-                    velocity: *velocity,
-                };
+            if from_detached
+                || pixel_distance(position, my_position, zoom) > pull_to_my_position_threshold
+            {
+                *self = Center::Inertia { position, velocity };
             } else {
-                *self = Center::PulledToMyPosition(position.to_owned());
+                *self = Center::PulledToMyPosition(position);
             }
         }
     }
 
-    pub(crate) fn update_movement(&mut self, delta_time: f32, zoom: f64) -> bool {
-        match &self {
+    pub(crate) fn update_movement(
+        &mut self,
+        delta_time: f32,
+        my_position: Position,
+        zoom: f64,
+    ) -> bool {
+        match *self {
             Center::Inertia { position, velocity } => {
                 // Exponentially drive the velocity towards zero.
                 let lp_factor = INERTIA_TAU / (delta_time + INERTIA_TAU);
-                let velocity = *velocity * lp_factor;
+                let velocity = velocity * lp_factor;
 
                 *self = if velocity.length() < INERTIA_STOP_SPEED {
-                    Center::Exact(position.to_owned())
+                    Center::Exact(position)
                 } else {
                     Center::Inertia {
-                        position: position.clone().shift(velocity * delta_time, zoom),
+                        position: shifted(position, velocity * delta_time, zoom),
                         velocity,
                     }
                 };
                 true
             }
             Center::PulledToMyPosition(position) => {
-                let position = position.clone().half_offset();
-                *self = if position.offset_length() < 1.0 {
+                // Close half of the distance on each frame.
+                let position = halfway(position, my_position, zoom);
+                *self = if pixel_distance(position, my_position, zoom) < 1.0 {
                     Center::MyPosition
                 } else {
                     Center::PulledToMyPosition(position)
@@ -132,21 +138,17 @@ impl Center {
     /// Returns exact position if map is detached (i.e. not following `my_position`),
     /// `None` otherwise.
     pub(crate) fn detached(&self) -> Option<Position> {
-        self.adjusted_position().map(|p| p.position())
-    }
-
-    pub fn animating(&self) -> bool {
-        matches!(self, Center::Inertia { .. } | Center::PulledToMyPosition(_))
-    }
-
-    fn adjusted_position(&self) -> Option<AdjustedPosition> {
-        match self {
+        match *self {
             Center::MyPosition => None,
             Center::Exact(position)
             | Center::PulledToMyPosition(position)
             | Center::Moving { position, .. }
-            | Center::Inertia { position, .. } => Some(position.to_owned()),
+            | Center::Inertia { position, .. } => Some(position),
         }
+    }
+
+    pub fn animating(&self) -> bool {
+        matches!(self, Center::Inertia { .. } | Center::PulledToMyPosition(_))
     }
 
     /// Get the real position at the map's center.
@@ -159,20 +161,20 @@ impl Center {
         match self {
             Center::MyPosition => Center::MyPosition,
             Center::PulledToMyPosition(position) => {
-                Center::PulledToMyPosition(position.shift(offset, zoom))
+                Center::PulledToMyPosition(shifted(position, offset, zoom))
             }
-            Center::Exact(position) => Center::Exact(position.shift(offset, zoom)),
+            Center::Exact(position) => Center::Exact(shifted(position, offset, zoom)),
             Center::Moving {
                 position,
                 velocity,
                 from_detached,
             } => Center::Moving {
-                position: position.shift(offset, zoom),
+                position: shifted(position, offset, zoom),
                 velocity,
                 from_detached,
             },
             Center::Inertia { position, velocity } => Center::Inertia {
-                position: position.shift(offset, zoom),
+                position: shifted(position, offset, zoom),
                 velocity,
             },
         }
@@ -216,7 +218,7 @@ mod tests {
     fn fling_distance(pointer_speed: f32, frame_time: f32) -> f32 {
         let ctx = egui::Context::default();
         let position = lat_lon(51.10, 17.03);
-        let mut center = Center::Exact(AdjustedPosition::new(position));
+        let mut center = Center::Exact(position);
         let mut pointer = egui::pos2(100., 100.);
 
         // The whole gesture, frame by frame. The first one is empty, because `egui` needs to know
@@ -235,15 +237,15 @@ mod tests {
             run_frame(&ctx, &mut center, events, time, frame_time);
         }
 
-        let dragged = offset_length(&center);
+        let dragged = distance_from(&center, position);
 
         for _ in 0..10000 {
-            if !center.update_movement(frame_time, ZOOM) {
+            if !center.update_movement(frame_time, Position::default(), ZOOM) {
                 break;
             }
         }
 
-        offset_length(&center) - dragged
+        distance_from(&center, position) - dragged
     }
 
     /// Run a single frame of a map being dragged, letting `center` handle the gestures.
@@ -294,10 +296,11 @@ mod tests {
         }
     }
 
-    fn offset_length(center: &Center) -> f32 {
+    /// How far, in pixels, the map has moved from `start`.
+    fn distance_from(center: &Center, start: Position) -> f32 {
         center
-            .adjusted_position()
-            .map(|position| position.offset_length())
+            .detached()
+            .map(|position| pixel_distance(position, start, ZOOM))
             .unwrap_or_default()
     }
 

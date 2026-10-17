@@ -18,52 +18,19 @@ pub fn lon_lat(lon: f64, lat: f64) -> Position {
     Position::new(lon, lat)
 }
 
-/// Geographical [`Position`] shifted by a number of pixels on the screen.
-#[derive(Debug, Clone, PartialEq)]
-#[cfg_attr(feature = "serde", derive(::serde::Serialize, ::serde::Deserialize))]
-pub struct AdjustedPosition {
-    /// Base geographical position.
-    position: Position,
-    /// Offset in pixels.
-    offset: Pixels,
-    /// Zoom level at which the position was adjusted.
-    zoom: f64,
+/// Move `position` by `offset` pixels on the screen, the way dragging the map at `zoom` does.
+pub(crate) fn shifted(position: Position, offset: Vec2, zoom: f64) -> Position {
+    unproject(project(position, zoom) - Pixels::from_vec2(offset), zoom)
 }
 
-impl AdjustedPosition {
-    pub fn new(position: Position) -> Self {
-        Self {
-            position,
-            offset: Pixels::new(0.0, 0.0),
-            zoom: 1.0, // Does not matter, as offset is zero.
-        }
-    }
+/// Position halfway between `a` and `b` on the screen.
+pub(crate) fn halfway(a: Position, b: Position, zoom: f64) -> Position {
+    unproject((project(a, zoom) + project(b, zoom)) / 2., zoom)
+}
 
-    /// Calculate the real position, i.e. including the offset.
-    pub fn position(&self) -> Position {
-        unproject(project(self.position, self.zoom) - self.offset, self.zoom)
-    }
-
-    pub fn shift(self, offset: Vec2, zoom: f64) -> Self {
-        let changed_zoom_factor = 2.0_f64.powf(zoom - self.zoom);
-        Self {
-            position: self.position,
-            offset: self.offset * changed_zoom_factor + Pixels::from_vec2(offset),
-            zoom,
-        }
-    }
-
-    pub fn offset_length(&self) -> f32 {
-        self.offset.to_vec2().length()
-    }
-
-    pub fn half_offset(self) -> Self {
-        Self {
-            position: self.position,
-            offset: self.offset / 2.0,
-            zoom: self.zoom,
-        }
-    }
+/// Distance between two positions on the screen, in pixels.
+pub(crate) fn pixel_distance(a: Position, b: Position, zoom: f64) -> f32 {
+    (project(a, zoom) - project(b, zoom)).to_vec2().length()
 }
 
 /// Location projected on the screen or an abstract bitmap.
@@ -89,48 +56,55 @@ mod tests {
     use super::*;
     use approx::assert_relative_eq;
 
-    fn base_adjusted_position() -> AdjustedPosition {
-        AdjustedPosition::new(lat_lon(51.0, 17.0))
+    fn base_position() -> Position {
+        lat_lon(51.0, 17.0)
     }
 
     #[test]
-    fn shifting_adjusted_position() {
-        let position = base_adjusted_position().shift(Pixels::new(10.0, 20.0).to_vec2(), 10.0);
-        assert_relative_eq!(position.position().x(), 16.98626708984377);
-        assert_relative_eq!(position.position().y(), 51.017281581280216);
+    fn shifting_position() {
+        let position = shifted(base_position(), Vec2::new(10.0, 20.0), 10.0);
+        assert_relative_eq!(position.x(), 16.98626708984377);
+        assert_relative_eq!(position.y(), 51.017281581280216);
 
         // When zoom is lower, the offset expressed as screen pixels will be larger.
-        let position = base_adjusted_position().shift(Pixels::new(10.0, 20.0).to_vec2(), 2.0);
-        assert_relative_eq!(position.position().x(), 13.48437500000002);
-        assert_relative_eq!(position.position().y(), 55.21655462355652);
+        let position = shifted(base_position(), Vec2::new(10.0, 20.0), 2.0);
+        assert_relative_eq!(position.x(), 13.48437500000002);
+        assert_relative_eq!(position.y(), 55.21655462355652);
     }
 
     #[test]
-    fn shifting_adjusted_position_by_nothing() {
-        let position = base_adjusted_position()
-            .shift(Pixels::new(10.0, 20.0).to_vec2(), 2.0)
-            .shift(Pixels::new(0.0, 0.0).to_vec2(), 10.0);
-        assert_relative_eq!(position.position().x(), 13.48437500000002);
-        assert_relative_eq!(position.position().y(), 55.21655462355652);
+    fn shifting_position_by_nothing() {
+        // Projecting there and back is not exact, but off by nanometers.
+        let position = shifted(base_position(), Vec2::ZERO, 10.0);
+        assert_relative_eq!(position.x(), base_position().x(), epsilon = 1e-9);
+        assert_relative_eq!(position.y(), base_position().y(), epsilon = 1e-9);
     }
 
     #[test]
-    fn shifting_adjusted_position_using_different_zoom() {
-        let position = base_adjusted_position()
-            .shift(Pixels::new(5.0, 10.0).to_vec2(), 10.0)
-            .shift(Pixels::new(10.0, 20.0).to_vec2(), 11.0);
+    fn shifting_position_using_different_zoom() {
+        let position = shifted(base_position(), Vec2::new(5.0, 10.0), 10.0);
+        let position = shifted(position, Vec2::new(10.0, 20.0), 11.0);
 
-        assert_relative_eq!(position.position().x(), 16.98626708984377);
-        assert_relative_eq!(position.position().y(), 51.017281581280216);
+        assert_relative_eq!(position.x(), 16.98626708984377);
+        assert_relative_eq!(position.y(), 51.017281581280216);
     }
 
     #[test]
-    fn test_adjusted_position_offset_length() {
-        let position = base_adjusted_position().shift(Pixels::new(10.0, 0.0).to_vec2(), 10.0);
-        assert_relative_eq!(position.offset_length(), 10.0);
+    fn pixel_distance_between_shifted_positions() {
+        let position = shifted(base_position(), Vec2::new(10.0, 0.0), 10.0);
+        assert_relative_eq!(pixel_distance(position, base_position(), 10.0), 10.0);
 
-        // Shifting it further should increase the offset length.
-        let position = position.shift(Pixels::new(10.0, 0.0).to_vec2(), 10.0);
-        assert_relative_eq!(position.offset_length(), 20.0);
+        // Shifting it further should increase the distance.
+        let position = shifted(position, Vec2::new(10.0, 0.0), 10.0);
+        assert_relative_eq!(pixel_distance(position, base_position(), 10.0), 20.0);
+    }
+
+    #[test]
+    fn halfway_between_positions() {
+        let far = shifted(base_position(), Vec2::new(10.0, 20.0), 10.0);
+        let middle = halfway(far, base_position(), 10.0);
+        let expected = shifted(base_position(), Vec2::new(5.0, 10.0), 10.0);
+        assert_relative_eq!(middle.x(), expected.x());
+        assert_relative_eq!(middle.y(), expected.y());
     }
 }
