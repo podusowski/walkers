@@ -2,12 +2,6 @@
 
 All notable changes to this project will be documented in this file.
 
-## Unreleased
-
-* When the map is dragged only a bit away from `my_position` and pulled back, it goes to where
-  `my_position` is now, rather than where it was when the drag started.
-* `MapMemory` is serialized differently, so one saved by an earlier version cannot be loaded.
-
 ## 0.63.0
 
 * `egui` updated to 0.37.
