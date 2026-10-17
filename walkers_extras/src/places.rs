@@ -101,7 +101,7 @@ where
         _map_memory: &MapMemory,
     ) {
         for (idx, places) in groups(&self.places, projector).iter().enumerate() {
-            let id = ui.id().with(idx);
+            let id = ui.scope_id().with(idx);
             let position = center(&places.iter().map(|p| p.position()).collect::<Vec<_>>());
             let expand = self.interact(position, projector, ui, id);
 
@@ -424,7 +424,7 @@ impl<T: Place, G: Group> GroupedPlacesTree<T, G> {
             &cache,
             |seed_idx, members, center| {
                 const HITBOX_PX: f32 = 50.0;
-                let cluster_id = ui.id().with(("rstar_cluster", seed_idx));
+                let cluster_id = ui.scope_id().with(("rstar_cluster", seed_idx));
                 let expand = interact_cluster(ui, projector, center, cluster_id, HITBOX_PX);
 
                 if members.len() >= 2 && !expand {

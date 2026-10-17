@@ -34,7 +34,9 @@ pub fn controls(app: &mut MyApp, ui: &Ui, frame: &mut eframe::Frame) {
             ui.heading("Map");
 
             let mut selected = app.basemaps.selected().to_owned();
-            ComboBox::from_label("Basemap")
+            ComboBox::from_id_salt("basemap")
+                .width(ui.available_width())
+                .truncate()
                 .selected_text(&selected)
                 .show_ui(ui, |ui| {
                     for name in app.basemaps.names() {
