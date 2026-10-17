@@ -10,12 +10,12 @@ use std::collections::HashSet;
 use thiserror::Error;
 
 use crate::io::TileFactory;
-use crate::mercator::{TILE_SIZE, project, tile_id, total_tiles};
+use crate::mercator::{TILE_SIZE, tile_id_at, total_tiles};
 use crate::position::{Pixels, PixelsExt};
 use crate::sources::Attribution;
 use crate::style::Style;
 use crate::zoom::Zoom;
-use crate::{Position, Stats};
+use crate::{Projector, Stats};
 
 #[derive(Error, Debug)]
 pub enum TileError {
@@ -294,7 +294,7 @@ impl TilePiece {
 
 pub(crate) fn draw_tiles(
     painter: &egui::Painter,
-    map_center: Position,
+    projector: &Projector,
     zoom: Zoom,
     tiles: &mut dyn Tiles,
     transparency: f32,
@@ -305,12 +305,16 @@ pub(crate) fn draw_tiles(
     flood_fill_tiles(
         &Spread {
             painter,
-            map_center_projected_position: project(map_center, zoom.into()),
+            map_center_projected_position: projector.map_center_projected_position(),
             zoom: zoom.into(),
             transparency,
             map_layer,
         },
-        tile_id(map_center, zoom.round(), tiles.tile_size()),
+        tile_id_at(
+            projector.map_center_projected_position(),
+            zoom.into(),
+            tiles.tile_size(),
+        ),
         tiles,
         &mut meshes,
         texts,
@@ -490,6 +494,19 @@ mod tests {
         }
     }
 
+    /// Projector for the `painter`'s viewport, centered somewhere in Warsaw.
+    fn projector_at(painter: &egui::Painter, zoom: f64) -> Projector<'static> {
+        let mut memory = crate::MapMemory::default();
+        #[allow(clippy::unwrap_used)]
+        memory.set_zoom(zoom).unwrap();
+        Projector::new(
+            painter.clip_rect(),
+            &crate::MercatorProjection,
+            &memory,
+            lon_lat(21.00027, 52.26470),
+        )
+    }
+
     /// Run [`draw_tiles`] on a viewport of `TILE_SIZE` squared, and report which tiles the
     /// source was asked for.
     fn requested_tiles(tile_size: u32, zoom: f64) -> Vec<TileId> {
@@ -505,7 +522,7 @@ mod tests {
         #[allow(clippy::unwrap_used)]
         draw_tiles(
             &painter,
-            lon_lat(21.00027, 52.26470),
+            &projector_at(&painter, zoom),
             Zoom::try_from(zoom).unwrap(),
             &mut tiles,
             1.0,
@@ -657,7 +674,7 @@ mod tests {
         #[allow(clippy::unwrap_used)]
         draw_tiles(
             &painter,
-            lon_lat(21.00027, 52.26470),
+            &projector_at(&painter, 16.),
             Zoom::try_from(16.).unwrap(),
             &mut LabelAtBothEdges,
             1.0,

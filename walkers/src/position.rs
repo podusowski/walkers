@@ -1,6 +1,6 @@
 //! Types and functions for working with positions.
 
-use crate::mercator::{project, unproject};
+use crate::Projection;
 use egui::Vec2;
 
 /// Geographical position with latitude and longitude.
@@ -19,18 +19,41 @@ pub fn lon_lat(lon: f64, lat: f64) -> Position {
 }
 
 /// Move `position` by `offset` pixels on the screen, the way dragging the map at `zoom` does.
-pub(crate) fn shifted(position: Position, offset: Vec2, zoom: f64) -> Position {
-    unproject(project(position, zoom) - Pixels::from_vec2(offset), zoom)
+pub(crate) fn shifted(
+    projection: &dyn Projection,
+    position: Position,
+    offset: Vec2,
+    zoom: f64,
+) -> Position {
+    projection.unproject(
+        projection.project(position, zoom) - Pixels::from_vec2(offset),
+        zoom,
+    )
 }
 
 /// Position halfway between `a` and `b` on the screen.
-pub(crate) fn halfway(a: Position, b: Position, zoom: f64) -> Position {
-    unproject((project(a, zoom) + project(b, zoom)) / 2., zoom)
+pub(crate) fn halfway(
+    projection: &dyn Projection,
+    a: Position,
+    b: Position,
+    zoom: f64,
+) -> Position {
+    projection.unproject(
+        (projection.project(a, zoom) + projection.project(b, zoom)) / 2.,
+        zoom,
+    )
 }
 
 /// Distance between two positions on the screen, in pixels.
-pub(crate) fn pixel_distance(a: Position, b: Position, zoom: f64) -> f32 {
-    (project(a, zoom) - project(b, zoom)).to_vec2().length()
+pub(crate) fn pixel_distance(
+    projection: &dyn Projection,
+    a: Position,
+    b: Position,
+    zoom: f64,
+) -> f32 {
+    (projection.project(a, zoom) - projection.project(b, zoom))
+        .to_vec2()
+        .length()
 }
 
 /// Location projected on the screen or an abstract bitmap.
@@ -54,6 +77,7 @@ impl PixelsExt for Pixels {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::MercatorProjection;
     use approx::assert_relative_eq;
 
     fn base_position() -> Position {
@@ -62,12 +86,22 @@ mod tests {
 
     #[test]
     fn shifting_position() {
-        let position = shifted(base_position(), Vec2::new(10.0, 20.0), 10.0);
+        let position = shifted(
+            &MercatorProjection,
+            base_position(),
+            Vec2::new(10.0, 20.0),
+            10.0,
+        );
         assert_relative_eq!(position.x(), 16.98626708984377);
         assert_relative_eq!(position.y(), 51.017281581280216);
 
         // When zoom is lower, the offset expressed as screen pixels will be larger.
-        let position = shifted(base_position(), Vec2::new(10.0, 20.0), 2.0);
+        let position = shifted(
+            &MercatorProjection,
+            base_position(),
+            Vec2::new(10.0, 20.0),
+            2.0,
+        );
         assert_relative_eq!(position.x(), 13.48437500000002);
         assert_relative_eq!(position.y(), 55.21655462355652);
     }
@@ -75,15 +109,20 @@ mod tests {
     #[test]
     fn shifting_position_by_nothing() {
         // Projecting there and back is not exact, but off by nanometers.
-        let position = shifted(base_position(), Vec2::ZERO, 10.0);
+        let position = shifted(&MercatorProjection, base_position(), Vec2::ZERO, 10.0);
         assert_relative_eq!(position.x(), base_position().x(), epsilon = 1e-9);
         assert_relative_eq!(position.y(), base_position().y(), epsilon = 1e-9);
     }
 
     #[test]
     fn shifting_position_using_different_zoom() {
-        let position = shifted(base_position(), Vec2::new(5.0, 10.0), 10.0);
-        let position = shifted(position, Vec2::new(10.0, 20.0), 11.0);
+        let position = shifted(
+            &MercatorProjection,
+            base_position(),
+            Vec2::new(5.0, 10.0),
+            10.0,
+        );
+        let position = shifted(&MercatorProjection, position, Vec2::new(10.0, 20.0), 11.0);
 
         assert_relative_eq!(position.x(), 16.98626708984377);
         assert_relative_eq!(position.y(), 51.017281581280216);
@@ -91,19 +130,40 @@ mod tests {
 
     #[test]
     fn pixel_distance_between_shifted_positions() {
-        let position = shifted(base_position(), Vec2::new(10.0, 0.0), 10.0);
-        assert_relative_eq!(pixel_distance(position, base_position(), 10.0), 10.0);
+        let position = shifted(
+            &MercatorProjection,
+            base_position(),
+            Vec2::new(10.0, 0.0),
+            10.0,
+        );
+        assert_relative_eq!(
+            pixel_distance(&MercatorProjection, position, base_position(), 10.0),
+            10.0
+        );
 
         // Shifting it further should increase the distance.
-        let position = shifted(position, Vec2::new(10.0, 0.0), 10.0);
-        assert_relative_eq!(pixel_distance(position, base_position(), 10.0), 20.0);
+        let position = shifted(&MercatorProjection, position, Vec2::new(10.0, 0.0), 10.0);
+        assert_relative_eq!(
+            pixel_distance(&MercatorProjection, position, base_position(), 10.0),
+            20.0
+        );
     }
 
     #[test]
     fn halfway_between_positions() {
-        let far = shifted(base_position(), Vec2::new(10.0, 20.0), 10.0);
-        let middle = halfway(far, base_position(), 10.0);
-        let expected = shifted(base_position(), Vec2::new(5.0, 10.0), 10.0);
+        let far = shifted(
+            &MercatorProjection,
+            base_position(),
+            Vec2::new(10.0, 20.0),
+            10.0,
+        );
+        let middle = halfway(&MercatorProjection, far, base_position(), 10.0);
+        let expected = shifted(
+            &MercatorProjection,
+            base_position(),
+            Vec2::new(5.0, 10.0),
+            10.0,
+        );
         assert_relative_eq!(middle.x(), expected.x());
         assert_relative_eq!(middle.y(), expected.y());
     }
