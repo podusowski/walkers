@@ -6,7 +6,7 @@ use egui::{
 use crate::{
     MapMemory, Options, Plugin, Position, Projector, Tiles,
     center::Center,
-    position::AdjustedPosition,
+    position::shifted,
     tiles::{Texts, draw_tiles},
 };
 
@@ -155,10 +155,10 @@ impl<'a, 'b, 'c> Map<'a, 'b, 'c> {
         let delta_time = ui.input(|reader| reader.stable_dt).at_most(0.1);
 
         let zoom = self.memory.zoom;
-        changed |= self
-            .memory
-            .center_mode
-            .update_movement(delta_time, zoom.into());
+        changed |=
+            self.memory
+                .center_mode
+                .update_movement(delta_time, self.my_position, zoom.into());
 
         if changed {
             response.mark_changed();
@@ -225,9 +225,8 @@ impl Map<'_, '_, '_> {
                 if self.memory.detached().is_some()
                     || offset.length() > self.options.pull_to_my_position_threshold
                 {
-                    self.memory.center_mode = Center::Exact(
-                        AdjustedPosition::new(self.position()).shift(-offset, self.memory.zoom()),
-                    );
+                    self.memory.center_mode =
+                        Center::Exact(shifted(self.position(), -offset, self.memory.zoom()));
                 }
             }
 
@@ -266,9 +265,8 @@ impl Map<'_, '_, '_> {
             // Panning by scrolling, e.g. two-finger drag on a touchpad:
             let scroll_delta = ui.input(|i| i.smooth_scroll_delta);
             if scroll_delta != Vec2::ZERO {
-                self.memory.center_mode = Center::Exact(
-                    AdjustedPosition::new(self.position()).shift(scroll_delta, self.memory.zoom()),
-                );
+                self.memory.center_mode =
+                    Center::Exact(shifted(self.position(), scroll_delta, self.memory.zoom()));
                 scroll_used = true;
             }
         }
