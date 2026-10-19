@@ -12,7 +12,7 @@ http-body-util.workspace = true
 log.workspace = true
 
 [dev-dependencies]
-reqwest.workspace = true
+reqwest = { workspace = true, features = ["rustls"] }
 futures.workspace = true
 env_logger.workspace = true
 tokio-test.workspace = true

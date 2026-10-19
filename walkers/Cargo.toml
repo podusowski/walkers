@@ -55,7 +55,9 @@ tokio.workspace = true
 wasm-bindgen-futures.workspace = true
 
 [features]
-default = []
+# reqwest/rustls enables aws-lc-rs. Allow users to opt out and set their own provider.
+default = ["rustls-aws-lc-rs"]
+rustls-aws-lc-rs = ["reqwest/rustls"]
 mvt = [
   "dep:bytemuck",
   "dep:color",
