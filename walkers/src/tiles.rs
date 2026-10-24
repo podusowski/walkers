@@ -14,8 +14,7 @@ use crate::mercator::{TILE_SIZE, tile_id_at, total_tiles};
 use crate::position::{Pixels, PixelsExt};
 use crate::sources::Attribution;
 use crate::style::Style;
-use crate::zoom::Zoom;
-use crate::{Projector, Stats};
+use crate::{Canvas, Projector, Stats, ZOrder};
 
 #[derive(Error, Debug)]
 pub enum TileError {
@@ -188,23 +187,22 @@ impl Tile {
     #[allow(clippy::too_many_arguments)]
     fn draw(
         &self,
-        painter: &egui::Painter,
+        canvas: &mut Canvas,
         rect: Rect,
         uv: Rect,
         transparency: f32,
         tile_size: u32,
         zoom: f64,
-        map_layer: usize,
-        texts: &mut Texts,
+        z_order: ZOrder,
     ) {
         #[cfg(not(feature = "mvt"))]
-        let _ = (tile_size, zoom, map_layer, texts);
+        let _ = (tile_size, zoom, z_order);
 
         match self {
             Tile::Raster(texture_handle) => {
                 let mut mesh = Mesh::with_texture(texture_handle.id());
                 mesh.add_rect_with_uv(rect, uv, Color32::WHITE.gamma_multiply(transparency));
-                painter.add(egui::Shape::mesh(mesh));
+                canvas.add_shape(egui::Shape::mesh(mesh));
             }
             #[cfg(feature = "mvt")]
             Tile::Vector {
@@ -213,70 +211,26 @@ impl Tile {
             } => {
                 // Renderer needs to work on the full tile, before it was clipped with `uv`...
                 let full_rect = full_rect_of_clipped_tile(rect, uv);
-
-                // ...and then it can be clipped to the `rect`.
-                let painter = painter.with_clip_rect(rect);
-
                 let transform = mvt::transform_onto(full_rect, tile_size);
 
-                let frame = painter.ctx().cumulative_pass_nr();
-
-                // The callback covers the whole viewport rather than this tile, because that
-                // is what egui sets the viewport to, and a tile hanging off the edge would
-                // have its own clamped. What keeps the tile inside its bounds is the painter's
-                // clip rectangle, which egui turns into a scissor.
-                let screen = painter.ctx().viewport_rect();
-
-                painter.extend((0..drawables.len()).map(|index| {
-                    crate::egui_backend::wgpu::Run::callback(
-                        drawables.to_owned(),
-                        index,
-                        transform,
-                        screen,
-                        frame,
-                        transparency,
-                    )
-                }));
-
-                texts.texts.extend(
-                    render::transformed_texts(
-                        from_tile,
-                        transform,
-                        transparency,
-                        zoom - crate::mercator::zoom_offset(tile_size) as f64,
-                    )
-                    .into_iter()
-                    .map(|text| (map_layer, text)),
+                // ...and then it can be clipped to the `rect`.
+                canvas.add_drawables(
+                    crate::Drawables::merged(drawables.to_owned())
+                        .with_transform(transform)
+                        .with_clip_rect(rect)
+                        .with_transparency(transparency),
                 );
+
+                for text in render::transformed_texts(
+                    from_tile,
+                    transform,
+                    transparency,
+                    zoom - crate::mercator::zoom_offset(tile_size) as f64,
+                ) {
+                    canvas.add_text(z_order.combine(text.layer), text);
+                }
             }
         }
-    }
-}
-
-/// Text gathered from the tiles of every layer, so that it can be placed against the whole
-/// viewport rather than one tile at a time.
-#[derive(Default)]
-pub(crate) struct Texts {
-    /// Each with the index of the map layer it comes from.
-    #[cfg(feature = "mvt")]
-    texts: Vec<(usize, crate::text::Text)>,
-}
-
-impl Texts {
-    /// Lay them out, drop the ones which would overlap, and paint what is left above every
-    /// layer.
-    pub(crate) fn paint(self, painter: &egui::Painter) {
-        // Map layers in the order they are drawn, then style layers from the top, as in MapLibre.
-        // Stable, so that within a style layer the tiles nearest the center still go first.
-        #[cfg(feature = "mvt")]
-        {
-            let mut texts = self.texts;
-            texts.sort_by_key(|(map_layer, text)| (*map_layer, std::cmp::Reverse(text.layer)));
-            let texts = texts.into_iter().map(|(_, text)| text).collect();
-            painter.extend(crate::text::place_texts(texts, painter.ctx()));
-        }
-        #[cfg(not(feature = "mvt"))]
-        let _ = painter;
     }
 }
 
@@ -293,41 +247,39 @@ impl TilePiece {
 }
 
 pub(crate) fn draw_tiles(
-    painter: &egui::Painter,
+    canvas: &mut Canvas,
     projector: &Projector,
-    zoom: Zoom,
     tiles: &mut dyn Tiles,
     transparency: f32,
-    map_layer: usize,
-    texts: &mut Texts,
+    z_order: ZOrder,
 ) {
     let mut meshes = Default::default();
     flood_fill_tiles(
         &Spread {
-            painter,
+            clip_rect: projector.clip_rect(),
             map_center_projected_position: projector.map_center_projected_position(),
-            zoom: zoom.into(),
+            zoom: projector.zoom(),
             transparency,
-            map_layer,
+            z_order,
         },
         tile_id_at(
             projector.map_center_projected_position(),
-            zoom.into(),
+            projector.zoom(),
             tiles.tile_size(),
         ),
         tiles,
         &mut meshes,
-        texts,
+        canvas,
     );
 }
 
 /// What stays the same as the fill spreads from one tile to the next.
-struct Spread<'a> {
-    painter: &'a egui::Painter,
+struct Spread {
+    clip_rect: Rect,
     map_center_projected_position: Pixels,
     zoom: f64,
     transparency: f32,
-    map_layer: usize,
+    z_order: ZOrder,
 }
 
 /// Use simple [flood fill algorithm](https://en.wikipedia.org/wiki/Flood_fill) to draw tiles on the map.
@@ -336,38 +288,35 @@ fn flood_fill_tiles(
     tile_id: TileId,
     tiles: &mut dyn Tiles,
     meshes: &mut HashSet<TileId>,
-    texts: &mut Texts,
+    canvas: &mut Canvas,
 ) {
     let Spread {
-        painter,
+        clip_rect,
         map_center_projected_position,
         zoom,
         transparency,
-        map_layer,
+        z_order,
     } = *spread;
     // The tile's zoom level can differ from the map's: it is rounded to an integer, adjusted
     // for sources with tiles larger than 256px, and clamped at 0. Scale the tile so that it
     // covers the right amount of the map regardless.
     let corrected_tile_size = TILE_SIZE as f64 * 2f64.powf(zoom - tile_id.zoom as f64);
     let tile_projected = tile_id.project(corrected_tile_size);
-    let tile_screen_position = painter.clip_rect().center().to_vec2()
-        + (tile_projected - map_center_projected_position).to_vec2();
+    let tile_screen_position =
+        clip_rect.center().to_vec2() + (tile_projected - map_center_projected_position).to_vec2();
 
-    if painter
-        .clip_rect()
-        .intersects(rect(tile_screen_position, corrected_tile_size))
+    if clip_rect.intersects(rect(tile_screen_position, corrected_tile_size))
         && meshes.insert(tile_id)
     {
         if let Some(tile) = tiles.at(tile_id) {
             tile.tile.draw(
-                painter,
+                canvas,
                 rect(tile_screen_position, corrected_tile_size),
                 tile.uv,
                 transparency,
                 tiles.tile_size(),
                 zoom,
-                map_layer,
-                texts,
+                z_order,
             )
         }
 
@@ -380,7 +329,7 @@ fn flood_fill_tiles(
         .iter()
         .flatten()
         {
-            flood_fill_tiles(spread, *next_tile_id, tiles, meshes, texts);
+            flood_fill_tiles(spread, *next_tile_id, tiles, meshes, canvas);
         }
     }
 }
@@ -494,13 +443,13 @@ mod tests {
         }
     }
 
-    /// Projector for the `painter`'s viewport, centered somewhere in Warsaw.
-    fn projector_at(painter: &egui::Painter, zoom: f64) -> Projector<'static> {
+    /// Projector for a square viewport of `size`, centered somewhere in Warsaw.
+    fn projector_at(size: f32, zoom: f64) -> Projector<'static> {
         let mut memory = crate::MapMemory::default();
         #[allow(clippy::unwrap_used)]
         memory.set_zoom(zoom).unwrap();
         Projector::new(
-            painter.clip_rect(),
+            Rect::from_min_size(pos2(0., 0.), Vec2::splat(size)),
             &crate::MercatorProjection,
             &memory,
             lon_lat(21.00027, 52.26470),
@@ -510,24 +459,14 @@ mod tests {
     /// Run [`draw_tiles`] on a viewport of `TILE_SIZE` squared, and report which tiles the
     /// source was asked for.
     fn requested_tiles(tile_size: u32, zoom: f64) -> Vec<TileId> {
-        let ctx = Context::default();
-        let painter = egui::Painter::new(
-            ctx,
-            egui::LayerId::debug(),
-            Rect::from_min_size(pos2(0., 0.), Vec2::splat(TILE_SIZE as f32)),
-        );
-
         let mut tiles = RecordingTiles::new(tile_size);
 
-        #[allow(clippy::unwrap_used)]
         draw_tiles(
-            &painter,
-            &projector_at(&painter, zoom),
-            Zoom::try_from(zoom).unwrap(),
+            &mut Canvas::new(&Context::default()),
+            &projector_at(TILE_SIZE as f32, zoom),
             &mut tiles,
             1.0,
-            0,
-            &mut Texts::default(),
+            ZOrder::default(),
         );
 
         tiles.requested
@@ -664,26 +603,17 @@ mod tests {
         let mut output = ctx.run_ui(egui::RawInput::default(), |_| {});
         output.textures_delta.clear();
 
-        let painter = egui::Painter::new(
-            ctx.to_owned(),
-            egui::LayerId::debug(),
-            Rect::from_min_size(pos2(0., 0.), Vec2::splat(TILE_SIZE as f32 * 2.)),
-        );
-
-        let mut texts = Texts::default();
-        #[allow(clippy::unwrap_used)]
+        let mut canvas = Canvas::new(&ctx);
         draw_tiles(
-            &painter,
-            &projector_at(&painter, 16.),
-            Zoom::try_from(16.).unwrap(),
+            &mut canvas,
+            &projector_at(TILE_SIZE as f32 * 2., 16.),
             &mut LabelAtBothEdges,
             1.0,
-            0,
-            &mut texts,
+            ZOrder::default(),
         );
 
-        let gathered = texts.texts.len();
-        let positions: std::collections::HashSet<_> = texts
+        let gathered = canvas.texts.len();
+        let positions: std::collections::HashSet<_> = canvas
             .texts
             .iter()
             .map(|(_, text)| (text.position.x as i32, text.position.y as i32))
@@ -696,7 +626,7 @@ mod tests {
             positions.len()
         );
 
-        let texts = texts.texts.into_iter().map(|(_, text)| text).collect();
+        let texts = canvas.texts.into_iter().map(|(_, text)| text).collect();
         let placed = crate::text::place_texts(texts, &ctx)
             .into_iter()
             .filter(|shape| !matches!(shape, egui::Shape::Noop))

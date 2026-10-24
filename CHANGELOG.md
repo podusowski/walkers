@@ -6,6 +6,9 @@ All notable changes to this project will be documented in this file.
 
 * `concat` and `to-string` expressions are supported.
 * Allow opting out of using `aws-lc-rs` as rustls provider
+* `Map::show`'s closure gets a `Canvas`, which takes drawables and texts for the map to draw.
+* New `Projector::zoom`.
+* `to_shapes` is removed. Drawables go onto the `Canvas` instead.
 
 ## 0.63.0
 

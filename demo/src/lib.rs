@@ -64,15 +64,13 @@ impl eframe::App for MyApp {
         map = self.basemaps.add_to(map);
 
         // Draw the map widget.
-        let response = map.show(ui, |ui, response, projector, map_memory| {
-            let zoom = map_memory.zoom().round() as u8;
-
+        let response = map.show(ui, |ui, response, projector, _, canvas| {
             for layer in &self.kml_layers {
-                layer.render(ui, projector, zoom);
+                layer.render(canvas, projector);
             }
 
             for layer in &self.geojson_layers {
-                layer.render(ui, projector, zoom);
+                layer.render(canvas, projector);
             }
 
             // You can add any additional contents to the map's UI here, like remembering where

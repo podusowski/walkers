@@ -2,6 +2,7 @@
 #![deny(clippy::unwrap_used, rustdoc::broken_intra_doc_links)]
 
 mod cached_tiles;
+mod canvas;
 mod center;
 mod http_tiles;
 mod io;
@@ -40,10 +41,12 @@ mod projector;
 mod render;
 pub mod sources;
 mod tiles;
+mod z_order;
 mod zoom;
 
+pub use canvas::Canvas;
 #[cfg(feature = "mvt")]
-pub use egui_backend::to_shapes;
+pub use canvas::Drawables;
 #[cfg(feature = "mvt")]
 pub use egui_backend::wgpu::install_renderer;
 #[cfg(feature = "mvt")]
@@ -77,4 +80,5 @@ pub use style::{
 #[cfg(feature = "mvt")]
 pub use text::{Placement, Text, place_texts};
 pub use tiles::{Tile, TileId, TilePiece, Tiles};
+pub use z_order::ZOrder;
 pub use zoom::InvalidZoom;
