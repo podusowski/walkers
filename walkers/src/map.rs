@@ -1,13 +1,11 @@
 use egui::{
-    DragPanButtons, InnerResponse, PointerButton, Response, Sense, Ui, UiBuilder, Vec2, Widget,
-    emath::NumExt as _,
+    DragPanButtons, InnerResponse, PointerButton, Response, Sense, Shape, Ui, UiBuilder, Vec2,
+    Widget, emath::NumExt as _,
 };
 
 use crate::{
-    MapMemory, MercatorProjection, Options, Plugin, Position, Projection, Projector, Tiles,
-    center::Center,
-    position::shifted,
-    tiles::{Texts, draw_tiles},
+    Canvas, MapMemory, MercatorProjection, Options, Plugin, Position, Projection, Projector, Tiles,
+    ZOrder, center::Center, position::shifted, tiles::draw_tiles,
 };
 
 struct Layer<'a> {
@@ -152,7 +150,7 @@ impl<'a, 'b, 'c> Map<'a, 'b, 'c> {
     pub fn show<R>(
         mut self,
         ui: &mut Ui,
-        add_contents: impl FnOnce(&mut Ui, &Response, &Projector, &MapMemory) -> R,
+        add_contents: impl FnOnce(&mut Ui, &Response, &Projector, &MapMemory, &mut Canvas) -> R,
     ) -> InnerResponse<R> {
         let (rect, mut response) =
             ui.allocate_exact_size(ui.available_size(), Sense::click_and_drag());
@@ -182,25 +180,27 @@ impl<'a, 'b, 'c> Map<'a, 'b, 'c> {
             self.my_position,
         );
         let painter = ui.painter().with_clip_rect(rect);
-        let mut texts = Texts::default();
+        let mut canvas = Canvas::new(ui.ctx());
 
         if let Some(tiles) = self.tiles {
-            draw_tiles(&painter, &projector, zoom, tiles, 1.0, 0, &mut texts);
+            draw_tiles(&mut canvas, &projector, tiles, 1.0, ZOrder::new(0));
         }
+
+        canvas.z_order = ZOrder::new(self.layers.len() + 1);
 
         for (index, layer) in self.layers.into_iter().enumerate() {
             draw_tiles(
-                &painter,
+                &mut canvas,
                 &projector,
-                zoom,
                 layer.tiles,
                 layer.transparency,
-                index + 1,
-                &mut texts,
+                ZOrder::new(index + 1),
             );
         }
 
-        texts.paint(&painter);
+        // Filled once the closure is done with the canvas, so that it still goes below what the
+        // plugins and the closure paint with egui.
+        let canvas_slot = painter.add(Shape::Noop);
 
         // Run plugins.
         for (idx, plugin) in self.plugins.into_iter().enumerate() {
@@ -209,7 +209,15 @@ impl<'a, 'b, 'c> Map<'a, 'b, 'c> {
         }
 
         let mut child_ui = ui.new_child(UiBuilder::new().max_rect(rect).id_salt("inner"));
-        let inner = add_contents(&mut child_ui, &response, &projector, self.memory);
+        let inner = add_contents(
+            &mut child_ui,
+            &response,
+            &projector,
+            self.memory,
+            &mut canvas,
+        );
+
+        canvas.draw(&painter, canvas_slot);
 
         InnerResponse { inner, response }
     }
@@ -349,7 +357,7 @@ impl Map<'_, '_, '_> {
 
 impl Widget for Map<'_, '_, '_> {
     fn ui(self, ui: &mut Ui) -> Response {
-        self.show(ui, |_, _, _, _| ()).response
+        self.show(ui, |_, _, _, _, _| ()).response
     }
 }
 
