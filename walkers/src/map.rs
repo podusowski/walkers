@@ -5,9 +5,7 @@ use egui::{
 
 use crate::{
     Canvas, MapMemory, MercatorProjection, Options, Plugin, Position, Projection, Projector, Tiles,
-    center::Center,
-    position::shifted,
-    tiles::{Texts, draw_tiles},
+    ZOrder, center::Center, position::shifted, tiles::draw_tiles,
 };
 
 struct Layer<'a> {
@@ -182,29 +180,28 @@ impl<'a, 'b, 'c> Map<'a, 'b, 'c> {
             self.my_position,
         );
         let painter = ui.painter().with_clip_rect(rect);
-        let mut texts = Texts::default();
-        let canvas_layer = self.layers.len() + 1;
+        let mut canvas = Canvas::default();
 
         if let Some(tiles) = self.tiles {
-            draw_tiles(&painter, &projector, zoom, tiles, 1.0, 0, &mut texts);
+            draw_tiles(&mut canvas, &projector, zoom, tiles, 1.0, ZOrder::new(0));
         }
+
+        canvas.z_order = ZOrder::new(self.layers.len() + 1);
 
         for (index, layer) in self.layers.into_iter().enumerate() {
             draw_tiles(
-                &painter,
+                &mut canvas,
                 &projector,
                 zoom,
                 layer.tiles,
                 layer.transparency,
-                index + 1,
-                &mut texts,
+                ZOrder::new(index + 1),
             );
         }
 
-        // Filled once the closure has drawn onto the canvas, so that its drawables still go
-        // below the labels, and both below what the closure paints with egui.
-        let canvas_drawables = painter.add(Shape::Noop);
-        let labels = painter.add(Shape::Noop);
+        // Filled once the closure is done with the canvas, so that it still goes below what the
+        // plugins and the closure paint with egui.
+        let canvas_slot = painter.add(Shape::Noop);
 
         // Run plugins.
         for (idx, plugin) in self.plugins.into_iter().enumerate() {
@@ -213,7 +210,6 @@ impl<'a, 'b, 'c> Map<'a, 'b, 'c> {
         }
 
         let mut child_ui = ui.new_child(UiBuilder::new().max_rect(rect).id_salt("inner"));
-        let mut canvas = Canvas::default();
         let inner = add_contents(
             &mut child_ui,
             &response,
@@ -222,18 +218,7 @@ impl<'a, 'b, 'c> Map<'a, 'b, 'c> {
             &mut canvas,
         );
 
-        #[cfg(feature = "mvt")]
-        {
-            painter.set(
-                canvas_drawables,
-                crate::canvas::shapes_of(canvas.drawables, painter.ctx()),
-            );
-            texts.extend(canvas_layer, canvas.texts);
-        }
-        #[cfg(not(feature = "mvt"))]
-        let _ = (canvas, canvas_drawables, canvas_layer);
-
-        painter.set(labels, texts.shapes(painter.ctx()));
+        canvas.draw(&painter, canvas_slot);
 
         InnerResponse { inner, response }
     }

@@ -41,6 +41,7 @@ mod projector;
 mod render;
 pub mod sources;
 mod tiles;
+mod z_order;
 mod zoom;
 
 pub use canvas::Canvas;
@@ -79,4 +80,5 @@ pub use style::{
 #[cfg(feature = "mvt")]
 pub use text::{Placement, Text, place_texts};
 pub use tiles::{Tile, TileId, TilePiece, Tiles};
+pub use z_order::ZOrder;
 pub use zoom::InvalidZoom;

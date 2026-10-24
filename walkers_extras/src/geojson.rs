@@ -54,6 +54,7 @@ impl GeoJsonLayer {
 
     pub fn render(&self, canvas: &mut Canvas, projector: &Projector, zoom: u8) {
         let viewport = viewport(projector);
+        let z_order = canvas.z_order();
 
         for (index, layer) in self.style.layers.iter().enumerate() {
             match layer {
@@ -82,15 +83,13 @@ impl GeoJsonLayer {
 
                     for (geometry, context) in self.features(viewport, filter.as_ref(), zoom) {
                         let projected = project_geometry(geometry, projector);
+                        let mut texts = Vec::new();
                         let _ = render_symbol(
-                            &projected,
-                            &context,
-                            &mut canvas.texts,
-                            layout,
-                            paint,
-                            *minzoom,
-                            index,
+                            &projected, &context, &mut texts, layout, paint, *minzoom, index,
                         );
+                        for text in texts {
+                            canvas.add_text(z_order.combine(index), text);
+                        }
                     }
                 }
                 other => {

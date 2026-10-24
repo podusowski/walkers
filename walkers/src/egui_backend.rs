@@ -91,7 +91,14 @@ pub mod wgpu {
         index: usize,
 
         transform: TSTransform,
+
+        /// Covers the whole screen rather than the run, because that is what egui sets the
+        /// viewport to, and a run hanging off the edge would have its own clamped.
         viewport: Rect,
+
+        /// What keeps the run inside its bounds, for example a tile inside its own.
+        clip_rect: Rect,
+
         frame: u64,
         transparency: f32,
 
@@ -106,6 +113,7 @@ pub mod wgpu {
             index: usize,
             transform: TSTransform,
             viewport: Rect,
+            clip_rect: Rect,
             frame: u64,
             transparency: f32,
         ) -> egui::Shape {
@@ -116,6 +124,7 @@ pub mod wgpu {
                     index,
                     transform,
                     viewport,
+                    clip_rect,
                     frame,
                     transparency,
                     placement: Mutex::new(None),
@@ -165,7 +174,7 @@ pub mod wgpu {
 
         fn paint(
             &self,
-            _info: egui::epaint::PaintCallbackInfo,
+            info: egui::epaint::PaintCallbackInfo,
             render_pass: &mut wgpu::RenderPass<'static>,
             resources: &egui_wgpu::CallbackResources,
         ) {
@@ -177,6 +186,23 @@ pub mod wgpu {
             let Ok(placement) = self.placement.lock() else {
                 return;
             };
+
+            // All runs share the clip rectangle of the shape they were painted in, so each one
+            // narrows down the scissor egui has set.
+            let scissor = egui::epaint::ViewportInPixels::from_points(
+                &info.clip_rect.intersect(self.clip_rect),
+                info.pixels_per_point,
+                info.screen_size_px,
+            );
+            if scissor.width_px <= 0 || scissor.height_px <= 0 {
+                return;
+            }
+            render_pass.set_scissor_rect(
+                scissor.left_px as u32,
+                scissor.top_px as u32,
+                scissor.width_px as u32,
+                scissor.height_px as u32,
+            );
 
             if let Some(placement) = placement.as_ref() {
                 renderer.draw(render_pass, key_of(drawable), placement);
