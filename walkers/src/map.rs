@@ -4,7 +4,7 @@ use egui::{
 };
 
 use crate::{
-    MapMemory, Options, Plugin, Position, Projector, Tiles,
+    MapMemory, MercatorProjection, Options, Plugin, Position, Projection, Projector, Tiles,
     center::Center,
     position::shifted,
     tiles::{Texts, draw_tiles},
@@ -36,6 +36,7 @@ struct Layer<'a> {
 /// other geo-localization method. If user drags the map, it enters a "detached state". You can use
 /// [`MapMemory`]'s methods to change the state programmatically.
 pub struct Map<'a, 'b, 'c> {
+    projection: &'a dyn Projection,
     tiles: Option<&'b mut dyn Tiles>,
     layers: Vec<Layer<'b>>,
     memory: &'a mut MapMemory,
@@ -51,6 +52,7 @@ impl<'a, 'b, 'c> Map<'a, 'b, 'c> {
         my_position: Position,
     ) -> Self {
         Self {
+            projection: &MercatorProjection,
             tiles,
             layers: Vec::default(),
             memory,
@@ -58,6 +60,12 @@ impl<'a, 'b, 'c> Map<'a, 'b, 'c> {
             plugins: Vec::default(),
             options: Options::default(),
         }
+    }
+
+    /// Set the projection used to draw the map. [`MercatorProjection`] is used by default.
+    pub fn with_projection(mut self, projection: &'a dyn Projection) -> Self {
+        self.projection = projection;
+        self
     }
 
     /// Add plugin to the drawing pipeline. Plugins allow drawing custom shapes on the map.
@@ -155,28 +163,35 @@ impl<'a, 'b, 'c> Map<'a, 'b, 'c> {
         let delta_time = ui.input(|reader| reader.stable_dt).at_most(0.1);
 
         let zoom = self.memory.zoom;
-        changed |=
-            self.memory
-                .center_mode
-                .update_movement(delta_time, self.my_position, zoom.into());
+        changed |= self.memory.center_mode.update_movement(
+            delta_time,
+            self.my_position,
+            self.projection,
+            zoom.into(),
+        );
 
         if changed {
             response.mark_changed();
             ui.request_repaint();
         }
 
-        let map_center = self.position();
+        let projector = Projector::new(
+            response.rect,
+            self.projection,
+            self.memory,
+            self.my_position,
+        );
         let painter = ui.painter().with_clip_rect(rect);
         let mut texts = Texts::default();
 
         if let Some(tiles) = self.tiles {
-            draw_tiles(&painter, map_center, zoom, tiles, 1.0, 0, &mut texts);
+            draw_tiles(&painter, &projector, zoom, tiles, 1.0, 0, &mut texts);
         }
 
         for (index, layer) in self.layers.into_iter().enumerate() {
             draw_tiles(
                 &painter,
-                map_center,
+                &projector,
                 zoom,
                 layer.tiles,
                 layer.transparency,
@@ -188,7 +203,6 @@ impl<'a, 'b, 'c> Map<'a, 'b, 'c> {
         texts.paint(&painter);
 
         // Run plugins.
-        let projector = Projector::new(response.rect, self.memory, self.my_position);
         for (idx, plugin) in self.plugins.into_iter().enumerate() {
             let mut child_ui = ui.new_child(UiBuilder::new().max_rect(rect).id_salt(idx));
             plugin.run(&mut child_ui, &response, &projector, self.memory);
@@ -225,8 +239,12 @@ impl Map<'_, '_, '_> {
                 if self.memory.detached().is_some()
                     || offset.length() > self.options.pull_to_my_position_threshold
                 {
-                    self.memory.center_mode =
-                        Center::Exact(shifted(self.position(), -offset, self.memory.zoom()));
+                    self.memory.center_mode = Center::Exact(shifted(
+                        self.projection,
+                        self.position(),
+                        -offset,
+                        self.memory.zoom(),
+                    ));
                 }
             }
 
@@ -237,11 +255,11 @@ impl Map<'_, '_, '_> {
                 .zoom_by((zoom_delta - 1.) * self.options.zoom_speed);
 
             if let Some(offset) = offset {
-                self.memory.center_mode = self
-                    .memory
-                    .center_mode
-                    .clone()
-                    .shift(offset, self.memory.zoom());
+                self.memory.center_mode = self.memory.center_mode.clone().shift(
+                    offset,
+                    self.projection,
+                    self.memory.zoom(),
+                );
             }
 
             scroll_used |= zoom_delta_from_scroll;
@@ -253,6 +271,7 @@ impl Map<'_, '_, '_> {
                 self.my_position,
                 self.options.pull_to_my_position_threshold,
                 self.options.drag_pan_buttons,
+                self.projection,
                 self.memory.zoom(),
             )
         };
@@ -265,8 +284,12 @@ impl Map<'_, '_, '_> {
             // Panning by scrolling, e.g. two-finger drag on a touchpad:
             let scroll_delta = ui.input(|i| i.smooth_scroll_delta);
             if scroll_delta != Vec2::ZERO {
-                self.memory.center_mode =
-                    Center::Exact(shifted(self.position(), scroll_delta, self.memory.zoom()));
+                self.memory.center_mode = Center::Exact(shifted(
+                    self.projection,
+                    self.position(),
+                    scroll_delta,
+                    self.memory.zoom(),
+                ));
                 scroll_used = true;
             }
         }

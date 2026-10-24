@@ -34,6 +34,7 @@ mod mvt;
 #[cfg(feature = "pmtiles")]
 mod pmtiles;
 mod position;
+mod projection;
 mod projector;
 #[cfg(feature = "mvt")]
 mod render;
@@ -57,7 +58,8 @@ pub use options::Options;
 pub use plugin::Plugin;
 #[cfg(feature = "pmtiles")]
 pub use pmtiles::PmTiles;
-pub use position::{Position, lat_lon, lon_lat};
+pub use position::{Pixels, Position, lat_lon, lon_lat};
+pub use projection::{MercatorProjection, Projection};
 pub use projector::Projector;
 #[cfg(feature = "mvt")]
 pub use render::drawable::{Drawable, Line, Mesh, Vertex};

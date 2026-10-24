@@ -1,39 +1,46 @@
 use egui::{Rect, Vec2};
 
 use crate::{
-    MapMemory, Position,
-    mercator::{project, unproject},
+    MapMemory, Position, Projection,
     position::{Pixels, PixelsExt as _},
 };
 
 /// Projects geographical position into pixels on the viewport, suitable for [`egui::Painter`].
 #[derive(Clone)]
-pub struct Projector {
+pub struct Projector<'a> {
+    projection: &'a dyn Projection,
     clip_rect: Rect,
-    memory: MapMemory,
-    my_position: Position,
-    map_center_projected_position: Position,
+    zoom: f64,
+    map_center_projected_position: Pixels,
 }
 
-impl Projector {
-    pub fn new(clip_rect: Rect, map_memory: &MapMemory, my_position: Position) -> Self {
-        let map_center_projected_position = project(
-            map_memory.center_mode.position(my_position),
-            map_memory.zoom(),
-        );
+impl<'a> Projector<'a> {
+    pub fn new(
+        clip_rect: Rect,
+        projection: &'a dyn Projection,
+        map_memory: &MapMemory,
+        my_position: Position,
+    ) -> Self {
+        let zoom = map_memory.zoom();
+        let map_center_projected_position =
+            projection.project(map_memory.center_mode.position(my_position), zoom);
 
         Self {
+            projection,
             clip_rect,
-            memory: map_memory.to_owned(),
-            my_position,
+            zoom,
             map_center_projected_position,
         }
     }
 
+    /// Projection used by the map.
+    pub fn projection(&self) -> &'a dyn Projection {
+        self.projection
+    }
+
     /// Project `position` into pixels on the viewport.
     pub fn project(&self, position: Position) -> Vec2 {
-        // Turn that into a flat, mercator projection.
-        let projected_position = project(position, self.memory.zoom());
+        let projected_position = self.projection.project(position, self.zoom);
 
         // From the two points above we can calculate the actual point on the screen.
         self.clip_rect.center().to_vec2()
@@ -42,45 +49,33 @@ impl Projector {
 
     /// Get coordinates from viewport's pixels position
     pub fn unproject(&self, position: Vec2) -> Position {
-        let zoom: f64 = self.memory.zoom();
-        let center = self.memory.center_mode.position(self.my_position);
-
         // Despite being in pixel space `map_center_projected_position` is sufficiently large
         // that we must do the arithmetic in f64 to avoid imprecision.
-        let map_center_projected_position = project(center, zoom);
         let clip_center = self.clip_rect.center();
-        let x = map_center_projected_position.x() + (position.x as f64) - (clip_center.x as f64);
-        let y = map_center_projected_position.y() + (position.y as f64) - (clip_center.y as f64);
+        let x =
+            self.map_center_projected_position.x() + (position.x as f64) - (clip_center.x as f64);
+        let y =
+            self.map_center_projected_position.y() + (position.y as f64) - (clip_center.y as f64);
 
-        unproject(Pixels::new(x, y), zoom)
+        self.projection.unproject(Pixels::new(x, y), self.zoom)
     }
 
     /// What is the local scale of the map at the provided position and given the current zoom
     /// level?
     pub fn scale_pixel_per_meter(&self, position: Position) -> f32 {
-        let zoom = self.memory.zoom();
-
         // return f32 for ergonomics, as the result is typically used for egui code
-        calculate_meters_per_pixel(position.y(), zoom) as f32
+        self.projection.scale_pixel_per_meter(position, self.zoom) as f32
     }
-}
 
-/// Implementation of the scale computation.
-fn calculate_meters_per_pixel(latitude: f64, zoom: f64) -> f64 {
-    const EARTH_CIRCUMFERENCE: f64 = 40_075_016.686;
-
-    // Number of pixels for width of world at this zoom level
-    let total_pixels = crate::mercator::total_pixels(zoom);
-
-    let pixel_per_meter_equator = total_pixels / EARTH_CIRCUMFERENCE;
-    let latitude_rad = latitude.abs().to_radians();
-    pixel_per_meter_equator / latitude_rad.cos()
+    pub(crate) fn map_center_projected_position(&self) -> Pixels {
+        self.map_center_projected_position
+    }
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::lon_lat;
+    use crate::{MercatorProjection, lon_lat};
     use egui::Pos2;
 
     fn assert_approx_eq(a: f64, b: f64) {
@@ -101,6 +96,7 @@ mod tests {
 
         let projector = Projector::new(
             Rect::from_min_size(Pos2::ZERO, Vec2::splat(100.)),
+            &MercatorProjection,
             &map_memory,
             original,
         );
@@ -120,20 +116,6 @@ mod tests {
     }
 
     #[test]
-    fn test_equator_zoom_0() {
-        // At zoom 0 (whole world), equator should be about 156.5km per pixel
-        let scale = calculate_meters_per_pixel(0.0, 0.);
-        assert_approx_eq(scale, 1. / 156_543.03);
-    }
-
-    #[test]
-    fn test_equator_zoom_19() {
-        // At max zoom (19), equator should be about 0.3m per pixel
-        let scale = calculate_meters_per_pixel(0.0, 19.);
-        assert_approx_eq(scale, 1. / 0.298);
-    }
-
-    #[test]
     fn unproject_is_inverse_of_project() {
         let original = lon_lat(21., 52.);
 
@@ -142,6 +124,7 @@ mod tests {
 
         let projector = Projector::new(
             Rect::from_min_size(Pos2::ZERO, Vec2::splat(100.)),
+            &MercatorProjection,
             &map_memory,
             original,
         );

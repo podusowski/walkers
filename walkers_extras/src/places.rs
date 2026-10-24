@@ -499,6 +499,7 @@ fn build_rtree<T: Place>(places: &[T]) -> RTree<Pt> {
 mod tests {
     use super::*;
     use egui::{Pos2, Rect, Vec2};
+    use walkers::MercatorProjection;
 
     #[derive(Clone)]
     struct DummyPlace(Position);
@@ -525,11 +526,11 @@ mod tests {
         }
     }
 
-    fn projector_for_zoom(zoom: f64) -> (Rect, MapMemory, Projector) {
+    fn projector_for_zoom(zoom: f64) -> (Rect, MapMemory, Projector<'static>) {
         let rect = Rect::from_min_size(Pos2::ZERO, Vec2::splat(512.0));
         let mut memory = MapMemory::default();
         memory.set_zoom(zoom).unwrap();
-        let projector = Projector::new(rect, &memory, lon_lat(0.0, 0.0));
+        let projector = Projector::new(rect, &MercatorProjection, &memory, lon_lat(0.0, 0.0));
         (rect, memory, projector)
     }
 
