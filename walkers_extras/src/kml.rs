@@ -7,7 +7,7 @@ use log::warn;
 use walkers::geo_types::{Geometry, Point};
 use walkers::{
     Canvas, Context, Drawable, Drawables, Layer, Line, Mesh, Paint, Position, Projector, Style,
-    Vertex, merge_runs, render_fill, render_line,
+    Vertex, render_fill, render_line,
 };
 
 /// Parsed KML features, drawn on top of a [`Map`](walkers::Map).
@@ -45,7 +45,7 @@ impl KmlLayer {
             }
         }
 
-        canvas.add_drawables(Drawables::new(merge_runs(drawables)));
+        canvas.add_drawables(Drawables::new(drawables));
     }
 
     fn draw_lines(

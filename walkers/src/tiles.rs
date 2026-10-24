@@ -216,7 +216,7 @@ impl Tile {
 
                 // ...and then it can be clipped to the `rect`.
                 canvas.add_drawables(
-                    crate::Drawables::new(drawables.to_owned())
+                    crate::Drawables::merged(drawables.to_owned())
                         .with_transform(transform)
                         .with_clip_rect(rect)
                         .with_transparency(transparency),

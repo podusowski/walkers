@@ -8,7 +8,7 @@ use rstar::primitives::{GeomWithData, Rectangle};
 use rstar::{AABB, RTree};
 use walkers::geo_types::Geometry;
 use walkers::{
-    Canvas, Context, Drawables, Filter, Layer, Position, Projector, Style, merge_runs, render_fill,
+    Canvas, Context, Drawables, Filter, Layer, Position, Projector, Style, render_fill,
     render_line, render_symbol,
 };
 
@@ -99,7 +99,7 @@ impl GeoJsonLayer {
             }
         }
 
-        canvas.add_drawables(Drawables::new(merge_runs(drawables)));
+        canvas.add_drawables(Drawables::new(drawables));
     }
 
     /// Features in the viewport which the layer's filter lets through.

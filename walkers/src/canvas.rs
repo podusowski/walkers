@@ -27,11 +27,12 @@ pub struct Canvas {
     screen: Rect,
 }
 
-/// Drawables to be put on the [`Canvas`], and how.
+/// Drawables to be put on the [`Canvas`], and how. Cheap to clone, and drawing the same ones
+/// again does not upload them to the GPU again.
 #[cfg(feature = "mvt")]
+#[derive(Clone)]
 pub struct Drawables {
-    /// Behind an `Arc`, because that is what the renderer tells uploaded drawables by, so the
-    /// same ones can be drawn frame after frame without uploading them again.
+    /// Behind an `Arc`, because that is what the renderer tells uploaded drawables by.
     drawables: Arc<Vec<Drawable>>,
     transform: TSTransform,
     clip_rect: Rect,
@@ -41,9 +42,14 @@ pub struct Drawables {
 #[cfg(feature = "mvt")]
 impl Drawables {
     /// Drawn as they are, in screen coordinates.
-    pub fn new(drawables: impl Into<Arc<Vec<Drawable>>>) -> Self {
+    pub fn new(drawables: Vec<Drawable>) -> Self {
+        Self::merged(Arc::new(crate::render::merge_runs(drawables)))
+    }
+
+    /// For drawables which already went through [`crate::render::merge_runs`].
+    pub(crate) fn merged(drawables: Arc<Vec<Drawable>>) -> Self {
         Self {
-            drawables: drawables.into(),
+            drawables,
             transform: TSTransform::IDENTITY,
             // Clipped to the map anyway.
             clip_rect: Rect::EVERYTHING,

@@ -42,7 +42,7 @@ pub(crate) fn transformed_texts(
 }
 
 /// Things of the same kind standing next to each other can be drawn as one.
-pub fn merge_runs(drawables: Vec<Drawable>) -> Vec<Drawable> {
+pub(crate) fn merge_runs(drawables: Vec<Drawable>) -> Vec<Drawable> {
     let mut merged: Vec<Drawable> = Vec::with_capacity(drawables.len());
 
     for drawable in drawables {
