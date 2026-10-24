@@ -465,7 +465,7 @@ mod tests {
 
         #[allow(clippy::unwrap_used)]
         draw_tiles(
-            &mut Canvas::default(),
+            &mut Canvas::new(&Context::default()),
             &projector_at(TILE_SIZE as f32, zoom),
             Zoom::try_from(zoom).unwrap(),
             &mut tiles,
@@ -607,7 +607,7 @@ mod tests {
         let mut output = ctx.run_ui(egui::RawInput::default(), |_| {});
         output.textures_delta.clear();
 
-        let mut canvas = Canvas::default();
+        let mut canvas = Canvas::new(&ctx);
         #[allow(clippy::unwrap_used)]
         draw_tiles(
             &mut canvas,

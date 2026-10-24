@@ -180,7 +180,7 @@ impl<'a, 'b, 'c> Map<'a, 'b, 'c> {
             self.my_position,
         );
         let painter = ui.painter().with_clip_rect(rect);
-        let mut canvas = Canvas::default();
+        let mut canvas = Canvas::new(ui.ctx());
 
         if let Some(tiles) = self.tiles {
             draw_tiles(&mut canvas, &projector, zoom, tiles, 1.0, ZOrder::new(0));
