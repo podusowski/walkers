@@ -8,9 +8,7 @@ use crate::ZOrder;
 #[cfg(feature = "mvt")]
 use crate::{Drawable, Text};
 
-/// Everything the map draws in a frame: the tiles, and what [`crate::Map::show`]'s closure puts
-/// here. It goes below anything the closure paints with egui, and the labels are placed
-/// together, above everything else on the canvas.
+/// Everything the map draws in a frame, with labels on top.
 pub struct Canvas {
     /// In the order they are drawn.
     shapes: Vec<Shape>,
