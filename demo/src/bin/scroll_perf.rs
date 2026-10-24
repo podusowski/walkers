@@ -160,7 +160,7 @@ impl eframe::App for ScrollPerf {
 
         egui::CentralPanel::default().show(ui, |ui| {
             Map::new(Some(self.tiles.as_mut()), &mut self.memory, start())
-                .show(ui, |_, _, _, _| {});
+                .show(ui, |_, _, _, _, _| {});
         });
 
         let frame_ms = self.frame_ms.mean();

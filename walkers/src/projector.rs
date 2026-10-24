@@ -33,6 +33,11 @@ impl<'a> Projector<'a> {
         }
     }
 
+    /// Where on the screen the map is.
+    pub fn clip_rect(&self) -> Rect {
+        self.clip_rect
+    }
+
     /// Projection used by the map.
     pub fn projection(&self) -> &'a dyn Projection {
         self.projection

@@ -148,7 +148,7 @@ impl eframe::App for Wanderers {
         }
 
         let clicked_at = map
-            .show(ui, |ui, response, projector, _| {
+            .show(ui, |ui, response, projector, _, _| {
                 // Drawn outside of the grouped places, so that it does not disappear into a
                 // cluster while it is still being named.
                 if let Some(position) = pending {

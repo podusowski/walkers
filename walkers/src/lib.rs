@@ -2,6 +2,7 @@
 #![deny(clippy::unwrap_used, rustdoc::broken_intra_doc_links)]
 
 mod cached_tiles;
+mod canvas;
 mod center;
 mod http_tiles;
 mod io;
@@ -42,6 +43,7 @@ pub mod sources;
 mod tiles;
 mod zoom;
 
+pub use canvas::Canvas;
 #[cfg(feature = "mvt")]
 pub use egui_backend::to_shapes;
 #[cfg(feature = "mvt")]

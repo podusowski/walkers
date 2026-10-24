@@ -1,12 +1,13 @@
-use std::{collections::HashMap, str::FromStr};
+use std::{collections::HashMap, f32::consts::TAU, str::FromStr};
 
-use egui::{self, Color32, Shape, Stroke, Ui};
+use egui::{Color32, Pos2, Vec2};
 use geo::MapCoords;
 use geo::geometry::Coord;
 use log::warn;
 use walkers::geo_types::{Geometry, Point};
 use walkers::{
-    Context, Layer, Paint, Position, Projector, Style, render_fill, render_line, to_shapes,
+    Canvas, Context, Drawable, Layer, Line, Mesh, Paint, Position, Projector, Style, Vertex,
+    render_fill, render_line,
 };
 
 /// Parsed KML features, drawn on top of a [`Map`](walkers::Map).
@@ -24,19 +25,17 @@ impl KmlLayer {
         }
     }
 
-    pub fn render(&self, ui: &mut Ui, projector: &Projector, zoom: u8) {
-        let painter = ui.painter();
-
+    pub fn render(&self, canvas: &mut Canvas, projector: &Projector, zoom: u8) {
         for layer in &self.style.layers {
             match layer {
                 Layer::Fill { paint, .. } => {
-                    self.draw_fills(painter, projector, paint, zoom);
+                    self.draw_fills(canvas, projector, paint, zoom);
                 }
                 Layer::Line { paint, .. } => {
-                    self.draw_lines(painter, projector, paint, zoom);
+                    self.draw_lines(canvas, projector, paint, zoom);
                 }
                 Layer::Circle { .. } => {
-                    self.draw_circles(painter, projector);
+                    self.draw_circles(canvas, projector);
                 }
                 other => {
                     warn!("Unsupported style layer: {other:?}");
@@ -45,43 +44,72 @@ impl KmlLayer {
         }
     }
 
-    fn draw_lines(&self, painter: &egui::Painter, projector: &Projector, paint: &Paint, zoom: u8) {
+    fn draw_lines(&self, canvas: &mut Canvas, projector: &Projector, paint: &Paint, zoom: u8) {
         let context = Context::new("LineString".to_string(), HashMap::new(), zoom);
-        let mut drawables = Vec::new();
 
         for geometry in &self.geometries {
             let projected = project(geometry, projector);
-            let _ = render_line(&projected, &context, paint, &mut drawables);
+            let _ = render_line(&projected, &context, paint, &mut canvas.drawables);
         }
-
-        painter.extend(to_shapes(&drawables));
     }
 
-    fn draw_fills(&self, painter: &egui::Painter, projector: &Projector, paint: &Paint, zoom: u8) {
+    fn draw_fills(&self, canvas: &mut Canvas, projector: &Projector, paint: &Paint, zoom: u8) {
         let context = Context::new("Polygon".to_string(), HashMap::new(), zoom);
-        let mut drawables = Vec::new();
 
         for geometry in &self.geometries {
             let projected = project(geometry, projector);
-            if let Err(err) = render_fill(&projected, &context, paint, &mut drawables) {
+            if let Err(err) = render_fill(&projected, &context, paint, &mut canvas.drawables) {
                 warn!("{err}");
             }
         }
-
-        painter.extend(to_shapes(&drawables));
     }
 
-    fn draw_circles(&self, painter: &egui::Painter, projector: &Projector) {
+    fn draw_circles(&self, canvas: &mut Canvas, projector: &Projector) {
         for point in self.geometries.iter().flat_map(points) {
             let center = projector.project(*point).to_pos2();
-            let radius = 5.0;
-            let stroke = Stroke::new(1.0, Color32::BLACK);
-            let fill = Color32::from_rgb(0, 255, 0);
-
-            painter.add(Shape::circle_filled(center, radius, fill));
-            painter.add(Shape::circle_stroke(center, radius, stroke));
+            canvas.drawables.extend(circle(
+                center,
+                5.0,
+                Color32::from_rgb(0, 255, 0),
+                Color32::BLACK,
+            ));
         }
     }
+}
+
+/// Filled circle with a 1px outline.
+fn circle(center: Pos2, radius: f32, fill: Color32, outline: Color32) -> [Drawable; 2] {
+    const SEGMENTS: u32 = 16;
+
+    let rim: Vec<Pos2> = (0..SEGMENTS)
+        .map(|i| center + radius * Vec2::angled(i as f32 * TAU / SEGMENTS as f32))
+        .collect();
+
+    let vertices = std::iter::once(center)
+        .chain(rim.iter().copied())
+        .map(|position| Vertex {
+            position,
+            color: fill,
+        })
+        .collect();
+
+    // A fan around the center, which is the first vertex.
+    let indices = (0..SEGMENTS)
+        .flat_map(|i| [0, 1 + i, 1 + (i + 1) % SEGMENTS])
+        .collect();
+
+    let mut points = rim.clone();
+    points.push(rim[0]);
+
+    [
+        Drawable::Fill(Mesh { vertices, indices }),
+        Drawable::Lines(vec![Line {
+            points,
+            width: 1.0,
+            color: outline,
+            dasharray: Vec::new(),
+        }]),
+    ]
 }
 
 fn points(geometry: &Geometry<f64>) -> Vec<&Point<f64>> {

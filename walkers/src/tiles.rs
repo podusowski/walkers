@@ -263,9 +263,14 @@ pub(crate) struct Texts {
 }
 
 impl Texts {
-    /// Lay them out, drop the ones which would overlap, and paint what is left above every
-    /// layer.
-    pub(crate) fn paint(self, painter: &egui::Painter) {
+    #[cfg(feature = "mvt")]
+    pub(crate) fn extend(&mut self, map_layer: usize, texts: Vec<crate::text::Text>) {
+        self.texts
+            .extend(texts.into_iter().map(|text| (map_layer, text)));
+    }
+
+    /// Lay them out and drop the ones which would overlap.
+    pub(crate) fn shapes(self, ctx: &Context) -> Vec<egui::Shape> {
         // Map layers in the order they are drawn, then style layers from the top, as in MapLibre.
         // Stable, so that within a style layer the tiles nearest the center still go first.
         #[cfg(feature = "mvt")]
@@ -273,10 +278,13 @@ impl Texts {
             let mut texts = self.texts;
             texts.sort_by_key(|(map_layer, text)| (*map_layer, std::cmp::Reverse(text.layer)));
             let texts = texts.into_iter().map(|(_, text)| text).collect();
-            painter.extend(crate::text::place_texts(texts, painter.ctx()));
+            crate::text::place_texts(texts, ctx)
         }
         #[cfg(not(feature = "mvt"))]
-        let _ = painter;
+        {
+            let _ = ctx;
+            Vec::new()
+        }
     }
 }
 

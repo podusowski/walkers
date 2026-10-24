@@ -1,6 +1,5 @@
 use std::collections::HashMap;
 
-use egui::Ui;
 use geo::MapCoords;
 use geo::geometry::Coord;
 use geojson::{Feature as GeoJsonFeature, GeoJson};
@@ -9,8 +8,8 @@ use rstar::primitives::{GeomWithData, Rectangle};
 use rstar::{AABB, RTree};
 use walkers::geo_types::Geometry;
 use walkers::{
-    Context, Filter, Layer, Position, Projector, Style, place_texts, render_fill, render_line,
-    render_symbol, to_shapes,
+    Canvas, Context, Filter, Layer, Position, Projector, Style, render_fill, render_line,
+    render_symbol,
 };
 
 struct Feature {
@@ -53,24 +52,21 @@ impl GeoJsonLayer {
         }
     }
 
-    pub fn render(&self, ui: &mut Ui, projector: &Projector, zoom: u8) {
-        let viewport = viewport(projector, ui.clip_rect());
-
-        let mut drawables = Vec::new();
-        let mut texts = Vec::new();
+    pub fn render(&self, canvas: &mut Canvas, projector: &Projector, zoom: u8) {
+        let viewport = viewport(projector);
 
         for (index, layer) in self.style.layers.iter().enumerate() {
             match layer {
                 Layer::Fill { paint, filter, .. } => {
                     for (geometry, context) in self.features(viewport, filter.as_ref(), zoom) {
                         let projected = project_geometry(geometry, projector);
-                        let _ = render_fill(&projected, &context, paint, &mut drawables);
+                        let _ = render_fill(&projected, &context, paint, &mut canvas.drawables);
                     }
                 }
                 Layer::Line { paint, filter, .. } => {
                     for (geometry, context) in self.features(viewport, filter.as_ref(), zoom) {
                         let projected = project_geometry(geometry, projector);
-                        let _ = render_line(&projected, &context, paint, &mut drawables);
+                        let _ = render_line(&projected, &context, paint, &mut canvas.drawables);
                     }
                 }
                 Layer::Symbol {
@@ -87,7 +83,13 @@ impl GeoJsonLayer {
                     for (geometry, context) in self.features(viewport, filter.as_ref(), zoom) {
                         let projected = project_geometry(geometry, projector);
                         let _ = render_symbol(
-                            &projected, &context, &mut texts, layout, paint, *minzoom, index,
+                            &projected,
+                            &context,
+                            &mut canvas.texts,
+                            layout,
+                            paint,
+                            *minzoom,
+                            index,
                         );
                     }
                 }
@@ -96,12 +98,6 @@ impl GeoJsonLayer {
                 }
             }
         }
-
-        // Geometry first, then the labels on top of it.
-        let texts = place_texts(texts, ui.ctx());
-        let painter = ui.painter();
-        painter.extend(to_shapes(&drawables));
-        painter.extend(texts);
     }
 
     /// Features in the viewport which the layer's filter lets through.
@@ -150,7 +146,8 @@ fn bounding_rect(geometry: &Geometry<f32>) -> Rectangle<[f64; 2]> {
 }
 
 /// Compute the geographic envelope of the current viewport by unprojecting its corners.
-fn viewport(projector: &Projector, clip_rect: egui::Rect) -> AABB<[f64; 2]> {
+fn viewport(projector: &Projector) -> AABB<[f64; 2]> {
+    let clip_rect = projector.clip_rect();
     let top_left = projector.unproject(clip_rect.min.to_vec2());
     let bottom_right = projector.unproject(clip_rect.max.to_vec2());
 
