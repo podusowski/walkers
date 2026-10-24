@@ -18,7 +18,7 @@ pub struct Canvas {
     #[cfg(feature = "mvt")]
     pub(crate) texts: Vec<(ZOrder, Text)>,
 
-    /// For what the closure puts here, which comes above every map layer.
+    /// Above every map layer, for what is added on top of them.
     pub(crate) z_order: ZOrder,
 
     /// Which frame this is, for the renderer to tell which drawables are still in use.
