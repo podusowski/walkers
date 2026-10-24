@@ -8,8 +8,8 @@ use rstar::primitives::{GeomWithData, Rectangle};
 use rstar::{AABB, RTree};
 use walkers::geo_types::Geometry;
 use walkers::{
-    Canvas, Context, Filter, Layer, Position, Projector, Style, render_fill, render_line,
-    render_symbol,
+    Canvas, Context, Drawables, Filter, Layer, Position, Projector, Style, merge_runs, render_fill,
+    render_line, render_symbol,
 };
 
 struct Feature {
@@ -55,19 +55,20 @@ impl GeoJsonLayer {
     pub fn render(&self, canvas: &mut Canvas, projector: &Projector, zoom: u8) {
         let viewport = viewport(projector);
         let z_order = canvas.z_order();
+        let mut drawables = Vec::new();
 
         for (index, layer) in self.style.layers.iter().enumerate() {
             match layer {
                 Layer::Fill { paint, filter, .. } => {
                     for (geometry, context) in self.features(viewport, filter.as_ref(), zoom) {
                         let projected = project_geometry(geometry, projector);
-                        let _ = render_fill(&projected, &context, paint, &mut canvas.drawables);
+                        let _ = render_fill(&projected, &context, paint, &mut drawables);
                     }
                 }
                 Layer::Line { paint, filter, .. } => {
                     for (geometry, context) in self.features(viewport, filter.as_ref(), zoom) {
                         let projected = project_geometry(geometry, projector);
-                        let _ = render_line(&projected, &context, paint, &mut canvas.drawables);
+                        let _ = render_line(&projected, &context, paint, &mut drawables);
                     }
                 }
                 Layer::Symbol {
@@ -97,6 +98,8 @@ impl GeoJsonLayer {
                 }
             }
         }
+
+        canvas.add_drawables(Drawables::new(merge_runs(drawables)));
     }
 
     /// Features in the viewport which the layer's filter lets through.

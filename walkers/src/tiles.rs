@@ -215,7 +215,12 @@ impl Tile {
                 let transform = mvt::transform_onto(full_rect, tile_size);
 
                 // ...and then it can be clipped to the `rect`.
-                canvas.add_drawables(drawables.to_owned(), transform, rect, transparency);
+                canvas.add_drawables(
+                    crate::Drawables::new(drawables.to_owned())
+                        .with_transform(transform)
+                        .with_clip_rect(rect)
+                        .with_transparency(transparency),
+                );
 
                 for text in render::transformed_texts(
                     from_tile,

@@ -13,14 +13,10 @@ use crate::{Drawable, Text};
 /// together, above everything else on the canvas.
 #[derive(Default)]
 pub struct Canvas {
-    /// In screen coordinates.
-    #[cfg(feature = "mvt")]
-    pub drawables: Vec<Drawable>,
-
     #[cfg(feature = "mvt")]
     pub(crate) texts: Vec<(ZOrder, Text)>,
 
-    /// Tiles of every map layer, in the order they are drawn.
+    /// In the order they are drawn.
     pieces: Vec<Piece>,
 
     /// For what the closure puts here, which comes above every map layer.
@@ -31,13 +27,48 @@ enum Piece {
     Shape(Shape),
 
     #[cfg(feature = "mvt")]
-    Drawables {
-        /// Behind an `Arc`, because that is what the renderer tells uploaded drawables by.
-        drawables: Arc<Vec<Drawable>>,
-        transform: TSTransform,
-        clip_rect: Rect,
-        transparency: f32,
-    },
+    Drawables(Drawables),
+}
+
+/// Drawables to be put on the [`Canvas`], and how.
+#[cfg(feature = "mvt")]
+pub struct Drawables {
+    /// Behind an `Arc`, because that is what the renderer tells uploaded drawables by, so the
+    /// same ones can be drawn frame after frame without uploading them again.
+    drawables: Arc<Vec<Drawable>>,
+    transform: TSTransform,
+    clip_rect: Rect,
+    transparency: f32,
+}
+
+#[cfg(feature = "mvt")]
+impl Drawables {
+    /// Drawn as they are, in screen coordinates.
+    pub fn new(drawables: impl Into<Arc<Vec<Drawable>>>) -> Self {
+        Self {
+            drawables: drawables.into(),
+            transform: TSTransform::IDENTITY,
+            // Clipped to the map anyway.
+            clip_rect: Rect::EVERYTHING,
+            transparency: 1.0,
+        }
+    }
+
+    /// From the drawables' own coordinates onto the screen.
+    pub fn with_transform(mut self, transform: TSTransform) -> Self {
+        self.transform = transform;
+        self
+    }
+
+    pub fn with_clip_rect(mut self, clip_rect: Rect) -> Self {
+        self.clip_rect = clip_rect;
+        self
+    }
+
+    pub fn with_transparency(mut self, transparency: f32) -> Self {
+        self.transparency = transparency;
+        self
+    }
 }
 
 impl Canvas {
@@ -52,42 +83,20 @@ impl Canvas {
         self.texts.push((z_order, text));
     }
 
-    pub(crate) fn add_shape(&mut self, shape: Shape) {
-        self.pieces.push(Piece::Shape(shape));
+    #[cfg(feature = "mvt")]
+    pub fn add_drawables(&mut self, drawables: Drawables) {
+        self.pieces.push(Piece::Drawables(drawables));
     }
 
-    #[cfg(feature = "mvt")]
-    pub(crate) fn add_drawables(
-        &mut self,
-        drawables: Arc<Vec<Drawable>>,
-        transform: TSTransform,
-        clip_rect: Rect,
-        transparency: f32,
-    ) {
-        self.pieces.push(Piece::Drawables {
-            drawables,
-            transform,
-            clip_rect,
-            transparency,
-        });
+    pub(crate) fn add_shape(&mut self, shape: Shape) {
+        self.pieces.push(Piece::Shape(shape));
     }
 
     /// Draw everything into `slot`, which `painter` reserved earlier, so that it goes below
     /// what was painted since.
     #[cfg_attr(not(feature = "mvt"), allow(unused_mut))]
-    pub(crate) fn draw(mut self, painter: &egui::Painter, slot: egui::layers::ShapeIdx) {
+    pub(crate) fn draw(self, painter: &egui::Painter, slot: egui::layers::ShapeIdx) {
         let ctx = painter.ctx();
-
-        #[cfg(feature = "mvt")]
-        {
-            let drawables = std::mem::take(&mut self.drawables);
-            self.add_drawables(
-                Arc::new(crate::render::merge_runs(drawables)),
-                TSTransform::IDENTITY,
-                painter.clip_rect(),
-                1.0,
-            );
-        }
 
         #[cfg(feature = "mvt")]
         let (frame, screen) = (ctx.cumulative_pass_nr(), ctx.viewport_rect());
@@ -98,12 +107,12 @@ impl Canvas {
             .flat_map(|piece| match piece {
                 Piece::Shape(shape) => vec![shape],
                 #[cfg(feature = "mvt")]
-                Piece::Drawables {
+                Piece::Drawables(Drawables {
                     drawables,
                     transform,
                     clip_rect,
                     transparency,
-                } => (0..drawables.len())
+                }) => (0..drawables.len())
                     .map(|index| {
                         crate::egui_backend::wgpu::Run::callback(
                             drawables.to_owned(),

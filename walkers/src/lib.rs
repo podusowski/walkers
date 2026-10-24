@@ -46,6 +46,8 @@ mod zoom;
 
 pub use canvas::Canvas;
 #[cfg(feature = "mvt")]
+pub use canvas::Drawables;
+#[cfg(feature = "mvt")]
 pub use egui_backend::to_shapes;
 #[cfg(feature = "mvt")]
 pub use egui_backend::wgpu::install_renderer;
@@ -68,7 +70,7 @@ pub use projector::Projector;
 pub use render::drawable::{Drawable, Line, Mesh, Vertex};
 #[cfg(feature = "mvt")]
 pub use render::{
-    fill::render as render_fill, fill::tessellate_polygon, line::render as render_line,
+    fill::render as render_fill, fill::tessellate_polygon, line::render as render_line, merge_runs,
     symbol::render as render_symbol,
 };
 pub use style::Style;

@@ -6,8 +6,8 @@ use geo::geometry::Coord;
 use log::warn;
 use walkers::geo_types::{Geometry, Point};
 use walkers::{
-    Canvas, Context, Drawable, Layer, Line, Mesh, Paint, Position, Projector, Style, Vertex,
-    render_fill, render_line,
+    Canvas, Context, Drawable, Drawables, Layer, Line, Mesh, Paint, Position, Projector, Style,
+    Vertex, merge_runs, render_fill, render_line,
 };
 
 /// Parsed KML features, drawn on top of a [`Map`](walkers::Map).
@@ -26,48 +26,64 @@ impl KmlLayer {
     }
 
     pub fn render(&self, canvas: &mut Canvas, projector: &Projector, zoom: u8) {
+        let mut drawables = Vec::new();
+
         for layer in &self.style.layers {
             match layer {
                 Layer::Fill { paint, .. } => {
-                    self.draw_fills(canvas, projector, paint, zoom);
+                    self.draw_fills(&mut drawables, projector, paint, zoom);
                 }
                 Layer::Line { paint, .. } => {
-                    self.draw_lines(canvas, projector, paint, zoom);
+                    self.draw_lines(&mut drawables, projector, paint, zoom);
                 }
                 Layer::Circle { .. } => {
-                    self.draw_circles(canvas, projector);
+                    self.draw_circles(&mut drawables, projector);
                 }
                 other => {
                     warn!("Unsupported style layer: {other:?}");
                 }
             }
         }
+
+        canvas.add_drawables(Drawables::new(merge_runs(drawables)));
     }
 
-    fn draw_lines(&self, canvas: &mut Canvas, projector: &Projector, paint: &Paint, zoom: u8) {
+    fn draw_lines(
+        &self,
+        drawables: &mut Vec<Drawable>,
+        projector: &Projector,
+        paint: &Paint,
+        zoom: u8,
+    ) {
         let context = Context::new("LineString".to_string(), HashMap::new(), zoom);
 
         for geometry in &self.geometries {
             let projected = project(geometry, projector);
-            let _ = render_line(&projected, &context, paint, &mut canvas.drawables);
+            let _ = render_line(&projected, &context, paint, drawables);
         }
     }
 
-    fn draw_fills(&self, canvas: &mut Canvas, projector: &Projector, paint: &Paint, zoom: u8) {
+    fn draw_fills(
+        &self,
+        drawables: &mut Vec<Drawable>,
+        projector: &Projector,
+        paint: &Paint,
+        zoom: u8,
+    ) {
         let context = Context::new("Polygon".to_string(), HashMap::new(), zoom);
 
         for geometry in &self.geometries {
             let projected = project(geometry, projector);
-            if let Err(err) = render_fill(&projected, &context, paint, &mut canvas.drawables) {
+            if let Err(err) = render_fill(&projected, &context, paint, drawables) {
                 warn!("{err}");
             }
         }
     }
 
-    fn draw_circles(&self, canvas: &mut Canvas, projector: &Projector) {
+    fn draw_circles(&self, drawables: &mut Vec<Drawable>, projector: &Projector) {
         for point in self.geometries.iter().flat_map(points) {
             let center = projector.project(*point).to_pos2();
-            canvas.drawables.extend(circle(
+            drawables.extend(circle(
                 center,
                 5.0,
                 Color32::from_rgb(0, 255, 0),
