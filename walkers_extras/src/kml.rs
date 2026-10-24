@@ -25,7 +25,8 @@ impl KmlLayer {
         }
     }
 
-    pub fn render(&self, canvas: &mut Canvas, projector: &Projector, zoom: u8) {
+    pub fn render(&self, canvas: &mut Canvas, projector: &Projector) {
+        let zoom = projector.zoom().round() as u8;
         let mut drawables = Vec::new();
 
         for layer in &self.style.layers {

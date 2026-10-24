@@ -38,6 +38,10 @@ impl<'a> Projector<'a> {
         self.clip_rect
     }
 
+    pub fn zoom(&self) -> f64 {
+        self.zoom
+    }
+
     /// Projection used by the map.
     pub fn projection(&self) -> &'a dyn Projection {
         self.projection

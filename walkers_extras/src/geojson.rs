@@ -52,7 +52,8 @@ impl GeoJsonLayer {
         }
     }
 
-    pub fn render(&self, canvas: &mut Canvas, projector: &Projector, zoom: u8) {
+    pub fn render(&self, canvas: &mut Canvas, projector: &Projector) {
+        let zoom = projector.zoom().round() as u8;
         let viewport = viewport(projector);
         let z_order = canvas.z_order();
         let mut drawables = Vec::new();

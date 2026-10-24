@@ -14,7 +14,6 @@ use crate::mercator::{TILE_SIZE, tile_id_at, total_tiles};
 use crate::position::{Pixels, PixelsExt};
 use crate::sources::Attribution;
 use crate::style::Style;
-use crate::zoom::Zoom;
 use crate::{Canvas, Projector, Stats, ZOrder};
 
 #[derive(Error, Debug)]
@@ -250,7 +249,6 @@ impl TilePiece {
 pub(crate) fn draw_tiles(
     canvas: &mut Canvas,
     projector: &Projector,
-    zoom: Zoom,
     tiles: &mut dyn Tiles,
     transparency: f32,
     z_order: ZOrder,
@@ -260,13 +258,13 @@ pub(crate) fn draw_tiles(
         &Spread {
             clip_rect: projector.clip_rect(),
             map_center_projected_position: projector.map_center_projected_position(),
-            zoom: zoom.into(),
+            zoom: projector.zoom(),
             transparency,
             z_order,
         },
         tile_id_at(
             projector.map_center_projected_position(),
-            zoom.into(),
+            projector.zoom(),
             tiles.tile_size(),
         ),
         tiles,
@@ -463,11 +461,9 @@ mod tests {
     fn requested_tiles(tile_size: u32, zoom: f64) -> Vec<TileId> {
         let mut tiles = RecordingTiles::new(tile_size);
 
-        #[allow(clippy::unwrap_used)]
         draw_tiles(
             &mut Canvas::new(&Context::default()),
             &projector_at(TILE_SIZE as f32, zoom),
-            Zoom::try_from(zoom).unwrap(),
             &mut tiles,
             1.0,
             ZOrder::default(),
@@ -608,11 +604,9 @@ mod tests {
         output.textures_delta.clear();
 
         let mut canvas = Canvas::new(&ctx);
-        #[allow(clippy::unwrap_used)]
         draw_tiles(
             &mut canvas,
             &projector_at(TILE_SIZE as f32 * 2., 16.),
-            Zoom::try_from(16.).unwrap(),
             &mut LabelAtBothEdges,
             1.0,
             ZOrder::default(),

@@ -183,7 +183,7 @@ impl<'a, 'b, 'c> Map<'a, 'b, 'c> {
         let mut canvas = Canvas::new(ui.ctx());
 
         if let Some(tiles) = self.tiles {
-            draw_tiles(&mut canvas, &projector, zoom, tiles, 1.0, ZOrder::new(0));
+            draw_tiles(&mut canvas, &projector, tiles, 1.0, ZOrder::new(0));
         }
 
         canvas.z_order = ZOrder::new(self.layers.len() + 1);
@@ -192,7 +192,6 @@ impl<'a, 'b, 'c> Map<'a, 'b, 'c> {
             draw_tiles(
                 &mut canvas,
                 &projector,
-                zoom,
                 layer.tiles,
                 layer.transparency,
                 ZOrder::new(index + 1),
