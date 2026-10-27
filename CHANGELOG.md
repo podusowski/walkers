@@ -2,7 +2,7 @@
 
 All notable changes to this project will be documented in this file.
 
-## Unreleased
+## 0.64.0
 
 * `concat` and `to-string` expressions are supported.
 * Allow opting out of using `aws-lc-rs` as rustls provider
