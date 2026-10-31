@@ -10,10 +10,10 @@ use std::collections::HashSet;
 use thiserror::Error;
 
 use crate::io::TileFactory;
-use crate::mercator::{TILE_SIZE, tile_id_at, total_tiles};
 use crate::position::{Pixels, PixelsExt};
 use crate::sources::Attribution;
 use crate::style::Style;
+use crate::tile_grid::{TILE_SIZE, tile_id_at, total_tiles};
 use crate::{Canvas, Projector, Stats, ZOrder};
 
 #[derive(Error, Debug)]
@@ -225,7 +225,7 @@ impl Tile {
                     from_tile,
                     transform,
                     transparency,
-                    zoom - crate::mercator::zoom_offset(tile_size) as f64,
+                    zoom - crate::tile_grid::zoom_offset(tile_size) as f64,
                 ) {
                     canvas.add_text(z_order.combine(text.layer), text);
                 }
