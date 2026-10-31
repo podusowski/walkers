@@ -35,7 +35,6 @@ struct LayerEntry<'a> {
 /// [`MapMemory`]'s methods to change the state programmatically.
 pub struct Map<'a, 'b, 'c> {
     projection: &'a dyn Projection,
-    /// The tiles given to [`Map::new`] come first.
     layers: Vec<LayerEntry<'b>>,
     memory: &'a mut MapMemory,
     my_position: Position,
@@ -79,8 +78,7 @@ impl<'a, 'b, 'c> Map<'a, 'b, 'c> {
         self
     }
 
-    /// Add a layer, such as [`Tiles`]. All layers are drawn on top of each other, in the order
-    /// they were added, with given transparency.
+    /// Add a layer, such as [`Tiles`].
     pub fn with_layer(mut self, layer: impl Layer + 'b, transparency: f32) -> Self {
         self.layers.push(LayerEntry {
             layer: Box::new(layer),
