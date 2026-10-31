@@ -3,7 +3,7 @@
 All notable changes to the `walkers` crate will be documented in this file. `walkers_extras` is a
 playground and can change or break at any time without an entry here.
 
-## Unreleased
+## 0.65.0
 
 * New `vector` feature for drawing styled vector geometry, without MVT decoding. `mvt` enables it.
 * `mercator` module is no longer public. Use `MercatorProjection` instead of `mercator::project`.
