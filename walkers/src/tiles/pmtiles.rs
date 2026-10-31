@@ -1,7 +1,5 @@
-use crate::{
-    Stats, TileId, TilePiece, Tiles, cached_tiles::CachedTiles, io::Fetch, sources::Attribution,
-    style::Style, tiles::EguiTileFactory,
-};
+use super::{EguiTileFactory, cached::CachedTiles};
+use crate::{Stats, TileId, TilePiece, Tiles, io::Fetch, sources::Attribution, style::Style};
 use bytes::Bytes;
 use egui::Context;
 use pmtiles::{AsyncPmTilesReader, TileCoord};

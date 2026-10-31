@@ -2,7 +2,8 @@
 //! <https://wiki.openstreetmap.org/wiki/Slippy_map_tilenames>
 //! <https://www.netzwolf.info/osm/tilebrowser.html?lat=51.157800&lon=6.865500&zoom=14>
 
-use crate::{position::Pixels, tiles::TileId};
+use super::TileId;
+use crate::position::Pixels;
 
 /// Zoom specifies how many pixels are in the whole map. For example, zoom 0 means that the whole
 /// map is just one 256x256 tile, zoom 1 means that it is 2x2 tiles, and so on.

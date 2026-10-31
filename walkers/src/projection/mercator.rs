@@ -4,7 +4,7 @@
 use crate::{
     Projection, lon_lat,
     position::{Pixels, Position},
-    tile_grid::total_pixels,
+    tiles::grid::total_pixels,
 };
 use std::f64::consts::PI;
 

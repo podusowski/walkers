@@ -1,8 +1,8 @@
 use egui::Context;
 
+use super::interpolate_from_lower_zoom;
 use crate::io::{Fetch, TileFactory, tiles_io::TilesIo};
 use crate::sources::Attribution;
-use crate::tiles::interpolate_from_lower_zoom;
 use crate::{Stats, TileId, TilePiece, Tiles};
 
 /// Tiles fetched in the background and kept in a cache.
