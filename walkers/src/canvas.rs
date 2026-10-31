@@ -8,7 +8,7 @@ use crate::ZOrder;
 #[cfg(feature = "vector")]
 use crate::{Drawable, Text};
 
-/// Everything the map draws in a frame, with labels on top.
+/// Everything the map's layers draw in a frame, with labels on top.
 pub struct Canvas {
     /// In the order they are drawn.
     shapes: Vec<Shape>,
@@ -16,8 +16,11 @@ pub struct Canvas {
     #[cfg(feature = "vector")]
     pub(crate) texts: Vec<(ZOrder, Text)>,
 
-    /// Above every map layer, for what is added on top of them.
+    /// Of the layer being drawn.
     pub(crate) z_order: ZOrder,
+
+    /// Of the layer being drawn, applied to everything it adds.
+    pub(crate) transparency: f32,
 
     /// Which frame this is, for the renderer to tell which drawables are still in use.
     #[cfg(feature = "vector")]
@@ -84,6 +87,7 @@ impl Canvas {
             #[cfg(feature = "vector")]
             texts: Vec::new(),
             z_order: ZOrder::default(),
+            transparency: 1.0,
             #[cfg(feature = "vector")]
             frame: ctx.cumulative_pass_nr(),
             #[cfg(feature = "vector")]
@@ -91,7 +95,7 @@ impl Canvas {
         }
     }
 
-    /// Seed for what is put here from [`crate::Map::show`]'s closure.
+    /// Seed for the texts of the layer being drawn.
     pub fn z_order(&self) -> ZOrder {
         self.z_order
     }
@@ -99,6 +103,11 @@ impl Canvas {
     /// `text` is in screen coordinates.
     #[cfg(feature = "vector")]
     pub fn add_text(&mut self, z_order: ZOrder, text: Text) {
+        let text = Text {
+            text_color: text.text_color.gamma_multiply(self.transparency),
+            halo_color: text.halo_color.gamma_multiply(self.transparency),
+            ..text
+        };
         self.texts.push((z_order, text));
     }
 
@@ -110,6 +119,8 @@ impl Canvas {
             clip_rect,
             transparency,
         } = drawables;
+
+        let transparency = transparency * self.transparency;
 
         self.shapes.extend((0..drawables.len()).map(|index| {
             crate::egui_backend::wgpu::Run::callback(
@@ -124,14 +135,18 @@ impl Canvas {
         }));
     }
 
-    pub(crate) fn add_shape(&mut self, shape: Shape) {
+    pub(crate) fn add_shape(&mut self, mut shape: Shape) {
+        let transparency = self.transparency;
+        egui::epaint::shape_transform::adjust_colors(&mut shape, move |color| {
+            *color = color.gamma_multiply(transparency);
+        });
         self.shapes.push(shape);
     }
 
-    /// Draw everything into `slot`, which `painter` reserved earlier, so that it goes below
-    /// what was painted since.
+    /// Paint everything, each shape on its own, as egui's parallel tessellation turns a
+    /// `Shape::Vec` into a single mesh.
     #[cfg_attr(not(feature = "vector"), allow(unused_mut))]
-    pub(crate) fn draw(self, painter: &egui::Painter, slot: egui::layers::ShapeIdx) {
+    pub(crate) fn draw(self, painter: &egui::Painter) {
         let mut shapes = self.shapes;
 
         // Stable, so that within a style layer the tiles nearest the center still go first.
@@ -143,6 +158,6 @@ impl Canvas {
             shapes.extend(crate::text::place_texts(texts, painter.ctx()));
         }
 
-        painter.set(slot, shapes);
+        painter.extend(shapes);
     }
 }

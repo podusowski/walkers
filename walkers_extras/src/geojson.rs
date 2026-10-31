@@ -8,7 +8,7 @@ use rstar::primitives::{GeomWithData, Rectangle};
 use rstar::{AABB, RTree};
 use walkers::geo_types::Geometry;
 use walkers::{
-    Canvas, Context, Drawables, Filter, Layer, Position, Projector, Style, render_fill,
+    Canvas, Context, Drawables, Filter, Layer, Position, Projector, Style, StyleLayer, render_fill,
     render_line, render_symbol,
 };
 
@@ -21,6 +21,12 @@ pub struct GeoJsonLayer {
     /// R-tree indexing the bounding rectangles of all features.
     rtree: RTree<GeomWithData<Rectangle<[f64; 2]>, Feature>>,
     style: Style,
+}
+
+impl Layer for &GeoJsonLayer {
+    fn draw(&mut self, canvas: &mut Canvas, projector: &Projector) {
+        self.render(canvas, projector);
+    }
 }
 
 impl GeoJsonLayer {
@@ -60,19 +66,19 @@ impl GeoJsonLayer {
 
         for (index, layer) in self.style.layers.iter().enumerate() {
             match layer {
-                Layer::Fill { paint, filter, .. } => {
+                StyleLayer::Fill { paint, filter, .. } => {
                     for (geometry, context) in self.features(viewport, filter.as_ref(), zoom) {
                         let projected = project_geometry(geometry, projector);
                         let _ = render_fill(&projected, &context, paint, &mut drawables);
                     }
                 }
-                Layer::Line { paint, filter, .. } => {
+                StyleLayer::Line { paint, filter, .. } => {
                     for (geometry, context) in self.features(viewport, filter.as_ref(), zoom) {
                         let projected = project_geometry(geometry, projector);
                         let _ = render_line(&projected, &context, paint, &mut drawables);
                     }
                 }
-                Layer::Symbol {
+                StyleLayer::Symbol {
                     minzoom,
                     layout,
                     paint,

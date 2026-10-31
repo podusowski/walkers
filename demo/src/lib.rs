@@ -8,7 +8,9 @@ use std::io;
 
 use basemaps::basemaps;
 use egui::{Button, Color32, DragPanButtons, OpenUrl, PointerButton, Rect, Vec2};
-use walkers::{Color, Filter, Float, Layer, Layout, Map, MapMemory, Paint, Position, Style, json};
+use walkers::{
+    Color, Filter, Float, Layout, Map, MapMemory, Paint, Position, Style, StyleLayer, json,
+};
 use walkers_extras::{Basemaps, GeoJsonLayer, KmlLayer};
 
 pub struct MyApp {
@@ -63,16 +65,17 @@ impl eframe::App for MyApp {
         // Tile layers of the selected basemap.
         map = self.basemaps.add_to(map);
 
+        // Layers, such as the tiles above, are drawn in the order they were added.
+        for layer in &self.kml_layers {
+            map = map.with_layer(layer, 1.0);
+        }
+
+        for layer in &self.geojson_layers {
+            map = map.with_layer(layer, 1.0);
+        }
+
         // Draw the map widget.
-        let response = map.show(ui, |ui, response, projector, _, canvas| {
-            for layer in &self.kml_layers {
-                layer.render(canvas, projector);
-            }
-
-            for layer in &self.geojson_layers {
-                layer.render(canvas, projector);
-            }
-
+        let response = map.show(ui, |ui, response, projector, _| {
             // You can add any additional contents to the map's UI here, like remembering where
             // the map was clicked...
             if !response.changed() && response.clicked_by(PointerButton::Primary) {
@@ -160,7 +163,7 @@ fn hiking_style() -> Style {
 
     Style {
         layers: vec![
-            Layer::Fill {
+            StyleLayer::Fill {
                 source_layer: "".into(),
                 filter: Some(Filter(json!(["==", ["get", "natural"], "water"]))),
                 paint: Paint {
@@ -169,7 +172,7 @@ fn hiking_style() -> Style {
                     ..Default::default()
                 },
             },
-            Layer::Line {
+            StyleLayer::Line {
                 source_layer: "".into(),
                 filter: Some(Filter(json!([
                     "any",
@@ -183,7 +186,7 @@ fn hiking_style() -> Style {
                     ..Default::default()
                 },
             },
-            Layer::Line {
+            StyleLayer::Line {
                 source_layer: "".into(),
                 filter: Some(Filter(json!([
                     "any",
@@ -196,7 +199,7 @@ fn hiking_style() -> Style {
                     ..Default::default()
                 },
             },
-            Layer::Line {
+            StyleLayer::Line {
                 source_layer: "".into(),
                 filter: Some(Filter(json!(["==", ["get", "colour"], "red"]))),
                 paint: Paint {
@@ -205,7 +208,7 @@ fn hiking_style() -> Style {
                     ..Default::default()
                 },
             },
-            Layer::Line {
+            StyleLayer::Line {
                 source_layer: "".into(),
                 filter: Some(Filter(json!(["==", ["get", "colour"], "blue"]))),
                 paint: Paint {
@@ -214,7 +217,7 @@ fn hiking_style() -> Style {
                     ..Default::default()
                 },
             },
-            Layer::Line {
+            StyleLayer::Line {
                 source_layer: "".into(),
                 filter: Some(Filter(json!(["==", ["get", "colour"], "green"]))),
                 paint: Paint {
@@ -223,7 +226,7 @@ fn hiking_style() -> Style {
                     ..Default::default()
                 },
             },
-            Layer::Line {
+            StyleLayer::Line {
                 source_layer: "".into(),
                 filter: Some(Filter(json!(["==", ["get", "colour"], "yellow"]))),
                 paint: Paint {
@@ -232,7 +235,7 @@ fn hiking_style() -> Style {
                     ..Default::default()
                 },
             },
-            Layer::Line {
+            StyleLayer::Line {
                 source_layer: "".into(),
                 filter: Some(Filter(json!(["==", ["get", "colour"], "black"]))),
                 paint: Paint {
@@ -241,7 +244,7 @@ fn hiking_style() -> Style {
                     ..Default::default()
                 },
             },
-            Layer::Symbol {
+            StyleLayer::Symbol {
                 source_layer: "".into(),
                 minzoom: None,
                 filter: Some(Filter(json!(["==", ["get", "natural"], "peak"]))),

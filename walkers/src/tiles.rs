@@ -14,7 +14,7 @@ use crate::position::{Pixels, PixelsExt};
 use crate::sources::Attribution;
 use crate::style::Style;
 use crate::tile_grid::{TILE_SIZE, tile_id_at, total_tiles};
-use crate::{Canvas, Projector, Stats, ZOrder};
+use crate::{Canvas, Projector, Stats};
 
 #[derive(Error, Debug)]
 pub enum TileError {
@@ -184,24 +184,14 @@ impl Tile {
 
     /// Draw the tile on the given `rect`. The `uv` parameter defines which part of the tile
     /// should be drawn on the `rect`. `zoom` is the map's.
-    #[allow(clippy::too_many_arguments)]
-    fn draw(
-        &self,
-        canvas: &mut Canvas,
-        rect: Rect,
-        uv: Rect,
-        transparency: f32,
-        tile_size: u32,
-        zoom: f64,
-        z_order: ZOrder,
-    ) {
+    fn draw(&self, canvas: &mut Canvas, rect: Rect, uv: Rect, tile_size: u32, zoom: f64) {
         #[cfg(not(feature = "vector"))]
-        let _ = (tile_size, zoom, z_order);
+        let _ = (tile_size, zoom);
 
         match self {
             Tile::Raster(texture_handle) => {
                 let mut mesh = Mesh::with_texture(texture_handle.id());
-                mesh.add_rect_with_uv(rect, uv, Color32::WHITE.gamma_multiply(transparency));
+                mesh.add_rect_with_uv(rect, uv, Color32::WHITE);
                 canvas.add_shape(egui::Shape::mesh(mesh));
             }
             #[cfg(feature = "vector")]
@@ -217,14 +207,13 @@ impl Tile {
                 canvas.add_drawables(
                     crate::Drawables::merged(drawables.to_owned())
                         .with_transform(transform)
-                        .with_clip_rect(rect)
-                        .with_transparency(transparency),
+                        .with_clip_rect(rect),
                 );
 
+                let z_order = canvas.z_order();
                 for text in render::transformed_texts(
                     from_tile,
                     transform,
-                    transparency,
                     zoom - crate::tile_grid::zoom_offset(tile_size) as f64,
                 ) {
                     canvas.add_text(z_order.combine(text.layer), text);
@@ -246,12 +235,10 @@ impl TilePiece {
     }
 }
 
-pub(crate) fn draw_tiles(
+pub(crate) fn draw_tiles<T: Tiles + ?Sized>(
     canvas: &mut Canvas,
     projector: &Projector,
-    tiles: &mut dyn Tiles,
-    transparency: f32,
-    z_order: ZOrder,
+    tiles: &mut T,
 ) {
     let mut meshes = Default::default();
     flood_fill_tiles(
@@ -259,8 +246,6 @@ pub(crate) fn draw_tiles(
             clip_rect: projector.clip_rect(),
             map_center_projected_position: projector.map_center_projected_position(),
             zoom: projector.zoom(),
-            transparency,
-            z_order,
         },
         tile_id_at(
             projector.map_center_projected_position(),
@@ -278,15 +263,13 @@ struct Spread {
     clip_rect: Rect,
     map_center_projected_position: Pixels,
     zoom: f64,
-    transparency: f32,
-    z_order: ZOrder,
 }
 
 /// Use simple [flood fill algorithm](https://en.wikipedia.org/wiki/Flood_fill) to draw tiles on the map.
-fn flood_fill_tiles(
+fn flood_fill_tiles<T: Tiles + ?Sized>(
     spread: &Spread,
     tile_id: TileId,
-    tiles: &mut dyn Tiles,
+    tiles: &mut T,
     meshes: &mut HashSet<TileId>,
     canvas: &mut Canvas,
 ) {
@@ -294,8 +277,6 @@ fn flood_fill_tiles(
         clip_rect,
         map_center_projected_position,
         zoom,
-        transparency,
-        z_order,
     } = *spread;
     // The tile's zoom level can differ from the map's: it is rounded to an integer, adjusted
     // for sources with tiles larger than 256px, and clamped at 0. Scale the tile so that it
@@ -313,10 +294,8 @@ fn flood_fill_tiles(
                 canvas,
                 rect(tile_screen_position, corrected_tile_size),
                 tile.uv,
-                transparency,
                 tiles.tile_size(),
                 zoom,
-                z_order,
             )
         }
 
@@ -474,8 +453,6 @@ mod tests {
             &mut Canvas::new(&Context::default()),
             &projector_at(TILE_SIZE as f32, zoom),
             &mut tiles,
-            1.0,
-            ZOrder::default(),
         );
 
         tiles.requested
@@ -617,8 +594,6 @@ mod tests {
             &mut canvas,
             &projector_at(TILE_SIZE as f32 * 2., 16.),
             &mut LabelAtBothEdges,
-            1.0,
-            ZOrder::default(),
         );
 
         let gathered = canvas.texts.len();

@@ -20,7 +20,7 @@ use crate::expression::Context;
 /// <https://maplibre.org/maplibre-style-spec/>
 #[derive(Deserialize, Default)]
 pub struct Style {
-    pub layers: Vec<Layer>,
+    pub layers: Vec<StyleLayer>,
 }
 
 /// Which layer, or layers, of a vector tile a style layer draws from.
@@ -88,7 +88,7 @@ impl From<&[&str]> for SourceLayer {
 
 #[derive(Deserialize, Debug)]
 #[serde(tag = "type", rename_all = "kebab-case")]
-pub enum Layer {
+pub enum StyleLayer {
     Background {
         paint: Paint,
     },
