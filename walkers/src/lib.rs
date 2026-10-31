@@ -10,14 +10,14 @@ mod map;
 mod memory;
 mod options;
 mod plugin;
-#[cfg(feature = "mvt")]
+#[cfg(feature = "vector")]
 mod style;
-#[cfg(feature = "mvt")]
+#[cfg(feature = "vector")]
 mod text;
 
-#[cfg(not(feature = "mvt"))]
+#[cfg(not(feature = "vector"))]
 mod style {
-    /// Dummy style, used when `mtv` feature is not enabled.
+    /// Dummy style, used when `vector` feature is not enabled.
     #[derive(Default)]
     pub struct Style;
 }
@@ -25,10 +25,10 @@ mod style {
 // TODO: I don't want it to be public.
 pub mod mercator;
 
-#[cfg(feature = "mvt")]
+#[cfg(feature = "vector")]
 mod egui_backend;
 
-#[cfg(feature = "mvt")]
+#[cfg(feature = "vector")]
 mod expression;
 #[cfg(feature = "mvt")]
 mod mvt;
@@ -37,7 +37,7 @@ mod pmtiles;
 mod position;
 mod projection;
 mod projector;
-#[cfg(feature = "mvt")]
+#[cfg(feature = "vector")]
 mod render;
 pub mod sources;
 mod tiles;
@@ -45,11 +45,11 @@ mod z_order;
 mod zoom;
 
 pub use canvas::Canvas;
-#[cfg(feature = "mvt")]
+#[cfg(feature = "vector")]
 pub use canvas::Drawables;
-#[cfg(feature = "mvt")]
+#[cfg(feature = "vector")]
 pub use egui_backend::wgpu::install_renderer;
-#[cfg(feature = "mvt")]
+#[cfg(feature = "vector")]
 pub use expression::Context;
 pub use geo_types;
 pub use http_tiles::HttpTiles;
@@ -64,20 +64,20 @@ pub use pmtiles::PmTiles;
 pub use position::{Pixels, Position, lat_lon, lon_lat};
 pub use projection::{MercatorProjection, Projection};
 pub use projector::Projector;
-#[cfg(feature = "mvt")]
+#[cfg(feature = "vector")]
 pub use render::drawable::{Drawable, Line, Mesh, Vertex};
-#[cfg(feature = "mvt")]
+#[cfg(feature = "vector")]
 pub use render::{
     fill::render as render_fill, fill::tessellate_polygon, line::render as render_line,
     symbol::render as render_symbol,
 };
 pub use style::Style;
-#[cfg(feature = "mvt")]
+#[cfg(feature = "vector")]
 pub use style::{
     Color, Dasharray, Filter, Float, Layer, Layout, Paint, SourceLayer, Value,
     exponential_zoom_interpolation, json, linear_zoom_interpolation,
 };
-#[cfg(feature = "mvt")]
+#[cfg(feature = "vector")]
 pub use text::{Placement, Text, place_texts};
 pub use tiles::{Tile, TileId, TilePiece, Tiles};
 pub use z_order::ZOrder;

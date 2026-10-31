@@ -29,6 +29,7 @@ jobs:
           repo-token: ${{ secrets.GITHUB_TOKEN }}
       - uses: extractions/setup-just@v3
       - run: just check-all-features
+      - run: just check-vector
       - run: just check-demo
 
   wasm:

@@ -1,4 +1,4 @@
-#[cfg(feature = "mvt")]
+#[cfg(feature = "vector")]
 pub mod wgpu {
     use egui::Rect;
     use egui::emath::TSTransform;

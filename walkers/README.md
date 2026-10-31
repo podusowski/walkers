@@ -17,13 +17,18 @@ Before deploying your application, please get yourself familiar with the
 [OpenStreetMap usage policy](https://operations.osmfoundation.org/policies/tiles/), 
 and consider donating to the [OpenStreetMap Foundation](https://supporting.openstreetmap.org/).
 
-## Features
+## Cargo features
 
-- Fetching tiles over HTTP from XYZ tile servers.
-- Reading tiles from local `.pmtiles` files.
-- Raster tiles rendering.
-- Vector tiles (MVT) rendering with styling similar to [MapLibre style](https://maplibre.org/maplibre-style-spec/).
-- Experimental local `.geojson` files support.
+Raster tiles fetched over HTTP work out of the box. Everything else is behind a feature:
+
+- `vector` - drawing vector geometry, styled similarly to
+  [MapLibre style](https://maplibre.org/maplibre-style-spec/). Needs egui to be rendered with
+  wgpu, and `walkers::install_renderer` to be called on startup.
+- `mvt` - decoding vector tiles (MVT). Enables `vector`.
+- `pmtiles` - reading tiles from `.pmtiles` files.
+- `serde` - serializing `MapMemory`, `TileId` and `Position`.
+- `rustls-aws-lc-rs` - enabled by default, uses `aws-lc-rs` as the rustls crypto provider. Disable
+  default features to set up your own.
 
 ## Quick start
 

@@ -9,6 +9,11 @@ check-lean:
 check-all-features:
     cargo check -p walkers --all-features
 
+# Vector drawing without MVT, which is what `walkers_extras` uses.
+[group('develop')]
+check-vector:
+    cargo check -p walkers --features vector
+
 [group('develop')]
 check-demo:
     cargo check -p demo_native
@@ -20,7 +25,7 @@ check-wanderers:
     cargo check -p wanderers
 
 [group('develop')]
-check: check-lean check-all-features check-demo check-wanderers
+check: check-lean check-all-features check-vector check-demo check-wanderers
 
 [group('develop')]
 lints:

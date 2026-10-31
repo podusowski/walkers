@@ -1,11 +1,11 @@
 use egui::Shape;
-#[cfg(feature = "mvt")]
+#[cfg(feature = "vector")]
 use egui::{Rect, emath::TSTransform};
-#[cfg(feature = "mvt")]
+#[cfg(feature = "vector")]
 use std::sync::Arc;
 
 use crate::ZOrder;
-#[cfg(feature = "mvt")]
+#[cfg(feature = "vector")]
 use crate::{Drawable, Text};
 
 /// Everything the map draws in a frame, with labels on top.
@@ -13,23 +13,23 @@ pub struct Canvas {
     /// In the order they are drawn.
     shapes: Vec<Shape>,
 
-    #[cfg(feature = "mvt")]
+    #[cfg(feature = "vector")]
     pub(crate) texts: Vec<(ZOrder, Text)>,
 
     /// Above every map layer, for what is added on top of them.
     pub(crate) z_order: ZOrder,
 
     /// Which frame this is, for the renderer to tell which drawables are still in use.
-    #[cfg(feature = "mvt")]
+    #[cfg(feature = "vector")]
     frame: u64,
 
-    #[cfg(feature = "mvt")]
+    #[cfg(feature = "vector")]
     screen: Rect,
 }
 
 /// Drawables to be put on the [`Canvas`], and how. Cheap to clone, and drawing the same ones
 /// again does not upload them to the GPU again.
-#[cfg(feature = "mvt")]
+#[cfg(feature = "vector")]
 #[derive(Clone)]
 pub struct Drawables {
     /// Behind an `Arc`, because that is what the renderer tells uploaded drawables by.
@@ -39,7 +39,7 @@ pub struct Drawables {
     transparency: f32,
 }
 
-#[cfg(feature = "mvt")]
+#[cfg(feature = "vector")]
 impl Drawables {
     /// Drawn as they are, in screen coordinates.
     pub fn new(drawables: Vec<Drawable>) -> Self {
@@ -76,17 +76,17 @@ impl Drawables {
 
 impl Canvas {
     pub(crate) fn new(ctx: &egui::Context) -> Self {
-        #[cfg(not(feature = "mvt"))]
+        #[cfg(not(feature = "vector"))]
         let _ = ctx;
 
         Self {
             shapes: Vec::new(),
-            #[cfg(feature = "mvt")]
+            #[cfg(feature = "vector")]
             texts: Vec::new(),
             z_order: ZOrder::default(),
-            #[cfg(feature = "mvt")]
+            #[cfg(feature = "vector")]
             frame: ctx.cumulative_pass_nr(),
-            #[cfg(feature = "mvt")]
+            #[cfg(feature = "vector")]
             screen: ctx.viewport_rect(),
         }
     }
@@ -97,12 +97,12 @@ impl Canvas {
     }
 
     /// `text` is in screen coordinates.
-    #[cfg(feature = "mvt")]
+    #[cfg(feature = "vector")]
     pub fn add_text(&mut self, z_order: ZOrder, text: Text) {
         self.texts.push((z_order, text));
     }
 
-    #[cfg(feature = "mvt")]
+    #[cfg(feature = "vector")]
     pub fn add_drawables(&mut self, drawables: Drawables) {
         let Drawables {
             drawables,
@@ -130,12 +130,12 @@ impl Canvas {
 
     /// Draw everything into `slot`, which `painter` reserved earlier, so that it goes below
     /// what was painted since.
-    #[cfg_attr(not(feature = "mvt"), allow(unused_mut))]
+    #[cfg_attr(not(feature = "vector"), allow(unused_mut))]
     pub(crate) fn draw(self, painter: &egui::Painter, slot: egui::layers::ShapeIdx) {
         let mut shapes = self.shapes;
 
         // Stable, so that within a style layer the tiles nearest the center still go first.
-        #[cfg(feature = "mvt")]
+        #[cfg(feature = "vector")]
         {
             let mut texts = self.texts;
             texts.sort_by_key(|(z_order, _)| *z_order);

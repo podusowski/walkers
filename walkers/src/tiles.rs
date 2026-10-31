@@ -1,6 +1,6 @@
 #[cfg(feature = "mvt")]
 use crate::mvt;
-#[cfg(feature = "mvt")]
+#[cfg(feature = "vector")]
 use crate::render;
 
 use egui::{Color32, Context, Mesh, Rect, Vec2, pos2};
@@ -111,7 +111,7 @@ pub trait Tiles {
 #[derive(Clone)]
 pub enum Tile {
     Raster(TextureHandle),
-    #[cfg(feature = "mvt")]
+    #[cfg(feature = "vector")]
     Vector {
         /// What the tile decoded into. Held behind an `Arc` so that a mesh inside it stays at
         /// one address while the GPU holds buffers for it.
@@ -195,7 +195,7 @@ impl Tile {
         zoom: f64,
         z_order: ZOrder,
     ) {
-        #[cfg(not(feature = "mvt"))]
+        #[cfg(not(feature = "vector"))]
         let _ = (tile_size, zoom, z_order);
 
         match self {
@@ -204,14 +204,14 @@ impl Tile {
                 mesh.add_rect_with_uv(rect, uv, Color32::WHITE.gamma_multiply(transparency));
                 canvas.add_shape(egui::Shape::mesh(mesh));
             }
-            #[cfg(feature = "mvt")]
+            #[cfg(feature = "vector")]
             Tile::Vector {
                 drawables,
                 texts: from_tile,
             } => {
                 // Renderer needs to work on the full tile, before it was clipped with `uv`...
                 let full_rect = full_rect_of_clipped_tile(rect, uv);
-                let transform = mvt::transform_onto(full_rect, tile_size);
+                let transform = transform_onto(full_rect, tile_size);
 
                 // ...and then it can be clipped to the `rect`.
                 canvas.add_drawables(
@@ -359,7 +359,7 @@ pub(crate) fn interpolate_from_lower_zoom(tile_id: TileId, available_zoom: u8) -
     (zoomed_tile_id, uv)
 }
 
-#[cfg(any(feature = "mvt", test))]
+#[cfg(any(feature = "vector", test))]
 /// Get the original rect which was clipped using the `uv`.
 fn full_rect_of_clipped_tile(rect: Rect, uv: Rect) -> Rect {
     let uv_width = uv.max.x - uv.min.x;
@@ -375,6 +375,15 @@ fn full_rect_of_clipped_tile(rect: Rect, uv: Rect) -> Rect {
         pos2(full_min_x, full_min_y),
         pos2(full_min_x + full_width, full_min_y + full_height),
     )
+}
+
+/// What takes a tile rendered for `tile_size` onto the `rect` it is actually drawn at.
+#[cfg(feature = "vector")]
+fn transform_onto(rect: Rect, tile_size: u32) -> egui::emath::TSTransform {
+    egui::emath::TSTransform {
+        scaling: rect.width() / tile_size as f32,
+        translation: rect.min.to_vec2(),
+    }
 }
 
 pub(crate) fn rect(screen_position: Vec2, tile_size: f64) -> Rect {
@@ -554,10 +563,10 @@ mod tests {
     /// A source whose every tile carries the same label at both its left and right edge, the
     /// way vector tiles repeat features which fall near a boundary. Positions are in the
     /// pixels of a tile, which is what a rendered tile holds.
-    #[cfg(feature = "mvt")]
+    #[cfg(feature = "vector")]
     struct LabelAtBothEdges;
 
-    #[cfg(feature = "mvt")]
+    #[cfg(feature = "vector")]
     impl Tiles for LabelAtBothEdges {
         fn at(&mut self, _tile_id: TileId) -> Option<TilePiece> {
             let label = |x: f32| {
@@ -595,7 +604,7 @@ mod tests {
 
     /// The same label arriving from two neighbouring tiles should be drawn once. Before labels
     /// were gathered across tiles, each tile placed its own copy.
-    #[cfg(feature = "mvt")]
+    #[cfg(feature = "vector")]
     #[test]
     fn a_label_shared_by_two_tiles_is_placed_once() {
         let ctx = Context::default();
