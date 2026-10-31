@@ -2,12 +2,12 @@ use bytes::Bytes;
 use egui::Context;
 use reqwest_middleware::ClientWithMiddleware;
 
-use crate::cached_tiles::CachedTiles;
+use super::EguiTileFactory;
+use super::cached::CachedTiles;
 use crate::io::Fetch;
 use crate::io::http::http_client;
 use crate::sources::{Attribution, TileSource};
 use crate::style::Style;
-use crate::tiles::EguiTileFactory;
 use crate::{HttpOptions, TilePiece, Tiles};
 use crate::{Stats, TileId};
 
@@ -208,7 +208,7 @@ mod tests {
 
         // Eventually it gets downloaded and become available in cache.
         anticipated
-            .respond(include_bytes!("../assets/blank-255-tile.png"))
+            .respond(include_bytes!("../../assets/blank-255-tile.png"))
             .await;
         assert_tile_to_become_available_eventually(&mut tiles, TILE_ID).await;
     }
@@ -320,7 +320,7 @@ mod tests {
 
         first
             .respond(Bytes::from_static(include_bytes!(
-                "../assets/blank-255-tile.png"
+                "../../assets/blank-255-tile.png"
             )))
             .await;
 

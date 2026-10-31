@@ -1,5 +1,11 @@
+mod cached;
+pub(crate) mod grid;
+pub(crate) mod http;
 #[cfg(feature = "mvt")]
-use crate::mvt;
+mod mvt;
+#[cfg(feature = "pmtiles")]
+pub(crate) mod pmtiles;
+
 #[cfg(feature = "vector")]
 use crate::render;
 
@@ -13,8 +19,8 @@ use crate::io::TileFactory;
 use crate::position::{Pixels, PixelsExt};
 use crate::sources::Attribution;
 use crate::style::Style;
-use crate::tile_grid::{TILE_SIZE, tile_id_at, total_tiles};
 use crate::{Canvas, Projector, Stats};
+use grid::{TILE_SIZE, tile_id_at, total_tiles};
 
 #[derive(Error, Debug)]
 pub enum TileError {
@@ -214,7 +220,7 @@ impl Tile {
                 for text in render::transformed_texts(
                     from_tile,
                     transform,
-                    zoom - crate::tile_grid::zoom_offset(tile_size) as f64,
+                    zoom - grid::zoom_offset(tile_size) as f64,
                 ) {
                     canvas.add_text(z_order.combine(text.layer), text);
                 }
