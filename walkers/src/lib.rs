@@ -6,6 +6,7 @@ mod canvas;
 mod center;
 mod http_tiles;
 mod io;
+mod layer;
 mod map;
 mod memory;
 mod options;
@@ -52,6 +53,7 @@ pub use geo_types;
 pub use http_tiles::HttpTiles;
 pub use io::tiles_io::Stats;
 pub use io::{HeaderValue, MaxParallelDownloads, http::HttpOptions};
+pub use layer::Layer;
 pub use map::Map;
 pub use memory::MapMemory;
 pub use options::Options;
@@ -70,7 +72,7 @@ pub use render::{
 pub use style::Style;
 #[cfg(feature = "vector")]
 pub use style::{
-    Color, Dasharray, Filter, Float, Layer, Layout, Paint, SourceLayer, Value,
+    Color, Dasharray, Filter, Float, Layout, Paint, SourceLayer, StyleLayer, Value,
     exponential_zoom_interpolation, json, linear_zoom_interpolation,
 };
 #[cfg(feature = "vector")]

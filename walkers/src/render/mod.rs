@@ -19,12 +19,7 @@ pub enum Error {
     Tessellation(#[from] TessellationError),
 }
 
-pub(crate) fn transformed_texts(
-    texts: &[Text],
-    transform: TSTransform,
-    transparency: f32,
-    zoom: f64,
-) -> Vec<Text> {
+pub(crate) fn transformed_texts(texts: &[Text], transform: TSTransform, zoom: f64) -> Vec<Text> {
     texts
         .iter()
         .filter(|text| text.min_zoom.is_none_or(|min_zoom| zoom >= min_zoom as f64))
@@ -33,8 +28,6 @@ pub(crate) fn transformed_texts(
             max_width: text
                 .max_width
                 .map(|max_width| max_width * transform.scaling),
-            text_color: text.text_color.gamma_multiply(transparency),
-            halo_color: text.halo_color.gamma_multiply(transparency),
             ..text.to_owned()
         })
         .collect()

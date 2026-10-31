@@ -1,15 +1,15 @@
 use egui::{
-    DragPanButtons, InnerResponse, PointerButton, Response, Sense, Shape, Ui, UiBuilder, Vec2,
-    Widget, emath::NumExt as _,
+    DragPanButtons, InnerResponse, PointerButton, Response, Sense, Ui, UiBuilder, Vec2, Widget,
+    emath::NumExt as _,
 };
 
 use crate::{
-    Canvas, MapMemory, MercatorProjection, Options, Plugin, Position, Projection, Projector, Tiles,
-    ZOrder, center::Center, position::shifted, tiles::draw_tiles,
+    Canvas, Layer, MapMemory, MercatorProjection, Options, Plugin, Position, Projection, Projector,
+    Tiles, ZOrder, center::Center, position::shifted,
 };
 
-struct Layer<'a> {
-    tiles: &'a mut dyn Tiles,
+struct LayerEntry<'a> {
+    layer: Box<dyn Layer + 'a>,
     transparency: f32,
 }
 
@@ -35,8 +35,7 @@ struct Layer<'a> {
 /// [`MapMemory`]'s methods to change the state programmatically.
 pub struct Map<'a, 'b, 'c> {
     projection: &'a dyn Projection,
-    tiles: Option<&'b mut dyn Tiles>,
-    layers: Vec<Layer<'b>>,
+    layers: Vec<LayerEntry<'b>>,
     memory: &'a mut MapMemory,
     my_position: Position,
     plugins: Vec<Box<dyn Plugin + 'c>>,
@@ -49,10 +48,17 @@ impl<'a, 'b, 'c> Map<'a, 'b, 'c> {
         memory: &'a mut MapMemory,
         my_position: Position,
     ) -> Self {
+        let layers = tiles
+            .map(|tiles| LayerEntry {
+                layer: Box::new(tiles),
+                transparency: 1.0,
+            })
+            .into_iter()
+            .collect();
+
         Self {
             projection: &MercatorProjection,
-            tiles,
-            layers: Vec::default(),
+            layers,
             memory,
             my_position,
             plugins: Vec::default(),
@@ -72,10 +78,10 @@ impl<'a, 'b, 'c> Map<'a, 'b, 'c> {
         self
     }
 
-    /// Add a tile layer. All layers are drawn on top of each other with given transparency.
-    pub fn with_layer(mut self, tiles: &'b mut dyn Tiles, transparency: f32) -> Self {
-        self.layers.push(Layer {
-            tiles,
+    /// Add a layer, such as [`Tiles`].
+    pub fn with_layer(mut self, layer: impl Layer + 'b, transparency: f32) -> Self {
+        self.layers.push(LayerEntry {
+            layer: Box::new(layer),
             transparency,
         });
         self
@@ -150,7 +156,7 @@ impl<'a, 'b, 'c> Map<'a, 'b, 'c> {
     pub fn show<R>(
         mut self,
         ui: &mut Ui,
-        add_contents: impl FnOnce(&mut Ui, &Response, &Projector, &MapMemory, &mut Canvas) -> R,
+        add_contents: impl FnOnce(&mut Ui, &Response, &Projector, &MapMemory) -> R,
     ) -> InnerResponse<R> {
         let (rect, mut response) =
             ui.allocate_exact_size(ui.available_size(), Sense::click_and_drag());
@@ -182,25 +188,14 @@ impl<'a, 'b, 'c> Map<'a, 'b, 'c> {
         let painter = ui.painter().with_clip_rect(rect);
         let mut canvas = Canvas::new(ui.ctx());
 
-        if let Some(tiles) = self.tiles {
-            draw_tiles(&mut canvas, &projector, tiles, 1.0, ZOrder::new(0));
+        for (index, mut entry) in self.layers.into_iter().enumerate() {
+            canvas.z_order = ZOrder::new(index);
+            canvas.transparency = entry.transparency;
+            entry.layer.draw(&mut canvas, &projector);
         }
 
-        canvas.z_order = ZOrder::new(self.layers.len() + 1);
-
-        for (index, layer) in self.layers.into_iter().enumerate() {
-            draw_tiles(
-                &mut canvas,
-                &projector,
-                layer.tiles,
-                layer.transparency,
-                ZOrder::new(index + 1),
-            );
-        }
-
-        // Filled once the closure is done with the canvas, so that it still goes below what the
-        // plugins and the closure paint with egui.
-        let canvas_slot = painter.add(Shape::Noop);
+        // Before the plugins and the closure, so that it goes below what they paint with egui.
+        canvas.draw(&painter);
 
         // Run plugins.
         for (idx, plugin) in self.plugins.into_iter().enumerate() {
@@ -209,15 +204,7 @@ impl<'a, 'b, 'c> Map<'a, 'b, 'c> {
         }
 
         let mut child_ui = ui.new_child(UiBuilder::new().max_rect(rect).id_salt("inner"));
-        let inner = add_contents(
-            &mut child_ui,
-            &response,
-            &projector,
-            self.memory,
-            &mut canvas,
-        );
-
-        canvas.draw(&painter, canvas_slot);
+        let inner = add_contents(&mut child_ui, &response, &projector, self.memory);
 
         InnerResponse { inner, response }
     }
@@ -357,7 +344,7 @@ impl Map<'_, '_, '_> {
 
 impl Widget for Map<'_, '_, '_> {
     fn ui(self, ui: &mut Ui) -> Response {
-        self.show(ui, |_, _, _, _, _| ()).response
+        self.show(ui, |_, _, _, _| ()).response
     }
 }
 
@@ -372,4 +359,80 @@ fn input_offset(ui: &mut Ui, response: &Response) -> Option<Vec2> {
     touch_offset
         .or(mouse_offset)
         .map(|pos| pos - response.rect.center())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::{Tile, TileId, TilePiece, lon_lat, sources::Attribution};
+    use egui::{ColorImage, Context, RawInput, Rect, Shape, pos2, vec2};
+
+    /// Every tile is a raster with its own texture.
+    struct RasterTiles {
+        ctx: Context,
+    }
+
+    impl Tiles for RasterTiles {
+        fn at(&mut self, _tile_id: TileId) -> Option<TilePiece> {
+            let texture = self.ctx.load_texture(
+                "tile",
+                ColorImage::filled([1, 1], egui::Color32::WHITE),
+                Default::default(),
+            );
+            Some(TilePiece::new(
+                Tile::Raster(texture),
+                Rect::from_min_max(pos2(0., 0.), pos2(1., 1.)),
+            ))
+        }
+
+        fn attribution(&self) -> Attribution {
+            Attribution {
+                text: "",
+                url: "",
+                logo_light: None,
+                logo_dark: None,
+            }
+        }
+
+        fn tile_size(&self) -> u32 {
+            256
+        }
+    }
+
+    /// egui's parallel tessellation turns a `Shape::Vec` into a single mesh, so meshes with
+    /// different textures cannot go inside one.
+    #[test]
+    fn tiles_are_not_painted_inside_a_shape_vec() {
+        let ctx = Context::default();
+        let mut tiles = RasterTiles { ctx: ctx.clone() };
+        let mut memory = MapMemory::default();
+
+        let input = RawInput {
+            screen_rect: Some(Rect::from_min_size(pos2(0., 0.), vec2(1024., 768.))),
+            ..Default::default()
+        };
+
+        let mut output = ctx.run_ui(input, |ui| {
+            ui.add(Map::new(
+                Some(&mut tiles),
+                &mut memory,
+                lon_lat(21.00027, 52.26470),
+            ));
+        });
+        output.textures_delta.clear();
+
+        for clipped in &output.shapes {
+            assert!(
+                !matches!(clipped.shape, Shape::Vec(_)),
+                "painted inside a Shape::Vec"
+            );
+        }
+
+        let meshes = output
+            .shapes
+            .iter()
+            .filter(|clipped| matches!(clipped.shape, Shape::Mesh(_)))
+            .count();
+        assert!(meshes > 4, "only {meshes} tiles were painted");
+    }
 }

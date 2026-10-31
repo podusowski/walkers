@@ -13,7 +13,7 @@ use crate::{
     Drawable,
     expression::Context,
     render::{self, Coord, Geometry},
-    style::{Filter, Layer, SourceLayer, Style},
+    style::{Filter, SourceLayer, Style, StyleLayer},
     text::Text,
 };
 
@@ -46,7 +46,7 @@ pub fn render(
 
     for (index, layer) in style.layers.iter().enumerate() {
         match layer {
-            Layer::Background { paint } => {
+            StyleLayer::Background { paint } => {
                 let context = Context::new("None".to_string(), HashMap::new(), zoom);
 
                 let bg_color = if let Some(color) = &paint.background_color {
@@ -57,7 +57,7 @@ pub fn render(
 
                 drawables.push(Drawable::background(tile_size as f32, bg_color));
             }
-            Layer::Fill {
+            StyleLayer::Fill {
                 source_layer,
                 filter,
                 paint,
@@ -69,7 +69,7 @@ pub fn render(
                     }
                 }
             }
-            Layer::Line {
+            StyleLayer::Line {
                 source_layer,
                 filter,
                 paint,
@@ -81,7 +81,7 @@ pub fn render(
                     }
                 }
             }
-            Layer::Symbol {
+            StyleLayer::Symbol {
                 source_layer,
                 minzoom,
                 filter,
@@ -125,14 +125,14 @@ fn decode_needed_layers(
 
     let needed = |name: &str| {
         style.layers.iter().any(|layer| match layer {
-            Layer::Fill { source_layer, .. }
-            | Layer::Line { source_layer, .. }
-            | Layer::Symbol { source_layer, .. } => source_layer.matches(name),
+            StyleLayer::Fill { source_layer, .. }
+            | StyleLayer::Line { source_layer, .. }
+            | StyleLayer::Symbol { source_layer, .. } => source_layer.matches(name),
             // Circle layers name a source layer, but are not drawn.
-            Layer::Background { .. }
-            | Layer::Circle { .. }
-            | Layer::Raster
-            | Layer::FillExtrusion => false,
+            StyleLayer::Background { .. }
+            | StyleLayer::Circle { .. }
+            | StyleLayer::Raster
+            | StyleLayer::FillExtrusion => false,
         })
     };
 

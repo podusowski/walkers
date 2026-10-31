@@ -1,10 +1,10 @@
-use walkers::{Color, Float, Layer, Paint, Style, json};
+use walkers::{Color, Float, Paint, Style, StyleLayer, json};
 use walkers_extras::KmlLayer;
 
 /// Kampinos National Park, from OpenStreetMap.
 pub fn kampinos_national_park() -> KmlLayer {
     let style = Style {
-        layers: vec![Layer::Fill {
+        layers: vec![StyleLayer::Fill {
             source_layer: "park".into(),
             filter: None,
             paint: Paint {
@@ -21,7 +21,7 @@ pub fn kampinos_national_park() -> KmlLayer {
 /// Planned high-speed railways in Poland, from OpenStreetMap.
 pub fn high_speed_rail_poland() -> KmlLayer {
     let style = Style {
-        layers: vec![Layer::Line {
+        layers: vec![StyleLayer::Line {
             source_layer: "railways".into(),
             filter: None,
             paint: Paint {
@@ -39,7 +39,7 @@ pub fn high_speed_rail_poland() -> KmlLayer {
 /// https://data.europa.eu/data/datasets/utegym-umea-opendata-umea-se
 pub fn outgym_umea_layer() -> KmlLayer {
     let style = Style {
-        layers: vec![Layer::Circle {
+        layers: vec![StyleLayer::Circle {
             source_layer: "".into(),
             filter: None,
         }],

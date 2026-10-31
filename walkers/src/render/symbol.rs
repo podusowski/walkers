@@ -273,7 +273,7 @@ mod tests {
         let texts = label(Geometry::LineString(line_string));
 
         let placed = |scaling: f32| {
-            let texts = transformed_texts(&texts, TSTransform::from_scaling(scaling), 1., 0.);
+            let texts = transformed_texts(&texts, TSTransform::from_scaling(scaling), 0.);
             place_texts(texts, &ctx)
                 .into_iter()
                 .filter(|shape| !matches!(shape, egui::Shape::Noop))

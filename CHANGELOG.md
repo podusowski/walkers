@@ -7,6 +7,11 @@ playground and can change or break at any time without an entry here.
 
 * New `vector` feature for drawing styled vector geometry, without MVT decoding. `mvt` enables it.
 * `mercator` module is no longer public. Use `MercatorProjection` instead of `mercator::project`.
+* Fix a panic when egui's parallel tessellation is enabled (#650).
+* New `Layer` trait for what the map draws onto its `Canvas`. `Map::with_layer` takes any `Layer`,
+  and `Tiles` are one. Layers are drawn in the order they were added.
+* `Map::show`'s closure no longer gets a `Canvas`. Draw onto it from a `Layer` instead.
+* Style's `Layer` is renamed to `StyleLayer`.
 
 ## 0.64.0
 

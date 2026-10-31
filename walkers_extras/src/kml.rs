@@ -7,13 +7,19 @@ use log::warn;
 use walkers::geo_types::{Geometry, Point};
 use walkers::{
     Canvas, Context, Drawable, Drawables, Layer, Line, Mesh, Paint, Position, Projector, Style,
-    Vertex, render_fill, render_line,
+    StyleLayer, Vertex, render_fill, render_line,
 };
 
 /// Parsed KML features, drawn on top of a [`Map`](walkers::Map).
 pub struct KmlLayer {
     geometries: Vec<Geometry<f64>>,
     style: Style,
+}
+
+impl Layer for &KmlLayer {
+    fn draw(&mut self, canvas: &mut Canvas, projector: &Projector) {
+        self.render(canvas, projector);
+    }
 }
 
 impl KmlLayer {
@@ -31,13 +37,13 @@ impl KmlLayer {
 
         for layer in &self.style.layers {
             match layer {
-                Layer::Fill { paint, .. } => {
+                StyleLayer::Fill { paint, .. } => {
                     self.draw_fills(&mut drawables, projector, paint, zoom);
                 }
-                Layer::Line { paint, .. } => {
+                StyleLayer::Line { paint, .. } => {
                     self.draw_lines(&mut drawables, projector, paint, zoom);
                 }
-                Layer::Circle { .. } => {
+                StyleLayer::Circle { .. } => {
                     self.draw_circles(&mut drawables, projector);
                 }
                 other => {
