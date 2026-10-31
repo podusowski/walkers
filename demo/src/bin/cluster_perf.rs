@@ -257,9 +257,9 @@ impl walkers::Plugin for StatsHandle {
         ui: &mut egui::Ui,
         response: &egui::Response,
         projector: &walkers::Projector,
-        memory: &MapMemory,
+        _map_memory: &MapMemory,
     ) {
-        let (clusters, max_size) = self.inner.draw_with_stats(ui, response, projector, memory);
+        let (clusters, max_size) = self.inner.draw_with_stats(ui, response, projector);
         self.stats.set(ClusterStats::new(clusters, max_size));
     }
 }
