@@ -2,7 +2,7 @@ use egui::{Id, Rect, Response, Sense, Ui, vec2};
 use rstar::{PointDistance, RTree, RTreeObject};
 use std::cell::RefCell;
 use std::sync::Arc;
-use walkers::{MapMemory, Plugin, Position, Projector, lon_lat, mercator};
+use walkers::{MapMemory, Plugin, Position, Projector, lon_lat};
 
 /// [`Plugin`] which shows places on the map. Place can be any type that implements the [`Place`]
 /// trait.
@@ -279,28 +279,29 @@ impl<T: Place, G: Group> GroupedPlacesTree<T, G> {
         self.screen_positions.borrow_mut().clear();
     }
 
-    fn px_per_deg(&self, memory: &MapMemory, seed: [f64; 2]) -> (f64, f64) {
-        let zoom = memory.zoom();
+    fn px_per_deg(&self, projector: &Projector, seed: [f64; 2]) -> (f64, f64) {
+        let projection = projector.projection();
+        let zoom = projector.zoom();
         let pos = lon_lat(seed[0], seed[1]);
-        let base = mercator::project(pos, zoom);
+        let base = projection.project(pos, zoom);
         const D: f64 = 1e-4;
-        let lon_shift = mercator::project(lon_lat(seed[0] + D, seed[1]), zoom);
-        let lat_shift = mercator::project(lon_lat(seed[0], seed[1] + D), zoom);
+        let lon_shift = projection.project(lon_lat(seed[0] + D, seed[1]), zoom);
+        let lat_shift = projection.project(lon_lat(seed[0], seed[1] + D), zoom);
         let px_per_deg_lon = ((lon_shift.x() - base.x()).abs() / D).max(1e-9);
         let px_per_deg_lat = ((lat_shift.y() - base.y()).abs() / D).max(1e-9);
         (px_per_deg_lon, px_per_deg_lat)
     }
 
-    fn px_to_deg_at(&self, memory: &MapMemory, seed: [f64; 2], r_px: f32) -> f64 {
-        let (px_per_deg_lon, px_per_deg_lat) = self.px_per_deg(memory, seed);
+    fn px_to_deg_at(&self, projector: &Projector, seed: [f64; 2], r_px: f32) -> f64 {
+        let (px_per_deg_lon, px_per_deg_lat) = self.px_per_deg(projector, seed);
         let r_px = r_px as f64;
         let dlon = r_px / px_per_deg_lon;
         let dlat = r_px / px_per_deg_lat;
         dlon.hypot(dlat)
     }
 
-    fn deg_to_px_at(&self, memory: &MapMemory, seed: [f64; 2], r_deg: f64) -> f32 {
-        let (px_per_deg_lon, px_per_deg_lat) = self.px_per_deg(memory, seed);
+    fn deg_to_px_at(&self, projector: &Projector, seed: [f64; 2], r_deg: f64) -> f32 {
+        let (px_per_deg_lon, px_per_deg_lat) = self.px_per_deg(projector, seed);
         let px_lon = r_deg * px_per_deg_lon;
         let px_lat = r_deg * px_per_deg_lat;
         px_lon.hypot(px_lat) as f32
@@ -309,7 +310,7 @@ impl<T: Place, G: Group> GroupedPlacesTree<T, G> {
     fn visit_clusters_with_cache<F>(
         &self,
         response_rect: egui::Rect,
-        memory: &MapMemory,
+        projector: &Projector,
         screen_positions: &[egui::Pos2],
         mut handle: F,
     ) where
@@ -343,11 +344,11 @@ impl<T: Place, G: Group> GroupedPlacesTree<T, G> {
             }
 
             let (query_r_deg, r_px_check) = if let Some(px) = s.screen_radius_px {
-                (self.px_to_deg_at(memory, [seed.lon, seed.lat], px), px)
+                (self.px_to_deg_at(projector, [seed.lon, seed.lat], px), px)
             } else {
                 (
                     s.geo_radius_deg,
-                    self.deg_to_px_at(memory, [seed.lon, seed.lat], s.geo_radius_deg),
+                    self.deg_to_px_at(projector, [seed.lon, seed.lat], s.geo_radius_deg),
                 )
             };
 
@@ -392,14 +393,8 @@ impl<T: Place, G: Group> GroupedPlacesTree<T, G> {
         }
     }
 
-    pub fn draw_once(
-        &self,
-        ui: &mut Ui,
-        response: &Response,
-        projector: &Projector,
-        memory: &MapMemory,
-    ) {
-        self.draw_with_stats(ui, response, projector, memory);
+    pub fn draw_once(&self, ui: &mut Ui, response: &Response, projector: &Projector) {
+        self.draw_with_stats(ui, response, projector);
     }
 
     pub fn draw_with_stats(
@@ -407,7 +402,6 @@ impl<T: Place, G: Group> GroupedPlacesTree<T, G> {
         ui: &mut Ui,
         response: &Response,
         projector: &Projector,
-        memory: &MapMemory,
     ) -> (usize, usize) {
         let mut clusters = 0usize;
         let mut max_size = 0usize;
@@ -420,7 +414,7 @@ impl<T: Place, G: Group> GroupedPlacesTree<T, G> {
         }
         self.visit_clusters_with_cache(
             response.rect,
-            memory,
+            projector,
             &cache,
             |seed_idx, members, center| {
                 const HITBOX_PX: f32 = 50.0;
@@ -443,12 +437,7 @@ impl<T: Place, G: Group> GroupedPlacesTree<T, G> {
         (clusters, max_size)
     }
 
-    pub fn cluster_stats(
-        &self,
-        rect: egui::Rect,
-        projector: &Projector,
-        memory: &MapMemory,
-    ) -> (usize, usize) {
+    pub fn cluster_stats(&self, rect: egui::Rect, projector: &Projector) -> (usize, usize) {
         let mut clusters = 0usize;
         let mut max_size = 0usize;
         let mut cache = self.screen_positions.borrow_mut();
@@ -458,7 +447,7 @@ impl<T: Place, G: Group> GroupedPlacesTree<T, G> {
         for (pos, place) in cache.iter_mut().zip(self.places.iter()) {
             *pos = projector.project(place.position()).to_pos2();
         }
-        self.visit_clusters_with_cache(rect, memory, &cache, |_, members, _| {
+        self.visit_clusters_with_cache(rect, projector, &cache, |_, members, _| {
             clusters += 1;
             max_size = max_size.max(members.len());
         });
@@ -472,9 +461,9 @@ impl<T: Place, G: Group> Plugin for GroupedPlacesTree<T, G> {
         ui: &mut Ui,
         response: &Response,
         projector: &Projector,
-        memory: &MapMemory,
+        _map_memory: &MapMemory,
     ) {
-        self.draw_once(ui, response, projector, memory);
+        self.draw_once(ui, response, projector);
     }
 }
 
@@ -499,7 +488,7 @@ fn build_rtree<T: Place>(places: &[T]) -> RTree<Pt> {
 mod tests {
     use super::*;
     use egui::{Pos2, Rect, Vec2};
-    use walkers::MercatorProjection;
+    use walkers::{MercatorProjection, Pixels, Projection};
 
     #[derive(Clone)]
     struct DummyPlace(Position);
@@ -526,12 +515,12 @@ mod tests {
         }
     }
 
-    fn projector_for_zoom(zoom: f64) -> (Rect, MapMemory, Projector<'static>) {
+    fn projector_for_zoom(zoom: f64) -> (Rect, Projector<'static>) {
         let rect = Rect::from_min_size(Pos2::ZERO, Vec2::splat(512.0));
         let mut memory = MapMemory::default();
         memory.set_zoom(zoom).unwrap();
         let projector = Projector::new(rect, &MercatorProjection, &memory, lon_lat(0.0, 0.0));
-        (rect, memory, projector)
+        (rect, projector)
     }
 
     #[test]
@@ -544,15 +533,54 @@ mod tests {
             .with_screen_radius_px(50.0)
             .viewport_only(false);
 
-        let (rect_far, mem_far, proj_far) = projector_for_zoom(8.0);
-        let (clusters_far, max_far) = tree.cluster_stats(rect_far, &proj_far, &mem_far);
+        let (rect_far, proj_far) = projector_for_zoom(8.0);
+        let (clusters_far, max_far) = tree.cluster_stats(rect_far, &proj_far);
         assert_eq!(clusters_far, 1);
         assert_eq!(max_far, 2);
 
-        let (rect_near, mem_near, proj_near) = projector_for_zoom(18.0);
-        let (clusters_near, max_near) = tree.cluster_stats(rect_near, &proj_near, &mem_near);
+        let (rect_near, proj_near) = projector_for_zoom(18.0);
+        let (clusters_near, max_near) = tree.cluster_stats(rect_near, &proj_near);
         assert_eq!(clusters_near, 2);
         assert_eq!(max_near, 1);
+    }
+
+    /// Mercator, but squashed horizontally a hundred times.
+    struct SquashedProjection;
+
+    impl Projection for SquashedProjection {
+        fn project(&self, position: Position, zoom: f64) -> Pixels {
+            let pixels = MercatorProjection.project(position, zoom);
+            Pixels::new(pixels.x() / 100.0, pixels.y())
+        }
+
+        fn unproject(&self, pixels: Pixels, zoom: f64) -> Position {
+            MercatorProjection.unproject(Pixels::new(pixels.x() * 100.0, pixels.y()), zoom)
+        }
+
+        fn scale_pixel_per_meter(&self, position: Position, zoom: f64) -> f64 {
+            MercatorProjection.scale_pixel_per_meter(position, zoom)
+        }
+    }
+
+    #[test]
+    fn clusters_what_is_close_in_the_maps_projection() {
+        let places = vec![
+            DummyPlace(lon_lat(0.0, 0.0)),
+            DummyPlace(lon_lat(0.02, 0.0)),
+        ];
+        let tree = GroupedPlacesTree::new(places, DummyGroup)
+            .with_screen_radius_px(50.0)
+            .viewport_only(false);
+
+        let rect = Rect::from_min_size(Pos2::ZERO, Vec2::splat(512.0));
+        let mut memory = MapMemory::default();
+        memory.set_zoom(18.0).unwrap();
+        let projector = Projector::new(rect, &SquashedProjection, &memory, lon_lat(0.0, 0.0));
+
+        // About 36px apart on the screen, while in Mercator it would be about 3600px.
+        let (clusters, max_size) = tree.cluster_stats(rect, &projector);
+        assert_eq!(clusters, 1);
+        assert_eq!(max_size, 2);
     }
 
     #[test]
