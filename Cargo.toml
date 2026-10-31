@@ -55,7 +55,7 @@ hyper-util = { version = "0.1.20", features = ["full"] }
 image = { version = "0.25.10", default-features = false }
 kml = { version = "0.14.0", default-features = false, features = ["geo-types"] }
 log = "0.4.33"
-lru = "0.18.1"
+lru = "0.19.0"
 lyon_path = "1.0"
 lyon_tessellation = "1.0"
 mvt-reader = "2.4"
