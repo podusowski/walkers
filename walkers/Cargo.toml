@@ -58,17 +58,19 @@ wasm-bindgen-futures.workspace = true
 # reqwest/rustls enables aws-lc-rs. Allow users to opt out and set their own provider.
 default = ["rustls-aws-lc-rs"]
 rustls-aws-lc-rs = ["reqwest/rustls"]
-mvt = [
+# Drawing vector geometry with a style. Needs egui to be rendered with wgpu.
+vector = [
   "dep:bytemuck",
   "dep:color",
   "dep:geo",
   "dep:lyon_path",
   "dep:lyon_tessellation",
-  "dep:mvt-reader",
   "dep:egui-wgpu",
   "dep:serde",
   "dep:serde_json",
   "egui/bytemuck"
 ]
+# Decoding Mapbox Vector Tiles, and drawing them.
+mvt = ["vector", "dep:mvt-reader"]
 pmtiles = ["dep:pmtiles"]
 serde = ["dep:serde", "egui/serde", "geo-types/serde"]

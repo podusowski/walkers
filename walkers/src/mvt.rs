@@ -3,7 +3,6 @@
 use std::collections::HashMap;
 
 use ecolor::Color32;
-use emath::TSTransform;
 use log::warn;
 use mvt_reader::{Reader, feature::Value};
 use serde_json::{Number, Value as JsonValue};
@@ -106,14 +105,6 @@ pub fn render(
 
     log::trace!("Rendered {} drawables", drawables.len());
     Ok((render::merge_runs(drawables), texts))
-}
-
-/// What takes a tile rendered for `tile_size` onto the `rect` it is actually drawn at.
-pub fn transform_onto(rect: egui::Rect, tile_size: u32) -> TSTransform {
-    TSTransform {
-        scaling: rect.width() / tile_size as f32,
-        translation: rect.min.to_vec2(),
-    }
 }
 
 /// A layer of the tile, with its features decoded only if some style layer draws from it.

@@ -1,6 +1,11 @@
 # Changelog
 
-All notable changes to this project will be documented in this file.
+All notable changes to the `walkers` crate will be documented in this file. `walkers_extras` is a
+playground and can change or break at any time without an entry here.
+
+## Unreleased
+
+* New `vector` feature for drawing styled vector geometry, without MVT decoding. `mvt` enables it.
 
 ## 0.64.0
 
