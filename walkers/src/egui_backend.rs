@@ -1,3 +1,56 @@
+use egui::{Color32, Mesh, Shape};
+
+use crate::Canvas;
+use crate::canvas::{Item, RasterPiece};
+
+impl Canvas {
+    /// Paint everything onto `painter`, each shape on its own, as egui's parallel tessellation
+    /// turns a `Shape::Vec` into a single mesh.
+    pub(crate) fn paint(self, painter: &egui::Painter) {
+        #[cfg(feature = "vector")]
+        let (frame, screen) = (
+            painter.ctx().cumulative_pass_nr(),
+            painter.ctx().viewport_rect(),
+        );
+
+        let mut shapes = Vec::new();
+
+        for item in self.items {
+            match item {
+                #[cfg(feature = "vector")]
+                Item::Drawables(drawables) => {
+                    shapes.extend(wgpu::Run::callbacks(drawables, screen, frame));
+                }
+                Item::Raster(piece) => shapes.push(raster_shape(piece)),
+            }
+        }
+
+        // Stable, so that within a style layer the tiles nearest the center still go first.
+        #[cfg(feature = "vector")]
+        {
+            let mut texts = self.texts;
+            texts.sort_by_key(|(z_order, _)| *z_order);
+            let texts = texts.into_iter().map(|(_, text)| text).collect();
+            shapes.extend(crate::text::place_texts(texts, painter.ctx()));
+        }
+
+        painter.extend(shapes);
+    }
+}
+
+fn raster_shape(piece: RasterPiece) -> Shape {
+    let RasterPiece {
+        image,
+        rect,
+        uv,
+        transparency,
+    } = piece;
+
+    let mut mesh = Mesh::with_texture(image.0.id());
+    mesh.add_rect_with_uv(rect, uv, Color32::WHITE.gamma_multiply(transparency));
+    Shape::mesh(mesh)
+}
+
 #[cfg(feature = "vector")]
 pub mod wgpu {
     use egui::Rect;
@@ -6,6 +59,7 @@ pub mod wgpu {
     use egui_wgpu::{CallbackTrait, RenderState, ScreenDescriptor};
     use std::sync::{Arc, Mutex};
 
+    use crate::Drawables;
     use crate::render::drawable::Drawable;
     use crate::render::gpu::{Renderer, key_of};
 
@@ -67,7 +121,33 @@ pub mod wgpu {
     }
 
     impl Run {
-        pub(crate) fn callback(
+        /// One callback for each run in `drawables`.
+        pub(crate) fn callbacks(
+            drawables: Drawables,
+            viewport: Rect,
+            frame: u64,
+        ) -> impl Iterator<Item = egui::Shape> {
+            let Drawables {
+                drawables,
+                transform,
+                clip_rect,
+                transparency,
+            } = drawables;
+
+            (0..drawables.len()).map(move |index| {
+                Self::callback(
+                    drawables.to_owned(),
+                    index,
+                    transform,
+                    viewport,
+                    clip_rect,
+                    frame,
+                    transparency,
+                )
+            })
+        }
+
+        fn callback(
             drawables: Arc<Vec<Drawable>>,
             index: usize,
             transform: TSTransform,

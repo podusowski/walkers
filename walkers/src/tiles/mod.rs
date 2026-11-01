@@ -9,8 +9,8 @@ pub(crate) mod pmtiles;
 #[cfg(feature = "vector")]
 use crate::render;
 
-use egui::{Color32, Context, Mesh, Rect, Vec2, pos2};
 use egui::{ColorImage, TextureHandle};
+use egui::{Context, Rect, Vec2, pos2};
 use image::{ImageError, ImageReader};
 use std::collections::HashSet;
 use thiserror::Error;
@@ -196,9 +196,7 @@ impl Tile {
 
         match self {
             Tile::Raster(texture_handle) => {
-                let mut mesh = Mesh::with_texture(texture_handle.id());
-                mesh.add_rect_with_uv(rect, uv, Color32::WHITE);
-                canvas.add_shape(egui::Shape::mesh(mesh));
+                canvas.add_raster(RasterImage(texture_handle.to_owned()), rect, uv);
             }
             #[cfg(feature = "vector")]
             Tile::Vector {
@@ -228,6 +226,10 @@ impl Tile {
         }
     }
 }
+
+/// Raster image, as the [`Canvas`] holds it. For now it is egui's texture, already uploaded.
+#[derive(Clone)]
+pub(crate) struct RasterImage(pub TextureHandle);
 
 /// Clipped piece of a tile.
 pub struct TilePiece {
@@ -456,7 +458,7 @@ mod tests {
         let mut tiles = RecordingTiles::new(tile_size);
 
         draw_tiles(
-            &mut Canvas::new(&Context::default()),
+            &mut Canvas::new(),
             &projector_at(TILE_SIZE as f32, zoom),
             &mut tiles,
         );
@@ -557,7 +559,7 @@ mod tests {
                     pos2(x, TILE_SIZE as f32 / 2.),
                     "Szczepankowice".to_string(),
                     12.,
-                    Color32::BLACK,
+                    egui::Color32::BLACK,
                     0.,
                 )
             };
@@ -595,7 +597,7 @@ mod tests {
         let mut output = ctx.run_ui(egui::RawInput::default(), |_| {});
         output.textures_delta.clear();
 
-        let mut canvas = Canvas::new(&ctx);
+        let mut canvas = Canvas::new();
         draw_tiles(
             &mut canvas,
             &projector_at(TILE_SIZE as f32 * 2., 16.),

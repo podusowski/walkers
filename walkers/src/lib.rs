@@ -21,7 +21,6 @@ mod style {
     pub struct Style;
 }
 
-#[cfg(feature = "vector")]
 mod egui_backend;
 
 #[cfg(feature = "vector")]
