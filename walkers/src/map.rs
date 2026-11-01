@@ -186,7 +186,7 @@ impl<'a, 'b, 'c> Map<'a, 'b, 'c> {
             self.my_position,
         );
         let painter = ui.painter().with_clip_rect(rect);
-        let mut canvas = Canvas::new(ui.ctx());
+        let mut canvas = Canvas::new();
 
         for (index, mut entry) in self.layers.into_iter().enumerate() {
             canvas.z_order = ZOrder::new(index);
@@ -195,7 +195,7 @@ impl<'a, 'b, 'c> Map<'a, 'b, 'c> {
         }
 
         // Before the plugins and the closure, so that it goes below what they paint with egui.
-        canvas.draw(&painter);
+        canvas.paint(&painter);
 
         // Run plugins.
         for (idx, plugin) in self.plugins.into_iter().enumerate() {

@@ -1,17 +1,19 @@
-use egui::Shape;
+use emath::Rect;
 #[cfg(feature = "vector")]
-use egui::{Rect, emath::TSTransform};
+use emath::TSTransform;
 #[cfg(feature = "vector")]
 use std::sync::Arc;
 
 use crate::ZOrder;
+use crate::tiles::RasterImage;
 #[cfg(feature = "vector")]
 use crate::{Drawable, Text};
 
-/// Everything the map's layers draw in a frame, with labels on top.
+/// Everything the map's layers draw in a frame, with labels on top. It does not know how to
+/// paint itself, that is up to a backend, such as egui's.
 pub struct Canvas {
     /// In the order they are drawn.
-    shapes: Vec<Shape>,
+    pub(crate) items: Vec<Item>,
 
     #[cfg(feature = "vector")]
     pub(crate) texts: Vec<(ZOrder, Text)>,
@@ -21,13 +23,25 @@ pub struct Canvas {
 
     /// Of the layer being drawn, applied to everything it adds.
     pub(crate) transparency: f32,
+}
 
-    /// Which frame this is, for the renderer to tell which drawables are still in use.
+/// Something put on the [`Canvas`], with the transparency of the layer it came from already
+/// applied.
+pub(crate) enum Item {
     #[cfg(feature = "vector")]
-    frame: u64,
+    Drawables(Drawables),
+    Raster(RasterPiece),
+}
 
-    #[cfg(feature = "vector")]
-    screen: Rect,
+/// Part of a raster image, stretched over a rectangle on the screen.
+pub(crate) struct RasterPiece {
+    pub image: RasterImage,
+    pub rect: Rect,
+
+    /// Which part of the image goes onto `rect`.
+    pub uv: Rect,
+
+    pub transparency: f32,
 }
 
 /// Drawables to be put on the [`Canvas`], and how. Cheap to clone, and drawing the same ones
@@ -36,10 +50,10 @@ pub struct Canvas {
 #[derive(Clone)]
 pub struct Drawables {
     /// Behind an `Arc`, because that is what the renderer tells uploaded drawables by.
-    drawables: Arc<Vec<Drawable>>,
-    transform: TSTransform,
-    clip_rect: Rect,
-    transparency: f32,
+    pub(crate) drawables: Arc<Vec<Drawable>>,
+    pub(crate) transform: TSTransform,
+    pub(crate) clip_rect: Rect,
+    pub(crate) transparency: f32,
 }
 
 #[cfg(feature = "vector")]
@@ -78,20 +92,13 @@ impl Drawables {
 }
 
 impl Canvas {
-    pub(crate) fn new(ctx: &egui::Context) -> Self {
-        #[cfg(not(feature = "vector"))]
-        let _ = ctx;
-
+    pub(crate) fn new() -> Self {
         Self {
-            shapes: Vec::new(),
+            items: Vec::new(),
             #[cfg(feature = "vector")]
             texts: Vec::new(),
             z_order: ZOrder::default(),
             transparency: 1.0,
-            #[cfg(feature = "vector")]
-            frame: ctx.cumulative_pass_nr(),
-            #[cfg(feature = "vector")]
-            screen: ctx.viewport_rect(),
         }
     }
 
@@ -113,51 +120,38 @@ impl Canvas {
 
     #[cfg(feature = "vector")]
     pub fn add_drawables(&mut self, drawables: Drawables) {
-        let Drawables {
-            drawables,
-            transform,
-            clip_rect,
-            transparency,
-        } = drawables;
-
-        let transparency = transparency * self.transparency;
-
-        self.shapes.extend((0..drawables.len()).map(|index| {
-            crate::egui_backend::wgpu::Run::callback(
-                drawables.to_owned(),
-                index,
-                transform,
-                self.screen,
-                clip_rect,
-                self.frame,
-                transparency,
-            )
+        self.items.push(Item::Drawables(Drawables {
+            transparency: drawables.transparency * self.transparency,
+            ..drawables
         }));
     }
 
-    pub(crate) fn add_shape(&mut self, mut shape: Shape) {
-        let transparency = self.transparency;
-        egui::epaint::shape_transform::adjust_colors(&mut shape, move |color| {
-            *color = color.gamma_multiply(transparency);
-        });
-        self.shapes.push(shape);
+    pub(crate) fn add_raster(&mut self, image: RasterImage, rect: Rect, uv: Rect) {
+        self.items.push(Item::Raster(RasterPiece {
+            image,
+            rect,
+            uv,
+            transparency: self.transparency,
+        }));
     }
+}
 
-    /// Paint everything, each shape on its own, as egui's parallel tessellation turns a
-    /// `Shape::Vec` into a single mesh.
-    #[cfg_attr(not(feature = "vector"), allow(unused_mut))]
-    pub(crate) fn draw(self, painter: &egui::Painter) {
-        let mut shapes = self.shapes;
+#[cfg(all(test, feature = "vector"))]
+mod tests {
+    use super::*;
 
-        // Stable, so that within a style layer the tiles nearest the center still go first.
-        #[cfg(feature = "vector")]
-        {
-            let mut texts = self.texts;
-            texts.sort_by_key(|(z_order, _)| *z_order);
-            let texts = texts.into_iter().map(|(_, text)| text).collect();
-            shapes.extend(crate::text::place_texts(texts, painter.ctx()));
+    #[test]
+    fn transparency_of_the_layer_is_applied_to_the_drawables_own() {
+        let mut canvas = Canvas {
+            transparency: 0.5,
+            ..Canvas::new()
+        };
+
+        canvas.add_drawables(Drawables::new(Vec::new()).with_transparency(0.5));
+
+        match canvas.items.as_slice() {
+            [Item::Drawables(drawables)] => assert_eq!(drawables.transparency, 0.25),
+            _ => panic!("expected a single run of drawables"),
         }
-
-        painter.extend(shapes);
     }
 }
