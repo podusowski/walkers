@@ -2857,9 +2857,9 @@ checksum = "e2db585e1d738fc771bf08a151420d3ed193d9d895a36df7f6f8a9456b911ddc"
 
 [[package]]
 name = "kml"
-version = "0.14.0"
+version = "0.15.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "1ad943f54e9e575b0c01c2260a3cdacf54c898ca6840022c171a967cd01a2237"
+checksum = "0187dde5457c3f09ab721386b7bbb00e6c65e07759be5f674230a327fde31956"
 dependencies = [
  "geo-types",
  "num-traits",
