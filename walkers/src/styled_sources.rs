@@ -8,25 +8,13 @@ use crate::{
     tiles::{EguiTileFactory, TileId, draw_tiles_with, styling::Styling},
 };
 
-/// A [`Style`] drawn from named sources. Each layer of the style draws from the source it names,
-/// and layers are drawn in their order, whichever source they draw from. It must persist between
-/// frames.
-///
-/// With only one source, every layer draws from it, whatever it names. Without the `vector`
-/// feature, styles have no layers, so a single source is drawn as it is, which is enough for
-/// raster tiles.
+/// A [`Style`] drawn from named sources. It must persist between frames.
 ///
 /// ```no_run
-/// # use walkers::{HttpOptions, HttpSource, Map, MapMemory, StyledSources, Style, lon_lat};
-/// # fn update(ui: &mut egui::Ui, map_memory: &mut MapMemory) {
-/// let mut basemap = StyledSources::new(Style::default(), ui.ctx().clone())
-///     .with_tiled_source(
-///         "osm",
-///         HttpSource::new(walkers::sources::OpenStreetMap, HttpOptions::default(), ui.ctx().clone()),
-///     );
-///
-/// ui.add(Map::new(None, map_memory, lon_lat(17.03664, 51.09916)).with_layer(&mut basemap, 1.0));
-/// # }
+/// # use walkers::{HttpOptions, HttpSource, StyledSources, Style, sources::OpenStreetMap};
+/// # let ctx = egui::Context::default();
+/// let osm = HttpSource::new(OpenStreetMap, HttpOptions::default(), ctx.clone());
+/// let map = StyledSources::new(Style::default(), ctx).with_tiled_source("osm", osm);
 /// ```
 pub struct StyledSources {
     style: Arc<Style>,
