@@ -1,11 +1,17 @@
 use super::{EguiTileFactory, cached::CachedTiles};
-use crate::{Stats, TileId, TilePiece, Tiles, io::Fetch, sources::Attribution, style::Style};
+use crate::{
+    SourceData, Stats, TileId, TilePiece, TiledSource, Tiles,
+    io::{Fetch, tiles_io::TilesIo},
+    sources::Attribution,
+    style::Style,
+};
 use bytes::Bytes;
 use egui::Context;
 use pmtiles::{AsyncPmTilesReader, TileCoord};
 use std::{
     io::{self},
     path::{Path, PathBuf},
+    sync::Arc,
 };
 use thiserror::Error;
 
@@ -15,10 +21,10 @@ const DEFAULT_TILE_SIZE: u32 = 512;
 
 const DEFAULT_MAX_ZOOM: u8 = 15;
 
-/// Provides tiles from a local PMTiles file.
+/// Provides tiles from a local PMTiles file, and draws them with a style.
 ///
 /// <https://docs.protomaps.com/guide/getting-started>
-pub struct PmTiles(CachedTiles);
+pub struct PmTiles(CachedTiles<PmTilesSource>);
 
 impl PmTiles {
     pub fn new(path: impl AsRef<Path>, egui_ctx: Context) -> Self {
@@ -41,18 +47,61 @@ impl PmTiles {
         egui_ctx: Context,
     ) -> Self {
         Self(CachedTiles::new(
-            PmTilesFetch::new(path.as_ref()),
-            EguiTileFactory::new(egui_ctx.clone(), style, tile_size),
-            Attribution {
-                text: "PMTiles",
-                url: "",
-                logo_light: None,
-                logo_dark: None,
-            },
-            tile_size,
-            DEFAULT_MAX_ZOOM,
+            PmTilesSource::with_tile_size(path, tile_size, egui_ctx.clone()),
+            EguiTileFactory::whole(egui_ctx.clone(), style, tile_size),
             egui_ctx,
         ))
+    }
+}
+
+/// Reads tiles' data from a local PMTiles file, to be drawn by a [`crate::StyledSources`].
+///
+/// <https://docs.protomaps.com/guide/getting-started>
+pub struct PmTilesSource {
+    io: TilesIo,
+    tile_size: u32,
+}
+
+impl PmTilesSource {
+    pub fn new(path: impl AsRef<Path>, egui_ctx: Context) -> Self {
+        Self::with_tile_size(path, DEFAULT_TILE_SIZE, egui_ctx)
+    }
+
+    /// Vector tiles are drawn for `tile_size`, which is the size they are drawn at when the map
+    /// is at one of their zoom levels.
+    pub fn with_tile_size(path: impl AsRef<Path>, tile_size: u32, egui_ctx: Context) -> Self {
+        Self {
+            io: TilesIo::new(PmTilesFetch::new(path.as_ref()), egui_ctx),
+            tile_size,
+        }
+    }
+}
+
+impl TiledSource for PmTilesSource {
+    fn data(&mut self, tile_id: TileId) -> Option<Arc<SourceData>> {
+        self.io.put_single_fetched_tile_in_cache();
+        self.io.data(tile_id)
+    }
+
+    fn attribution(&self) -> Attribution {
+        Attribution {
+            text: "PMTiles",
+            url: "",
+            logo_light: None,
+            logo_dark: None,
+        }
+    }
+
+    fn tile_size(&self) -> u32 {
+        self.tile_size
+    }
+
+    fn max_zoom(&self) -> u8 {
+        DEFAULT_MAX_ZOOM
+    }
+
+    fn stats(&self) -> Stats {
+        self.io.stats()
     }
 }
 

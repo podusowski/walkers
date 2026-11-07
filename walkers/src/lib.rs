@@ -30,6 +30,8 @@ mod projection;
 #[cfg(feature = "vector")]
 mod render;
 pub mod sources;
+#[cfg(feature = "vector")]
+mod styled_sources;
 mod tiles;
 mod z_order;
 mod zoom;
@@ -65,10 +67,13 @@ pub use style::{
     exponential_zoom_interpolation, json, linear_zoom_interpolation,
 };
 #[cfg(feature = "vector")]
+pub use styled_sources::StyledSources;
+#[cfg(feature = "vector")]
 pub use text::{Placement, Text, place_texts};
-pub use tiles::http::HttpTiles;
+pub use tiles::http::{HttpSource, HttpTiles};
 #[cfg(feature = "pmtiles")]
-pub use tiles::pmtiles::PmTiles;
+pub use tiles::pmtiles::{PmTiles, PmTilesSource};
+pub use tiles::source::{SourceData, TiledSource};
 pub use tiles::{Tile, TileId, TilePiece, Tiles};
 pub use z_order::ZOrder;
 pub use zoom::InvalidZoom;

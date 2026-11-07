@@ -1,3 +1,5 @@
+use std::sync::Arc;
+
 use bytes::Bytes;
 use egui::Context;
 use reqwest_middleware::ClientWithMiddleware;
@@ -6,13 +8,14 @@ use super::EguiTileFactory;
 use super::cached::CachedTiles;
 use crate::io::Fetch;
 use crate::io::http::http_client;
+use crate::io::tiles_io::TilesIo;
 use crate::sources::{Attribution, TileSource};
 use crate::style::Style;
-use crate::{HttpOptions, TilePiece, Tiles};
+use crate::{HttpOptions, SourceData, TilePiece, TiledSource, Tiles};
 use crate::{Stats, TileId};
 
-/// Downloads the tiles via HTTP. It must persist between frames.
-pub struct HttpTiles(CachedTiles);
+/// Downloads the tiles via HTTP, and draws them with a style. It must persist between frames.
+pub struct HttpTiles(CachedTiles<HttpSource>);
 
 impl HttpTiles {
     /// Construct new [`Tiles`] with default [`HttpOptions`].
@@ -42,18 +45,59 @@ impl HttpTiles {
     where
         S: TileSource + Sync + Send + 'static,
     {
-        let attribution = source.attribution();
         let tile_size = source.tile_size();
-        let max_zoom = source.max_zoom();
 
         Self(CachedTiles::new(
-            HttpFetch::new(source, http_options),
-            EguiTileFactory::new(egui_ctx.clone(), style, tile_size),
-            attribution,
-            tile_size,
-            max_zoom,
+            HttpSource::new(source, http_options, egui_ctx.clone()),
+            EguiTileFactory::whole(egui_ctx.clone(), style, tile_size),
             egui_ctx,
         ))
+    }
+}
+
+/// Downloads tiles' data via HTTP, to be drawn by a [`crate::StyledSources`]. It must persist
+/// between frames.
+pub struct HttpSource {
+    io: TilesIo,
+    attribution: Attribution,
+    tile_size: u32,
+    max_zoom: u8,
+}
+
+impl HttpSource {
+    pub fn new<S>(source: S, http_options: HttpOptions, egui_ctx: Context) -> Self
+    where
+        S: TileSource + Sync + Send + 'static,
+    {
+        Self {
+            attribution: source.attribution(),
+            tile_size: source.tile_size(),
+            max_zoom: source.max_zoom(),
+            io: TilesIo::new(HttpFetch::new(source, http_options), egui_ctx),
+        }
+    }
+}
+
+impl TiledSource for HttpSource {
+    fn data(&mut self, tile_id: TileId) -> Option<Arc<SourceData>> {
+        self.io.put_single_fetched_tile_in_cache();
+        self.io.data(tile_id)
+    }
+
+    fn attribution(&self) -> Attribution {
+        self.attribution.clone()
+    }
+
+    fn tile_size(&self) -> u32 {
+        self.tile_size
+    }
+
+    fn max_zoom(&self) -> u8 {
+        self.max_zoom
+    }
+
+    fn stats(&self) -> Stats {
+        self.io.stats()
     }
 }
 
@@ -182,6 +226,51 @@ mod tests {
             // Need to yield to the runtime for things to move.
             tokio::time::sleep(Duration::from_millis(10)).await;
         }
+    }
+
+    /// Raster tiles need no style, so they must be drawn without the `vector` feature too.
+    #[tokio::test]
+    async fn raster_tile_is_drawn_on_the_canvas() {
+        use crate::{Canvas, Layer, MapMemory, MercatorProjection, Projector, lon_lat};
+
+        let _ = env_logger::try_init();
+
+        let (server, source) = hypermocker_mock().await;
+        server
+            .anticipate("/0/0/0.png")
+            .await
+            .respond(include_bytes!("../../assets/blank-255-tile.png"))
+            .await;
+
+        let mut tiles = HttpTiles::new(source, Context::default());
+
+        // The whole world is one tile at zoom 0.
+        let mut memory = MapMemory::default();
+        memory.set_zoom(0.).unwrap();
+        let projector = Projector::new(
+            egui::Rect::from_min_size(egui::Pos2::ZERO, egui::Vec2::splat(256.)),
+            &MercatorProjection,
+            &memory,
+            lon_lat(0., 0.),
+        );
+
+        let canvas = tokio::time::timeout(Duration::from_secs(5), async {
+            loop {
+                let mut canvas = Canvas::new();
+                (&mut tiles).draw(&mut canvas, &projector);
+                if !canvas.items.is_empty() {
+                    break canvas;
+                }
+                tokio::time::sleep(Duration::from_millis(10)).await;
+            }
+        })
+        .await
+        .expect("tile was never drawn");
+
+        assert!(matches!(
+            canvas.items.as_slice(),
+            [crate::canvas::Item::Raster(_)]
+        ));
     }
 
     #[tokio::test]

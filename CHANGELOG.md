@@ -3,6 +3,12 @@
 All notable changes to the `walkers` crate will be documented in this file. `walkers_extras` is a
 playground and can change or break at any time without an entry here.
 
+## 0.66.0
+
+* New `StyledSources`, which draws one `Style` from several named sources, such as the new
+  `HttpSource` and `PmTilesSource`.
+* Style layers have an optional `source`.
+
 ## 0.65.0
 
 * New `vector` feature for drawing styled vector geometry, without MVT decoding. `mvt` enables it.

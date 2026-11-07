@@ -6,7 +6,7 @@ use futures::channel::mpsc::{Receiver, Sender, TryRecvError, TrySendError, chann
 use lru::LruCache;
 
 use crate::{
-    TileId,
+    SourceData, TileId,
     io::{Fetch, fetch::fetch_continuously, runtime::Runtime},
 };
 
@@ -19,7 +19,7 @@ pub struct TilesIo {
     tile_rx: Receiver<(TileId, Bytes)>,
 
     /// `None` while being fetched, and forever if fetching failed.
-    cache: LruCache<TileId, Option<Bytes>>,
+    cache: LruCache<TileId, Option<Arc<SourceData>>>,
     pub stats: Arc<Mutex<Stats>>,
 
     #[allow(dead_code)] // Significant Drop
@@ -63,7 +63,8 @@ impl TilesIo {
         // This is called every frame, so take just one at the time.
         match self.tile_rx.try_recv() {
             Ok((tile_id, data)) => {
-                self.cache.put(tile_id, Some(data));
+                self.cache
+                    .put(tile_id, Some(Arc::new(SourceData::Encoded(data))));
             }
             Err(TryRecvError::Empty) => {
                 // No new tile was downloaded, just ignore.
@@ -76,10 +77,10 @@ impl TilesIo {
 
     /// The tile's data if it is fetched. Otherwise make sure it is being fetched, unless fetching
     /// it already failed.
-    pub fn data(&mut self, tile_id: TileId) -> Option<Bytes> {
+    pub fn data(&mut self, tile_id: TileId) -> Option<Arc<SourceData>> {
         match self.cache.try_get_or_insert(
             tile_id,
-            || -> Result<Option<Bytes>, TrySendError<TileId>> {
+            || -> Result<Option<Arc<SourceData>>, TrySendError<TileId>> {
                 self.request_tx.try_send(tile_id)?;
                 log::trace!("Requested tile: {tile_id:?}");
                 Ok(None)

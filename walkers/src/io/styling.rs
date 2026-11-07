@@ -1,4 +1,5 @@
-use bytes::Bytes;
+use std::sync::Arc;
+
 use egui::Context;
 use futures::{
     SinkExt, StreamExt,
@@ -6,10 +7,10 @@ use futures::{
 };
 use lru::LruCache;
 
-use crate::{Tile, TileId, io::runtime::Runtime, tiles::TileError};
+use crate::{SourceData, Tile, TileId, io::runtime::Runtime, tiles::TileError};
 
 pub trait TileFactory {
-    fn create_tile(&self, data: &Bytes, zoom: u8) -> Result<Tile, TileError>;
+    fn create_tile(&self, data: &SourceData, zoom: u8) -> Result<Tile, TileError>;
 }
 
 /// How many tiles can wait to be styled. Arbitrary, the rest is asked for again later.
@@ -18,7 +19,7 @@ const QUEUE_SIZE: usize = 8;
 /// Turns fetched data into tiles in the background, and keeps them in a cache.
 pub struct StylingIo {
     /// Data to be styled by the styling thread.
-    request_tx: Sender<(TileId, Bytes)>,
+    request_tx: Sender<(TileId, Arc<SourceData>)>,
 
     /// Tiles that got styled and should be put in the cache. `None` if styling failed.
     tile_rx: Receiver<(TileId, Option<Tile>)>,
@@ -82,7 +83,7 @@ impl StylingIo {
 
     /// Style `data` into the tile, unless there are too many waiting already, in which case it
     /// has to be asked for again.
-    pub fn style(&mut self, tile_id: TileId, data: Bytes) {
+    pub fn style(&mut self, tile_id: TileId, data: Arc<SourceData>) {
         match self.request_tx.try_send((tile_id, data)) {
             Ok(()) => {
                 self.cache.put(tile_id, None);
@@ -106,7 +107,7 @@ impl StylingIo {
 /// Style the data coming through `request_rx`, until the main thread goes away.
 async fn style_continuously(
     tile_factory: impl TileFactory,
-    mut request_rx: Receiver<(TileId, Bytes)>,
+    mut request_rx: Receiver<(TileId, Arc<SourceData>)>,
     mut tile_tx: Sender<(TileId, Option<Tile>)>,
     egui_ctx: Context,
 ) {
@@ -136,7 +137,7 @@ mod tests {
     struct Failing;
 
     impl TileFactory for Failing {
-        fn create_tile(&self, _data: &Bytes, _zoom: u8) -> Result<Tile, TileError> {
+        fn create_tile(&self, _data: &SourceData, _zoom: u8) -> Result<Tile, TileError> {
             Err(TileError::Empty)
         }
     }
@@ -151,7 +152,10 @@ mod tests {
             zoom: 0,
         };
 
-        styling.style(tile_id, Bytes::from_static(b"garbage"));
+        styling.style(
+            tile_id,
+            Arc::new(SourceData::Encoded(bytes::Bytes::from_static(b"garbage"))),
+        );
         assert_eq!(styling.in_progress(), 1);
 
         let deadline = Instant::now() + Duration::from_secs(5);

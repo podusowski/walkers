@@ -1,10 +1,11 @@
-mod cached;
+pub(crate) mod cached;
 pub(crate) mod grid;
 pub(crate) mod http;
 #[cfg(feature = "mvt")]
 mod mvt;
 #[cfg(feature = "pmtiles")]
 pub(crate) mod pmtiles;
+pub(crate) mod source;
 
 #[cfg(feature = "vector")]
 use crate::render;
@@ -13,8 +14,11 @@ use egui::{ColorImage, TextureHandle};
 use egui::{Context, Rect, Vec2, pos2};
 use image::{ImageError, ImageReader};
 use std::collections::HashSet;
+use std::ops::Range;
+use std::sync::Arc;
 use thiserror::Error;
 
+use crate::SourceData;
 use crate::io::TileFactory;
 use crate::position::{Pixels, PixelsExt};
 use crate::sources::Attribution;
@@ -137,8 +141,20 @@ impl Tile {
         tile_size: u32,
         ctx: &Context,
     ) -> Result<Self, TileError> {
+        Self::decode(image, style, all_layers(style), zoom, tile_size, ctx)
+    }
+
+    /// Like [`Tile::new`], but only drawing the `layers` of the style.
+    pub(crate) fn decode(
+        image: &[u8],
+        style: &Style,
+        layers: Range<usize>,
+        zoom: u8,
+        tile_size: u32,
+        ctx: &Context,
+    ) -> Result<Self, TileError> {
         #[cfg(not(feature = "mvt"))]
-        let _ = (style, zoom, tile_size);
+        let _ = (style, &layers, zoom, tile_size);
 
         if image.is_empty() {
             return Err(TileError::Empty);
@@ -159,7 +175,9 @@ impl Tile {
             #[cfg(feature = "mvt")]
             {
                 log::debug!("Trying to decode tile as MVT vector tile.");
-                Ok(Self::from_mvt(image, style, zoom, tile_size)?)
+                Ok(Self::from_mvt_layers(
+                    image, style, layers, zoom, tile_size,
+                )?)
             }
             #[cfg(not(feature = "mvt"))]
             {
@@ -175,7 +193,18 @@ impl Tile {
         zoom: u8,
         tile_size: u32,
     ) -> Result<Self, TileError> {
-        let (drawables, texts) = mvt::render(data, style, zoom, tile_size)?;
+        Self::from_mvt_layers(data, style, all_layers(style), zoom, tile_size)
+    }
+
+    #[cfg(feature = "mvt")]
+    fn from_mvt_layers(
+        data: &[u8],
+        style: &Style,
+        layers: Range<usize>,
+        zoom: u8,
+        tile_size: u32,
+    ) -> Result<Self, TileError> {
+        let (drawables, texts) = mvt::render(data, style, layers, zoom, tile_size)?;
 
         Ok(Self::Vector {
             drawables: std::sync::Arc::new(drawables),
@@ -377,25 +406,55 @@ pub(crate) fn rect(screen_position: Vec2, tile_size: f64) -> Rect {
     Rect::from_min_size(screen_position.to_pos2(), Vec2::splat(tile_size as f32))
 }
 
+/// Every layer of the style.
+fn all_layers(style: &Style) -> Range<usize> {
+    #[cfg(feature = "vector")]
+    return 0..style.layers.len();
+
+    #[cfg(not(feature = "vector"))]
+    {
+        let _ = style;
+        0..0
+    }
+}
+
 pub struct EguiTileFactory {
     egui_ctx: Context,
-    style: Style,
+    style: Arc<Style>,
+    layers: Range<usize>,
     tile_size: u32,
 }
 
 impl EguiTileFactory {
-    pub fn new(egui_ctx: Context, style: Style, tile_size: u32) -> Self {
+    /// Drawing the `layers` of the `style`.
+    pub fn new(egui_ctx: Context, style: Arc<Style>, layers: Range<usize>, tile_size: u32) -> Self {
         Self {
             egui_ctx,
             style,
+            layers,
             tile_size,
         }
+    }
+
+    /// Drawing every layer of the `style`.
+    pub fn whole(egui_ctx: Context, style: Style, tile_size: u32) -> Self {
+        let layers = all_layers(&style);
+        Self::new(egui_ctx, Arc::new(style), layers, tile_size)
     }
 }
 
 impl TileFactory for EguiTileFactory {
-    fn create_tile(&self, data: &bytes::Bytes, zoom: u8) -> Result<Tile, TileError> {
-        Tile::new(data, &self.style, zoom, self.tile_size, &self.egui_ctx)
+    fn create_tile(&self, data: &SourceData, zoom: u8) -> Result<Tile, TileError> {
+        match data {
+            SourceData::Encoded(data) => Tile::decode(
+                data,
+                &self.style,
+                self.layers.clone(),
+                zoom,
+                self.tile_size,
+                &self.egui_ctx,
+            ),
+        }
     }
 }
 

@@ -5,6 +5,7 @@ use walkers_extras::KmlLayer;
 pub fn kampinos_national_park() -> KmlLayer {
     let style = Style {
         layers: vec![StyleLayer::Fill {
+            source: None,
             source_layer: "park".into(),
             filter: None,
             paint: Paint {
@@ -22,6 +23,7 @@ pub fn kampinos_national_park() -> KmlLayer {
 pub fn high_speed_rail_poland() -> KmlLayer {
     let style = Style {
         layers: vec![StyleLayer::Line {
+            source: None,
             source_layer: "railways".into(),
             filter: None,
             paint: Paint {
@@ -40,6 +42,7 @@ pub fn high_speed_rail_poland() -> KmlLayer {
 pub fn outgym_umea_layer() -> KmlLayer {
     let style = Style {
         layers: vec![StyleLayer::Circle {
+            source: None,
             source_layer: "".into(),
             filter: None,
         }],
