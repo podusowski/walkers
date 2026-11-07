@@ -4,18 +4,21 @@ use bytes::Bytes;
 use egui::Context;
 use reqwest_middleware::ClientWithMiddleware;
 
-use super::EguiTileFactory;
-use super::cached::CachedTiles;
 use crate::io::Fetch;
 use crate::io::http::http_client;
 use crate::io::tiles_io::TilesIo;
 use crate::sources::{Attribution, TileSource};
 use crate::style::Style;
-use crate::{HttpOptions, SourceData, TilePiece, TiledSource, Tiles};
+use crate::{HttpOptions, SourceData, StyledSources, TilePiece, TiledSource, Tiles};
 use crate::{Stats, TileId};
 
-/// Downloads the tiles via HTTP, and draws them with a style. It must persist between frames.
-pub struct HttpTiles(CachedTiles<HttpSource>);
+/// Downloads the tiles via HTTP, and draws them with a style. A [`StyledSources`] with a single
+/// [`HttpSource`]. It must persist between frames.
+pub struct HttpTiles {
+    styled: StyledSources,
+    attribution: Attribution,
+    tile_size: u32,
+}
 
 impl HttpTiles {
     /// Construct new [`Tiles`] with default [`HttpOptions`].
@@ -45,13 +48,13 @@ impl HttpTiles {
     where
         S: TileSource + Sync + Send + 'static,
     {
-        let tile_size = source.tile_size();
+        let source = HttpSource::new(source, http_options, egui_ctx.clone());
 
-        Self(CachedTiles::new(
-            HttpSource::new(source, http_options, egui_ctx.clone()),
-            EguiTileFactory::whole(egui_ctx.clone(), style, tile_size),
-            egui_ctx,
-        ))
+        Self {
+            attribution: source.attribution(),
+            tile_size: source.tile_size(),
+            styled: StyledSources::new(style, egui_ctx).with_tiled_source("", source),
+        }
     }
 }
 
@@ -103,19 +106,19 @@ impl TiledSource for HttpSource {
 
 impl Tiles for HttpTiles {
     fn at(&mut self, tile_id: TileId) -> Option<TilePiece> {
-        self.0.at(tile_id)
+        self.styled.first_run_at(tile_id)
     }
 
     fn attribution(&self) -> Attribution {
-        self.0.attribution()
+        self.attribution.clone()
     }
 
     fn tile_size(&self) -> u32 {
-        self.0.tile_size()
+        self.tile_size
     }
 
     fn stats(&self) -> Stats {
-        self.0.stats()
+        self.styled.stats()
     }
 }
 

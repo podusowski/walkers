@@ -3,26 +3,26 @@ use std::{ops::Range, sync::Arc};
 use egui::Context;
 
 use crate::{
-    Canvas, Layer, Projector, Stats, Style, TiledSource,
+    Canvas, Layer, Projector, Stats, Style, TilePiece, TiledSource,
     sources::Attribution,
-    tiles::{
-        EguiTileFactory,
-        cached::{SourceTiles, StyledTiles},
-        draw_tiles,
-    },
+    tiles::{EguiTileFactory, TileId, draw_tiles_with, styling::Styling},
 };
 
 /// A [`Style`] drawn from named sources. Each layer of the style draws from the source it names,
 /// and layers are drawn in their order, whichever source they draw from. It must persist between
 /// frames.
 ///
+/// With only one source, every layer draws from it, whatever it names. Without the `vector`
+/// feature, styles have no layers, so a single source is drawn as it is, which is enough for
+/// raster tiles.
+///
 /// ```no_run
 /// # use walkers::{HttpOptions, HttpSource, Map, MapMemory, StyledSources, Style, lon_lat};
 /// # fn update(ui: &mut egui::Ui, map_memory: &mut MapMemory) {
-/// let mut basemap = StyledSources::new(Style::openmaptiles_basemap_light(), ui.ctx().clone())
+/// let mut basemap = StyledSources::new(Style::default(), ui.ctx().clone())
 ///     .with_tiled_source(
-///         "openmaptiles",
-///         HttpSource::new(walkers::sources::OpenFreeMap, HttpOptions::default(), ui.ctx().clone()),
+///         "osm",
+///         HttpSource::new(walkers::sources::OpenStreetMap, HttpOptions::default(), ui.ctx().clone()),
 ///     );
 ///
 /// ui.add(Map::new(None, map_memory, lon_lat(17.03664, 51.09916)).with_layer(&mut basemap, 1.0));
@@ -42,7 +42,7 @@ pub struct StyledSources {
 struct Run {
     /// Index of the source.
     source: usize,
-    styled: StyledTiles,
+    styling: Styling,
 }
 
 impl StyledSources {
@@ -92,7 +92,7 @@ impl StyledSources {
             .runs
             .iter()
             .flatten()
-            .map(|run| run.styled.in_progress())
+            .map(|run| run.styling.in_progress())
             .sum();
 
         Stats {
@@ -100,26 +100,39 @@ impl StyledSources {
         }
     }
 
-    fn runs(&mut self) -> &mut Vec<Run> {
-        self.runs.get_or_insert_with(|| {
-            let names: Vec<&str> = self.sources.iter().map(|(name, _)| name.as_str()).collect();
+    /// That tile of the first run, for those holding just one source, which is drawn in one run.
+    pub(crate) fn first_run_at(&mut self, tile_id: TileId) -> Option<TilePiece> {
+        self.runs();
+        let (Some(runs), sources) = (&mut self.runs, &mut self.sources) else {
+            return None;
+        };
+        let run = runs.first_mut()?;
+        run.styling.at(sources[run.source].1.as_mut(), tile_id)
+    }
 
-            runs(&self.style, &names)
-                .into_iter()
-                .map(|(source, layers)| Run {
-                    source,
-                    styled: StyledTiles::new(
-                        EguiTileFactory::new(
-                            self.egui_ctx.clone(),
-                            self.style.clone(),
-                            layers,
-                            self.sources[source].1.tile_size(),
-                        ),
+    fn runs(&mut self) {
+        if self.runs.is_some() {
+            return;
+        }
+
+        let names: Vec<&str> = self.sources.iter().map(|(name, _)| name.as_str()).collect();
+        let runs = runs(&self.style, &names)
+            .into_iter()
+            .map(|(source, layers)| Run {
+                source,
+                styling: Styling::new(
+                    EguiTileFactory::new(
                         self.egui_ctx.clone(),
+                        self.style.clone(),
+                        layers,
+                        self.sources[source].1.tile_size(),
                     ),
-                })
-                .collect()
-        })
+                    self.egui_ctx.clone(),
+                ),
+            })
+            .collect();
+
+        self.runs = Some(runs);
     }
 }
 
@@ -135,14 +148,10 @@ impl Layer for &mut StyledSources {
         // Run after run, so that a layer of one source can go between layers of another.
         for run in runs {
             let source = sources[run.source].1.as_mut();
-            draw_tiles(
-                canvas,
-                projector,
-                &mut SourceTiles {
-                    source,
-                    styled: &mut run.styled,
-                },
-            );
+            let tile_size = source.tile_size();
+            draw_tiles_with(canvas, projector, tile_size, |tile_id| {
+                run.styling.at(source, tile_id)
+            });
         }
     }
 }
@@ -150,34 +159,48 @@ impl Layer for &mut StyledSources {
 /// Runs of consecutive layers drawing from the same source, as the index of the source and the
 /// layers. When there is only one source, the whole style draws from it.
 fn runs(style: &Style, sources: &[&str]) -> Vec<(usize, Range<usize>)> {
+    #[cfg(feature = "vector")]
+    let layers = style.layers.len();
+    #[cfg(not(feature = "vector"))]
+    let layers = {
+        let _ = style;
+        0
+    };
+
     if let [_] = sources {
-        return vec![(0, 0..style.layers.len())];
+        return vec![(0, 0..layers)];
     }
 
-    let mut runs: Vec<(usize, Range<usize>)> = Vec::new();
+    #[cfg(not(feature = "vector"))]
+    return Vec::new();
 
-    for (index, layer) in style.layers.iter().enumerate() {
-        let Some(source) = layer
-            .source()
-            .and_then(|name| sources.iter().position(|source| *source == name))
-        else {
-            log::warn!(
-                "Style layer {index} draws from {:?}, which is not among the sources. Skipping.",
-                layer.source()
-            );
-            continue;
-        };
+    #[cfg(feature = "vector")]
+    {
+        let mut runs: Vec<(usize, Range<usize>)> = Vec::new();
 
-        match runs.last_mut() {
-            Some((last, layers)) if *last == source && layers.end == index => layers.end += 1,
-            _ => runs.push((source, index..index + 1)),
+        for (index, layer) in style.layers.iter().enumerate() {
+            let Some(source) = layer
+                .source()
+                .and_then(|name| sources.iter().position(|source| *source == name))
+            else {
+                log::warn!(
+                    "Style layer {index} draws from {:?}, which is not among the sources. Skipping.",
+                    layer.source()
+                );
+                continue;
+            };
+
+            match runs.last_mut() {
+                Some((last, layers)) if *last == source && layers.end == index => layers.end += 1,
+                _ => runs.push((source, index..index + 1)),
+            }
         }
-    }
 
-    runs
+        runs
+    }
 }
 
-#[cfg(test)]
+#[cfg(all(test, feature = "vector"))]
 mod tests {
     use super::*;
     use crate::StyleLayer;

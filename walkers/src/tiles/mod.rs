@@ -1,4 +1,3 @@
-pub(crate) mod cached;
 pub(crate) mod grid;
 pub(crate) mod http;
 #[cfg(feature = "mvt")]
@@ -6,6 +5,7 @@ mod mvt;
 #[cfg(feature = "pmtiles")]
 pub(crate) mod pmtiles;
 pub(crate) mod source;
+pub(crate) mod styling;
 
 #[cfg(feature = "vector")]
 use crate::render;
@@ -19,12 +19,12 @@ use std::sync::Arc;
 use thiserror::Error;
 
 use crate::SourceData;
-use crate::io::TileFactory;
 use crate::position::{Pixels, PixelsExt};
 use crate::sources::Attribution;
 use crate::style::Style;
 use crate::{Canvas, Projector, Stats};
 use grid::{TILE_SIZE, tile_id_at, total_tiles};
+use styling::TileFactory;
 
 #[derive(Error, Debug)]
 pub enum TileError {
@@ -277,19 +277,31 @@ pub(crate) fn draw_tiles<T: Tiles + ?Sized>(
     projector: &Projector,
     tiles: &mut T,
 ) {
+    let tile_size = tiles.tile_size();
+    draw_tiles_with(canvas, projector, tile_size, |tile_id| tiles.at(tile_id));
+}
+
+/// Draw the tiles `at` gives, which are `tile_size` pixels each.
+pub(crate) fn draw_tiles_with(
+    canvas: &mut Canvas,
+    projector: &Projector,
+    tile_size: u32,
+    mut at: impl FnMut(TileId) -> Option<TilePiece>,
+) {
     let mut meshes = Default::default();
     flood_fill_tiles(
         &Spread {
             clip_rect: projector.clip_rect(),
             map_center_projected_position: projector.map_center_projected_position(),
             zoom: projector.zoom(),
+            tile_size,
         },
         tile_id_at(
             projector.map_center_projected_position(),
             projector.zoom(),
-            tiles.tile_size(),
+            tile_size,
         ),
-        tiles,
+        &mut at,
         &mut meshes,
         canvas,
     );
@@ -300,13 +312,14 @@ struct Spread {
     clip_rect: Rect,
     map_center_projected_position: Pixels,
     zoom: f64,
+    tile_size: u32,
 }
 
 /// Use simple [flood fill algorithm](https://en.wikipedia.org/wiki/Flood_fill) to draw tiles on the map.
-fn flood_fill_tiles<T: Tiles + ?Sized>(
+fn flood_fill_tiles(
     spread: &Spread,
     tile_id: TileId,
-    tiles: &mut T,
+    at: &mut impl FnMut(TileId) -> Option<TilePiece>,
     meshes: &mut HashSet<TileId>,
     canvas: &mut Canvas,
 ) {
@@ -314,6 +327,7 @@ fn flood_fill_tiles<T: Tiles + ?Sized>(
         clip_rect,
         map_center_projected_position,
         zoom,
+        tile_size,
     } = *spread;
     // The tile's zoom level can differ from the map's: it is rounded to an integer, adjusted
     // for sources with tiles larger than 256px, and clamped at 0. Scale the tile so that it
@@ -326,12 +340,12 @@ fn flood_fill_tiles<T: Tiles + ?Sized>(
     if clip_rect.intersects(rect(tile_screen_position, corrected_tile_size))
         && meshes.insert(tile_id)
     {
-        if let Some(tile) = tiles.at(tile_id) {
+        if let Some(tile) = at(tile_id) {
             tile.tile.draw(
                 canvas,
                 rect(tile_screen_position, corrected_tile_size),
                 tile.uv,
-                tiles.tile_size(),
+                tile_size,
                 zoom,
             )
         }
@@ -345,7 +359,7 @@ fn flood_fill_tiles<T: Tiles + ?Sized>(
         .iter()
         .flatten()
         {
-            flood_fill_tiles(spread, *next_tile_id, tiles, meshes, canvas);
+            flood_fill_tiles(spread, *next_tile_id, at, meshes, canvas);
         }
     }
 }
@@ -434,12 +448,6 @@ impl EguiTileFactory {
             layers,
             tile_size,
         }
-    }
-
-    /// Drawing every layer of the `style`.
-    pub fn whole(egui_ctx: Context, style: Style, tile_size: u32) -> Self {
-        let layers = all_layers(&style);
-        Self::new(egui_ctx, Arc::new(style), layers, tile_size)
     }
 }
 

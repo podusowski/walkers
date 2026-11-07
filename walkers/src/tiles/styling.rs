@@ -7,17 +7,20 @@ use futures::{
 };
 use lru::LruCache;
 
-use crate::{SourceData, Tile, TileId, io::runtime::Runtime, tiles::TileError};
+use super::interpolate_from_lower_zoom;
+use crate::{
+    SourceData, Tile, TileId, TilePiece, TiledSource, io::runtime::Runtime, tiles::TileError,
+};
 
-pub trait TileFactory {
+pub(crate) trait TileFactory {
     fn create_tile(&self, data: &SourceData, zoom: u8) -> Result<Tile, TileError>;
 }
 
 /// How many tiles can wait to be styled. Arbitrary, the rest is asked for again later.
 const QUEUE_SIZE: usize = 8;
 
-/// Turns fetched data into tiles in the background, and keeps them in a cache.
-pub struct StylingIo {
+/// What a style makes of a source's tiles, styled in the background and kept in a cache.
+pub(crate) struct Styling {
     /// Data to be styled by the styling thread.
     request_tx: Sender<(TileId, Arc<SourceData>)>,
 
@@ -25,7 +28,7 @@ pub struct StylingIo {
     tile_rx: Receiver<(TileId, Option<Tile>)>,
 
     /// `None` while being styled, and forever if styling failed.
-    pub cache: LruCache<TileId, Option<Tile>>,
+    cache: LruCache<TileId, Option<Tile>>,
 
     /// Sent to be styled, but not back yet.
     in_progress: usize,
@@ -34,8 +37,11 @@ pub struct StylingIo {
     runtime: Runtime,
 }
 
-impl StylingIo {
-    pub fn new(tile_factory: impl TileFactory + Send + Sync + 'static, egui_ctx: Context) -> Self {
+impl Styling {
+    pub(crate) fn new(
+        tile_factory: impl TileFactory + Send + Sync + 'static,
+        egui_ctx: Context,
+    ) -> Self {
         let (request_tx, request_rx) = channel(QUEUE_SIZE);
         let (tile_tx, tile_rx) = channel(QUEUE_SIZE);
 
@@ -59,8 +65,41 @@ impl StylingIo {
         }
     }
 
+    /// That tile if it is styled, otherwise the part of the nearest zoomed-out one covering the
+    /// same ground. Styles the tile once `source` has its data.
+    pub(crate) fn at<S: TiledSource + ?Sized>(
+        &mut self,
+        source: &mut S,
+        tile_id: TileId,
+    ) -> Option<TilePiece> {
+        self.put_single_styled_tile_in_cache();
+
+        if !tile_id.valid() {
+            return None;
+        }
+
+        let tile_id_to_style = if tile_id.zoom > source.max_zoom() {
+            interpolate_from_lower_zoom(tile_id, source.max_zoom()).0
+        } else {
+            tile_id
+        };
+
+        if !self.cache.contains(&tile_id_to_style)
+            && let Some(data) = source.data(tile_id_to_style)
+        {
+            self.style(tile_id_to_style, data);
+        }
+
+        self.best_available(tile_id)
+    }
+
+    /// How many tiles are being styled right now.
+    pub(crate) fn in_progress(&self) -> usize {
+        self.in_progress
+    }
+
     /// Takes a single styled tile from the styling thread and puts it in the cache.
-    pub fn put_single_styled_tile_in_cache(&mut self) {
+    fn put_single_styled_tile_in_cache(&mut self) {
         // This is called every frame, so take just one at the time.
         match self.tile_rx.try_recv() {
             Ok((tile_id, tile)) => {
@@ -76,14 +115,9 @@ impl StylingIo {
         }
     }
 
-    /// Whether the tile is styled, being styled, or failed to be.
-    pub fn knows(&self, tile_id: TileId) -> bool {
-        self.cache.contains(&tile_id)
-    }
-
     /// Style `data` into the tile, unless there are too many waiting already, in which case it
     /// has to be asked for again.
-    pub fn style(&mut self, tile_id: TileId, data: Arc<SourceData>) {
+    fn style(&mut self, tile_id: TileId, data: Arc<SourceData>) {
         match self.request_tx.try_send((tile_id, data)) {
             Ok(()) => {
                 self.cache.put(tile_id, None);
@@ -98,9 +132,24 @@ impl StylingIo {
         }
     }
 
-    /// How many tiles are being styled right now.
-    pub fn in_progress(&self) -> usize {
-        self.in_progress
+    /// That tile if it is cached, otherwise the part of the nearest zoomed-out one covering
+    /// the same ground.
+    fn best_available(&mut self, tile_id: TileId) -> Option<TilePiece> {
+        let mut zoom_candidate = tile_id.zoom;
+
+        loop {
+            let (zoomed_tile_id, uv) = interpolate_from_lower_zoom(tile_id, zoom_candidate);
+
+            if let Some(Some(tile)) = self.cache.get(&zoomed_tile_id) {
+                break Some(TilePiece {
+                    tile: tile.clone(),
+                    uv,
+                });
+            }
+
+            // Keep zooming out until we find a donor or there is no more zoom levels.
+            zoom_candidate = zoom_candidate.checked_sub(1)?;
+        }
     }
 }
 
@@ -145,7 +194,7 @@ mod tests {
     /// Data which cannot be styled is done with too, so it must not be reported as loading.
     #[test]
     fn tile_which_fails_to_be_styled_is_no_longer_in_progress() {
-        let mut styling = StylingIo::new(Failing, Context::default());
+        let mut styling = Styling::new(Failing, Context::default());
         let tile_id = TileId {
             x: 0,
             y: 0,
@@ -166,6 +215,6 @@ mod tests {
         }
 
         // And it is not styled again.
-        assert!(styling.knows(tile_id));
+        assert!(styling.cache.contains(&tile_id));
     }
 }

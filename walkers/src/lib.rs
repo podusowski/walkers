@@ -30,7 +30,6 @@ mod projection;
 #[cfg(feature = "vector")]
 mod render;
 pub mod sources;
-#[cfg(feature = "vector")]
 mod styled_sources;
 mod tiles;
 mod z_order;
@@ -66,7 +65,6 @@ pub use style::{
     Color, Dasharray, Filter, Float, Layout, Paint, SourceLayer, StyleLayer, Value,
     exponential_zoom_interpolation, json, linear_zoom_interpolation,
 };
-#[cfg(feature = "vector")]
 pub use styled_sources::StyledSources;
 #[cfg(feature = "vector")]
 pub use text::{Placement, Text, place_texts};
