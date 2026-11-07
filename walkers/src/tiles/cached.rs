@@ -1,13 +1,14 @@
 use egui::Context;
 
 use super::interpolate_from_lower_zoom;
-use crate::io::{Fetch, TileFactory, tiles_io::TilesIo};
+use crate::io::{Fetch, TileFactory, styling::StylingIo, tiles_io::TilesIo};
 use crate::sources::Attribution;
 use crate::{Stats, TileId, TilePiece, Tiles};
 
-/// Tiles fetched in the background and kept in a cache.
+/// Tiles fetched and styled in the background, each kept in its own cache.
 pub(crate) struct CachedTiles {
-    io: TilesIo,
+    fetched: TilesIo,
+    styled: StylingIo,
     attribution: Attribution,
     tile_size: u32,
     max_zoom: u8,
@@ -23,7 +24,8 @@ impl CachedTiles {
         egui_ctx: Context,
     ) -> Self {
         Self {
-            io: TilesIo::new(fetch, tile_factory, egui_ctx.clone()),
+            fetched: TilesIo::new(fetch, egui_ctx.clone()),
+            styled: StylingIo::new(tile_factory, egui_ctx),
             attribution,
             tile_size,
             max_zoom,
@@ -31,7 +33,9 @@ impl CachedTiles {
     }
 
     pub(crate) fn stats(&self) -> Stats {
-        self.io.stats()
+        Stats {
+            in_progress: self.fetched.stats().in_progress + self.styled.in_progress(),
+        }
     }
 
     /// That tile if it is cached, otherwise the part of the nearest zoomed-out one covering
@@ -42,7 +46,7 @@ impl CachedTiles {
         loop {
             let (zoomed_tile_id, uv) = interpolate_from_lower_zoom(tile_id, zoom_candidate);
 
-            if let Some(Some(tile)) = self.io.cache.get(&zoomed_tile_id) {
+            if let Some(Some(tile)) = self.styled.cache.get(&zoomed_tile_id) {
                 break Some(TilePiece {
                     tile: tile.clone(),
                     uv,
@@ -57,7 +61,8 @@ impl CachedTiles {
 
 impl Tiles for CachedTiles {
     fn at(&mut self, tile_id: TileId) -> Option<TilePiece> {
-        self.io.put_single_fetched_tile_in_cache();
+        self.fetched.put_single_fetched_tile_in_cache();
+        self.styled.put_single_styled_tile_in_cache();
 
         if !tile_id.valid() {
             return None;
@@ -69,7 +74,12 @@ impl Tiles for CachedTiles {
             tile_id
         };
 
-        self.io.make_sure_is_fetched(tile_id_to_fetch);
+        if !self.styled.knows(tile_id_to_fetch)
+            && let Some(data) = self.fetched.data(tile_id_to_fetch)
+        {
+            self.styled.style(tile_id_to_fetch, data);
+        }
+
         self.best_available(tile_id)
     }
 

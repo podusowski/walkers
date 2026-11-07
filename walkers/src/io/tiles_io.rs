@@ -1,27 +1,25 @@
 use std::sync::{Arc, Mutex};
 
+use bytes::Bytes;
 use egui::Context;
 use futures::channel::mpsc::{Receiver, Sender, TryRecvError, TrySendError, channel};
 use lru::LruCache;
 
 use crate::{
-    Tile, TileId,
-    io::{
-        Fetch,
-        fetch::{TileFactory, fetch_continuously},
-        runtime::Runtime,
-    },
+    TileId,
+    io::{Fetch, fetch::fetch_continuously, runtime::Runtime},
 };
 
-/// Asynchronously load and cache tiles from different local and remote sources.
+/// Asynchronously fetch and cache tiles' data from different local and remote sources.
 pub struct TilesIo {
     /// Tiles to be fetched by the IO thread.
     request_tx: Sender<TileId>,
 
     /// Tiles that got fetched and should be put in the cache.
-    tile_rx: Receiver<(TileId, Tile)>,
+    tile_rx: Receiver<(TileId, Bytes)>,
 
-    pub cache: LruCache<TileId, Option<Tile>>,
+    /// `None` while being fetched, and forever if fetching failed.
+    cache: LruCache<TileId, Option<Bytes>>,
     pub stats: Arc<Mutex<Stats>>,
 
     #[allow(dead_code)] // Significant Drop
@@ -29,11 +27,7 @@ pub struct TilesIo {
 }
 
 impl TilesIo {
-    pub fn new(
-        fetch: impl Fetch + Send + Sync + 'static,
-        tile_factory: impl TileFactory + Send + Sync + 'static,
-        egui_ctx: Context,
-    ) -> Self {
+    pub fn new(fetch: impl Fetch + Send + Sync + 'static, egui_ctx: Context) -> Self {
         let stats = Arc::new(Mutex::new(Stats { in_progress: 0 }));
 
         // This ensures that newer requests are prioritized.
@@ -49,7 +43,6 @@ impl TilesIo {
             request_rx,
             tile_tx,
             egui_ctx,
-            tile_factory,
         ));
 
         // Just arbitrary value which seemed right.
@@ -69,8 +62,8 @@ impl TilesIo {
     pub fn put_single_fetched_tile_in_cache(&mut self) {
         // This is called every frame, so take just one at the time.
         match self.tile_rx.try_recv() {
-            Ok((tile_id, tile)) => {
-                self.cache.put(tile_id, Some(tile));
+            Ok((tile_id, data)) => {
+                self.cache.put(tile_id, Some(data));
             }
             Err(TryRecvError::Empty) => {
                 // No new tile was downloaded, just ignore.
@@ -81,20 +74,22 @@ impl TilesIo {
         }
     }
 
-    /// Request a tile to be fetched, but only if it is not already being fetched.
-    pub fn make_sure_is_fetched(&mut self, tile_id: TileId) {
+    /// The tile's data if it is fetched. Otherwise make sure it is being fetched, unless fetching
+    /// it already failed.
+    pub fn data(&mut self, tile_id: TileId) -> Option<Bytes> {
         match self.cache.try_get_or_insert(
             tile_id,
-            || -> Result<Option<Tile>, TrySendError<TileId>> {
+            || -> Result<Option<Bytes>, TrySendError<TileId>> {
                 self.request_tx.try_send(tile_id)?;
                 log::trace!("Requested tile: {tile_id:?}");
                 Ok(None)
             },
         ) {
-            Ok(_) => {}
+            Ok(data) => data.to_owned(),
             Err(err) if err.is_full() => {
                 // Trying to download too many tiles at once.
                 log::trace!("Request queue is full.");
+                None
             }
             Err(err) => {
                 panic!("Failed to send tile request for {tile_id:?}: {err}");
