@@ -59,7 +59,7 @@ impl TilesIo {
     }
 
     /// Takes a single fetched tile from the IO thread and puts it in the cache.
-    pub fn put_single_fetched_tile_in_cache(&mut self) {
+    fn put_single_fetched_tile_in_cache(&mut self) {
         // This is called every frame, so take just one at the time.
         match self.tile_rx.try_recv() {
             Ok((tile_id, data)) => {
@@ -78,6 +78,8 @@ impl TilesIo {
     /// The tile's data if it is fetched. Otherwise make sure it is being fetched, unless fetching
     /// it already failed.
     pub fn data(&mut self, tile_id: TileId) -> Option<Arc<SourceData>> {
+        self.put_single_fetched_tile_in_cache();
+
         match self.cache.try_get_or_insert(
             tile_id,
             || -> Result<Option<Arc<SourceData>>, TrySendError<TileId>> {

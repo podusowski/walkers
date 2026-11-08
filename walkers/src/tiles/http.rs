@@ -83,7 +83,6 @@ impl HttpSource {
 
 impl TiledSource for HttpSource {
     fn data(&mut self, tile_id: TileId) -> Option<Arc<SourceData>> {
-        self.io.put_single_fetched_tile_in_cache();
         self.io.data(tile_id)
     }
 
