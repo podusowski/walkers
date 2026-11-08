@@ -1,4 +1,4 @@
-use std::sync::Arc;
+use std::{ops::Range, sync::Arc};
 
 use egui::Context;
 use futures::{
@@ -8,27 +8,36 @@ use futures::{
 use lru::LruCache;
 
 use super::interpolate_from_lower_zoom;
-use crate::{
-    SourceData, Tile, TileId, TilePiece, TiledSource, io::runtime::Runtime, tiles::TileError,
-};
-
-pub(crate) trait TileFactory {
-    fn create_tile(&self, data: &SourceData, zoom: u8) -> Result<Tile, TileError>;
-}
+use crate::{SourceData, Style, Tile, TileId, TilePiece, TiledSource, io::runtime::Runtime};
 
 /// How many tiles can wait to be styled. Arbitrary, the rest is asked for again later.
 const QUEUE_SIZE: usize = 8;
 
-/// What a style makes of a source's tiles, styled in the background and kept in a cache.
+/// A tile, as some layers of the style make it of the data of a source.
+#[derive(Clone, PartialEq, Eq, Hash, Debug)]
+struct Key {
+    /// Index of the source.
+    source: usize,
+    layers: Range<usize>,
+    tile_id: TileId,
+}
+
+struct Request {
+    key: Key,
+    data: Arc<SourceData>,
+    tile_size: u32,
+}
+
+/// What a style makes of sources' tiles, styled in the background and kept in a cache.
 pub(crate) struct Styling {
     /// Data to be styled by the styling thread.
-    request_tx: Sender<(TileId, Arc<SourceData>)>,
+    request_tx: Sender<Request>,
 
     /// Tiles that got styled and should be put in the cache. `None` if styling failed.
-    tile_rx: Receiver<(TileId, Option<Tile>)>,
+    tile_rx: Receiver<(Key, Option<Tile>)>,
 
     /// `None` while being styled, and forever if styling failed.
-    cache: LruCache<TileId, Option<Tile>>,
+    cache: LruCache<Key, Option<Tile>>,
 
     /// Sent to be styled, but not back yet.
     in_progress: usize,
@@ -38,19 +47,11 @@ pub(crate) struct Styling {
 }
 
 impl Styling {
-    pub(crate) fn new(
-        tile_factory: impl TileFactory + Send + Sync + 'static,
-        egui_ctx: Context,
-    ) -> Self {
+    pub(crate) fn new(style: Arc<Style>, egui_ctx: Context) -> Self {
         let (request_tx, request_rx) = channel(QUEUE_SIZE);
         let (tile_tx, tile_rx) = channel(QUEUE_SIZE);
 
-        let runtime = Runtime::new(style_continuously(
-            tile_factory,
-            request_rx,
-            tile_tx,
-            egui_ctx,
-        ));
+        let runtime = Runtime::new(style_continuously(style, request_rx, tile_tx, egui_ctx));
 
         // Just arbitrary value which seemed right.
         #[allow(clippy::unwrap_used)]
@@ -65,11 +66,14 @@ impl Styling {
         }
     }
 
-    /// That tile if it is styled, otherwise the part of the nearest zoomed-out one covering the
-    /// same ground. Styles the tile once `source` has its data.
-    pub(crate) fn at<S: TiledSource + ?Sized>(
+    /// That tile, as `layers` make it of the data of `source`, the source at `index`. If it is
+    /// not styled yet, the part of the nearest zoomed-out one covering the same ground. Styles
+    /// the tile once `source` has its data.
+    pub(crate) fn at(
         &mut self,
-        source: &mut S,
+        index: usize,
+        source: &mut dyn TiledSource,
+        layers: Range<usize>,
         tile_id: TileId,
     ) -> Option<TilePiece> {
         self.put_single_styled_tile_in_cache();
@@ -84,13 +88,19 @@ impl Styling {
             tile_id
         };
 
-        if !self.cache.contains(&tile_id_to_style)
+        let key = Key {
+            source: index,
+            layers,
+            tile_id: tile_id_to_style,
+        };
+
+        if !self.cache.contains(&key)
             && let Some(data) = source.data(tile_id_to_style)
         {
-            self.style(tile_id_to_style, data);
+            self.style(key.clone(), data, source.tile_size());
         }
 
-        self.best_available(tile_id)
+        self.best_available(key, tile_id)
     }
 
     /// How many tiles are being styled right now.
@@ -102,8 +112,8 @@ impl Styling {
     fn put_single_styled_tile_in_cache(&mut self) {
         // This is called every frame, so take just one at the time.
         match self.tile_rx.try_recv() {
-            Ok((tile_id, tile)) => {
-                self.cache.put(tile_id, tile);
+            Ok((key, tile)) => {
+                self.cache.put(key, tile);
                 self.in_progress -= 1;
             }
             Err(TryRecvError::Empty) => {
@@ -117,30 +127,40 @@ impl Styling {
 
     /// Style `data` into the tile, unless there are too many waiting already, in which case it
     /// has to be asked for again.
-    fn style(&mut self, tile_id: TileId, data: Arc<SourceData>) {
-        match self.request_tx.try_send((tile_id, data)) {
+    fn style(&mut self, key: Key, data: Arc<SourceData>, tile_size: u32) {
+        let request = Request {
+            key: key.clone(),
+            data,
+            tile_size,
+        };
+
+        match self.request_tx.try_send(request) {
             Ok(()) => {
-                self.cache.put(tile_id, None);
+                self.cache.put(key, None);
                 self.in_progress += 1;
             }
             Err(err) if err.is_full() => {
                 log::trace!("Styling queue is full.");
             }
             Err(err) => {
-                panic!("Failed to send {tile_id:?} to be styled: {err}");
+                panic!("Failed to send {key:?} to be styled: {err}");
             }
         }
     }
 
-    /// That tile if it is cached, otherwise the part of the nearest zoomed-out one covering
-    /// the same ground.
-    fn best_available(&mut self, tile_id: TileId) -> Option<TilePiece> {
+    /// That tile, `key` is of, if it is cached, otherwise the part of the nearest zoomed-out one
+    /// covering the same ground.
+    fn best_available(&mut self, key: Key, tile_id: TileId) -> Option<TilePiece> {
         let mut zoom_candidate = tile_id.zoom;
 
         loop {
             let (zoomed_tile_id, uv) = interpolate_from_lower_zoom(tile_id, zoom_candidate);
+            let zoomed_key = Key {
+                tile_id: zoomed_tile_id,
+                ..key.clone()
+            };
 
-            if let Some(Some(tile)) = self.cache.get(&zoomed_tile_id) {
+            if let Some(Some(tile)) = self.cache.get(&zoomed_key) {
                 break Some(TilePiece {
                     tile: tile.clone(),
                     uv,
@@ -155,21 +175,34 @@ impl Styling {
 
 /// Style the data coming through `request_rx`, until the main thread goes away.
 async fn style_continuously(
-    tile_factory: impl TileFactory,
-    mut request_rx: Receiver<(TileId, Arc<SourceData>)>,
-    mut tile_tx: Sender<(TileId, Option<Tile>)>,
+    style: Arc<Style>,
+    mut request_rx: Receiver<Request>,
+    mut tile_tx: Sender<(Key, Option<Tile>)>,
     egui_ctx: Context,
 ) {
-    while let Some((tile_id, data)) = request_rx.next().await {
-        let tile = tile_factory
-            .create_tile(&data, tile_id.zoom)
-            // It would probably be more consistent to push it to the caller, but it's not
-            // that important right now.
-            .inspect_err(|err| log::warn!("{err}"))
-            .ok();
+    while let Some(Request {
+        key,
+        data,
+        tile_size,
+    }) = request_rx.next().await
+    {
+        let tile = match &*data {
+            SourceData::Encoded(bytes) => Tile::decode(
+                bytes,
+                &style,
+                key.layers.clone(),
+                key.tile_id.zoom,
+                tile_size,
+                &egui_ctx,
+            ),
+        }
+        // It would probably be more consistent to push it to the caller, but it's not that
+        // important right now.
+        .inspect_err(|err| log::warn!("{err}"))
+        .ok();
 
         // Failures too, so that the main thread knows they are no longer in progress.
-        if tile_tx.send((tile_id, tile)).await.is_err() {
+        if tile_tx.send((key, tile)).await.is_err() {
             break;
         }
         egui_ctx.request_repaint();
@@ -183,27 +216,25 @@ mod tests {
     use super::*;
     use std::time::{Duration, Instant};
 
-    struct Failing;
-
-    impl TileFactory for Failing {
-        fn create_tile(&self, _data: &SourceData, _zoom: u8) -> Result<Tile, TileError> {
-            Err(TileError::Empty)
-        }
-    }
-
     /// Data which cannot be styled is done with too, so it must not be reported as loading.
     #[test]
     fn tile_which_fails_to_be_styled_is_no_longer_in_progress() {
-        let mut styling = Styling::new(Failing, Context::default());
-        let tile_id = TileId {
-            x: 0,
-            y: 0,
-            zoom: 0,
+        let mut styling = Styling::new(Arc::new(Style::default()), Context::default());
+        let key = Key {
+            source: 0,
+            layers: 0..0,
+            tile_id: TileId {
+                x: 0,
+                y: 0,
+                zoom: 0,
+            },
         };
 
+        // Empty data never makes a tile.
         styling.style(
-            tile_id,
-            Arc::new(SourceData::Encoded(bytes::Bytes::from_static(b"garbage"))),
+            key.clone(),
+            Arc::new(SourceData::Encoded(bytes::Bytes::new())),
+            256,
         );
         assert_eq!(styling.in_progress(), 1);
 
@@ -215,6 +246,6 @@ mod tests {
         }
 
         // And it is not styled again.
-        assert!(styling.cache.contains(&tile_id));
+        assert!(styling.cache.contains(&key));
     }
 }

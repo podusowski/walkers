@@ -5,7 +5,7 @@ use egui::Context;
 use crate::{
     Canvas, Layer, Projector, Stats, Style, TilePiece, TiledSource,
     sources::Attribution,
-    tiles::{EguiTileFactory, TileId, draw_tiles_with, styling::Styling},
+    tiles::{TileId, draw_tiles_with, styling::Styling},
 };
 
 /// A [`Style`] drawn from named sources. It must persist between frames.
@@ -20,25 +20,26 @@ pub struct StyledSources {
     style: Arc<Style>,
     sources: Vec<NamedSource>,
 
-    /// `None` until they are needed, as they change with every source added.
+    /// Worked out when first needed, so that adding sources one by one does not warn about those
+    /// yet to be added.
     consecutive_layers: Option<Vec<ConsecutiveLayers>>,
 
+    styling: Styling,
     egui_ctx: Context,
 }
 
 type NamedSource = (String, Box<dyn TiledSource>);
 
-/// Consecutive layers of the style drawing from the same source, styled and drawn together.
-struct ConsecutiveLayers {
-    /// Index of the source.
-    source: usize,
-    styling: Styling,
-}
+/// Consecutive layers of the style drawing from the same source, as the index of the source and
+/// the layers. They are styled and drawn together.
+type ConsecutiveLayers = (usize, Range<usize>);
 
 impl StyledSources {
     pub fn new(style: Style, egui_ctx: Context) -> Self {
+        let style = Arc::new(style);
         Self {
-            style: Arc::new(style),
+            styling: Styling::new(style.clone(), egui_ctx.clone()),
+            style,
             sources: Vec::new(),
             consecutive_layers: None,
             egui_ctx,
@@ -60,6 +61,7 @@ impl StyledSources {
     /// nothing is fetched again.
     pub fn set_style(&mut self, style: Style) {
         self.style = Arc::new(style);
+        self.styling = Styling::new(self.style.clone(), self.egui_ctx.clone());
         self.consecutive_layers = None;
     }
 
@@ -78,69 +80,64 @@ impl StyledSources {
             .iter()
             .map(|(_, source)| source.stats().in_progress)
             .sum();
-        let styled: usize = self
-            .consecutive_layers
-            .iter()
-            .flatten()
-            .map(|layers| layers.styling.in_progress())
-            .sum();
 
         Stats {
-            in_progress: fetched + styled,
+            in_progress: fetched + self.styling.in_progress(),
         }
     }
 
     /// That tile, for those holding a single source, which draws the whole style.
     pub(crate) fn single_source_at(&mut self, tile_id: TileId) -> Option<TilePiece> {
-        let (consecutive_layers, sources) = self.consecutive_layers_and_sources();
-        let layers = consecutive_layers.first_mut()?;
-        layers
-            .styling
-            .at(sources[layers.source].1.as_mut(), tile_id)
-    }
-
-    /// The consecutive layers, made when first needed, and the sources they draw from.
-    fn consecutive_layers_and_sources(&mut self) -> (&mut [ConsecutiveLayers], &mut [NamedSource]) {
-        let consecutive_layers = self.consecutive_layers.get_or_insert_with(|| {
-            let names: Vec<&str> = self.sources.iter().map(|(name, _)| name.as_str()).collect();
-            consecutive_layers(&self.style, &names)
-                .into_iter()
-                .map(|(source, layers)| ConsecutiveLayers {
-                    source,
-                    styling: Styling::new(
-                        EguiTileFactory::new(
-                            self.egui_ctx.clone(),
-                            self.style.clone(),
-                            layers,
-                            self.sources[source].1.tile_size(),
-                        ),
-                        self.egui_ctx.clone(),
-                    ),
-                })
-                .collect()
-        });
-        (consecutive_layers, &mut self.sources)
+        let Self {
+            style,
+            sources,
+            consecutive_layers,
+            styling,
+            ..
+        } = self;
+        let (source, layers) = consecutive_layers
+            .get_or_insert_with(|| consecutive_layers_of(style, sources))
+            .first()?;
+        styling.at(
+            *source,
+            sources[*source].1.as_mut(),
+            layers.clone(),
+            tile_id,
+        )
     }
 }
 
 impl Layer for &mut StyledSources {
     fn draw(&mut self, canvas: &mut Canvas, projector: &Projector) {
-        let (consecutive_layers, sources) = self.consecutive_layers_and_sources();
+        let StyledSources {
+            style,
+            sources,
+            consecutive_layers,
+            styling,
+            ..
+        } = &mut **self;
+        let consecutive_layers =
+            consecutive_layers.get_or_insert_with(|| consecutive_layers_of(style, sources));
 
         // One after another, so that a layer of one source can go between layers of another.
-        for layers in consecutive_layers {
-            let source = sources[layers.source].1.as_mut();
+        for (index, layers) in consecutive_layers.iter() {
+            let source = sources[*index].1.as_mut();
             let tile_size = source.tile_size();
             draw_tiles_with(canvas, projector, tile_size, |tile_id| {
-                layers.styling.at(source, tile_id)
+                styling.at(*index, source, layers.clone(), tile_id)
             });
         }
     }
 }
 
-/// Consecutive layers drawing from the same source, as the index of the source and the layers.
-/// When there is only one source, the whole style draws from it.
-fn consecutive_layers(style: &Style, sources: &[&str]) -> Vec<(usize, Range<usize>)> {
+fn consecutive_layers_of(style: &Style, sources: &[NamedSource]) -> Vec<ConsecutiveLayers> {
+    let names: Vec<&str> = sources.iter().map(|(name, _)| name.as_str()).collect();
+    consecutive_layers(style, &names)
+}
+
+/// The style's layers, grouped into consecutive ones drawing from the same of `sources`. When there
+/// is only one source, the whole style draws from it.
+fn consecutive_layers(style: &Style, sources: &[&str]) -> Vec<ConsecutiveLayers> {
     #[cfg(feature = "vector")]
     let layers = style.layers.len();
     #[cfg(not(feature = "vector"))]
@@ -158,7 +155,7 @@ fn consecutive_layers(style: &Style, sources: &[&str]) -> Vec<(usize, Range<usiz
 
     #[cfg(feature = "vector")]
     {
-        let mut consecutive: Vec<(usize, Range<usize>)> = Vec::new();
+        let mut consecutive: Vec<ConsecutiveLayers> = Vec::new();
 
         // Layers naming no source, such as a background, draw from the one before them. Those
         // before any other go with the first ones.

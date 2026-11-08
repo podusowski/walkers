@@ -15,16 +15,13 @@ use egui::{Context, Rect, Vec2, pos2};
 use image::{ImageError, ImageReader};
 use std::collections::HashSet;
 use std::ops::Range;
-use std::sync::Arc;
 use thiserror::Error;
 
-use crate::SourceData;
 use crate::position::{Pixels, PixelsExt};
 use crate::sources::Attribution;
 use crate::style::Style;
 use crate::{Canvas, Projector, Stats};
 use grid::{TILE_SIZE, tile_id_at, total_tiles};
-use styling::TileFactory;
 
 #[derive(Error, Debug)]
 pub enum TileError {
@@ -429,40 +426,6 @@ fn all_layers(style: &Style) -> Range<usize> {
     {
         let _ = style;
         0..0
-    }
-}
-
-pub struct EguiTileFactory {
-    egui_ctx: Context,
-    style: Arc<Style>,
-    layers: Range<usize>,
-    tile_size: u32,
-}
-
-impl EguiTileFactory {
-    /// Drawing the `layers` of the `style`.
-    pub fn new(egui_ctx: Context, style: Arc<Style>, layers: Range<usize>, tile_size: u32) -> Self {
-        Self {
-            egui_ctx,
-            style,
-            layers,
-            tile_size,
-        }
-    }
-}
-
-impl TileFactory for EguiTileFactory {
-    fn create_tile(&self, data: &SourceData, zoom: u8) -> Result<Tile, TileError> {
-        match data {
-            SourceData::Encoded(data) => Tile::decode(
-                data,
-                &self.style,
-                self.layers.clone(),
-                zoom,
-                self.tile_size,
-                &self.egui_ctx,
-            ),
-        }
     }
 }
 
