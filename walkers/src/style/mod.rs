@@ -28,6 +28,21 @@ impl Style {
     pub(crate) fn layer_sources(&self) -> impl ExactSizeIterator<Item = Option<&str>> {
         self.layers.iter().map(StyleLayer::source)
     }
+
+    /// Opacity of the first raster layer among `layers`, or 1 if there is none.
+    pub(crate) fn raster_opacity(&self, layers: std::ops::Range<usize>, zoom: u8) -> f32 {
+        self.layers[layers]
+            .iter()
+            .find_map(|layer| match layer {
+                StyleLayer::Raster { paint, .. } => {
+                    Some(paint.raster_opacity.as_ref().map_or(1.0, |opacity| {
+                        opacity.evaluate(&Context::new("None".to_owned(), Default::default(), zoom))
+                    }))
+                }
+                _ => None,
+            })
+            .unwrap_or(1.0)
+    }
 }
 
 /// Which layer, or layers, of a vector tile a style layer draws from.
@@ -141,6 +156,8 @@ pub enum StyleLayer {
     Raster {
         #[serde(default)]
         source: Option<String>,
+        #[serde(default)]
+        paint: Paint,
     },
     FillExtrusion,
 }
@@ -154,7 +171,7 @@ impl StyleLayer {
             | StyleLayer::Line { source, .. }
             | StyleLayer::Symbol { source, .. }
             | StyleLayer::Circle { source, .. }
-            | StyleLayer::Raster { source } => source.as_deref(),
+            | StyleLayer::Raster { source, .. } => source.as_deref(),
             StyleLayer::FillExtrusion => None,
         }
     }
@@ -180,6 +197,8 @@ pub struct Paint {
     pub text_halo_color: Option<Color>,
     /// <https://maplibre.org/maplibre-style-spec/layers/>#text-halo-width
     pub text_halo_width: Option<Float>,
+    /// <https://maplibre.org/maplibre-style-spec/layers/>#raster-opacity
+    pub raster_opacity: Option<Float>,
 }
 
 #[derive(Debug, Error)]

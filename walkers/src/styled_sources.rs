@@ -119,14 +119,21 @@ impl Layer for &mut StyledSources {
         let consecutive_layers =
             consecutive_layers.get_or_insert_with(|| consecutive_layers_of(style, sources));
 
+        let zoom = projector.zoom().round() as u8;
+        let transparency = canvas.transparency;
+
         // One after another, so that a layer of one source can go between layers of another.
         for (index, layers) in consecutive_layers.iter() {
+            canvas.transparency = transparency * style.raster_opacity(layers.clone(), zoom);
+
             let source = sources[*index].1.as_mut();
             let tile_size = source.tile_size();
             draw_tiles_with(canvas, projector, tile_size, |tile_id| {
                 styling.at(*index, source, layers.clone(), tile_id)
             });
         }
+
+        canvas.transparency = transparency;
     }
 }
 
@@ -187,6 +194,7 @@ mod tests {
     fn raster(source: &str) -> StyleLayer {
         StyleLayer::Raster {
             source: Some(source.to_owned()),
+            paint: Default::default(),
         }
     }
 
@@ -283,17 +291,9 @@ mod tests {
         }
     }
 
-    #[test]
-    fn layers_are_drawn_in_their_order_whichever_source_they_draw_from() {
-        let ctx = Context::default();
-        let mut styled = StyledSources::new(
-            style(vec![raster("a"), raster("b"), raster("a")]),
-            ctx.clone(),
-        )
-        .with_tiled_source("a", Fixed::new(1))
-        .with_tiled_source("b", Fixed::new(2));
-
-        // The whole world is one tile at zoom 0, so each layer draws exactly one.
+    /// Raster tiles drawn at zoom 0, where the whole world is one tile, so each group of layers
+    /// draws exactly one. Waits for them, as they are styled in the background.
+    fn draw_rasters(styled: &mut StyledSources, count: usize) -> Vec<crate::canvas::RasterPiece> {
         let mut memory = crate::MapMemory::default();
         memory.set_zoom(0.).unwrap();
         let projector = Projector::new(
@@ -303,12 +303,11 @@ mod tests {
             crate::lon_lat(0., 0.),
         );
 
-        // Tiles are styled in the background.
         let deadline = std::time::Instant::now() + std::time::Duration::from_secs(5);
         let drawn = loop {
             let mut canvas = Canvas::new();
-            (&mut styled).draw(&mut canvas, &projector);
-            if canvas.items.len() == 3 {
+            (&mut *styled).draw(&mut canvas, &projector);
+            if canvas.items.len() == count {
                 break canvas.items;
             }
             assert!(
@@ -318,13 +317,48 @@ mod tests {
             std::thread::sleep(std::time::Duration::from_millis(10));
         };
 
-        let sizes: Vec<usize> = drawn
-            .iter()
+        drawn
+            .into_iter()
             .map(|item| match item {
-                crate::canvas::Item::Raster(piece) => piece.image.0.size()[0],
+                crate::canvas::Item::Raster(piece) => piece,
                 _ => panic!("expected only raster tiles"),
             })
+            .collect()
+    }
+
+    #[test]
+    fn layers_are_drawn_in_their_order_whichever_source_they_draw_from() {
+        let mut styled = StyledSources::new(
+            style(vec![raster("a"), raster("b"), raster("a")]),
+            Context::default(),
+        )
+        .with_tiled_source("a", Fixed::new(1))
+        .with_tiled_source("b", Fixed::new(2));
+
+        let sizes: Vec<usize> = draw_rasters(&mut styled, 3)
+            .iter()
+            .map(|piece| piece.image.0.size()[0])
             .collect();
         assert_eq!(sizes, [1, 2, 1]);
+    }
+
+    #[test]
+    fn raster_layers_are_drawn_with_their_opacity() {
+        let style = serde_json::from_value(serde_json::json!({
+            "layers": [
+                { "type": "raster", "source": "a" },
+                { "type": "raster", "source": "b", "paint": { "raster-opacity": 0.25 } },
+            ]
+        }))
+        .unwrap();
+        let mut styled = StyledSources::new(style, Context::default())
+            .with_tiled_source("a", Fixed::new(1))
+            .with_tiled_source("b", Fixed::new(2));
+
+        let transparencies: Vec<f32> = draw_rasters(&mut styled, 2)
+            .iter()
+            .map(|piece| piece.transparency)
+            .collect();
+        assert_eq!(transparencies, [1.0, 0.25]);
     }
 }

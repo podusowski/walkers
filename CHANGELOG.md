@@ -9,6 +9,7 @@ playground and can change or break at any time without an entry here.
   `HttpSource` and `PmTilesSource`.
 * Style layers have an optional `source`.
 * `TileSource` is renamed to `TileUrls`. The old name still works.
+* Raster style layers support `raster-opacity`.
 
 ## 0.65.0
 
