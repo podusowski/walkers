@@ -1,20 +1,19 @@
 use std::path::{Path, PathBuf};
 
 use log::warn;
-use walkers::{Map, Stats, Tiles, sources::Attribution};
+use walkers::{Map, Stats, StyledSources, sources::Attribution};
 
-type Layers = Vec<(Box<dyn Tiles>, f32)>;
-type Build = Box<dyn Fn(&egui::Context) -> Layers>;
+type Build = Box<dyn Fn(&egui::Context) -> StyledSources>;
 
-/// Basemaps to choose from, each a stack of tile layers with their transparency. Only the
-/// selected one is built, so that the others do not start loading tiles nobody looks at.
+/// Basemaps to choose from, each a style drawn from its sources. Only the selected one is built, so
+/// that the others do not start loading tiles nobody looks at.
 pub struct Basemaps {
     egui_ctx: egui::Context,
     available: Vec<(String, Build)>,
     selected: usize,
 
     /// `None` until the selected basemap is needed.
-    layers: Option<Layers>,
+    built: Option<StyledSources>,
 }
 
 impl Basemaps {
@@ -23,7 +22,7 @@ impl Basemaps {
             egui_ctx,
             available: Vec::new(),
             selected: 0,
-            layers: None,
+            built: None,
         }
     }
 
@@ -31,7 +30,7 @@ impl Basemaps {
     pub fn add(
         &mut self,
         name: impl Into<String>,
-        build: impl Fn(&egui::Context) -> Layers + 'static,
+        build: impl Fn(&egui::Context) -> StyledSources + 'static,
     ) {
         self.available.push((name.into(), Box::new(build)));
     }
@@ -52,7 +51,7 @@ impl Basemaps {
             Some(index) if index == self.selected => {}
             Some(index) => {
                 self.selected = index;
-                self.layers = None;
+                self.built = None;
             }
             None => warn!("There is no basemap named {name:?}."),
         }
@@ -60,39 +59,33 @@ impl Basemaps {
 
     /// Of the selected basemap. Empty until it is first added to a map.
     pub fn attributions(&self) -> Vec<Attribution> {
-        self.layers
-            .iter()
-            .flatten()
-            .map(|(tiles, _)| tiles.attribution())
-            .collect()
+        self.built
+            .as_ref()
+            .map(StyledSources::attributions)
+            .unwrap_or_default()
     }
 
-    /// Summed over the layers of the selected basemap.
+    /// Of the selected basemap.
     pub fn stats(&self) -> Stats {
-        Stats {
-            in_progress: self
-                .layers
-                .iter()
-                .flatten()
-                .map(|(tiles, _)| tiles.stats().in_progress)
-                .sum(),
-        }
+        self.built
+            .as_ref()
+            .map(StyledSources::stats)
+            .unwrap_or_default()
     }
 
-    /// Put the layers of the selected basemap on the map.
-    pub fn add_to<'a, 'b, 'c>(&'b mut self, mut map: Map<'a, 'b, 'c>) -> Map<'a, 'b, 'c> {
-        let layers = self.layers.get_or_insert_with(|| {
-            self.available
+    /// Put the selected basemap on the map.
+    pub fn add_to<'a, 'b, 'c>(&'b mut self, map: Map<'a, 'b, 'c>) -> Map<'a, 'b, 'c> {
+        if self.built.is_none() {
+            self.built = self
+                .available
                 .get(self.selected)
-                .map(|(_, build)| build(&self.egui_ctx))
-                .unwrap_or_default()
-        });
-
-        for (tiles, transparency) in layers {
-            map = map.with_layer(tiles.as_mut(), *transparency);
+                .map(|(_, build)| build(&self.egui_ctx));
         }
 
-        map
+        match &mut self.built {
+            Some(basemap) => map.with_layer(basemap, 1.0),
+            None => map,
+        }
     }
 }
 
