@@ -112,6 +112,6 @@ impl TilesIo {
 
 #[derive(Clone, Default)]
 pub struct Stats {
-    /// Number of tiles that are currently being downloaded.
+    /// Number of tiles being loaded right now, that is fetched or styled.
     pub in_progress: usize,
 }

@@ -65,7 +65,7 @@ impl StyledSources {
         self.consecutive_layers = None;
     }
 
-    /// Of every source.
+    /// Attributions of every source, in the order they were added.
     pub fn attributions(&self) -> Vec<Attribution> {
         self.sources
             .iter()
