@@ -113,7 +113,7 @@ impl TiledSource for PmTilesSource {
 
 impl Tiles for PmTiles {
     fn at(&mut self, tile_id: TileId) -> Option<TilePiece> {
-        self.styled.first_run_at(tile_id)
+        self.styled.single_source_at(tile_id)
     }
 
     fn attribution(&self) -> Attribution {

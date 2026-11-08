@@ -21,15 +21,15 @@ pub struct StyledSources {
     sources: Vec<NamedSource>,
 
     /// `None` until they are needed, as they change with every source added.
-    runs: Option<Vec<Run>>,
+    consecutive_layers: Option<Vec<ConsecutiveLayers>>,
 
     egui_ctx: Context,
 }
 
 type NamedSource = (String, Box<dyn TiledSource>);
 
-/// Consecutive layers of the style drawing from the same source.
-struct Run {
+/// Consecutive layers of the style drawing from the same source, styled and drawn together.
+struct ConsecutiveLayers {
     /// Index of the source.
     source: usize,
     styling: Styling,
@@ -40,7 +40,7 @@ impl StyledSources {
         Self {
             style: Arc::new(style),
             sources: Vec::new(),
-            runs: None,
+            consecutive_layers: None,
             egui_ctx,
         }
     }
@@ -52,7 +52,7 @@ impl StyledSources {
         source: impl TiledSource + 'static,
     ) -> Self {
         self.sources.push((name.into(), Box::new(source)));
-        self.runs = None;
+        self.consecutive_layers = None;
         self
     }
 
@@ -60,7 +60,7 @@ impl StyledSources {
     /// nothing is fetched again.
     pub fn set_style(&mut self, style: Style) {
         self.style = Arc::new(style);
-        self.runs = None;
+        self.consecutive_layers = None;
     }
 
     /// Of every source.
@@ -79,10 +79,10 @@ impl StyledSources {
             .map(|(_, source)| source.stats().in_progress)
             .sum();
         let styled: usize = self
-            .runs
+            .consecutive_layers
             .iter()
             .flatten()
-            .map(|run| run.styling.in_progress())
+            .map(|layers| layers.styling.in_progress())
             .sum();
 
         Stats {
@@ -90,20 +90,22 @@ impl StyledSources {
         }
     }
 
-    /// That tile of the first run, for those holding just one source, which is drawn in one run.
-    pub(crate) fn first_run_at(&mut self, tile_id: TileId) -> Option<TilePiece> {
-        let (runs, sources) = self.runs_and_sources();
-        let run = runs.first_mut()?;
-        run.styling.at(sources[run.source].1.as_mut(), tile_id)
+    /// That tile, for those holding a single source, which draws the whole style.
+    pub(crate) fn single_source_at(&mut self, tile_id: TileId) -> Option<TilePiece> {
+        let (consecutive_layers, sources) = self.consecutive_layers_and_sources();
+        let layers = consecutive_layers.first_mut()?;
+        layers
+            .styling
+            .at(sources[layers.source].1.as_mut(), tile_id)
     }
 
-    /// The runs, made when first needed, and the sources they draw from.
-    fn runs_and_sources(&mut self) -> (&mut [Run], &mut [NamedSource]) {
-        let runs = self.runs.get_or_insert_with(|| {
+    /// The consecutive layers, made when first needed, and the sources they draw from.
+    fn consecutive_layers_and_sources(&mut self) -> (&mut [ConsecutiveLayers], &mut [NamedSource]) {
+        let consecutive_layers = self.consecutive_layers.get_or_insert_with(|| {
             let names: Vec<&str> = self.sources.iter().map(|(name, _)| name.as_str()).collect();
-            runs(&self.style, &names)
+            consecutive_layers(&self.style, &names)
                 .into_iter()
-                .map(|(source, layers)| Run {
+                .map(|(source, layers)| ConsecutiveLayers {
                     source,
                     styling: Styling::new(
                         EguiTileFactory::new(
@@ -117,28 +119,28 @@ impl StyledSources {
                 })
                 .collect()
         });
-        (runs, &mut self.sources)
+        (consecutive_layers, &mut self.sources)
     }
 }
 
 impl Layer for &mut StyledSources {
     fn draw(&mut self, canvas: &mut Canvas, projector: &Projector) {
-        let (runs, sources) = self.runs_and_sources();
+        let (consecutive_layers, sources) = self.consecutive_layers_and_sources();
 
-        // Run after run, so that a layer of one source can go between layers of another.
-        for run in runs {
-            let source = sources[run.source].1.as_mut();
+        // One after another, so that a layer of one source can go between layers of another.
+        for layers in consecutive_layers {
+            let source = sources[layers.source].1.as_mut();
             let tile_size = source.tile_size();
             draw_tiles_with(canvas, projector, tile_size, |tile_id| {
-                run.styling.at(source, tile_id)
+                layers.styling.at(source, tile_id)
             });
         }
     }
 }
 
-/// Runs of consecutive layers drawing from the same source, as the index of the source and the
-/// layers. When there is only one source, the whole style draws from it.
-fn runs(style: &Style, sources: &[&str]) -> Vec<(usize, Range<usize>)> {
+/// Consecutive layers drawing from the same source, as the index of the source and the layers.
+/// When there is only one source, the whole style draws from it.
+fn consecutive_layers(style: &Style, sources: &[&str]) -> Vec<(usize, Range<usize>)> {
     #[cfg(feature = "vector")]
     let layers = style.layers.len();
     #[cfg(not(feature = "vector"))]
@@ -156,10 +158,10 @@ fn runs(style: &Style, sources: &[&str]) -> Vec<(usize, Range<usize>)> {
 
     #[cfg(feature = "vector")]
     {
-        let mut runs: Vec<(usize, Range<usize>)> = Vec::new();
+        let mut consecutive: Vec<(usize, Range<usize>)> = Vec::new();
 
         // Layers naming no source, such as a background, draw from the one before them. Those
-        // before any other go into the first run.
+        // before any other go with the first ones.
         let mut leading = None;
 
         for (index, layer) in style.layers.iter().enumerate() {
@@ -173,7 +175,7 @@ fn runs(style: &Style, sources: &[&str]) -> Vec<(usize, Range<usize>)> {
                         continue;
                     }
                 },
-                None => match runs.last() {
+                None => match consecutive.last() {
                     Some((source, _)) => *source,
                     None => {
                         leading.get_or_insert(index);
@@ -182,13 +184,13 @@ fn runs(style: &Style, sources: &[&str]) -> Vec<(usize, Range<usize>)> {
                 },
             };
 
-            match runs.last_mut() {
+            match consecutive.last_mut() {
                 Some((last, layers)) if *last == source && layers.end == index => layers.end += 1,
-                _ => runs.push((source, leading.take().unwrap_or(index)..index + 1)),
+                _ => consecutive.push((source, leading.take().unwrap_or(index)..index + 1)),
             }
         }
 
-        runs
+        consecutive
     }
 }
 
@@ -210,25 +212,34 @@ mod tests {
     #[test]
     fn a_single_source_draws_every_layer_whatever_it_names() {
         let style = style(vec![raster("a"), raster("b"), StyleLayer::FillExtrusion]);
-        assert_eq!(runs(&style, &["only"]), [(0, 0..3)]);
+        assert_eq!(consecutive_layers(&style, &["only"]), [(0, 0..3)]);
     }
 
     /// Even with nothing to draw, as raster tiles are drawn without any layer.
     #[test]
     fn a_single_source_is_drawn_without_a_style() {
-        assert_eq!(runs(&style(Vec::new()), &["only"]), [(0, 0..0)]);
+        assert_eq!(
+            consecutive_layers(&style(Vec::new()), &["only"]),
+            [(0, 0..0)]
+        );
     }
 
     #[test]
     fn layers_of_one_source_between_those_of_another_split_it() {
         let style = style(vec![raster("a"), raster("a"), raster("b"), raster("a")]);
-        assert_eq!(runs(&style, &["a", "b"]), [(0, 0..2), (1, 2..3), (0, 3..4)]);
+        assert_eq!(
+            consecutive_layers(&style, &["a", "b"]),
+            [(0, 0..2), (1, 2..3), (0, 3..4)]
+        );
     }
 
     #[test]
     fn layers_of_unknown_sources_are_skipped() {
         let style = style(vec![raster("a"), raster("nope"), raster("a"), raster("b")]);
-        assert_eq!(runs(&style, &["a", "b"]), [(0, 0..1), (0, 2..3), (1, 3..4)]);
+        assert_eq!(
+            consecutive_layers(&style, &["a", "b"]),
+            [(0, 0..1), (0, 2..3), (1, 3..4)]
+        );
     }
 
     /// Background layers, as those of MapLibre's styles, name no source.
@@ -245,12 +256,15 @@ mod tests {
             raster("a"),
             raster("b"),
         ]);
-        assert_eq!(runs(&style, &["a", "b"]), [(0, 0..4), (1, 4..5)]);
+        assert_eq!(
+            consecutive_layers(&style, &["a", "b"]),
+            [(0, 0..4), (1, 4..5)]
+        );
     }
 
     #[test]
     fn no_sources_draw_nothing() {
-        assert!(runs(&style(vec![raster("a")]), &[]).is_empty());
+        assert!(consecutive_layers(&style(vec![raster("a")]), &[]).is_empty());
     }
 
     /// Every tile is the same raster image, `size` pixels wide, so that sources can be told
