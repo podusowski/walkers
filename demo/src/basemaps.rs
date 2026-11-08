@@ -1,12 +1,12 @@
 use egui::Context;
 #[cfg(feature = "pmtiles")]
-use walkers::PmTiles;
+use walkers::PmTilesSource;
+#[cfg(feature = "mvt")]
+use walkers::sources::OpenFreeMap;
 use walkers::{
-    HttpOptions, HttpTiles, Tiles,
+    Float, HttpOptions, HttpSource, Paint, Style, StyleLayer, StyledSources, json,
     sources::{Geoportal, OpenStreetMap, OpenTopoMap, OpenTopoServer, TileUrls},
 };
-#[cfg(feature = "mvt")]
-use walkers::{Style, sources::OpenFreeMap};
 use walkers_extras::Basemaps;
 
 fn http_options() -> HttpOptions {
@@ -35,32 +35,42 @@ pub(crate) fn basemaps(egui_ctx: Context) -> Basemaps {
     basemaps
 }
 
-fn http<S>(source: S, egui_ctx: &Context) -> Box<dyn Tiles>
-where
-    S: TileUrls + Sync + Send + 'static,
-{
-    Box::new(HttpTiles::with_options(
-        source,
-        http_options(),
-        egui_ctx.to_owned(),
-    ))
+fn http(source: impl TileUrls + Sync + Send + 'static, ctx: &Context) -> HttpSource {
+    HttpSource::new(source, http_options(), ctx.to_owned())
+}
+
+/// Tiles of a raster tile server, drawn as they are.
+fn raster(source: impl TileUrls + Sync + Send + 'static, ctx: &Context) -> StyledSources {
+    StyledSources::new(Style::default(), ctx.to_owned())
+        .with_tiled_source("raster", http(source, ctx))
+}
+
+/// Draws the raster tiles of `source`, `opacity` of them showing.
+fn raster_layer(source: &str, opacity: f32) -> StyleLayer {
+    StyleLayer::Raster {
+        source: Some(source.to_owned()),
+        paint: Paint {
+            raster_opacity: Some(Float(json!(opacity))),
+            ..Default::default()
+        },
+    }
 }
 
 fn add_raster_basemaps(basemaps: &mut Basemaps) {
-    basemaps.add("OpenStreetMap", |ctx| vec![(http(OpenStreetMap, ctx), 1.0)]);
-
+    basemaps.add("OpenStreetMap", |ctx| raster(OpenStreetMap, ctx));
     basemaps.add("OpenTopoMap", |ctx| {
-        vec![(http(OpenTopoMap(OpenTopoServer::A), ctx), 1.0)]
+        raster(OpenTopoMap(OpenTopoServer::A), ctx)
     });
+    basemaps.add("Geoportal", |ctx| raster(Geoportal, ctx));
 
-    basemaps.add("Geoportal", |ctx| vec![(http(Geoportal, ctx), 1.0)]);
-
-    // Layers can be stacked, each with its own transparency.
+    // Sources can be stacked, each layer with its own opacity.
     basemaps.add("OpenStreetMapWithGeoportal", |ctx| {
-        vec![
-            (http(OpenStreetMap, ctx), 1.0),
-            (http(Geoportal, ctx), 0.25),
-        ]
+        let style = Style {
+            layers: vec![raster_layer("osm", 1.0), raster_layer("geoportal", 0.25)],
+        };
+        StyledSources::new(style, ctx.to_owned())
+            .with_tiled_source("osm", http(OpenStreetMap, ctx))
+            .with_tiled_source("geoportal", http(Geoportal, ctx))
     });
 }
 
@@ -80,17 +90,36 @@ fn add_openfreemap_basemaps(basemaps: &mut Basemaps) {
 
     for (name, style) in styles {
         basemaps.add(name, move |ctx| {
-            let tiles = HttpTiles::with_options_and_style(
-                OpenFreeMap,
-                http_options(),
-                style(),
-                ctx.to_owned(),
-            );
-            vec![(Box::new(tiles) as Box<dyn Tiles>, 1.0)]
+            StyledSources::new(style(), ctx.to_owned())
+                .with_tiled_source("openmaptiles", http(OpenFreeMap, ctx))
         });
     }
 
+    basemaps.add("OpenFreeMap over Geoportal", hybrid);
+
     basemaps.select("OpenFreeMap (Walkers dark)");
+}
+
+/// Geoportal's aerial photos, with OpenFreeMap's roads, buildings and labels over them. One style
+/// drawing from two sources.
+#[cfg(feature = "mvt")]
+fn hybrid(ctx: &Context) -> StyledSources {
+    let mut style = Style::openmaptiles_basemap_light();
+
+    // Over land and water, but under everything else.
+    let ground = style
+        .layers
+        .iter()
+        .rposition(|layer| {
+            matches!(layer, StyleLayer::Fill { source_layer, .. }
+                if source_layer.matches("landuse") || source_layer.matches("water"))
+        })
+        .map_or(0, |index| index + 1);
+    style.layers.insert(ground, raster_layer("geoportal", 1.0));
+
+    StyledSources::new(style, ctx.to_owned())
+        .with_tiled_source("openmaptiles", http(OpenFreeMap, ctx))
+        .with_tiled_source("geoportal", http(Geoportal, ctx))
 }
 
 #[cfg(feature = "pmtiles")]
@@ -106,22 +135,25 @@ fn add_pmtiles_basemaps(basemaps: &mut Basemaps) {
     for path in walkers_extras::pmtiles_files(std::path::Path::new(".")) {
         let name = path.file_stem().unwrap().to_string_lossy().to_string();
 
-        let pmtiles = move |style: fn() -> Style, ctx: &Context| -> Box<dyn Tiles> {
-            Box::new(PmTiles::with_style(path.clone(), style(), ctx.to_owned()))
-        };
-
         for (suffix, style) in styles {
-            let pmtiles = pmtiles.clone();
+            let path = path.clone();
             basemaps.add(format!("{name}{suffix}"), move |ctx| {
-                vec![(pmtiles(style, ctx), 1.0)]
+                StyledSources::new(style(), ctx.to_owned())
+                    .with_tiled_source("protomaps", PmTilesSource::new(&path, ctx.to_owned()))
             });
         }
 
+        let with_geoportal = path.clone();
         basemaps.add(format!("{name}WithGeoportal"), move |ctx| {
-            vec![
-                (pmtiles(Style::protomaps_dark, ctx), 1.0),
-                (http(Geoportal, ctx), 0.25),
-            ]
+            let mut style = Style::protomaps_dark();
+            style.layers.push(raster_layer("geoportal", 0.25));
+
+            StyledSources::new(style, ctx.to_owned())
+                .with_tiled_source(
+                    "protomaps",
+                    PmTilesSource::new(&with_geoportal, ctx.to_owned()),
+                )
+                .with_tiled_source("geoportal", http(Geoportal, ctx))
         });
 
         basemaps.select(&format!("{name} (Walkers dark)"));
@@ -155,7 +187,7 @@ fn add_mapbox_basemaps(basemaps: &mut Basemaps) {
                 access_token: token.to_string(),
                 high_resolution,
             };
-            vec![(http(source, ctx), 1.0)]
+            raster(source, ctx)
         });
     }
 }

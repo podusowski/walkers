@@ -25,6 +25,10 @@ mod style {
         pub(crate) fn layer_sources(&self) -> impl ExactSizeIterator<Item = Option<&str>> {
             std::iter::empty()
         }
+
+        pub(crate) fn raster_opacity(&self, _layers: std::ops::Range<usize>, _zoom: u8) -> f32 {
+            1.0
+        }
     }
 }
 

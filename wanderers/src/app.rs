@@ -2,7 +2,8 @@ use std::path::{Path, PathBuf};
 
 use egui::{Align2, Color32, ComboBox, Image, Key, PointerButton, RichText, Ui, Window};
 use walkers::{
-    HttpOptions, HttpTiles, Map, MapMemory, PmTiles, Position, Style, Tiles, lon_lat, sources,
+    HttpOptions, HttpSource, Map, MapMemory, PmTilesSource, Position, Style, StyledSources,
+    lon_lat, sources,
 };
 use walkers_extras::{
     Basemaps, GroupedPlaces, LabeledSymbol, LabeledSymbolGroup, LabeledSymbolGroupStyle,
@@ -36,18 +37,24 @@ fn basemaps(egui_ctx: egui::Context) -> Basemaps {
     let mut basemaps = Basemaps::new(egui_ctx);
 
     basemaps.add("OpenStreetMap", |ctx| {
-        vec![(http(sources::OpenStreetMap, None, ctx), 1.0)]
+        http(sources::OpenStreetMap, Style::default(), ctx)
     });
     basemaps.add("OpenFreeMap (light)", |ctx| {
-        let style = Style::openmaptiles_basemap_light();
-        vec![(http(sources::OpenFreeMap, Some(style), ctx), 1.0)]
+        http(
+            sources::OpenFreeMap,
+            Style::openmaptiles_basemap_light(),
+            ctx,
+        )
     });
     basemaps.add("OpenFreeMap (dark)", |ctx| {
-        let style = Style::openmaptiles_basemap_dark();
-        vec![(http(sources::OpenFreeMap, Some(style), ctx), 1.0)]
+        http(
+            sources::OpenFreeMap,
+            Style::openmaptiles_basemap_dark(),
+            ctx,
+        )
     });
     basemaps.add("Geoportal", |ctx| {
-        vec![(http(sources::Geoportal, None, ctx), 1.0)]
+        http(sources::Geoportal, Style::default(), ctx)
     });
 
     // See `just protomaps-dolnoslaskie` in `walkers` for one way of getting a file.
@@ -56,34 +63,31 @@ fn basemaps(egui_ctx: egui::Context) -> Basemaps {
 
         let light = path.to_owned();
         basemaps.add(format!("{name} (light)"), move |ctx| {
-            let style = Style::protomaps_basemap_light();
-            vec![(pmtiles(&light, style, ctx), 1.0)]
+            pmtiles(&light, Style::protomaps_basemap_light(), ctx)
         });
 
         let dark = path.to_owned();
         basemaps.add(format!("{name} (dark)"), move |ctx| {
-            let style = Style::protomaps_basemap_dark();
-            vec![(pmtiles(&dark, style, ctx), 1.0)]
+            pmtiles(&dark, Style::protomaps_basemap_dark(), ctx)
         });
     }
 
     basemaps
 }
 
+/// A tile server's tiles drawn with `style`, or as they are when it has no layers.
 fn http(
     source: impl sources::TileUrls + Send + Sync + 'static,
-    style: Option<Style>,
+    style: Style,
     egui_ctx: &egui::Context,
-) -> Box<dyn Tiles> {
-    let egui_ctx = egui_ctx.to_owned();
-    Box::new(match style {
-        Some(style) => HttpTiles::with_options_and_style(source, http_options(), style, egui_ctx),
-        None => HttpTiles::with_options(source, http_options(), egui_ctx),
-    })
+) -> StyledSources {
+    let source = HttpSource::new(source, http_options(), egui_ctx.to_owned());
+    StyledSources::new(style, egui_ctx.to_owned()).with_tiled_source("", source)
 }
 
-fn pmtiles(path: &Path, style: Style, egui_ctx: &egui::Context) -> Box<dyn Tiles> {
-    Box::new(PmTiles::with_style(path, style, egui_ctx.to_owned()))
+fn pmtiles(path: &Path, style: Style, egui_ctx: &egui::Context) -> StyledSources {
+    let source = PmTilesSource::new(path, egui_ctx.to_owned());
+    StyledSources::new(style, egui_ctx.to_owned()).with_tiled_source("", source)
 }
 
 /// A place clicked on the map, waiting to be named and added to the journal.
