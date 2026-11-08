@@ -3,7 +3,7 @@
 All notable changes to the `walkers` crate will be documented in this file. `walkers_extras` is a
 playground and can change or break at any time without an entry here.
 
-## 0.66.0
+## Unreleased
 
 * New `StyledSources`, which draws one `Style` from several named sources, such as the new
   `HttpSource` and `PmTilesSource`.
