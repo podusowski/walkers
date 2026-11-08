@@ -32,7 +32,7 @@ pub struct PmTiles {
 
 impl PmTiles {
     pub fn new(path: impl AsRef<Path>, egui_ctx: Context) -> Self {
-        Self::with_style(path, Style::default(), egui_ctx)
+        Self::with_style(path, Default::default(), egui_ctx)
     }
 
     /// Construct new [`PmTiles`] with [`Style`]. Style is relevant only for vector tile
