@@ -31,6 +31,8 @@ check: check-lean check-all-features check-vector check-demo check-wanderers
 lints:
     cargo fmt --all --check
     cargo clippy --all-features -- -D warnings
+    # Without `vector`, which is how Rerun uses Walkers.
+    cargo clippy -p walkers --features pmtiles -- -D warnings
     cargo doc --no-deps
 
 [group('develop')]

@@ -34,7 +34,7 @@ impl HttpTiles {
     where
         S: TileUrls + Sync + Send + 'static,
     {
-        Self::with_options_and_style(source, http_options, Style::default(), egui_ctx)
+        Self::with_options_and_style(source, http_options, Default::default(), egui_ctx)
     }
 
     /// Construct new [`Tiles`] with supplied [`HttpOptions`] and [`Style`]. Style is relevant
