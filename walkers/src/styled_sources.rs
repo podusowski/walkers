@@ -138,57 +138,45 @@ fn consecutive_layers_of(style: &Style, sources: &[NamedSource]) -> Vec<Consecut
 /// The style's layers, grouped into consecutive ones drawing from the same of `sources`. When there
 /// is only one source, the whole style draws from it.
 fn consecutive_layers(style: &Style, sources: &[&str]) -> Vec<ConsecutiveLayers> {
-    #[cfg(feature = "vector")]
-    let layers = style.layers.len();
-    #[cfg(not(feature = "vector"))]
-    let layers = {
-        let _ = style;
-        0
-    };
+    let layer_sources = style.layer_sources();
 
     if let [_] = sources {
-        return vec![(0, 0..layers)];
+        return vec![(0, 0..layer_sources.len())];
     }
 
-    #[cfg(not(feature = "vector"))]
-    return Vec::new();
+    let mut consecutive: Vec<ConsecutiveLayers> = Vec::new();
 
-    #[cfg(feature = "vector")]
-    {
-        let mut consecutive: Vec<ConsecutiveLayers> = Vec::new();
+    // Layers naming no source, such as a background, draw from the one before them. Those before
+    // any other go with the first ones.
+    let mut leading = None;
 
-        // Layers naming no source, such as a background, draw from the one before them. Those
-        // before any other go with the first ones.
-        let mut leading = None;
+    for (index, layer_source) in layer_sources.enumerate() {
+        let source = match layer_source {
+            Some(name) => match sources.iter().position(|source| *source == name) {
+                Some(source) => source,
+                None => {
+                    log::warn!(
+                        "Style layer {index} draws from {name:?}, which is not among the sources. Skipping."
+                    );
+                    continue;
+                }
+            },
+            None => match consecutive.last() {
+                Some((source, _)) => *source,
+                None => {
+                    leading.get_or_insert(index);
+                    continue;
+                }
+            },
+        };
 
-        for (index, layer) in style.layers.iter().enumerate() {
-            let source = match layer.source() {
-                Some(name) => match sources.iter().position(|source| *source == name) {
-                    Some(source) => source,
-                    None => {
-                        log::warn!(
-                            "Style layer {index} draws from {name:?}, which is not among the sources. Skipping."
-                        );
-                        continue;
-                    }
-                },
-                None => match consecutive.last() {
-                    Some((source, _)) => *source,
-                    None => {
-                        leading.get_or_insert(index);
-                        continue;
-                    }
-                },
-            };
-
-            match consecutive.last_mut() {
-                Some((last, layers)) if *last == source && layers.end == index => layers.end += 1,
-                _ => consecutive.push((source, leading.take().unwrap_or(index)..index + 1)),
-            }
+        match consecutive.last_mut() {
+            Some((last, layers)) if *last == source && layers.end == index => layers.end += 1,
+            _ => consecutive.push((source, leading.take().unwrap_or(index)..index + 1)),
         }
-
-        consecutive
     }
+
+    consecutive
 }
 
 #[cfg(all(test, feature = "vector"))]

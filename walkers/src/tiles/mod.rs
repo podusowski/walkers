@@ -419,14 +419,7 @@ pub(crate) fn rect(screen_position: Vec2, tile_size: f64) -> Rect {
 
 /// Every layer of the style.
 fn all_layers(style: &Style) -> Range<usize> {
-    #[cfg(feature = "vector")]
-    return 0..style.layers.len();
-
-    #[cfg(not(feature = "vector"))]
-    {
-        let _ = style;
-        0..0
-    }
+    0..style.layer_sources().len()
 }
 
 #[cfg(test)]

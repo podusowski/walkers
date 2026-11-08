@@ -23,6 +23,13 @@ pub struct Style {
     pub layers: Vec<StyleLayer>,
 }
 
+impl Style {
+    /// Name of the source each layer draws from, if it says.
+    pub(crate) fn layer_sources(&self) -> impl ExactSizeIterator<Item = Option<&str>> {
+        self.layers.iter().map(StyleLayer::source)
+    }
+}
+
 /// Which layer, or layers, of a vector tile a style layer draws from.
 ///
 /// MapLibre names exactly one. Walkers also takes a list, for schemas which spread one concept

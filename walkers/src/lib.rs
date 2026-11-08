@@ -19,6 +19,13 @@ mod style {
     /// Dummy style, used when `vector` feature is not enabled.
     #[derive(Default)]
     pub struct Style;
+
+    impl Style {
+        /// It has no layers.
+        pub(crate) fn layer_sources(&self) -> impl ExactSizeIterator<Item = Option<&str>> {
+            std::iter::empty()
+        }
+    }
 }
 
 mod egui_backend;
