@@ -8,6 +8,8 @@ use super::{
 /// Which vector tile schema the tiles follow.
 #[derive(Clone, Copy)]
 struct Schema {
+    /// What a style source following it is called, as MapLibre styles usually call it.
+    pub source: &'static str,
     pub earth: &'static str,
     pub landuse: &'static [&'static str],
     pub water: &'static str,
@@ -42,6 +44,7 @@ enum Settlements {
 }
 
 const PROTOMAPS: Schema = Schema {
+    source: "protomaps",
     earth: "earth",
     landuse: &["landuse"],
     water: "water",
@@ -63,6 +66,7 @@ const PROTOMAPS: Schema = Schema {
 };
 
 const OPENMAPTILES: Schema = Schema {
+    source: "openmaptiles",
     earth: "", // OpenMapTiles has no land polygon.
     landuse: &["landcover", "landuse", "park"],
     water: "water",
@@ -311,6 +315,7 @@ fn build(palette: &Palette, schema: Schema) -> Style {
     let mut layers = vec![
         // background
         StyleLayer::Background {
+            source: Some(schema.source.into()),
             paint: Paint {
                 background_color: Some(Color(json!(palette.background))),
                 ..Default::default()
@@ -318,6 +323,7 @@ fn build(palette: &Palette, schema: Schema) -> Style {
         },
         // earth
         StyleLayer::Fill {
+            source: Some(schema.source.into()),
             source_layer: schema.earth.into(),
             filter: Some(Filter(json!(["==", ["geometry-type"], "Polygon"]))),
             paint: Paint {
@@ -327,6 +333,7 @@ fn build(palette: &Palette, schema: Schema) -> Style {
         },
         // landuse_park
         StyleLayer::Fill {
+            source: Some(schema.source.into()),
             source_layer: schema.landuse.into(),
             filter: Some(Filter(json!([
                 "in",
@@ -356,6 +363,7 @@ fn build(palette: &Palette, schema: Schema) -> Style {
         },
         // landuse_urban_green
         StyleLayer::Fill {
+            source: Some(schema.source.into()),
             source_layer: schema.landuse.into(),
             filter: Some(Filter(json!([
                 "in",
@@ -371,6 +379,7 @@ fn build(palette: &Palette, schema: Schema) -> Style {
         },
         // landuse_hospital
         StyleLayer::Fill {
+            source: Some(schema.source.into()),
             source_layer: schema.landuse.into(),
             filter: Some(Filter(json!(["==", schema.kind, "hospital"]))),
             paint: Paint {
@@ -389,6 +398,7 @@ fn build(palette: &Palette, schema: Schema) -> Style {
         //},
         // landuse_beach
         StyleLayer::Fill {
+            source: Some(schema.source.into()),
             source_layer: schema.landuse.into(),
             filter: Some(Filter(json!(["in", schema.kind, "beach"]))),
             paint: Paint {
@@ -398,6 +408,7 @@ fn build(palette: &Palette, schema: Schema) -> Style {
         },
         // landuse_zoo
         StyleLayer::Fill {
+            source: Some(schema.source.into()),
             source_layer: schema.landuse.into(),
             filter: Some(Filter(json!(["in", schema.kind, "zoo"]))),
             paint: Paint {
@@ -407,6 +418,7 @@ fn build(palette: &Palette, schema: Schema) -> Style {
         },
         // landuse_aerodrome
         StyleLayer::Fill {
+            source: Some(schema.source.into()),
             source_layer: schema.landuse.into(),
             filter: Some(Filter(json!(["in", schema.kind, "aerodrome"]))),
             paint: Paint {
@@ -416,6 +428,7 @@ fn build(palette: &Palette, schema: Schema) -> Style {
         },
         // roads_runway
         StyleLayer::Line {
+            source: Some(schema.source.into()),
             source_layer: schema.roads.into(),
             filter: Some(Filter(json!(["==", schema.kind_detail, "runway"]))),
             paint: Paint {
@@ -430,6 +443,7 @@ fn build(palette: &Palette, schema: Schema) -> Style {
         },
         // roads_taxiway
         StyleLayer::Line {
+            source: Some(schema.source.into()),
             source_layer: schema.roads.into(),
             filter: Some(Filter(json!(["==", schema.kind_detail, "taxiway"]))),
             paint: Paint {
@@ -444,6 +458,7 @@ fn build(palette: &Palette, schema: Schema) -> Style {
         },
         // landuse_runway
         StyleLayer::Fill {
+            source: Some(schema.source.into()),
             source_layer: schema.landuse.into(),
             filter: Some(Filter(json!(["in", schema.kind, "runway", "taxiway"]))),
             paint: Paint {
@@ -453,6 +468,7 @@ fn build(palette: &Palette, schema: Schema) -> Style {
         },
         // water
         StyleLayer::Fill {
+            source: Some(schema.source.into()),
             source_layer: schema.water.into(),
             filter: Some(Filter(json!(["==", ["geometry-type"], "Polygon"]))),
             paint: Paint {
@@ -462,6 +478,7 @@ fn build(palette: &Palette, schema: Schema) -> Style {
         },
         // water_stream
         StyleLayer::Line {
+            source: Some(schema.source.into()),
             source_layer: schema.waterway.into(),
             filter: Some(Filter(json!(["in", schema.kind, "stream"]))),
             paint: Paint {
@@ -471,6 +488,7 @@ fn build(palette: &Palette, schema: Schema) -> Style {
         },
         // water_river
         StyleLayer::Line {
+            source: Some(schema.source.into()),
             source_layer: schema.waterway.into(),
             filter: Some(Filter(json!(["in", schema.kind, "river"]))),
             paint: Paint {
@@ -485,6 +503,7 @@ fn build(palette: &Palette, schema: Schema) -> Style {
         },
         // landuse_pedestrian
         StyleLayer::Fill {
+            source: Some(schema.source.into()),
             source_layer: schema.landuse.into(),
             filter: Some(Filter(json!(["in", schema.kind, "pedestrian", "dam"]))),
             paint: Paint {
@@ -494,6 +513,7 @@ fn build(palette: &Palette, schema: Schema) -> Style {
         },
         // landuse_pier
         StyleLayer::Fill {
+            source: Some(schema.source.into()),
             source_layer: schema.landuse.into(),
             filter: Some(Filter(json!(["==", schema.kind, "pier"]))),
             paint: Paint {
@@ -503,6 +523,7 @@ fn build(palette: &Palette, schema: Schema) -> Style {
         },
         // roads_tunnels_other_casing
         StyleLayer::Line {
+            source: Some(schema.source.into()),
             source_layer: schema.roads.into(),
             filter: Some(Filter(json!([
                 "all",
@@ -516,6 +537,7 @@ fn build(palette: &Palette, schema: Schema) -> Style {
         },
         // roads_tunnels_minor_casing
         StyleLayer::Line {
+            source: Some(schema.source.into()),
             source_layer: schema.roads.into(),
             filter: Some(Filter(json!([
                 "all",
@@ -531,6 +553,7 @@ fn build(palette: &Palette, schema: Schema) -> Style {
         },
         // roads_tunnels_link_casing
         StyleLayer::Line {
+            source: Some(schema.source.into()),
             source_layer: schema.roads.into(),
             filter: Some(Filter(json!([
                 "all",
@@ -546,6 +569,7 @@ fn build(palette: &Palette, schema: Schema) -> Style {
         },
         // roads_tunnels_major_casing
         StyleLayer::Line {
+            source: Some(schema.source.into()),
             source_layer: schema.roads.into(),
             filter: Some(Filter(json!([
                 "all",
@@ -561,6 +585,7 @@ fn build(palette: &Palette, schema: Schema) -> Style {
         },
         // roads_tunnels_highway_casing
         StyleLayer::Line {
+            source: Some(schema.source.into()),
             source_layer: schema.roads.into(),
             filter: Some(Filter(json!([
                 "all",
@@ -581,6 +606,7 @@ fn build(palette: &Palette, schema: Schema) -> Style {
         },
         // roads_tunnels_other
         StyleLayer::Line {
+            source: Some(schema.source.into()),
             source_layer: schema.roads.into(),
             filter: Some(Filter(json!([
                 "all",
@@ -599,6 +625,7 @@ fn build(palette: &Palette, schema: Schema) -> Style {
         },
         // roads_tunnels_minor
         StyleLayer::Line {
+            source: Some(schema.source.into()),
             source_layer: schema.roads.into(),
             filter: Some(Filter(json!([
                 "all",
@@ -616,6 +643,7 @@ fn build(palette: &Palette, schema: Schema) -> Style {
         },
         // roads_tunnels_link
         StyleLayer::Line {
+            source: Some(schema.source.into()),
             source_layer: schema.roads.into(),
             filter: Some(Filter(json!([
                 "all",
@@ -633,6 +661,7 @@ fn build(palette: &Palette, schema: Schema) -> Style {
         },
         // roads_tunnels_major
         StyleLayer::Line {
+            source: Some(schema.source.into()),
             source_layer: schema.roads.into(),
             filter: Some(Filter(json!([
                 "all",
@@ -650,6 +679,7 @@ fn build(palette: &Palette, schema: Schema) -> Style {
         },
         // roads_tunnels_highway
         StyleLayer::Line {
+            source: Some(schema.source.into()),
             source_layer: schema.roads.into(),
             filter: Some(Filter(json!([
                 "all",
@@ -674,6 +704,7 @@ fn build(palette: &Palette, schema: Schema) -> Style {
         },
         // buildings
         StyleLayer::Fill {
+            source: Some(schema.source.into()),
             source_layer: schema.buildings.into(),
             filter: Some(Filter(json!([
                 "any",
@@ -688,6 +719,7 @@ fn build(palette: &Palette, schema: Schema) -> Style {
         },
         // roads_pier
         StyleLayer::Line {
+            source: Some(schema.source.into()),
             source_layer: schema.roads.into(),
             filter: Some(Filter(json!(["==", schema.kind_detail, "pier"]))),
             paint: Paint {
@@ -702,6 +734,7 @@ fn build(palette: &Palette, schema: Schema) -> Style {
         },
         // roads_other
         StyleLayer::Line {
+            source: Some(schema.source.into()),
             source_layer: schema.roads.into(),
             filter: Some(Filter(json!([
                 "all",
@@ -718,6 +751,7 @@ fn build(palette: &Palette, schema: Schema) -> Style {
         },
         // roads_link
         StyleLayer::Line {
+            source: Some(schema.source.into()),
             source_layer: schema.roads.into(),
             filter: Some(Filter(json!(schema.is_link()))),
             paint: Paint {
@@ -731,6 +765,7 @@ fn build(palette: &Palette, schema: Schema) -> Style {
         },
         // roads_minor
         StyleLayer::Line {
+            source: Some(schema.source.into()),
             source_layer: schema.roads.into(),
             filter: Some(Filter(json!([
                 "all",
@@ -749,6 +784,7 @@ fn build(palette: &Palette, schema: Schema) -> Style {
         },
         // roads_major
         StyleLayer::Line {
+            source: Some(schema.source.into()),
             source_layer: schema.roads.into(),
             filter: Some(Filter(json!([
                 "all",
@@ -767,6 +803,7 @@ fn build(palette: &Palette, schema: Schema) -> Style {
         },
         // roads_highway
         StyleLayer::Line {
+            source: Some(schema.source.into()),
             source_layer: schema.roads.into(),
             filter: Some(Filter(json!([
                 "all",
@@ -792,6 +829,7 @@ fn build(palette: &Palette, schema: Schema) -> Style {
         },
         // roads_rail
         StyleLayer::Line {
+            source: Some(schema.source.into()),
             source_layer: schema.roads.into(),
             filter: Some(Filter(json!(["in", schema.kind, "rail", "transit"]))),
             paint: Paint {
@@ -803,6 +841,7 @@ fn build(palette: &Palette, schema: Schema) -> Style {
         },
         // roads_rail_inside
         StyleLayer::Line {
+            source: Some(schema.source.into()),
             source_layer: schema.roads.into(),
             filter: Some(Filter(json!(["in", schema.kind, "rail", "transit"]))),
             paint: Paint {
@@ -815,6 +854,7 @@ fn build(palette: &Palette, schema: Schema) -> Style {
         },
         // boundaries_country
         StyleLayer::Line {
+            source: Some(schema.source.into()),
             source_layer: schema.boundaries.into(),
             filter: Some(Filter(json!(["<=", schema.admin_level, 2]))),
             paint: Paint {
@@ -832,6 +872,7 @@ fn build(palette: &Palette, schema: Schema) -> Style {
         },
         // roads_bridges_other
         StyleLayer::Line {
+            source: Some(schema.source.into()),
             source_layer: schema.roads.into(),
             filter: Some(Filter(json!([
                 "all",
@@ -846,6 +887,7 @@ fn build(palette: &Palette, schema: Schema) -> Style {
         },
         // roads_bridges_minor
         StyleLayer::Line {
+            source: Some(schema.source.into()),
             source_layer: schema.roads.into(),
             filter: Some(Filter(json!([
                 "all",
@@ -863,6 +905,7 @@ fn build(palette: &Palette, schema: Schema) -> Style {
         },
         // roads_bridges_link
         StyleLayer::Line {
+            source: Some(schema.source.into()),
             source_layer: schema.roads.into(),
             filter: Some(Filter(json!([
                 "all",
@@ -880,6 +923,7 @@ fn build(palette: &Palette, schema: Schema) -> Style {
         },
         // roads_bridges_major
         StyleLayer::Line {
+            source: Some(schema.source.into()),
             source_layer: schema.roads.into(),
             filter: Some(Filter(json!([
                 "all",
@@ -897,6 +941,7 @@ fn build(palette: &Palette, schema: Schema) -> Style {
         },
         // roads_bridges_highway
         StyleLayer::Line {
+            source: Some(schema.source.into()),
             source_layer: schema.roads.into(),
             filter: Some(Filter(json!([
                 "all",
@@ -921,6 +966,7 @@ fn build(palette: &Palette, schema: Schema) -> Style {
         },
         // address_label
         StyleLayer::Symbol {
+            source: Some(schema.source.into()),
             source_layer: schema.buildings.into(),
             minzoom: Some(18.0),
             filter: Some(Filter(json!(["==", schema.kind, "address"]))),
@@ -938,6 +984,7 @@ fn build(palette: &Palette, schema: Schema) -> Style {
         },
         // water_waterway_label
         StyleLayer::Symbol {
+            source: Some(schema.source.into()),
             source_layer: schema.waterway.into(),
             minzoom: None,
             filter: Some(Filter(json!(["in", schema.kind, "river", "stream"]))),
@@ -955,6 +1002,7 @@ fn build(palette: &Palette, schema: Schema) -> Style {
         },
         // roads_labels_minor
         StyleLayer::Symbol {
+            source: Some(schema.source.into()),
             source_layer: schema.road_labels.into(),
             minzoom: None,
             filter: Some(Filter(json!([
@@ -982,6 +1030,7 @@ fn build(palette: &Palette, schema: Schema) -> Style {
         },
         // water_label_ocean
         StyleLayer::Symbol {
+            source: Some(schema.source.into()),
             source_layer: schema.water_labels.into(),
             minzoom: None,
             filter: Some(Filter(json!([
@@ -1007,6 +1056,7 @@ fn build(palette: &Palette, schema: Schema) -> Style {
         },
         // earth_label_islands
         StyleLayer::Symbol {
+            source: Some(schema.source.into()),
             source_layer: schema.earth.into(),
             minzoom: None,
             filter: Some(Filter(json!(["in", schema.kind, "island"]))),
@@ -1024,6 +1074,7 @@ fn build(palette: &Palette, schema: Schema) -> Style {
         },
         // water_label_lakes
         StyleLayer::Symbol {
+            source: Some(schema.source.into()),
             source_layer: schema.water_labels.into(),
             minzoom: None,
             filter: Some(Filter(json!(["in", schema.kind, "lake", "water"]))),
@@ -1045,6 +1096,7 @@ fn build(palette: &Palette, schema: Schema) -> Style {
         },
         // roads_shields
         StyleLayer::Symbol {
+            source: Some(schema.source.into()),
             source_layer: schema.road_labels.into(),
             minzoom: None,
             filter: Some(Filter(json!([
@@ -1079,6 +1131,7 @@ fn build(palette: &Palette, schema: Schema) -> Style {
         },
         // roads_labels_major
         StyleLayer::Symbol {
+            source: Some(schema.source.into()),
             source_layer: schema.road_labels.into(),
             minzoom: None,
             filter: Some(Filter(json!([
@@ -1105,6 +1158,7 @@ fn build(palette: &Palette, schema: Schema) -> Style {
         },
         // places_subplace
         StyleLayer::Symbol {
+            source: Some(schema.source.into()),
             source_layer: schema.places.into(),
             minzoom: None,
             filter: Some(Filter(json!([
@@ -1133,6 +1187,7 @@ fn build(palette: &Palette, schema: Schema) -> Style {
         },
         // places_region
         StyleLayer::Symbol {
+            source: Some(schema.source.into()),
             source_layer: schema.places.into(),
             minzoom: None,
             filter: Some(Filter(json!(["in", schema.kind, "region", "state"]))),
@@ -1150,6 +1205,7 @@ fn build(palette: &Palette, schema: Schema) -> Style {
         },
         // places_locality
         StyleLayer::Symbol {
+            source: Some(schema.source.into()),
             source_layer: schema.places.into(),
             minzoom: None,
             filter: Some(Filter(json!([
@@ -1179,6 +1235,7 @@ fn build(palette: &Palette, schema: Schema) -> Style {
         },
         // places_country
         StyleLayer::Symbol {
+            source: Some(schema.source.into()),
             source_layer: schema.places.into(),
             minzoom: None,
             filter: Some(Filter(json!(["==", schema.kind, "country"]))),
@@ -1196,6 +1253,7 @@ fn build(palette: &Palette, schema: Schema) -> Style {
         },
         // stations
         StyleLayer::Symbol {
+            source: Some(schema.source.into()),
             source_layer: schema.pois.into(),
             minzoom: None,
             filter: Some(Filter(json!(["==", schema.kind, "station"]))),
@@ -1213,6 +1271,7 @@ fn build(palette: &Palette, schema: Schema) -> Style {
         },
         // peaks
         StyleLayer::Symbol {
+            source: Some(schema.source.into()),
             source_layer: schema.peaks.into(),
             minzoom: None,
             filter: Some(Filter(json!(["in", schema.kind, "peak", "volcano"]))),

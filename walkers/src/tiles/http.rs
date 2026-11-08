@@ -1,24 +1,30 @@
+use std::sync::Arc;
+
 use bytes::Bytes;
 use egui::Context;
 use reqwest_middleware::ClientWithMiddleware;
 
-use super::EguiTileFactory;
-use super::cached::CachedTiles;
 use crate::io::Fetch;
 use crate::io::http::http_client;
-use crate::sources::{Attribution, TileSource};
+use crate::io::tiles_io::TilesIo;
+use crate::sources::{Attribution, TileUrls};
 use crate::style::Style;
-use crate::{HttpOptions, TilePiece, Tiles};
+use crate::{HttpOptions, SourceData, StyledSources, TilePiece, TiledSource, Tiles};
 use crate::{Stats, TileId};
 
-/// Downloads the tiles via HTTP. It must persist between frames.
-pub struct HttpTiles(CachedTiles);
+/// Downloads the tiles via HTTP, and draws them with a style. A [`StyledSources`] with a single
+/// [`HttpSource`]. It must persist between frames.
+pub struct HttpTiles {
+    styled: StyledSources,
+    attribution: Attribution,
+    tile_size: u32,
+}
 
 impl HttpTiles {
     /// Construct new [`Tiles`] with default [`HttpOptions`].
     pub fn new<S>(source: S, egui_ctx: Context) -> Self
     where
-        S: TileSource + Sync + Send + 'static,
+        S: TileUrls + Sync + Send + 'static,
     {
         Self::with_options(source, HttpOptions::default(), egui_ctx)
     }
@@ -26,7 +32,7 @@ impl HttpTiles {
     /// Construct new [`Tiles`] with supplied [`HttpOptions`].
     pub fn with_options<S>(source: S, http_options: HttpOptions, egui_ctx: Context) -> Self
     where
-        S: TileSource + Sync + Send + 'static,
+        S: TileUrls + Sync + Send + 'static,
     {
         Self::with_options_and_style(source, http_options, Style::default(), egui_ctx)
     }
@@ -40,38 +46,78 @@ impl HttpTiles {
         egui_ctx: Context,
     ) -> Self
     where
-        S: TileSource + Sync + Send + 'static,
+        S: TileUrls + Sync + Send + 'static,
     {
-        let attribution = source.attribution();
-        let tile_size = source.tile_size();
-        let max_zoom = source.max_zoom();
+        let source = HttpSource::new(source, http_options, egui_ctx.clone());
 
-        Self(CachedTiles::new(
-            HttpFetch::new(source, http_options),
-            EguiTileFactory::new(egui_ctx.clone(), style, tile_size),
-            attribution,
-            tile_size,
-            max_zoom,
-            egui_ctx,
-        ))
+        Self {
+            attribution: source.attribution(),
+            tile_size: source.tile_size(),
+            styled: StyledSources::new(style, egui_ctx).with_tiled_source("", source),
+        }
+    }
+}
+
+/// Downloads tiles' data via HTTP, to be drawn by a [`crate::StyledSources`]. It must persist
+/// between frames.
+pub struct HttpSource {
+    io: TilesIo,
+    attribution: Attribution,
+    tile_size: u32,
+    max_zoom: u8,
+}
+
+impl HttpSource {
+    pub fn new<S>(source: S, http_options: HttpOptions, egui_ctx: Context) -> Self
+    where
+        S: TileUrls + Sync + Send + 'static,
+    {
+        Self {
+            attribution: source.attribution(),
+            tile_size: source.tile_size(),
+            max_zoom: source.max_zoom(),
+            io: TilesIo::new(HttpFetch::new(source, http_options), egui_ctx),
+        }
+    }
+}
+
+impl TiledSource for HttpSource {
+    fn data(&mut self, tile_id: TileId) -> Option<Arc<SourceData>> {
+        self.io.data(tile_id)
+    }
+
+    fn attribution(&self) -> Attribution {
+        self.attribution.clone()
+    }
+
+    fn tile_size(&self) -> u32 {
+        self.tile_size
+    }
+
+    fn max_zoom(&self) -> u8 {
+        self.max_zoom
+    }
+
+    fn stats(&self) -> Stats {
+        self.io.stats()
     }
 }
 
 impl Tiles for HttpTiles {
     fn at(&mut self, tile_id: TileId) -> Option<TilePiece> {
-        self.0.at(tile_id)
+        self.styled.single_source_at(tile_id)
     }
 
     fn attribution(&self) -> Attribution {
-        self.0.attribution()
+        self.attribution.clone()
     }
 
     fn tile_size(&self) -> u32 {
-        self.0.tile_size()
+        self.tile_size
     }
 
     fn stats(&self) -> Stats {
-        self.0.stats()
+        self.styled.stats()
     }
 }
 
@@ -85,7 +131,7 @@ pub enum HttpFetchError {
 
 pub struct HttpFetch<S>
 where
-    S: TileSource + Send + 'static,
+    S: TileUrls + Send + 'static,
 {
     source: S,
     max_concurrency: usize,
@@ -94,7 +140,7 @@ where
 
 impl<S> HttpFetch<S>
 where
-    S: TileSource + Sync + Send,
+    S: TileUrls + Sync + Send,
 {
     pub fn new(source: S, http_options: HttpOptions) -> Self {
         Self {
@@ -107,7 +153,7 @@ where
 
 impl<S> Fetch for HttpFetch<S>
 where
-    S: TileSource + Sync + Send,
+    S: TileUrls + Sync + Send,
 {
     type Error = HttpFetchError;
 
@@ -151,7 +197,7 @@ mod tests {
         }
     }
 
-    impl TileSource for TestSource {
+    impl TileUrls for TestSource {
         fn tile_url(&self, tile_id: TileId) -> String {
             format!(
                 "{}/{}/{}/{}.png",
@@ -182,6 +228,51 @@ mod tests {
             // Need to yield to the runtime for things to move.
             tokio::time::sleep(Duration::from_millis(10)).await;
         }
+    }
+
+    /// Raster tiles need no style, so they must be drawn without the `vector` feature too.
+    #[tokio::test]
+    async fn raster_tile_is_drawn_on_the_canvas() {
+        use crate::{Canvas, Layer, MapMemory, MercatorProjection, Projector, lon_lat};
+
+        let _ = env_logger::try_init();
+
+        let (server, source) = hypermocker_mock().await;
+        server
+            .anticipate("/0/0/0.png")
+            .await
+            .respond(include_bytes!("../../assets/blank-255-tile.png"))
+            .await;
+
+        let mut tiles = HttpTiles::new(source, Context::default());
+
+        // The whole world is one tile at zoom 0.
+        let mut memory = MapMemory::default();
+        memory.set_zoom(0.).unwrap();
+        let projector = Projector::new(
+            egui::Rect::from_min_size(egui::Pos2::ZERO, egui::Vec2::splat(256.)),
+            &MercatorProjection,
+            &memory,
+            lon_lat(0., 0.),
+        );
+
+        let canvas = tokio::time::timeout(Duration::from_secs(5), async {
+            loop {
+                let mut canvas = Canvas::new();
+                (&mut tiles).draw(&mut canvas, &projector);
+                if !canvas.items.is_empty() {
+                    break canvas;
+                }
+                tokio::time::sleep(Duration::from_millis(10)).await;
+            }
+        })
+        .await
+        .expect("tile was never drawn");
+
+        assert!(matches!(
+            canvas.items.as_slice(),
+            [crate::canvas::Item::Raster(_)]
+        ));
     }
 
     #[tokio::test]
@@ -382,7 +473,7 @@ mod tests {
     /// Tile source, which gives invalid urls.
     struct GarbageSource;
 
-    impl TileSource for GarbageSource {
+    impl TileUrls for GarbageSource {
         fn tile_url(&self, _: TileId) -> String {
             "totally invalid url".to_string()
         }

@@ -3,7 +3,7 @@ use egui::Context;
 use walkers::PmTiles;
 use walkers::{
     HttpOptions, HttpTiles, Tiles,
-    sources::{Geoportal, OpenStreetMap, OpenTopoMap, OpenTopoServer, TileSource},
+    sources::{Geoportal, OpenStreetMap, OpenTopoMap, OpenTopoServer, TileUrls},
 };
 #[cfg(feature = "mvt")]
 use walkers::{Style, sources::OpenFreeMap};
@@ -37,7 +37,7 @@ pub(crate) fn basemaps(egui_ctx: Context) -> Basemaps {
 
 fn http<S>(source: S, egui_ctx: &Context) -> Box<dyn Tiles>
 where
-    S: TileSource + Sync + Send + 'static,
+    S: TileUrls + Sync + Send + 'static,
 {
     Box::new(HttpTiles::with_options(
         source,

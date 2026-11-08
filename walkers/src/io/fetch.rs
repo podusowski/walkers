@@ -1,7 +1,4 @@
-use crate::{
-    Stats, TileId,
-    tiles::{Tile, TileError},
-};
+use crate::{Stats, TileId};
 use bytes::Bytes;
 use egui::Context;
 use futures::{
@@ -26,9 +23,6 @@ pub enum Error {
     #[error("Fetch error: {0}")]
     Fetch(String),
 
-    #[error(transparent)]
-    Tile(#[from] TileError),
-
     #[error("Poison error.")]
     Poisoned,
 }
@@ -49,34 +43,24 @@ impl<T> From<std::sync::PoisonError<T>> for Error {
     }
 }
 
-pub trait TileFactory {
-    fn create_tile(&self, data: &Bytes, zoom: u8) -> Result<Tile, TileError>;
-}
-
-/// Download and decode the tile.
-async fn fetch_and_decode(
-    fetch: &impl Fetch,
-    tile_id: TileId,
-    tile_factory: &impl TileFactory,
-) -> Result<(TileId, Tile), Error> {
+/// Download the tile.
+async fn fetch_tile(fetch: &impl Fetch, tile_id: TileId) -> Result<(TileId, Bytes), Error> {
     let data = fetch
         .fetch(tile_id)
         .await
         .map_err(|e| Error::Fetch(e.to_string()))?;
-    Ok(tile_factory
-        .create_tile(&data, tile_id.zoom)
-        .map(|tile| (tile_id, tile))?)
+    Ok((tile_id, data))
 }
 
 /// Deliver the fetched tile to the main thread.
 async fn fetch_complete(
-    mut tile_tx: Sender<(TileId, Tile)>,
+    mut tile_tx: Sender<(TileId, Bytes)>,
     egui_ctx: Context,
-    result: Result<(TileId, Tile), Error>,
+    result: Result<(TileId, Bytes), Error>,
 ) -> Result<(), Error> {
     match result {
-        Ok((tile_id, tile)) => {
-            tile_tx.send((tile_id, tile)).await?;
+        Ok((tile_id, data)) => {
+            tile_tx.send((tile_id, data)).await?;
             egui_ctx.request_repaint();
         }
         Err(e) => {
@@ -93,8 +77,7 @@ async fn fetch_continuously_impl(
     fetch: impl Fetch,
     stats: Arc<Mutex<Stats>>,
     mut request_rx: Receiver<TileId>,
-    tile_tx: Sender<(TileId, Tile)>,
-    tile_factory: impl TileFactory,
+    tile_tx: Sender<(TileId, Bytes)>,
     egui_ctx: Context,
 ) -> Result<(), Error> {
     let mut outstanding = Vec::new();
@@ -103,7 +86,7 @@ async fn fetch_continuously_impl(
         if outstanding.is_empty() {
             // Only new fetches might be requested.
             let tile_id = request_rx.next().await.ok_or(Error::RequestChannelBroken)?;
-            let f = fetch_and_decode(&fetch, tile_id, &tile_factory);
+            let f = fetch_tile(&fetch, tile_id);
             outstanding.push(Box::pin(f));
         } else if outstanding.len() < fetch.max_concurrency() {
             // New fetches might be requested or ongoing fetches might be completed.
@@ -111,7 +94,7 @@ async fn fetch_continuously_impl(
                 // New fetch was requested.
                 Either::Left((request, remaining)) => {
                     let tile_id = request.ok_or(Error::RequestChannelBroken)?;
-                    let f = fetch_and_decode(&fetch, tile_id, &tile_factory);
+                    let f = fetch_tile(&fetch, tile_id);
                     outstanding = remaining.into_inner();
                     outstanding.push(Box::pin(f));
                 }
@@ -139,11 +122,10 @@ pub(crate) async fn fetch_continuously(
     fetch: impl Fetch,
     stats: Arc<Mutex<Stats>>,
     request_rx: Receiver<TileId>,
-    tile_tx: Sender<(TileId, Tile)>,
+    tile_tx: Sender<(TileId, Bytes)>,
     egui_ctx: Context,
-    tile_factory: impl TileFactory,
 ) {
-    match fetch_continuously_impl(fetch, stats, request_rx, tile_tx, tile_factory, egui_ctx).await {
+    match fetch_continuously_impl(fetch, stats, request_rx, tile_tx, egui_ctx).await {
         Ok(()) | Err(Error::TileChannelClosed) | Err(Error::RequestChannelBroken) => {
             log::debug!("Tile fetch loop finished.");
         }

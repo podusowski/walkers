@@ -1,4 +1,4 @@
-use super::{Attribution, TileSource};
+use super::{Attribution, TileUrls};
 use crate::tiles::TileId;
 
 #[derive(Debug, Clone, Copy)]
@@ -21,7 +21,7 @@ impl std::fmt::Display for OpenTopoServer {
 /// <https://www.opentopomap.org/about>
 pub struct OpenTopoMap(pub OpenTopoServer);
 
-impl TileSource for OpenTopoMap {
+impl TileUrls for OpenTopoMap {
     fn tile_url(&self, tile_id: TileId) -> String {
         format!(
             "https://{}.tile.opentopomap.org/{}/{}/{}.png",

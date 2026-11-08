@@ -19,6 +19,13 @@ mod style {
     /// Dummy style, used when `vector` feature is not enabled.
     #[derive(Default)]
     pub struct Style;
+
+    impl Style {
+        /// It has no layers.
+        pub(crate) fn layer_sources(&self) -> impl ExactSizeIterator<Item = Option<&str>> {
+            std::iter::empty()
+        }
+    }
 }
 
 mod egui_backend;
@@ -30,6 +37,7 @@ mod projection;
 #[cfg(feature = "vector")]
 mod render;
 pub mod sources;
+mod styled_sources;
 mod tiles;
 mod z_order;
 mod zoom;
@@ -64,11 +72,13 @@ pub use style::{
     Color, Dasharray, Filter, Float, Layout, Paint, SourceLayer, StyleLayer, Value,
     exponential_zoom_interpolation, json, linear_zoom_interpolation,
 };
+pub use styled_sources::StyledSources;
 #[cfg(feature = "vector")]
 pub use text::{Placement, Text, place_texts};
-pub use tiles::http::HttpTiles;
+pub use tiles::http::{HttpSource, HttpTiles};
 #[cfg(feature = "pmtiles")]
-pub use tiles::pmtiles::PmTiles;
+pub use tiles::pmtiles::{PmTiles, PmTilesSource};
+pub use tiles::source::{SourceData, TiledSource};
 pub use tiles::{Tile, TileId, TilePiece, Tiles};
 pub use z_order::ZOrder;
 pub use zoom::InvalidZoom;

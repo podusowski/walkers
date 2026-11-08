@@ -1,11 +1,11 @@
-use super::{Attribution, TileSource};
+use super::{Attribution, TileUrls};
 use crate::TileId;
 
 /// Orthophotomap layer from Poland's Geoportal.
 /// <https://www.geoportal.gov.pl/uslugi/usluga-przegladania-wms>
 pub struct Geoportal;
 
-impl TileSource for Geoportal {
+impl TileUrls for Geoportal {
     fn tile_url(&self, tile_id: TileId) -> String {
         format!(
             "https://mapy.geoportal.gov.pl/wss/service/PZGIK/ORTO/WMTS/StandardResolution?\

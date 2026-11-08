@@ -164,6 +164,7 @@ fn hiking_style() -> Style {
     Style {
         layers: vec![
             StyleLayer::Fill {
+                source: None,
                 source_layer: "".into(),
                 filter: Some(Filter(json!(["==", ["get", "natural"], "water"]))),
                 paint: Paint {
@@ -173,6 +174,7 @@ fn hiking_style() -> Style {
                 },
             },
             StyleLayer::Line {
+                source: None,
                 source_layer: "".into(),
                 filter: Some(Filter(json!([
                     "any",
@@ -187,6 +189,7 @@ fn hiking_style() -> Style {
                 },
             },
             StyleLayer::Line {
+                source: None,
                 source_layer: "".into(),
                 filter: Some(Filter(json!([
                     "any",
@@ -200,6 +203,7 @@ fn hiking_style() -> Style {
                 },
             },
             StyleLayer::Line {
+                source: None,
                 source_layer: "".into(),
                 filter: Some(Filter(json!(["==", ["get", "colour"], "red"]))),
                 paint: Paint {
@@ -209,6 +213,7 @@ fn hiking_style() -> Style {
                 },
             },
             StyleLayer::Line {
+                source: None,
                 source_layer: "".into(),
                 filter: Some(Filter(json!(["==", ["get", "colour"], "blue"]))),
                 paint: Paint {
@@ -218,6 +223,7 @@ fn hiking_style() -> Style {
                 },
             },
             StyleLayer::Line {
+                source: None,
                 source_layer: "".into(),
                 filter: Some(Filter(json!(["==", ["get", "colour"], "green"]))),
                 paint: Paint {
@@ -227,6 +233,7 @@ fn hiking_style() -> Style {
                 },
             },
             StyleLayer::Line {
+                source: None,
                 source_layer: "".into(),
                 filter: Some(Filter(json!(["==", ["get", "colour"], "yellow"]))),
                 paint: Paint {
@@ -236,6 +243,7 @@ fn hiking_style() -> Style {
                 },
             },
             StyleLayer::Line {
+                source: None,
                 source_layer: "".into(),
                 filter: Some(Filter(json!(["==", ["get", "colour"], "black"]))),
                 paint: Paint {
@@ -245,6 +253,7 @@ fn hiking_style() -> Style {
                 },
             },
             StyleLayer::Symbol {
+                source: None,
                 source_layer: "".into(),
                 minzoom: None,
                 filter: Some(Filter(json!(["==", ["get", "natural"], "peak"]))),

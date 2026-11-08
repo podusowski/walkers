@@ -71,7 +71,7 @@ fn basemaps(egui_ctx: egui::Context) -> Basemaps {
 }
 
 fn http(
-    source: impl sources::TileSource + Send + Sync + 'static,
+    source: impl sources::TileUrls + Send + Sync + 'static,
     style: Option<Style>,
     egui_ctx: &egui::Context,
 ) -> Box<dyn Tiles> {

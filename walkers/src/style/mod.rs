@@ -23,6 +23,13 @@ pub struct Style {
     pub layers: Vec<StyleLayer>,
 }
 
+impl Style {
+    /// Name of the source each layer draws from, if it says.
+    pub(crate) fn layer_sources(&self) -> impl ExactSizeIterator<Item = Option<&str>> {
+        self.layers.iter().map(StyleLayer::source)
+    }
+}
+
 /// Which layer, or layers, of a vector tile a style layer draws from.
 ///
 /// MapLibre names exactly one. Walkers also takes a list, for schemas which spread one concept
@@ -86,26 +93,38 @@ impl From<&[&str]> for SourceLayer {
     }
 }
 
+/// One layer of a [`Style`].
+///
+/// `source` names the source the layer draws from, among those of a [`crate::StyledSources`].
+/// When there is only one source, every layer draws from it, whatever it names.
 #[derive(Deserialize, Debug)]
 #[serde(tag = "type", rename_all = "kebab-case")]
 pub enum StyleLayer {
     Background {
+        #[serde(default)]
+        source: Option<String>,
         paint: Paint,
     },
     #[serde(rename_all = "kebab-case")]
     Fill {
+        #[serde(default)]
+        source: Option<String>,
         source_layer: SourceLayer,
         filter: Option<Filter>,
         paint: Paint,
     },
     #[serde(rename_all = "kebab-case")]
     Line {
+        #[serde(default)]
+        source: Option<String>,
         source_layer: SourceLayer,
         filter: Option<Filter>,
         paint: Paint,
     },
     #[serde(rename_all = "kebab-case")]
     Symbol {
+        #[serde(default)]
+        source: Option<String>,
         source_layer: SourceLayer,
         minzoom: Option<f32>,
         filter: Option<Filter>,
@@ -113,11 +132,32 @@ pub enum StyleLayer {
         paint: Option<Paint>,
     },
     Circle {
+        #[serde(default)]
+        source: Option<String>,
         source_layer: SourceLayer,
         filter: Option<Filter>,
     },
-    Raster,
+    /// Draws raster tiles as they are.
+    Raster {
+        #[serde(default)]
+        source: Option<String>,
+    },
     FillExtrusion,
+}
+
+impl StyleLayer {
+    /// Name of the source the layer draws from, if it says.
+    pub fn source(&self) -> Option<&str> {
+        match self {
+            StyleLayer::Background { source, .. }
+            | StyleLayer::Fill { source, .. }
+            | StyleLayer::Line { source, .. }
+            | StyleLayer::Symbol { source, .. }
+            | StyleLayer::Circle { source, .. }
+            | StyleLayer::Raster { source } => source.as_deref(),
+            StyleLayer::FillExtrusion => None,
+        }
+    }
 }
 
 #[derive(Deserialize, Default, Debug)]

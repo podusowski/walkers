@@ -1,6 +1,7 @@
 //! Renderer for Mapbox Vector Tiles.
 
 use std::collections::HashMap;
+use std::ops::Range;
 
 use ecolor::Color32;
 use log::warn;
@@ -33,20 +34,28 @@ impl From<mvt_reader::error::ParserError> for Error {
 /// Currently this is the only supported extent.
 const ONLY_SUPPORTED_EXTENT: u32 = 4096;
 
-/// Render MVT data into drawables and texts, according to the style.
+/// Render MVT data into drawables and texts, according to the `layers` of the style.
 pub fn render(
     data: &[u8],
     style: &Style,
+    layers: Range<usize>,
     zoom: u8,
     tile_size: u32,
 ) -> Result<(Vec<Drawable>, Vec<Text>), Error> {
-    let tile_layers = decode_needed_layers(data, style, zoom, tile_size)?;
+    let tile_layers = decode_needed_layers(data, style, layers.clone(), zoom, tile_size)?;
     let mut drawables = Vec::new();
     let mut texts = Vec::new();
 
-    for (index, layer) in style.layers.iter().enumerate() {
+    // Indices stay those of the whole style, as they decide which labels win.
+    for (index, layer) in style
+        .layers
+        .iter()
+        .enumerate()
+        .take(layers.end)
+        .skip(layers.start)
+    {
         match layer {
-            StyleLayer::Background { paint } => {
+            StyleLayer::Background { paint, .. } => {
                 let context = Context::new("None".to_string(), HashMap::new(), zoom);
 
                 let bg_color = if let Some(color) = &paint.background_color {
@@ -61,6 +70,7 @@ pub fn render(
                 source_layer,
                 filter,
                 paint,
+                ..
             } => {
                 for (geometry, context) in features(&tile_layers, source_layer, filter.as_ref()) {
                     if let Err(err) = render::fill::render(geometry, context, paint, &mut drawables)
@@ -73,6 +83,7 @@ pub fn render(
                 source_layer,
                 filter,
                 paint,
+                ..
             } => {
                 for (geometry, context) in features(&tile_layers, source_layer, filter.as_ref()) {
                     if let Err(err) = render::line::render(geometry, context, paint, &mut drawables)
@@ -87,6 +98,7 @@ pub fn render(
                 filter,
                 layout,
                 paint,
+                ..
             } => {
                 for (geometry, context) in features(&tile_layers, source_layer, filter.as_ref()) {
                     if let Err(err) = render::symbol::render(
@@ -117,6 +129,7 @@ struct TileLayer {
 fn decode_needed_layers(
     data: &[u8],
     style: &Style,
+    layers: Range<usize>,
     zoom: u8,
     tile_size: u32,
 ) -> Result<Vec<TileLayer>, Error> {
@@ -124,16 +137,18 @@ fn decode_needed_layers(
     let into_pixels = tile_size as f32 / ONLY_SUPPORTED_EXTENT as f32;
 
     let needed = |name: &str| {
-        style.layers.iter().any(|layer| match layer {
-            StyleLayer::Fill { source_layer, .. }
-            | StyleLayer::Line { source_layer, .. }
-            | StyleLayer::Symbol { source_layer, .. } => source_layer.matches(name),
-            // Circle layers name a source layer, but are not drawn.
-            StyleLayer::Background { .. }
-            | StyleLayer::Circle { .. }
-            | StyleLayer::Raster
-            | StyleLayer::FillExtrusion => false,
-        })
+        style.layers[layers.clone()]
+            .iter()
+            .any(|layer| match layer {
+                StyleLayer::Fill { source_layer, .. }
+                | StyleLayer::Line { source_layer, .. }
+                | StyleLayer::Symbol { source_layer, .. } => source_layer.matches(name),
+                // Circle layers name a source layer, but are not drawn.
+                StyleLayer::Background { .. }
+                | StyleLayer::Circle { .. }
+                | StyleLayer::Raster { .. }
+                | StyleLayer::FillExtrusion => false,
+            })
     };
 
     Ok(reader

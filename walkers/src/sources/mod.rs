@@ -23,8 +23,8 @@ pub struct Attribution {
     pub logo_dark: Option<egui::ImageSource<'static>>,
 }
 
-/// Remote tile server definition, source for the [`crate::HttpTiles`].
-pub trait TileSource {
+/// Where a tile server's tiles are, for [`crate::HttpTiles`] and [`crate::HttpSource`].
+pub trait TileUrls {
     fn tile_url(&self, tile_id: TileId) -> String;
     fn attribution(&self) -> Attribution;
 
@@ -38,3 +38,6 @@ pub trait TileSource {
         19
     }
 }
+
+/// Former name of [`TileUrls`].
+pub use TileUrls as TileSource;
