@@ -1,10 +1,10 @@
-use super::{Attribution, TileSource};
+use super::{Attribution, TileUrls};
 use crate::TileId;
 
 /// <https://www.openstreetmap.org/about>
 pub struct OpenStreetMap;
 
-impl TileSource for OpenStreetMap {
+impl TileUrls for OpenStreetMap {
     fn tile_url(&self, tile_id: TileId) -> String {
         format!(
             "https://tile.openstreetmap.org/{}/{}/{}.png",

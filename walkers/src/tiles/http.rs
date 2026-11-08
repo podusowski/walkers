@@ -7,7 +7,7 @@ use reqwest_middleware::ClientWithMiddleware;
 use crate::io::Fetch;
 use crate::io::http::http_client;
 use crate::io::tiles_io::TilesIo;
-use crate::sources::{Attribution, TileSource};
+use crate::sources::{Attribution, TileUrls};
 use crate::style::Style;
 use crate::{HttpOptions, SourceData, StyledSources, TilePiece, TiledSource, Tiles};
 use crate::{Stats, TileId};
@@ -24,7 +24,7 @@ impl HttpTiles {
     /// Construct new [`Tiles`] with default [`HttpOptions`].
     pub fn new<S>(source: S, egui_ctx: Context) -> Self
     where
-        S: TileSource + Sync + Send + 'static,
+        S: TileUrls + Sync + Send + 'static,
     {
         Self::with_options(source, HttpOptions::default(), egui_ctx)
     }
@@ -32,7 +32,7 @@ impl HttpTiles {
     /// Construct new [`Tiles`] with supplied [`HttpOptions`].
     pub fn with_options<S>(source: S, http_options: HttpOptions, egui_ctx: Context) -> Self
     where
-        S: TileSource + Sync + Send + 'static,
+        S: TileUrls + Sync + Send + 'static,
     {
         Self::with_options_and_style(source, http_options, Style::default(), egui_ctx)
     }
@@ -46,7 +46,7 @@ impl HttpTiles {
         egui_ctx: Context,
     ) -> Self
     where
-        S: TileSource + Sync + Send + 'static,
+        S: TileUrls + Sync + Send + 'static,
     {
         let source = HttpSource::new(source, http_options, egui_ctx.clone());
 
@@ -70,7 +70,7 @@ pub struct HttpSource {
 impl HttpSource {
     pub fn new<S>(source: S, http_options: HttpOptions, egui_ctx: Context) -> Self
     where
-        S: TileSource + Sync + Send + 'static,
+        S: TileUrls + Sync + Send + 'static,
     {
         Self {
             attribution: source.attribution(),
@@ -132,7 +132,7 @@ pub enum HttpFetchError {
 
 pub struct HttpFetch<S>
 where
-    S: TileSource + Send + 'static,
+    S: TileUrls + Send + 'static,
 {
     source: S,
     max_concurrency: usize,
@@ -141,7 +141,7 @@ where
 
 impl<S> HttpFetch<S>
 where
-    S: TileSource + Sync + Send,
+    S: TileUrls + Sync + Send,
 {
     pub fn new(source: S, http_options: HttpOptions) -> Self {
         Self {
@@ -154,7 +154,7 @@ where
 
 impl<S> Fetch for HttpFetch<S>
 where
-    S: TileSource + Sync + Send,
+    S: TileUrls + Sync + Send,
 {
     type Error = HttpFetchError;
 
@@ -198,7 +198,7 @@ mod tests {
         }
     }
 
-    impl TileSource for TestSource {
+    impl TileUrls for TestSource {
         fn tile_url(&self, tile_id: TileId) -> String {
             format!(
                 "{}/{}/{}/{}.png",
@@ -474,7 +474,7 @@ mod tests {
     /// Tile source, which gives invalid urls.
     struct GarbageSource;
 
-    impl TileSource for GarbageSource {
+    impl TileUrls for GarbageSource {
         fn tile_url(&self, _: TileId) -> String {
             "totally invalid url".to_string()
         }

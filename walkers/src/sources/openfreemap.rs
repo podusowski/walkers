@@ -1,9 +1,9 @@
-use super::{Attribution, TileSource};
+use super::{Attribution, TileUrls};
 use crate::TileId;
 
 pub struct OpenFreeMap;
 
-impl TileSource for OpenFreeMap {
+impl TileUrls for OpenFreeMap {
     fn tile_url(&self, tile_id: TileId) -> String {
         format!(
             "https://tiles.openfreemap.org/planet/20251217_001001_pt/{}/{}/{}.pbf",

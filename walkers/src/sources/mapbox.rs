@@ -1,6 +1,6 @@
 use crate::TileId;
 
-use super::{Attribution, TileSource};
+use super::{Attribution, TileUrls};
 
 /// Predefined Mapbox styles.
 /// <https://docs.mapbox.com/api/maps/styles/#classic-mapbox-styles>
@@ -44,7 +44,7 @@ pub struct Mapbox {
     pub access_token: String,
 }
 
-impl TileSource for Mapbox {
+impl TileUrls for Mapbox {
     fn tile_url(&self, tile_id: TileId) -> String {
         format!(
             "https://api.mapbox.com/styles/v1/mapbox/{}/tiles/512/{}/{}/{}{}?access_token={}",
