@@ -166,21 +166,33 @@ fn runs(style: &Style, sources: &[&str]) -> Vec<(usize, Range<usize>)> {
     {
         let mut runs: Vec<(usize, Range<usize>)> = Vec::new();
 
+        // Layers naming no source, such as a background, draw from the one before them. Those
+        // before any other go into the first run.
+        let mut leading = None;
+
         for (index, layer) in style.layers.iter().enumerate() {
-            let Some(source) = layer
-                .source()
-                .and_then(|name| sources.iter().position(|source| *source == name))
-            else {
-                log::warn!(
-                    "Style layer {index} draws from {:?}, which is not among the sources. Skipping.",
-                    layer.source()
-                );
-                continue;
+            let source = match layer.source() {
+                Some(name) => match sources.iter().position(|source| *source == name) {
+                    Some(source) => source,
+                    None => {
+                        log::warn!(
+                            "Style layer {index} draws from {name:?}, which is not among the sources. Skipping."
+                        );
+                        continue;
+                    }
+                },
+                None => match runs.last() {
+                    Some((source, _)) => *source,
+                    None => {
+                        leading.get_or_insert(index);
+                        continue;
+                    }
+                },
             };
 
             match runs.last_mut() {
                 Some((last, layers)) if *last == source && layers.end == index => layers.end += 1,
-                _ => runs.push((source, index..index + 1)),
+                _ => runs.push((source, leading.take().unwrap_or(index)..index + 1)),
             }
         }
 
@@ -225,6 +237,23 @@ mod tests {
     fn layers_of_unknown_sources_are_skipped() {
         let style = style(vec![raster("a"), raster("nope"), raster("a"), raster("b")]);
         assert_eq!(runs(&style, &["a", "b"]), [(0, 0..1), (0, 2..3), (1, 3..4)]);
+    }
+
+    /// Background layers, as those of MapLibre's styles, name no source.
+    #[test]
+    fn layers_naming_no_source_draw_from_the_one_before_them() {
+        let background = StyleLayer::Background {
+            source: None,
+            paint: Default::default(),
+        };
+        let style = style(vec![
+            background,
+            raster("a"),
+            StyleLayer::FillExtrusion,
+            raster("a"),
+            raster("b"),
+        ]);
+        assert_eq!(runs(&style, &["a", "b"]), [(0, 0..4), (1, 4..5)]);
     }
 
     #[test]
