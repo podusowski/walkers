@@ -18,13 +18,15 @@ use crate::{
 /// ```
 pub struct StyledSources {
     style: Arc<Style>,
-    sources: Vec<(String, Box<dyn TiledSource>)>,
+    sources: Vec<NamedSource>,
 
     /// `None` until they are needed, as they change with every source added.
     runs: Option<Vec<Run>>,
 
     egui_ctx: Context,
 }
+
+type NamedSource = (String, Box<dyn TiledSource>);
 
 /// Consecutive layers of the style drawing from the same source.
 struct Run {
@@ -90,48 +92,38 @@ impl StyledSources {
 
     /// That tile of the first run, for those holding just one source, which is drawn in one run.
     pub(crate) fn first_run_at(&mut self, tile_id: TileId) -> Option<TilePiece> {
-        self.runs();
-        let (Some(runs), sources) = (&mut self.runs, &mut self.sources) else {
-            return None;
-        };
+        let (runs, sources) = self.runs_and_sources();
         let run = runs.first_mut()?;
         run.styling.at(sources[run.source].1.as_mut(), tile_id)
     }
 
-    fn runs(&mut self) {
-        if self.runs.is_some() {
-            return;
-        }
-
-        let names: Vec<&str> = self.sources.iter().map(|(name, _)| name.as_str()).collect();
-        let runs = runs(&self.style, &names)
-            .into_iter()
-            .map(|(source, layers)| Run {
-                source,
-                styling: Styling::new(
-                    EguiTileFactory::new(
+    /// The runs, made when first needed, and the sources they draw from.
+    fn runs_and_sources(&mut self) -> (&mut [Run], &mut [NamedSource]) {
+        let runs = self.runs.get_or_insert_with(|| {
+            let names: Vec<&str> = self.sources.iter().map(|(name, _)| name.as_str()).collect();
+            runs(&self.style, &names)
+                .into_iter()
+                .map(|(source, layers)| Run {
+                    source,
+                    styling: Styling::new(
+                        EguiTileFactory::new(
+                            self.egui_ctx.clone(),
+                            self.style.clone(),
+                            layers,
+                            self.sources[source].1.tile_size(),
+                        ),
                         self.egui_ctx.clone(),
-                        self.style.clone(),
-                        layers,
-                        self.sources[source].1.tile_size(),
                     ),
-                    self.egui_ctx.clone(),
-                ),
-            })
-            .collect();
-
-        self.runs = Some(runs);
+                })
+                .collect()
+        });
+        (runs, &mut self.sources)
     }
 }
 
 impl Layer for &mut StyledSources {
     fn draw(&mut self, canvas: &mut Canvas, projector: &Projector) {
-        let this = &mut **self;
-        this.runs();
-
-        let (Some(runs), sources) = (&mut this.runs, &mut this.sources) else {
-            return;
-        };
+        let (runs, sources) = self.runs_and_sources();
 
         // Run after run, so that a layer of one source can go between layers of another.
         for run in runs {
