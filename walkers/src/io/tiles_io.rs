@@ -6,7 +6,7 @@ use futures::channel::mpsc::{Receiver, Sender, TryRecvError, TrySendError, chann
 use lru::LruCache;
 
 use crate::{
-    DemEncoding, SourceData, TileId,
+    DemEncoding, SourceData, TileData, TileId,
     io::{Fetch, fetch::fetch_continuously, runtime::Runtime},
 };
 
@@ -16,10 +16,10 @@ pub struct TilesIo {
     request_tx: Sender<TileId>,
 
     /// Tiles that got fetched and should be put in the cache.
-    tile_rx: Receiver<(TileId, Bytes)>,
+    tile_rx: Receiver<(TileId, Option<Bytes>)>,
 
-    /// `None` while being fetched, and forever if fetching failed.
-    cache: LruCache<TileId, Option<Arc<SourceData>>>,
+    /// Missing for good if fetching failed.
+    cache: LruCache<TileId, TileData>,
     pub stats: Arc<Mutex<Stats>>,
 
     /// Set if the tiles are elevation, packed that way.
@@ -72,12 +72,15 @@ impl TilesIo {
     fn put_single_fetched_tile_in_cache(&mut self) {
         // This is called every frame, so take just one at the time.
         match self.tile_rx.try_recv() {
-            Ok((tile_id, data)) => {
+            Ok((tile_id, None)) => {
+                self.cache.put(tile_id, TileData::Missing);
+            }
+            Ok((tile_id, Some(data))) => {
                 let data = match self.elevation {
                     Some(encoding) => SourceData::Elevation { data, encoding },
                     None => SourceData::Encoded(data),
                 };
-                self.cache.put(tile_id, Some(Arc::new(data)));
+                self.cache.put(tile_id, TileData::Ready(Arc::new(data)));
             }
             Err(TryRecvError::Empty) => {
                 // No new tile was downloaded, just ignore.
@@ -88,24 +91,22 @@ impl TilesIo {
         }
     }
 
-    /// The tile's data if it is fetched. Otherwise make sure it is being fetched, unless fetching
-    /// it already failed.
-    pub fn data(&mut self, tile_id: TileId) -> Option<Arc<SourceData>> {
+    /// The tile's data, made sure to be fetched unless it is ready or missing.
+    pub fn data(&mut self, tile_id: TileId) -> TileData {
         self.put_single_fetched_tile_in_cache();
 
-        match self.cache.try_get_or_insert(
-            tile_id,
-            || -> Result<Option<Arc<SourceData>>, TrySendError<TileId>> {
+        match self
+            .cache
+            .try_get_or_insert(tile_id, || -> Result<TileData, TrySendError<TileId>> {
                 self.request_tx.try_send(tile_id)?;
                 log::trace!("Requested tile: {tile_id:?}");
-                Ok(None)
-            },
-        ) {
+                Ok(TileData::Loading)
+            }) {
             Ok(data) => data.to_owned(),
             Err(err) if err.is_full() => {
                 // Trying to download too many tiles at once.
                 log::trace!("Request queue is full.");
-                None
+                TileData::Loading
             }
             Err(err) => {
                 panic!("Failed to send tile request for {tile_id:?}: {err}");

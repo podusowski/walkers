@@ -29,8 +29,10 @@ impl TileUrls for Mapterhorn {
         512
     }
 
-    /// Zoom levels above it cover only some parts of the world.
+    /// Only some places, the Alps for example. Most of Europe, North America and Japan go up to
+    /// 16, and the rest of the world to 12. Where a tile is missing, a lower zoom level's is
+    /// drawn instead.
     fn max_zoom(&self) -> u8 {
-        12
+        17
     }
 }

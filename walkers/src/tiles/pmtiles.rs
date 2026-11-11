@@ -1,5 +1,5 @@
 use crate::{
-    DemEncoding, SourceData, Stats, StyledSources, TileId, TilePiece, TiledSource, Tiles,
+    DemEncoding, Stats, StyledSources, TileData, TileId, TilePiece, TiledSource, Tiles,
     io::{Fetch, tiles_io::TilesIo},
     sources::Attribution,
     style::Style,
@@ -10,7 +10,6 @@ use pmtiles::{AsyncPmTilesReader, TileCoord};
 use std::{
     io::{self},
     path::{Path, PathBuf},
-    sync::Arc,
 };
 use thiserror::Error;
 
@@ -90,7 +89,7 @@ impl PmTilesSource {
 }
 
 impl TiledSource for PmTilesSource {
-    fn data(&mut self, tile_id: TileId) -> Option<Arc<SourceData>> {
+    fn data(&mut self, tile_id: TileId) -> TileData {
         self.io.data(tile_id)
     }
 

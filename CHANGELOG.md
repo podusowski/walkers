@@ -5,6 +5,7 @@ playground and can change or break at any time without an entry here.
 
 ## Unreleased
 
+* Tiles a server does not have, answering with an error, are drawn from a lower zoom level.
 * Fix GPU memory growing until wgpu ran out of it, with layers which make new drawables every
   frame, such as `GeoJsonLayer` and `KmlLayer`.
 * New `StyledSources`, which draws one `Style` from several named sources, such as the new
