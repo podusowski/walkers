@@ -18,30 +18,27 @@ use crate::expression::Context;
 /// of the MapLibre's styles using `serde`, as unknown JSON/YAML fields are simply ignored.
 ///
 /// <https://maplibre.org/maplibre-style-spec/>
-#[derive(Deserialize, Default)]
+#[derive(Deserialize)]
 pub struct Style {
     pub layers: Vec<StyleLayer>,
+}
+
+/// Draws raster tiles as they are, and nothing else.
+impl Default for Style {
+    fn default() -> Self {
+        Self {
+            layers: vec![StyleLayer::Raster {
+                source: None,
+                paint: Paint::default(),
+            }],
+        }
+    }
 }
 
 impl Style {
     /// Name of the source each layer draws from, if it says.
     pub(crate) fn layer_sources(&self) -> impl ExactSizeIterator<Item = Option<&str>> {
         self.layers.iter().map(StyleLayer::source)
-    }
-
-    /// Opacity of the first raster layer among `layers`, or 1 if there is none.
-    pub(crate) fn raster_opacity(&self, layers: std::ops::Range<usize>, zoom: u8) -> f32 {
-        self.layers[layers]
-            .iter()
-            .find_map(|layer| match layer {
-                StyleLayer::Raster { paint, .. } => {
-                    Some(paint.raster_opacity.as_ref().map_or(1.0, |opacity| {
-                        opacity.evaluate(&Context::new("None".to_owned(), Default::default(), zoom))
-                    }))
-                }
-                _ => None,
-            })
-            .unwrap_or(1.0)
     }
 }
 

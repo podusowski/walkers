@@ -119,21 +119,14 @@ impl Layer for &mut StyledSources {
         let consecutive_layers =
             consecutive_layers.get_or_insert_with(|| consecutive_layers_of(style, sources));
 
-        let zoom = projector.zoom().round() as u8;
-        let transparency = canvas.transparency;
-
         // One after another, so that a layer of one source can go between layers of another.
         for (index, layers) in consecutive_layers.iter() {
-            canvas.transparency = transparency * style.raster_opacity(layers.clone(), zoom);
-
             let source = sources[*index].1.as_mut();
             let tile_size = source.tile_size();
             draw_tiles_with(canvas, projector, tile_size, |tile_id| {
                 styling.at(*index, source, layers.clone(), tile_id)
             });
         }
-
-        canvas.transparency = transparency;
     }
 }
 
@@ -360,26 +353,6 @@ mod tests {
             .map(|piece| piece.image.0.size()[0])
             .collect();
         assert_eq!(sizes, [1, 2, 1]);
-    }
-
-    #[test]
-    fn raster_layers_are_drawn_with_their_opacity() {
-        let style = serde_json::from_value(serde_json::json!({
-            "layers": [
-                { "type": "raster", "source": "a" },
-                { "type": "raster", "source": "b", "paint": { "raster-opacity": 0.25 } },
-            ]
-        }))
-        .unwrap();
-        let mut styled = StyledSources::new(style, Context::default())
-            .with_tiled_source("a", Fixed::new(1))
-            .with_tiled_source("b", Fixed::new(2));
-
-        let transparencies: Vec<f32> = draw_rasters(&mut styled, 2)
-            .iter()
-            .map(|piece| piece.transparency)
-            .collect();
-        assert_eq!(transparencies, [1.0, 0.25]);
     }
 
     #[test]

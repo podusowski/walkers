@@ -37,8 +37,8 @@ impl HttpTiles {
         Self::with_options_and_style(source, http_options, Default::default(), egui_ctx)
     }
 
-    /// Construct new [`Tiles`] with supplied [`HttpOptions`] and [`Style`]. Style is relevant
-    /// only for vector tile sources.
+    /// Construct new [`Tiles`] with supplied [`HttpOptions`] and [`Style`]. Raster tiles are
+    /// drawn only by a `raster` layer, which [`Style::default`] has.
     pub fn with_options_and_style<S>(
         source: S,
         http_options: HttpOptions,

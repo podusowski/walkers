@@ -136,8 +136,7 @@ fn apply(
     let mut drawables = Vec::new();
     let mut texts = Vec::new();
     let mut hillshades = Vec::new();
-    let mut raster = false;
-    let mut shaded = false;
+    let mut raster_opacity = None;
 
     // Indices stay those of the whole style, as they decide which labels win.
     for (index, layer) in layers.clone().zip(&style.layers[layers]) {
@@ -201,8 +200,9 @@ fn apply(
             (StyleLayer::Circle { .. } | StyleLayer::FillExtrusion, Decoded::Features(_)) => {
                 log::warn!("Unsupported layer type in style: {layer:?}");
             }
-            (StyleLayer::Raster { .. }, Decoded::Image(_)) => raster = true,
-            (StyleLayer::Hillshade { .. }, Decoded::Image(_)) => shaded = true,
+            (StyleLayer::Raster { paint, .. }, Decoded::Image(_)) => {
+                raster_opacity.get_or_insert(opacity(paint, zoom));
+            }
             (StyleLayer::Hillshade { paint, .. }, Decoded::Elevation { .. }) => {
                 hillshades.push(paint);
             }
@@ -216,12 +216,12 @@ fn apply(
             drawables: render::merge_runs(drawables),
             texts,
         }),
-        // Its colors would be packed elevation.
-        Decoded::Image(_) if shaded && !raster => Err(TileError::Unstyled(
-            "a hillshade style layer draws only from a source made `with_elevation`",
-        )),
-        // Even without a raster layer, so that raster tiles need no style.
-        Decoded::Image(image) => Ok(Styled::Image(color_image(&image))),
+        Decoded::Image(image) => match raster_opacity {
+            Some(opacity) => Ok(Styled::Image(color_image(&image, opacity))),
+            None => Err(TileError::Unstyled(
+                "only a raster style layer draws an image",
+            )),
+        },
         Decoded::Elevation { .. } if hillshades.is_empty() => Err(UNSHADED),
         Decoded::Elevation { image, encoding } => {
             let size = [image.width() as usize, image.height() as usize];
@@ -244,16 +244,32 @@ fn apply(
     _tile_size: u32,
 ) -> Result<Styled, TileError> {
     match decoded {
-        Decoded::Image(image) => Ok(Styled::Image(color_image(&image))),
+        Decoded::Image(image) => Ok(Styled::Image(color_image(&image, 1.0))),
         Decoded::Elevation { .. } => Err(UNSHADED),
     }
 }
 
-fn color_image(image: &RgbaImage) -> ColorImage {
-    ColorImage::from_rgba_unmultiplied(
+fn color_image(image: &RgbaImage, opacity: f32) -> ColorImage {
+    let mut color_image = ColorImage::from_rgba_unmultiplied(
         [image.width() as _, image.height() as _],
         image.as_flat_samples().as_slice(),
-    )
+    );
+    if opacity < 1.0 {
+        for pixel in &mut color_image.pixels {
+            *pixel = pixel.gamma_multiply(opacity);
+        }
+    }
+    color_image
+}
+
+/// <https://maplibre.org/maplibre-style-spec/layers/#raster-opacity>
+#[cfg(feature = "vector")]
+fn opacity(paint: &Paint, zoom: u8) -> f32 {
+    let context = Context::new("None".to_string(), Default::default(), zoom);
+    paint
+        .raster_opacity
+        .as_ref()
+        .map_or(1.0, |opacity| opacity.evaluate(&context))
 }
 
 #[cfg(feature = "vector")]
@@ -325,26 +341,29 @@ mod tests {
         assert!(apply(elevation(), &style, 0..1, TILE, 256).is_err());
     }
 
-    /// Its colors would be taken for packed elevation, which only a source made
-    /// `with_elevation` has.
+    /// Not even by a hillshade layer, as its colors are not packed elevation, which only a source
+    /// made `with_elevation` has.
     #[test]
-    fn image_is_not_drawn_by_hillshade_layers_alone() {
-        let style = style(serde_json::json!([{ "type": "hillshade" }]));
-        assert!(apply(Decoded::Image(ramp(0.0, 20.0)), &style, 0..1, TILE, 256).is_err());
+    fn image_is_drawn_only_by_raster_layers() {
+        let image = || Decoded::Image(ramp(0.0, 0.0));
+        let hillshade = style(serde_json::json!([{ "type": "hillshade" }]));
+
+        assert!(apply(image(), &hillshade, 0..1, TILE, 256).is_err());
+        assert!(apply(image(), &Style { layers: Vec::new() }, 0..0, TILE, 256).is_err());
+        assert!(apply(image(), &Style::default(), 0..1, TILE, 256).is_ok());
     }
 
-    /// So that raster tile servers need no style.
     #[test]
-    fn image_is_drawn_as_it_is_without_layers() {
-        assert!(matches!(
-            apply(
-                Decoded::Image(ramp(0.0, 0.0)),
-                &Style::default(),
-                0..0,
-                TILE,
-                256
-            ),
-            Ok(Styled::Image(_))
-        ));
+    fn raster_layers_draw_images_with_their_opacity() {
+        let style = style(serde_json::json!([
+            { "type": "raster", "paint": { "raster-opacity": 0.25 } }
+        ]));
+
+        let Ok(Styled::Image(image)) =
+            apply(Decoded::Image(ramp(0.0, 0.0)), &style, 0..1, TILE, 256)
+        else {
+            panic!("expected an image");
+        };
+        assert!(image.pixels.iter().all(|pixel| pixel.a() == 64));
     }
 }

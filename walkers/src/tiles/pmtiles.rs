@@ -35,8 +35,8 @@ impl PmTiles {
         Self::with_style(path, Default::default(), egui_ctx)
     }
 
-    /// Construct new [`PmTiles`] with [`Style`]. Style is relevant only for vector tile
-    /// sources.
+    /// Construct new [`PmTiles`] with [`Style`]. Raster tiles are drawn only by a `raster`
+    /// layer, which [`Style::default`] has.
     pub fn with_style(path: impl AsRef<Path>, style: Style, egui_ctx: Context) -> Self {
         Self::with_style_and_tile_size(path, style, DEFAULT_TILE_SIZE, egui_ctx)
     }
