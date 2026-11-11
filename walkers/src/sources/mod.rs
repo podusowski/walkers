@@ -2,6 +2,7 @@
 
 mod geoportal;
 mod mapbox;
+mod mapterhorn;
 #[cfg(feature = "mvt")]
 mod openfreemap;
 mod openstreetmap;
@@ -10,6 +11,7 @@ mod opentopomap;
 use crate::TileId;
 pub use geoportal::Geoportal;
 pub use mapbox::{Mapbox, MapboxStyle};
+pub use mapterhorn::Mapterhorn;
 #[cfg(feature = "mvt")]
 pub use openfreemap::OpenFreeMap;
 pub use openstreetmap::OpenStreetMap;

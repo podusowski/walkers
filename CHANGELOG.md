@@ -10,6 +10,12 @@ playground and can change or break at any time without an entry here.
 * Style layers have an optional `source`.
 * `TileSource` is renamed to `TileUrls`. The old name still works.
 * Raster style layers support `raster-opacity`.
+* Raster tiles are drawn only by a `raster` style layer. `Style::default()` has one, so raster tile
+  servers work as before, but a style without one no longer draws them.
+* New `hillshade` style layer, which shades elevation into relief. It draws from an `HttpSource` or
+  `PmTilesSource` made `with_elevation`.
+* New `Mapterhorn` source, with elevation of the whole world.
+* Raster tiles can be WebP.
 
 ## 0.65.0
 

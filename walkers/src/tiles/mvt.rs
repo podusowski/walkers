@@ -1,21 +1,17 @@
-//! Renderer for Mapbox Vector Tiles.
+//! Decoding Mapbox Vector Tiles.
 
 use std::collections::HashMap;
-use std::ops::Range;
 
-use ecolor::Color32;
 use log::warn;
 use mvt_reader::{Reader, feature::Value};
 use serde_json::{Number, Value as JsonValue};
 
 use geo::MapCoordsInPlace;
 
+use super::apply_style::FeatureLayer;
 use crate::{
-    Drawable,
     expression::Context,
-    render::{self, Coord, Geometry},
-    style::{Filter, SourceLayer, Style, StyleLayer},
-    text::Text,
+    render::{self, Coord},
 };
 
 #[derive(thiserror::Error, Debug)]
@@ -34,122 +30,16 @@ impl From<mvt_reader::error::ParserError> for Error {
 /// Currently this is the only supported extent.
 const ONLY_SUPPORTED_EXTENT: u32 = 4096;
 
-/// Render MVT data into drawables and texts, according to the `layers` of the style.
-pub fn render(
+/// Layers of the MVT `data`, in pixels of a tile `tile_size` wide. Only the `needed` ones have
+/// their features decoded.
+pub fn decode(
     data: &[u8],
-    style: &Style,
-    layers: Range<usize>,
+    needed: impl Fn(&str) -> bool,
     zoom: u8,
     tile_size: u32,
-) -> Result<(Vec<Drawable>, Vec<Text>), Error> {
-    let tile_layers = decode_needed_layers(data, style, layers.clone(), zoom, tile_size)?;
-    let mut drawables = Vec::new();
-    let mut texts = Vec::new();
-
-    // Indices stay those of the whole style, as they decide which labels win.
-    for (index, layer) in style
-        .layers
-        .iter()
-        .enumerate()
-        .take(layers.end)
-        .skip(layers.start)
-    {
-        match layer {
-            StyleLayer::Background { paint, .. } => {
-                let context = Context::new("None".to_string(), HashMap::new(), zoom);
-
-                let bg_color = if let Some(color) = &paint.background_color {
-                    color.evaluate(&context)
-                } else {
-                    Color32::WHITE
-                };
-
-                drawables.push(Drawable::background(tile_size as f32, bg_color));
-            }
-            StyleLayer::Fill {
-                source_layer,
-                filter,
-                paint,
-                ..
-            } => {
-                for (geometry, context) in features(&tile_layers, source_layer, filter.as_ref()) {
-                    if let Err(err) = render::fill::render(geometry, context, paint, &mut drawables)
-                    {
-                        warn!("{err}");
-                    }
-                }
-            }
-            StyleLayer::Line {
-                source_layer,
-                filter,
-                paint,
-                ..
-            } => {
-                for (geometry, context) in features(&tile_layers, source_layer, filter.as_ref()) {
-                    if let Err(err) = render::line::render(geometry, context, paint, &mut drawables)
-                    {
-                        warn!("{err}");
-                    }
-                }
-            }
-            StyleLayer::Symbol {
-                source_layer,
-                minzoom,
-                filter,
-                layout,
-                paint,
-                ..
-            } => {
-                for (geometry, context) in features(&tile_layers, source_layer, filter.as_ref()) {
-                    if let Err(err) = render::symbol::render(
-                        geometry, context, &mut texts, layout, paint, *minzoom, index,
-                    ) {
-                        warn!("{err}");
-                    }
-                }
-            }
-            layer => {
-                log::warn!("Unsupported layer type in style: {layer:?}");
-                continue;
-            }
-        }
-    }
-
-    log::trace!("Rendered {} drawables", drawables.len());
-    Ok((render::merge_runs(drawables), texts))
-}
-
-/// A layer of the tile, with its features decoded only if some style layer draws from it.
-struct TileLayer {
-    name: String,
-    features: Vec<(Geometry<f32>, Context)>,
-}
-
-/// Decodes each tile layer at most once, however many style layers draw from it.
-fn decode_needed_layers(
-    data: &[u8],
-    style: &Style,
-    layers: Range<usize>,
-    zoom: u8,
-    tile_size: u32,
-) -> Result<Vec<TileLayer>, Error> {
+) -> Result<Vec<FeatureLayer>, Error> {
     let reader = Reader::new(data.to_vec())?;
     let into_pixels = tile_size as f32 / ONLY_SUPPORTED_EXTENT as f32;
-
-    let needed = |name: &str| {
-        style.layers[layers.clone()]
-            .iter()
-            .any(|layer| match layer {
-                StyleLayer::Fill { source_layer, .. }
-                | StyleLayer::Line { source_layer, .. }
-                | StyleLayer::Symbol { source_layer, .. } => source_layer.matches(name),
-                // Circle layers name a source layer, but are not drawn.
-                StyleLayer::Background { .. }
-                | StyleLayer::Circle { .. }
-                | StyleLayer::Raster { .. }
-                | StyleLayer::FillExtrusion => false,
-            })
-    };
 
     Ok(reader
         .get_layer_metadata()?
@@ -184,25 +74,12 @@ fn decode_needed_layers(
                     })
                     .collect()
             };
-            TileLayer {
+            FeatureLayer {
                 name: layer.name,
                 features,
             }
         })
         .collect())
-}
-
-/// Features a style layer draws, in the order of the tile's layers.
-fn features<'a>(
-    tile_layers: &'a [TileLayer],
-    source_layer: &'a SourceLayer,
-    filter: Option<&'a Filter>,
-) -> impl Iterator<Item = &'a (Geometry<f32>, Context)> {
-    tile_layers
-        .iter()
-        .filter(|layer| source_layer.matches(&layer.name))
-        .flat_map(|layer| &layer.features)
-        .filter(move |(_, context)| filter.is_none_or(|filter| filter.matches(context)))
 }
 
 fn mvt_properties_to_json_properties(

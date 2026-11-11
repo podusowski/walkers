@@ -29,7 +29,7 @@ fn decode_mvt(c: &mut Criterion) {
     });
 
     group.bench_function("no style", |b| {
-        let style = Style::default();
+        let style = Style { layers: Vec::new() };
         b.iter(|| Tile::from_mvt(black_box(TILE), &style, ZOOM, TILE_SIZE).unwrap())
     });
 

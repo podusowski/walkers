@@ -119,21 +119,14 @@ impl Layer for &mut StyledSources {
         let consecutive_layers =
             consecutive_layers.get_or_insert_with(|| consecutive_layers_of(style, sources));
 
-        let zoom = projector.zoom().round() as u8;
-        let transparency = canvas.transparency;
-
         // One after another, so that a layer of one source can go between layers of another.
         for (index, layers) in consecutive_layers.iter() {
-            canvas.transparency = transparency * style.raster_opacity(layers.clone(), zoom);
-
             let source = sources[*index].1.as_mut();
             let tile_size = source.tile_size();
             draw_tiles_with(canvas, projector, tile_size, |tile_id| {
                 styling.at(*index, source, layers.clone(), tile_id)
             });
         }
-
-        canvas.transparency = transparency;
     }
 }
 
@@ -264,21 +257,41 @@ mod tests {
     /// apart by what they draw.
     struct Fixed {
         png: bytes::Bytes,
+        elevation: Option<crate::DemEncoding>,
     }
 
     impl Fixed {
         fn new(size: u32) -> Self {
+            Self::of(image::RgbaImage::new(size, size))
+        }
+
+        fn of(image: image::RgbaImage) -> Self {
             let mut png = Vec::new();
-            image::RgbaImage::new(size, size)
+            image
                 .write_to(&mut std::io::Cursor::new(&mut png), image::ImageFormat::Png)
                 .unwrap();
-            Self { png: png.into() }
+            Self {
+                png: png.into(),
+                elevation: None,
+            }
+        }
+
+        /// Ground rising to the south, Terrarium-encoded.
+        fn elevation() -> Self {
+            Self {
+                elevation: Some(crate::DemEncoding::Terrarium),
+                ..Self::of(crate::render::hillshade::tests::ramp(0.0, 20.0))
+            }
         }
     }
 
     impl TiledSource for Fixed {
         fn data(&mut self, _tile_id: crate::TileId) -> Option<Arc<crate::SourceData>> {
-            Some(Arc::new(crate::SourceData::Encoded(self.png.clone())))
+            let data = self.png.clone();
+            Some(Arc::new(match self.elevation {
+                Some(encoding) => crate::SourceData::Elevation { data, encoding },
+                None => crate::SourceData::Encoded(data),
+            }))
         }
 
         fn attribution(&self) -> Attribution {
@@ -343,22 +356,22 @@ mod tests {
     }
 
     #[test]
-    fn raster_layers_are_drawn_with_their_opacity() {
+    fn elevation_is_drawn_as_relief_by_hillshade_layers() {
         let style = serde_json::from_value(serde_json::json!({
             "layers": [
                 { "type": "raster", "source": "a" },
-                { "type": "raster", "source": "b", "paint": { "raster-opacity": 0.25 } },
+                { "type": "hillshade", "source": "terrain" },
             ]
         }))
         .unwrap();
         let mut styled = StyledSources::new(style, Context::default())
             .with_tiled_source("a", Fixed::new(1))
-            .with_tiled_source("b", Fixed::new(2));
+            .with_tiled_source("terrain", Fixed::elevation());
 
-        let transparencies: Vec<f32> = draw_rasters(&mut styled, 2)
+        let sizes: Vec<usize> = draw_rasters(&mut styled, 2)
             .iter()
-            .map(|piece| piece.transparency)
+            .map(|piece| piece.image.0.size()[0])
             .collect();
-        assert_eq!(transparencies, [1.0, 0.25]);
+        assert_eq!(sizes, [1, 16]);
     }
 }

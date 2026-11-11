@@ -1,5 +1,5 @@
 use crate::{
-    SourceData, Stats, StyledSources, TileId, TilePiece, TiledSource, Tiles,
+    DemEncoding, SourceData, Stats, StyledSources, TileId, TilePiece, TiledSource, Tiles,
     io::{Fetch, tiles_io::TilesIo},
     sources::Attribution,
     style::Style,
@@ -35,8 +35,8 @@ impl PmTiles {
         Self::with_style(path, Default::default(), egui_ctx)
     }
 
-    /// Construct new [`PmTiles`] with [`Style`]. Style is relevant only for vector tile
-    /// sources.
+    /// Construct new [`PmTiles`] with [`Style`]. Raster tiles are drawn only by a `raster`
+    /// layer, which [`Style::default`] has.
     pub fn with_style(path: impl AsRef<Path>, style: Style, egui_ctx: Context) -> Self {
         Self::with_style_and_tile_size(path, style, DEFAULT_TILE_SIZE, egui_ctx)
     }
@@ -80,6 +80,12 @@ impl PmTilesSource {
             io: TilesIo::new(PmTilesFetch::new(path.as_ref()), egui_ctx),
             tile_size,
         }
+    }
+
+    /// Tiles are elevation, packed as `encoding` says, for a `hillshade` style layer to draw.
+    pub fn with_elevation(mut self, encoding: DemEncoding) -> Self {
+        self.io = self.io.with_elevation(encoding);
+        self
     }
 }
 

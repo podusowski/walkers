@@ -2,7 +2,10 @@ use egui::Context;
 #[cfg(feature = "pmtiles")]
 use walkers::PmTilesSource;
 #[cfg(feature = "mvt")]
-use walkers::sources::OpenFreeMap;
+use walkers::{
+    DemEncoding,
+    sources::{Mapterhorn, OpenFreeMap},
+};
 use walkers::{
     Float, HttpOptions, HttpSource, Paint, Style, StyleLayer, StyledSources, json,
     sources::{Geoportal, OpenStreetMap, OpenTopoMap, OpenTopoServer, TileUrls},
@@ -96,6 +99,12 @@ fn add_openfreemap_basemaps(basemaps: &mut Basemaps) {
     }
 
     basemaps.add("OpenFreeMap over Geoportal", hybrid);
+    basemaps.add("OpenFreeMap with relief (Walkers light)", |ctx| {
+        relief(Style::openmaptiles_basemap_light(), ctx)
+    });
+    basemaps.add("OpenFreeMap with relief (Walkers dark)", |ctx| {
+        relief(Style::openmaptiles_basemap_dark(), ctx)
+    });
 
     basemaps.select("OpenFreeMap (Walkers dark)");
 }
@@ -105,21 +114,46 @@ fn add_openfreemap_basemaps(basemaps: &mut Basemaps) {
 #[cfg(feature = "mvt")]
 fn hybrid(ctx: &Context) -> StyledSources {
     let mut style = Style::openmaptiles_basemap_light();
+    style
+        .layers
+        .insert(ground(&style), raster_layer("geoportal", 1.0));
 
-    // Over land and water, but under everything else.
-    let ground = style
+    StyledSources::new(style, ctx.to_owned())
+        .with_tiled_source("openmaptiles", http(OpenFreeMap, ctx))
+        .with_tiled_source("geoportal", http(Geoportal, ctx))
+}
+
+/// OpenFreeMap drawn with `style`, and Mapterhorn's elevation shaded into relief between its land
+/// and its roads.
+#[cfg(feature = "mvt")]
+fn relief(mut style: Style, ctx: &Context) -> StyledSources {
+    style.layers.insert(
+        ground(&style),
+        StyleLayer::Hillshade {
+            source: Some("terrain".to_owned()),
+            paint: Paint::default(),
+        },
+    );
+
+    StyledSources::new(style, ctx.to_owned())
+        .with_tiled_source("openmaptiles", http(OpenFreeMap, ctx))
+        .with_tiled_source(
+            "terrain",
+            http(Mapterhorn, ctx).with_elevation(DemEncoding::Terrarium),
+        )
+}
+
+/// Where layers go to be over land and water, but under everything else.
+#[cfg(feature = "mvt")]
+fn ground(style: &Style) -> usize {
+    style
         .layers
         .iter()
         .rposition(|layer| {
             matches!(layer, StyleLayer::Fill { source_layer, .. }
                 if source_layer.matches("landuse") || source_layer.matches("water"))
         })
-        .map_or(0, |index| index + 1);
-    style.layers.insert(ground, raster_layer("geoportal", 1.0));
-
-    StyledSources::new(style, ctx.to_owned())
-        .with_tiled_source("openmaptiles", http(OpenFreeMap, ctx))
-        .with_tiled_source("geoportal", http(Geoportal, ctx))
+        .map_or(0, |index| index + 1)
 }
 
 #[cfg(feature = "pmtiles")]

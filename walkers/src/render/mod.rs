@@ -2,6 +2,7 @@
 
 pub mod drawable;
 pub mod fill;
+pub(crate) mod hillshade;
 pub mod line;
 pub mod symbol;
 

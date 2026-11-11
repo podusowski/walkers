@@ -6,7 +6,7 @@ use futures::channel::mpsc::{Receiver, Sender, TryRecvError, TrySendError, chann
 use lru::LruCache;
 
 use crate::{
-    SourceData, TileId,
+    DemEncoding, SourceData, TileId,
     io::{Fetch, fetch::fetch_continuously, runtime::Runtime},
 };
 
@@ -21,6 +21,9 @@ pub struct TilesIo {
     /// `None` while being fetched, and forever if fetching failed.
     cache: LruCache<TileId, Option<Arc<SourceData>>>,
     pub stats: Arc<Mutex<Stats>>,
+
+    /// Set if the tiles are elevation, packed that way.
+    elevation: Option<DemEncoding>,
 
     #[allow(dead_code)] // Significant Drop
     runtime: Runtime,
@@ -54,8 +57,15 @@ impl TilesIo {
             stats,
             request_tx,
             tile_rx,
+            elevation: None,
             runtime,
         }
+    }
+
+    /// Tiles are elevation, packed as `encoding` says.
+    pub fn with_elevation(mut self, encoding: DemEncoding) -> Self {
+        self.elevation = Some(encoding);
+        self
     }
 
     /// Takes a single fetched tile from the IO thread and puts it in the cache.
@@ -63,8 +73,11 @@ impl TilesIo {
         // This is called every frame, so take just one at the time.
         match self.tile_rx.try_recv() {
             Ok((tile_id, data)) => {
-                self.cache
-                    .put(tile_id, Some(Arc::new(SourceData::Encoded(data))));
+                let data = match self.elevation {
+                    Some(encoding) => SourceData::Elevation { data, encoding },
+                    None => SourceData::Encoded(data),
+                };
+                self.cache.put(tile_id, Some(Arc::new(data)));
             }
             Err(TryRecvError::Empty) => {
                 // No new tile was downloaded, just ignore.

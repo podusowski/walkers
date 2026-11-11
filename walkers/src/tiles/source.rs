@@ -7,9 +7,23 @@ use crate::{Stats, TileId, sources::Attribution};
 /// What a [`TiledSource`] gives for a tile, before any style is applied to it.
 #[non_exhaustive]
 pub enum SourceData {
-    /// A raster image (PNG or JPEG), or a Mapbox Vector Tile if the `mvt` feature is enabled.
-    /// Which one it is, is told by the data itself.
+    /// A raster image (PNG, JPEG or WebP), or a Mapbox Vector Tile if the `mvt` feature is
+    /// enabled. Which one it is, is told by the data itself.
     Encoded(Bytes),
+
+    /// A raster image whose pixels are elevation, packed as `encoding` says. A `hillshade` style
+    /// layer draws it.
+    Elevation { data: Bytes, encoding: DemEncoding },
+}
+
+/// How elevation is packed into the pixels of a raster image.
+///
+/// <https://maplibre.org/maplibre-style-spec/sources/#encoding>
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum DemEncoding {
+    /// Mapbox Terrain-RGB.
+    Mapbox,
+    Terrarium,
 }
 
 /// Source of tiles' data, such as a tile server or a PMTiles file. It knows nothing about how the

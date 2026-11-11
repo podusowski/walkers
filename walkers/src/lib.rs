@@ -25,10 +25,6 @@ mod style {
         pub(crate) fn layer_sources(&self) -> impl ExactSizeIterator<Item = Option<&str>> {
             std::iter::empty()
         }
-
-        pub(crate) fn raster_opacity(&self, _layers: std::ops::Range<usize>, _zoom: u8) -> f32 {
-            1.0
-        }
     }
 }
 
@@ -82,7 +78,7 @@ pub use text::{Placement, Text, place_texts};
 pub use tiles::http::{HttpSource, HttpTiles};
 #[cfg(feature = "pmtiles")]
 pub use tiles::pmtiles::{PmTiles, PmTilesSource};
-pub use tiles::source::{SourceData, TiledSource};
+pub use tiles::source::{DemEncoding, SourceData, TiledSource};
 pub use tiles::{Tile, TileId, TilePiece, Tiles};
 pub use z_order::ZOrder;
 pub use zoom::InvalidZoom;

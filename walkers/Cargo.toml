@@ -21,7 +21,7 @@ egui_extras.workspace = true
 futures.workspace = true
 geo = { workspace = true, optional = true }
 geo-types.workspace = true
-image = { workspace = true, features = ["jpeg", "png"] }
+image = { workspace = true, features = ["jpeg", "png", "webp"] }
 log.workspace = true
 lru.workspace = true
 lyon_path = { workspace = true, optional = true }

@@ -9,7 +9,7 @@ use crate::io::http::http_client;
 use crate::io::tiles_io::TilesIo;
 use crate::sources::{Attribution, TileUrls};
 use crate::style::Style;
-use crate::{HttpOptions, SourceData, StyledSources, TilePiece, TiledSource, Tiles};
+use crate::{DemEncoding, HttpOptions, SourceData, StyledSources, TilePiece, TiledSource, Tiles};
 use crate::{Stats, TileId};
 
 /// Downloads the tiles via HTTP, and draws them with a style. A [`StyledSources`] with a single
@@ -37,8 +37,8 @@ impl HttpTiles {
         Self::with_options_and_style(source, http_options, Default::default(), egui_ctx)
     }
 
-    /// Construct new [`Tiles`] with supplied [`HttpOptions`] and [`Style`]. Style is relevant
-    /// only for vector tile sources.
+    /// Construct new [`Tiles`] with supplied [`HttpOptions`] and [`Style`]. Raster tiles are
+    /// drawn only by a `raster` layer, which [`Style::default`] has.
     pub fn with_options_and_style<S>(
         source: S,
         http_options: HttpOptions,
@@ -78,6 +78,12 @@ impl HttpSource {
             max_zoom: source.max_zoom(),
             io: TilesIo::new(HttpFetch::new(source, http_options), egui_ctx),
         }
+    }
+
+    /// Tiles are elevation, packed as `encoding` says, for a `hillshade` style layer to draw.
+    pub fn with_elevation(mut self, encoding: DemEncoding) -> Self {
+        self.io = self.io.with_elevation(encoding);
+        self
     }
 }
 

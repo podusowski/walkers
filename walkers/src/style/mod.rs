@@ -18,30 +18,27 @@ use crate::expression::Context;
 /// of the MapLibre's styles using `serde`, as unknown JSON/YAML fields are simply ignored.
 ///
 /// <https://maplibre.org/maplibre-style-spec/>
-#[derive(Deserialize, Default)]
+#[derive(Deserialize)]
 pub struct Style {
     pub layers: Vec<StyleLayer>,
+}
+
+/// Draws raster tiles as they are, and nothing else.
+impl Default for Style {
+    fn default() -> Self {
+        Self {
+            layers: vec![StyleLayer::Raster {
+                source: None,
+                paint: Paint::default(),
+            }],
+        }
+    }
 }
 
 impl Style {
     /// Name of the source each layer draws from, if it says.
     pub(crate) fn layer_sources(&self) -> impl ExactSizeIterator<Item = Option<&str>> {
         self.layers.iter().map(StyleLayer::source)
-    }
-
-    /// Opacity of the first raster layer among `layers`, or 1 if there is none.
-    pub(crate) fn raster_opacity(&self, layers: std::ops::Range<usize>, zoom: u8) -> f32 {
-        self.layers[layers]
-            .iter()
-            .find_map(|layer| match layer {
-                StyleLayer::Raster { paint, .. } => {
-                    Some(paint.raster_opacity.as_ref().map_or(1.0, |opacity| {
-                        opacity.evaluate(&Context::new("None".to_owned(), Default::default(), zoom))
-                    }))
-                }
-                _ => None,
-            })
-            .unwrap_or(1.0)
     }
 }
 
@@ -152,6 +149,14 @@ pub enum StyleLayer {
         source_layer: SourceLayer,
         filter: Option<Filter>,
     },
+    /// Shades elevation into relief, following MapLibre's `standard` method. Draws from a source
+    /// made `with_elevation`, such as [`crate::sources::Mapterhorn`].
+    Hillshade {
+        #[serde(default)]
+        source: Option<String>,
+        #[serde(default)]
+        paint: Paint,
+    },
     /// Draws raster tiles as they are.
     Raster {
         #[serde(default)]
@@ -171,6 +176,7 @@ impl StyleLayer {
             | StyleLayer::Line { source, .. }
             | StyleLayer::Symbol { source, .. }
             | StyleLayer::Circle { source, .. }
+            | StyleLayer::Hillshade { source, .. }
             | StyleLayer::Raster { source, .. } => source.as_deref(),
             StyleLayer::FillExtrusion => None,
         }
@@ -199,6 +205,16 @@ pub struct Paint {
     pub text_halo_width: Option<Float>,
     /// <https://maplibre.org/maplibre-style-spec/layers/>#raster-opacity
     pub raster_opacity: Option<Float>,
+    /// <https://maplibre.org/maplibre-style-spec/layers/>#hillshade-illumination-direction
+    pub hillshade_illumination_direction: Option<Float>,
+    /// <https://maplibre.org/maplibre-style-spec/layers/>#hillshade-exaggeration
+    pub hillshade_exaggeration: Option<Float>,
+    /// <https://maplibre.org/maplibre-style-spec/layers/>#hillshade-shadow-color
+    pub hillshade_shadow_color: Option<Color>,
+    /// <https://maplibre.org/maplibre-style-spec/layers/>#hillshade-highlight-color
+    pub hillshade_highlight_color: Option<Color>,
+    /// <https://maplibre.org/maplibre-style-spec/layers/>#hillshade-accent-color
+    pub hillshade_accent_color: Option<Color>,
 }
 
 #[derive(Debug, Error)]
