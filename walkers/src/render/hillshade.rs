@@ -70,15 +70,11 @@ fn elevation(encoding: DemEncoding, [r, g, b, _]: [u8; 4]) -> f32 {
     }
 }
 
-/// How steeply the ground rises east and south of each pixel. Pixels at the edges of the tile
-/// borrow their missing neighbors from themselves, as the tiles around are not at hand.
+/// How steeply the ground rises east and south of each pixel. The tiles around are not at hand,
+/// so past the edges of the tile, the ground is taken to keep rising as it does at them.
 fn slopes(elevations: &[f32], width: usize, height: usize, zoom: u8) -> Vec<[f32; 2]> {
-    let at = |x: usize, y: usize, dx: isize, dy: isize| {
-        let x = x.saturating_add_signed(dx).min(width - 1);
-        let y = y.saturating_add_signed(dy).min(height - 1);
-        // MapLibre quarters the elevation, and its look is tuned for that.
-        elevations[y * width + x] / 4.0
-    };
+    // MapLibre quarters the elevation, and its look is tuned for that.
+    let inside = |x: usize, y: usize| elevations[y * width + x] / 4.0;
 
     // Relief is barely noticeable when zoomed out, so MapLibre exaggerates it there.
     let zoom = zoom as f32;
@@ -102,11 +98,17 @@ fn slopes(elevations: &[f32], width: usize, height: usize, zoom: u8) -> Vec<[f32
     (0..height)
         .flat_map(|y| (0..width).map(move |x| (x, y)))
         .map(|(x, y)| {
-            let e = |dx, dy| at(x, y, dx, dy);
-            let east =
-                (e(1, -1) + 2.0 * e(1, 0) + e(1, 1)) - (e(-1, -1) + 2.0 * e(-1, 0) + e(-1, 1));
-            let south =
-                (e(-1, 1) + 2.0 * e(0, 1) + e(1, 1)) - (e(-1, -1) + 2.0 * e(0, -1) + e(1, -1));
+            let (x, y) = (x as isize, y as isize);
+            let on_edge = x == 0 || y == 0 || x as usize + 1 == width || y as usize + 1 == height;
+            let [east, south] = if on_edge {
+                sobel(|dx, dy| {
+                    extended(x + dx, width, |x| {
+                        extended(y + dy, height, |y| inside(x, y))
+                    })
+                })
+            } else {
+                sobel(|dx, dy| inside((x + dx) as usize, (y + dy) as usize))
+            };
 
             // MapLibre keeps them in a texture, which clamps them.
             [
@@ -115,6 +117,28 @@ fn slopes(elevations: &[f32], width: usize, height: usize, zoom: u8) -> Vec<[f32
             ]
         })
         .collect()
+}
+
+/// How much the ground rises east and south across the pixel whose neighbors `at` gives, by
+/// their offsets.
+fn sobel(at: impl Fn(isize, isize) -> f32) -> [f32; 2] {
+    let east = (at(1, -1) + 2.0 * at(1, 0) + at(1, 1)) - (at(-1, -1) + 2.0 * at(-1, 0) + at(-1, 1));
+    let south =
+        (at(-1, 1) + 2.0 * at(0, 1) + at(1, 1)) - (at(-1, -1) + 2.0 * at(0, -1) + at(1, -1));
+    [east, south]
+}
+
+/// What is at `at` along a row or a column `size` long, which `get` tells within it. One step
+/// past either end, it goes on as it does at that end.
+fn extended(at: isize, size: usize, get: impl Fn(usize) -> f32) -> f32 {
+    let last = size - 1;
+    match at {
+        ..0 if size > 1 => 2.0 * get(0) - get(1),
+        ..0 => get(0),
+        at if at as usize > last && size > 1 => 2.0 * get(last) - get(last - 1),
+        at if at as usize > last => get(last),
+        at => get(at as usize),
+    }
 }
 
 /// Of the point `fraction` of the way down the tile.
@@ -308,6 +332,24 @@ pub(crate) mod tests {
 
         let shaded = shade(&ramp(0.0, -20.0), &paint);
         assert!(shaded.iter().all(|pixel| *pixel == Color32::TRANSPARENT));
+    }
+
+    /// The neighbors of edge pixels are in other tiles, so they must not shade differently, or
+    /// tiles' edges show as lines.
+    #[test]
+    fn even_slope_is_shaded_the_same_up_to_the_edges() {
+        let shaded = shade(&ramp(10.0, -20.0), &Paint::default());
+        let middle = middle(&shaded);
+
+        for (index, pixel) in shaded.iter().enumerate() {
+            let close = |a: u8, b: u8| a.abs_diff(b) <= 1;
+            assert!(
+                close(pixel.r(), middle.r()) && close(pixel.a(), middle.a()),
+                "{pixel:?} at {}, {} vs {middle:?} in the middle",
+                index % 16,
+                index / 16
+            );
+        }
     }
 
     /// Edges have no neighbors in the tile, which must not take it down.
