@@ -1,3 +1,4 @@
+pub(crate) mod apply_style;
 pub(crate) mod grid;
 pub(crate) mod http;
 #[cfg(feature = "mvt")]
@@ -12,16 +13,17 @@ use crate::render;
 
 use egui::{ColorImage, TextureHandle};
 use egui::{Context, Rect, Vec2, pos2};
-use image::{ImageError, ImageReader};
+use image::ImageError;
 use std::collections::HashSet;
 use std::ops::Range;
 use thiserror::Error;
 
-use crate::DemEncoding;
+use crate::SourceData;
 use crate::position::{Pixels, PixelsExt};
 use crate::sources::Attribution;
 use crate::style::Style;
 use crate::{Canvas, Projector, Stats};
+use apply_style::{Styled, apply_style};
 use grid::{TILE_SIZE, tile_id_at, total_tiles};
 
 #[derive(Error, Debug)]
@@ -42,8 +44,8 @@ pub enum TileError {
     #[error("Unrecognized image format.")]
     UnrecognizedFormat,
 
-    #[error("Elevation is drawn only by a hillshade style layer.")]
-    Unshaded,
+    #[error("The style draws nothing of the tile: {0}.")]
+    Unstyled(&'static str),
 }
 
 /// Identifies the tile in the tile grid.
@@ -142,49 +144,15 @@ impl Tile {
         tile_size: u32,
         ctx: &Context,
     ) -> Result<Self, TileError> {
-        Self::decode(image, style, all_layers(style), zoom, tile_size, ctx)
-    }
-
-    /// Like [`Tile::new`], but only drawing the `layers` of the style.
-    pub(crate) fn decode(
-        image: &[u8],
-        style: &Style,
-        layers: Range<usize>,
-        zoom: u8,
-        tile_size: u32,
-        ctx: &Context,
-    ) -> Result<Self, TileError> {
-        #[cfg(not(feature = "mvt"))]
-        let _ = (style, &layers, zoom, tile_size);
-
-        if image.is_empty() {
-            return Err(TileError::Empty);
-        }
-
-        let reader = ImageReader::new(std::io::Cursor::new(image)).with_guessed_format()?;
-        if reader.format().is_some() {
-            log::debug!("Decoding tile as raster image.");
-            let image = reader.decode()?.to_rgba8();
-            let pixels = image.as_flat_samples();
-            let image = ColorImage::from_rgba_unmultiplied(
-                [image.width() as _, image.height() as _],
-                pixels.as_slice(),
-            );
-
-            Ok(Self::from_color_image(image, ctx))
-        } else {
-            #[cfg(feature = "mvt")]
-            {
-                log::debug!("Trying to decode tile as MVT vector tile.");
-                Ok(Self::from_mvt_layers(
-                    image, style, layers, zoom, tile_size,
-                )?)
-            }
-            #[cfg(not(feature = "mvt"))]
-            {
-                Err(TileError::UnrecognizedFormat)
-            }
-        }
+        let data = SourceData::Encoded(bytes::Bytes::copy_from_slice(image));
+        let styled = apply_style(
+            &data,
+            style,
+            all_layers(style),
+            somewhere_at(zoom),
+            tile_size,
+        )?;
+        Ok(Self::from_styled(styled, ctx))
     }
 
     #[cfg(feature = "mvt")]
@@ -194,51 +162,30 @@ impl Tile {
         zoom: u8,
         tile_size: u32,
     ) -> Result<Self, TileError> {
-        Self::from_mvt_layers(data, style, all_layers(style), zoom, tile_size)
-    }
-
-    #[cfg(feature = "mvt")]
-    fn from_mvt_layers(
-        data: &[u8],
-        style: &Style,
-        layers: Range<usize>,
-        zoom: u8,
-        tile_size: u32,
-    ) -> Result<Self, TileError> {
-        let (drawables, texts) = mvt::render(data, style, layers, zoom, tile_size)?;
-
-        Ok(Self::Vector {
-            drawables: std::sync::Arc::new(drawables),
-            texts,
-        })
-    }
-
-    /// Relief, as the hillshade layers among `layers` of the style shade the elevation in `data`.
-    pub(crate) fn from_elevation(
-        data: &[u8],
-        encoding: DemEncoding,
-        style: &Style,
-        layers: Range<usize>,
-        tile_id: TileId,
-        ctx: &Context,
-    ) -> Result<Self, TileError> {
-        #[cfg(feature = "vector")]
-        {
-            let paints = style.hillshades(layers);
-            if paints.is_empty() {
-                return Err(TileError::Unshaded);
-            }
-
-            let image = image::load_from_memory(data)?.to_rgba8();
-            let size = [image.width() as usize, image.height() as usize];
-            let pixels = render::hillshade::render(&image, encoding, &paints, tile_id);
-            Ok(Self::from_color_image(ColorImage::new(size, pixels), ctx))
+        let data = SourceData::Encoded(bytes::Bytes::copy_from_slice(data));
+        match apply_style(
+            &data,
+            style,
+            all_layers(style),
+            somewhere_at(zoom),
+            tile_size,
+        )? {
+            Styled::Vector { drawables, texts } => Ok(Self::Vector {
+                drawables: std::sync::Arc::new(drawables),
+                texts,
+            }),
+            Styled::Image(_) => Err(TileError::Unstyled("not a vector tile")),
         }
+    }
 
-        #[cfg(not(feature = "vector"))]
-        {
-            let _ = (data, encoding, style, layers, tile_id, ctx);
-            Err(TileError::Unshaded)
+    pub(crate) fn from_styled(styled: Styled, ctx: &Context) -> Self {
+        match styled {
+            Styled::Image(image) => Self::from_color_image(image, ctx),
+            #[cfg(feature = "vector")]
+            Styled::Vector { drawables, texts } => Self::Vector {
+                drawables: std::sync::Arc::new(drawables),
+                texts,
+            },
         }
     }
 
@@ -448,6 +395,12 @@ fn transform_onto(rect: Rect, tile_size: u32) -> egui::emath::TSTransform {
 
 pub(crate) fn rect(screen_position: Vec2, tile_size: f64) -> Rect {
     Rect::from_min_size(screen_position.to_pos2(), Vec2::splat(tile_size as f32))
+}
+
+/// Some tile at `zoom`, for data which is not elevation, as only shading elevation needs to know
+/// where the tile is.
+fn somewhere_at(zoom: u8) -> TileId {
+    TileId { x: 0, y: 0, zoom }
 }
 
 /// Every layer of the style.

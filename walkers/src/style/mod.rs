@@ -29,17 +29,6 @@ impl Style {
         self.layers.iter().map(StyleLayer::source)
     }
 
-    /// Paint of the hillshade layers among `layers`, in the order they are drawn.
-    pub(crate) fn hillshades(&self, layers: std::ops::Range<usize>) -> Vec<&Paint> {
-        self.layers[layers]
-            .iter()
-            .filter_map(|layer| match layer {
-                StyleLayer::Hillshade { paint, .. } => Some(paint),
-                _ => None,
-            })
-            .collect()
-    }
-
     /// Opacity of the first raster layer among `layers`, or 1 if there is none.
     pub(crate) fn raster_opacity(&self, layers: std::ops::Range<usize>, zoom: u8) -> f32 {
         self.layers[layers]

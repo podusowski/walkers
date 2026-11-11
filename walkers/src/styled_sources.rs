@@ -401,24 +401,4 @@ mod tests {
             .collect();
         assert_eq!(sizes, [1, 16]);
     }
-
-    /// Its pixels are not colors, so drawing them as they are would make no sense.
-    #[test]
-    fn elevation_is_not_drawn_without_a_hillshade_layer() {
-        let style = serde_json::from_value(serde_json::json!({
-            "layers": [{ "type": "raster" }]
-        }))
-        .unwrap();
-        let mut styled = StyledSources::new(style, Context::default())
-            .with_tiled_source("terrain", Fixed::elevation());
-
-        // Once the tile is through styling, nothing is drawn.
-        draw_rasters(&mut styled, 0);
-        let deadline = std::time::Instant::now() + std::time::Duration::from_secs(5);
-        while styled.stats().in_progress > 0 {
-            assert!(std::time::Instant::now() < deadline, "still styling");
-            draw_rasters(&mut styled, 0);
-        }
-        assert!(draw_rasters(&mut styled, 0).is_empty());
-    }
 }

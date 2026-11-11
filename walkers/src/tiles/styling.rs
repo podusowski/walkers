@@ -7,7 +7,7 @@ use futures::{
 };
 use lru::LruCache;
 
-use super::interpolate_from_lower_zoom;
+use super::{apply_style::apply_style, interpolate_from_lower_zoom};
 use crate::{SourceData, Style, Tile, TileId, TilePiece, TiledSource, io::runtime::Runtime};
 
 /// How many tiles can wait to be styled. Arbitrary, the rest is asked for again later.
@@ -186,28 +186,12 @@ async fn style_continuously(
         tile_size,
     }) = request_rx.next().await
     {
-        let tile = match &*data {
-            SourceData::Encoded(bytes) => Tile::decode(
-                bytes,
-                &style,
-                key.layers.clone(),
-                key.tile_id.zoom,
-                tile_size,
-                &egui_ctx,
-            ),
-            SourceData::Elevation { data, encoding } => Tile::from_elevation(
-                data,
-                *encoding,
-                &style,
-                key.layers.clone(),
-                key.tile_id,
-                &egui_ctx,
-            ),
-        }
-        // It would probably be more consistent to push it to the caller, but it's not that
-        // important right now.
-        .inspect_err(|err| log::warn!("{err}"))
-        .ok();
+        let tile = apply_style(&data, &style, key.layers.clone(), key.tile_id, tile_size)
+            // It would probably be more consistent to push it to the caller, but it's not that
+            // important right now.
+            .inspect_err(|err| log::warn!("{err}"))
+            .ok()
+            .map(|styled| Tile::from_styled(styled, &egui_ctx));
 
         // Failures too, so that the main thread knows they are no longer in progress.
         if tile_tx.send((key, tile)).await.is_err() {

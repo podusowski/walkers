@@ -208,7 +208,7 @@ pub(crate) mod tests {
     use super::*;
     use serde_json::json;
 
-    pub(crate) fn terrarium(meters: f32) -> image::Rgba<u8> {
+    fn terrarium(meters: f32) -> image::Rgba<u8> {
         let value = meters + 32768.0;
         let r = (value / 256.0).floor();
         let g = (value - r * 256.0).floor();
