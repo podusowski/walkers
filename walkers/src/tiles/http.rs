@@ -1,5 +1,3 @@
-use std::sync::Arc;
-
 use bytes::Bytes;
 use egui::Context;
 use reqwest_middleware::ClientWithMiddleware;
@@ -9,7 +7,7 @@ use crate::io::http::http_client;
 use crate::io::tiles_io::TilesIo;
 use crate::sources::{Attribution, TileUrls};
 use crate::style::Style;
-use crate::{DemEncoding, HttpOptions, SourceData, StyledSources, TilePiece, TiledSource, Tiles};
+use crate::{DemEncoding, HttpOptions, StyledSources, TileData, TilePiece, TiledSource, Tiles};
 use crate::{Stats, TileId};
 
 /// Downloads the tiles via HTTP, and draws them with a style. A [`StyledSources`] with a single
@@ -88,7 +86,7 @@ impl HttpSource {
 }
 
 impl TiledSource for HttpSource {
-    fn data(&mut self, tile_id: TileId) -> Option<Arc<SourceData>> {
+    fn data(&mut self, tile_id: TileId) -> TileData {
         self.io.data(tile_id)
     }
 
@@ -429,6 +427,24 @@ mod tests {
         assert!(tiles.at(TILE_ID).is_none());
         tokio::time::sleep(Duration::from_secs(1)).await;
         assert!(tiles.at(TILE_ID).is_none());
+    }
+
+    /// So that the tile of a lower zoom level can be drawn instead.
+    #[tokio::test]
+    async fn tile_which_http_does_not_have_is_missing() {
+        let _ = env_logger::try_init();
+
+        let (server, source) = hypermocker_mock().await;
+        let mut source = HttpSource::new(source, HttpOptions::default(), Context::default());
+        server
+            .anticipate("/3/1/2.png")
+            .await
+            .respond_with_status(StatusCode::NOT_FOUND)
+            .await;
+
+        while !matches!(source.data(TILE_ID), TileData::Missing) {
+            tokio::time::sleep(Duration::from_millis(10)).await;
+        }
     }
 
     #[tokio::test]

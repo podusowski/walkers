@@ -16,6 +16,18 @@ pub enum SourceData {
     Elevation { data: Bytes, encoding: DemEncoding },
 }
 
+/// What a [`TiledSource`] has for a tile.
+#[derive(Clone)]
+pub enum TileData {
+    Ready(Arc<SourceData>),
+
+    /// Being fetched, or about to be.
+    Loading,
+
+    /// There is no such tile, so the one of a lower zoom level covering it is drawn instead.
+    Missing,
+}
+
 /// How elevation is packed into the pixels of a raster image.
 ///
 /// <https://maplibre.org/maplibre-style-spec/sources/#encoding>
@@ -29,9 +41,8 @@ pub enum DemEncoding {
 /// Source of tiles' data, such as a tile server or a PMTiles file. It knows nothing about how the
 /// data is drawn, that is up to the style of [`crate::StyledSources`].
 pub trait TiledSource {
-    /// Data of that exact tile, if it is ready. Otherwise `None`, and it is fetched in the
-    /// background, unless fetching it already failed.
-    fn data(&mut self, tile_id: TileId) -> Option<Arc<SourceData>>;
+    /// Data of that exact tile. Unless it is ready or missing, it is fetched in the background.
+    fn data(&mut self, tile_id: TileId) -> TileData;
 
     fn attribution(&self) -> Attribution;
 

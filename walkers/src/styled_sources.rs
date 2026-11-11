@@ -286,9 +286,9 @@ mod tests {
     }
 
     impl TiledSource for Fixed {
-        fn data(&mut self, _tile_id: crate::TileId) -> Option<Arc<crate::SourceData>> {
+        fn data(&mut self, _tile_id: crate::TileId) -> crate::TileData {
             let data = self.png.clone();
-            Some(Arc::new(match self.elevation {
+            crate::TileData::Ready(Arc::new(match self.elevation {
                 Some(encoding) => crate::SourceData::Elevation { data, encoding },
                 None => crate::SourceData::Encoded(data),
             }))

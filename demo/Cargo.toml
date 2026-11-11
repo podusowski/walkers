@@ -17,6 +17,10 @@ env_logger.workspace = true
 name = "scroll_perf"
 required-features = ["mvt", "pmtiles"]
 
+[[bin]]
+name = "relief"
+required-features = ["mvt"]
+
 [features]
 default = []
 mvt = ["walkers/mvt"]

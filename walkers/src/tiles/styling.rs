@@ -8,7 +8,9 @@ use futures::{
 use lru::LruCache;
 
 use super::{apply_style::apply_style, interpolate_from_lower_zoom};
-use crate::{SourceData, Style, Tile, TileId, TilePiece, TiledSource, io::runtime::Runtime};
+use crate::{
+    SourceData, Style, Tile, TileData, TileId, TilePiece, TiledSource, io::runtime::Runtime,
+};
 
 /// How many tiles can wait to be styled. Arbitrary, the rest is asked for again later.
 const QUEUE_SIZE: usize = 8;
@@ -82,25 +84,36 @@ impl Styling {
             return None;
         }
 
-        let tile_id_to_style = if tile_id.zoom > source.max_zoom() {
+        let key = |tile_id| Key {
+            source: index,
+            layers: layers.clone(),
+            tile_id,
+        };
+
+        let mut tile_id_to_style = if tile_id.zoom > source.max_zoom() {
             interpolate_from_lower_zoom(tile_id, source.max_zoom()).0
         } else {
             tile_id
         };
 
-        let key = Key {
-            source: index,
-            layers,
-            tile_id: tile_id_to_style,
-        };
-
-        if !self.cache.contains(&key)
-            && let Some(data) = source.data(tile_id_to_style)
-        {
-            self.style(key.clone(), data, source.tile_size());
+        // Where the source has no such tile, the one of the zoom level below stands in.
+        while !self.cache.contains(&key(tile_id_to_style)) {
+            match source.data(tile_id_to_style) {
+                TileData::Ready(data) => {
+                    self.style(key(tile_id_to_style), data, source.tile_size());
+                    break;
+                }
+                TileData::Loading => break,
+                TileData::Missing => match tile_id_to_style.zoom.checked_sub(1) {
+                    Some(zoom) => {
+                        tile_id_to_style = interpolate_from_lower_zoom(tile_id_to_style, zoom).0;
+                    }
+                    None => break,
+                },
+            }
         }
 
-        self.best_available(key, tile_id)
+        self.best_available(key(tile_id), tile_id)
     }
 
     /// How many tiles are being styled right now.
@@ -207,6 +220,65 @@ async fn style_continuously(
 mod tests {
     use super::*;
     use std::time::{Duration, Instant};
+
+    /// Only its tiles at zoom 0 exist, and they are all the same raster image.
+    struct OnlyZoomZero {
+        png: bytes::Bytes,
+    }
+
+    impl OnlyZoomZero {
+        fn new() -> Self {
+            let mut png = Vec::new();
+            image::RgbaImage::new(1, 1)
+                .write_to(&mut std::io::Cursor::new(&mut png), image::ImageFormat::Png)
+                .unwrap();
+            Self { png: png.into() }
+        }
+    }
+
+    impl TiledSource for OnlyZoomZero {
+        fn data(&mut self, tile_id: TileId) -> TileData {
+            if tile_id.zoom == 0 {
+                TileData::Ready(Arc::new(SourceData::Encoded(self.png.clone())))
+            } else {
+                TileData::Missing
+            }
+        }
+
+        fn attribution(&self) -> crate::sources::Attribution {
+            crate::sources::Attribution {
+                text: "",
+                url: "",
+                logo_light: None,
+                logo_dark: None,
+            }
+        }
+    }
+
+    /// Like elevation tiles past the zoom levels a region has, so that the map keeps drawing
+    /// those of the region's highest one.
+    #[test]
+    fn missing_tile_is_drawn_from_the_one_of_a_lower_zoom_level() {
+        let mut styling = Styling::new(Arc::new(Style::default()), Context::default());
+        let mut source = OnlyZoomZero::new();
+        let tile_id = TileId {
+            x: 3,
+            y: 2,
+            zoom: 2,
+        };
+
+        let deadline = Instant::now() + Duration::from_secs(5);
+        let piece = loop {
+            if let Some(piece) = styling.at(0, &mut source, 0..1, tile_id) {
+                break piece;
+            }
+            assert!(Instant::now() < deadline, "never drawn");
+            std::thread::sleep(Duration::from_millis(10));
+        };
+
+        // Where it lies in the tile of zoom 0.
+        assert_eq!(piece.uv.min, egui::pos2(0.75, 0.5));
+    }
 
     /// Data which cannot be styled is done with too, so it must not be reported as loading.
     #[test]

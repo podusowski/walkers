@@ -78,7 +78,7 @@ pub use text::{Placement, Text, place_texts};
 pub use tiles::http::{HttpSource, HttpTiles};
 #[cfg(feature = "pmtiles")]
 pub use tiles::pmtiles::{PmTiles, PmTilesSource};
-pub use tiles::source::{DemEncoding, SourceData, TiledSource};
+pub use tiles::source::{DemEncoding, SourceData, TileData, TiledSource};
 pub use tiles::{Tile, TileId, TilePiece, Tiles};
 pub use z_order::ZOrder;
 pub use zoom::InvalidZoom;

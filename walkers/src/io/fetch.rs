@@ -44,32 +44,25 @@ impl<T> From<std::sync::PoisonError<T>> for Error {
 }
 
 /// Download the tile.
-async fn fetch_tile(fetch: &impl Fetch, tile_id: TileId) -> Result<(TileId, Bytes), Error> {
+async fn fetch_tile(fetch: &impl Fetch, tile_id: TileId) -> (TileId, Result<Bytes, Error>) {
     let data = fetch
         .fetch(tile_id)
         .await
-        .map_err(|e| Error::Fetch(e.to_string()))?;
-    Ok((tile_id, data))
+        .map_err(|e| Error::Fetch(e.to_string()));
+    (tile_id, data)
 }
 
-/// Deliver the fetched tile to the main thread.
+/// Deliver the fetched tile to the main thread, `None` if fetching it failed.
 async fn fetch_complete(
-    mut tile_tx: Sender<(TileId, Bytes)>,
+    mut tile_tx: Sender<(TileId, Option<Bytes>)>,
     egui_ctx: Context,
-    result: Result<(TileId, Bytes), Error>,
+    (tile_id, result): (TileId, Result<Bytes, Error>),
 ) -> Result<(), Error> {
-    match result {
-        Ok((tile_id, data)) => {
-            tile_tx.send((tile_id, data)).await?;
-            egui_ctx.request_repaint();
-        }
-        Err(e) => {
-            // It would probably be more consistent to push it to the caller, but it's not that
-            // important right now.
-            log::warn!("{e}");
-        }
-    };
-
+    // It would probably be more consistent to push it to the caller, but it's not that
+    // important right now.
+    let data = result.inspect_err(|e| log::warn!("{e}")).ok();
+    tile_tx.send((tile_id, data)).await?;
+    egui_ctx.request_repaint();
     Ok(())
 }
 
@@ -77,7 +70,7 @@ async fn fetch_continuously_impl(
     fetch: impl Fetch,
     stats: Arc<Mutex<Stats>>,
     mut request_rx: Receiver<TileId>,
-    tile_tx: Sender<(TileId, Bytes)>,
+    tile_tx: Sender<(TileId, Option<Bytes>)>,
     egui_ctx: Context,
 ) -> Result<(), Error> {
     let mut outstanding = Vec::new();
@@ -122,7 +115,7 @@ pub(crate) async fn fetch_continuously(
     fetch: impl Fetch,
     stats: Arc<Mutex<Stats>>,
     request_rx: Receiver<TileId>,
-    tile_tx: Sender<(TileId, Bytes)>,
+    tile_tx: Sender<(TileId, Option<Bytes>)>,
     egui_ctx: Context,
 ) {
     match fetch_continuously_impl(fetch, stats, request_rx, tile_tx, egui_ctx).await {
