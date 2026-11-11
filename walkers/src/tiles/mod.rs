@@ -17,6 +17,7 @@ use std::collections::HashSet;
 use std::ops::Range;
 use thiserror::Error;
 
+use crate::DemEncoding;
 use crate::position::{Pixels, PixelsExt};
 use crate::sources::Attribution;
 use crate::style::Style;
@@ -40,6 +41,9 @@ pub enum TileError {
 
     #[error("Unrecognized image format.")]
     UnrecognizedFormat,
+
+    #[error("Elevation is drawn only by a hillshade style layer.")]
+    Unshaded,
 }
 
 /// Identifies the tile in the tile grid.
@@ -207,6 +211,35 @@ impl Tile {
             drawables: std::sync::Arc::new(drawables),
             texts,
         })
+    }
+
+    /// Relief, as the hillshade layers among `layers` of the style shade the elevation in `data`.
+    pub(crate) fn from_elevation(
+        data: &[u8],
+        encoding: DemEncoding,
+        style: &Style,
+        layers: Range<usize>,
+        tile_id: TileId,
+        ctx: &Context,
+    ) -> Result<Self, TileError> {
+        #[cfg(feature = "vector")]
+        {
+            let paints = style.hillshades(layers);
+            if paints.is_empty() {
+                return Err(TileError::Unshaded);
+            }
+
+            let image = image::load_from_memory(data)?.to_rgba8();
+            let size = [image.width() as usize, image.height() as usize];
+            let pixels = render::hillshade::render(&image, encoding, &paints, tile_id);
+            Ok(Self::from_color_image(ColorImage::new(size, pixels), ctx))
+        }
+
+        #[cfg(not(feature = "vector"))]
+        {
+            let _ = (data, encoding, style, layers, tile_id, ctx);
+            Err(TileError::Unshaded)
+        }
     }
 
     /// Load the texture from egui's [`ColorImage`].

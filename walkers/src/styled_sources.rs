@@ -264,21 +264,41 @@ mod tests {
     /// apart by what they draw.
     struct Fixed {
         png: bytes::Bytes,
+        elevation: Option<crate::DemEncoding>,
     }
 
     impl Fixed {
         fn new(size: u32) -> Self {
+            Self::of(image::RgbaImage::new(size, size))
+        }
+
+        fn of(image: image::RgbaImage) -> Self {
             let mut png = Vec::new();
-            image::RgbaImage::new(size, size)
+            image
                 .write_to(&mut std::io::Cursor::new(&mut png), image::ImageFormat::Png)
                 .unwrap();
-            Self { png: png.into() }
+            Self {
+                png: png.into(),
+                elevation: None,
+            }
+        }
+
+        /// Ground rising to the south, Terrarium-encoded.
+        fn elevation() -> Self {
+            Self {
+                elevation: Some(crate::DemEncoding::Terrarium),
+                ..Self::of(crate::render::hillshade::tests::ramp(0.0, 20.0))
+            }
         }
     }
 
     impl TiledSource for Fixed {
         fn data(&mut self, _tile_id: crate::TileId) -> Option<Arc<crate::SourceData>> {
-            Some(Arc::new(crate::SourceData::Encoded(self.png.clone())))
+            let data = self.png.clone();
+            Some(Arc::new(match self.elevation {
+                Some(encoding) => crate::SourceData::Elevation { data, encoding },
+                None => crate::SourceData::Encoded(data),
+            }))
         }
 
         fn attribution(&self) -> Attribution {
@@ -360,5 +380,45 @@ mod tests {
             .map(|piece| piece.transparency)
             .collect();
         assert_eq!(transparencies, [1.0, 0.25]);
+    }
+
+    #[test]
+    fn elevation_is_drawn_as_relief_by_hillshade_layers() {
+        let style = serde_json::from_value(serde_json::json!({
+            "layers": [
+                { "type": "raster", "source": "a" },
+                { "type": "hillshade", "source": "terrain" },
+            ]
+        }))
+        .unwrap();
+        let mut styled = StyledSources::new(style, Context::default())
+            .with_tiled_source("a", Fixed::new(1))
+            .with_tiled_source("terrain", Fixed::elevation());
+
+        let sizes: Vec<usize> = draw_rasters(&mut styled, 2)
+            .iter()
+            .map(|piece| piece.image.0.size()[0])
+            .collect();
+        assert_eq!(sizes, [1, 16]);
+    }
+
+    /// Its pixels are not colors, so drawing them as they are would make no sense.
+    #[test]
+    fn elevation_is_not_drawn_without_a_hillshade_layer() {
+        let style = serde_json::from_value(serde_json::json!({
+            "layers": [{ "type": "raster" }]
+        }))
+        .unwrap();
+        let mut styled = StyledSources::new(style, Context::default())
+            .with_tiled_source("terrain", Fixed::elevation());
+
+        // Once the tile is through styling, nothing is drawn.
+        draw_rasters(&mut styled, 0);
+        let deadline = std::time::Instant::now() + std::time::Duration::from_secs(5);
+        while styled.stats().in_progress > 0 {
+            assert!(std::time::Instant::now() < deadline, "still styling");
+            draw_rasters(&mut styled, 0);
+        }
+        assert!(draw_rasters(&mut styled, 0).is_empty());
     }
 }

@@ -1,5 +1,5 @@
 use crate::{
-    SourceData, Stats, StyledSources, TileId, TilePiece, TiledSource, Tiles,
+    DemEncoding, SourceData, Stats, StyledSources, TileId, TilePiece, TiledSource, Tiles,
     io::{Fetch, tiles_io::TilesIo},
     sources::Attribution,
     style::Style,
@@ -80,6 +80,12 @@ impl PmTilesSource {
             io: TilesIo::new(PmTilesFetch::new(path.as_ref()), egui_ctx),
             tile_size,
         }
+    }
+
+    /// Tiles are elevation, packed as `encoding` says, for a `hillshade` style layer to draw.
+    pub fn with_elevation(mut self, encoding: DemEncoding) -> Self {
+        self.io = self.io.with_elevation(encoding);
+        self
     }
 }
 

@@ -108,6 +108,8 @@ pub fn render(
                     }
                 }
             }
+            // Drawn from elevation, not from vector tiles.
+            StyleLayer::Hillshade { .. } => continue,
             layer => {
                 log::warn!("Unsupported layer type in style: {layer:?}");
                 continue;
@@ -146,6 +148,7 @@ fn decode_needed_layers(
                 // Circle layers name a source layer, but are not drawn.
                 StyleLayer::Background { .. }
                 | StyleLayer::Circle { .. }
+                | StyleLayer::Hillshade { .. }
                 | StyleLayer::Raster { .. }
                 | StyleLayer::FillExtrusion => false,
             })

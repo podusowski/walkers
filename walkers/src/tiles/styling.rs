@@ -195,6 +195,14 @@ async fn style_continuously(
                 tile_size,
                 &egui_ctx,
             ),
+            SourceData::Elevation { data, encoding } => Tile::from_elevation(
+                data,
+                *encoding,
+                &style,
+                key.layers.clone(),
+                key.tile_id,
+                &egui_ctx,
+            ),
         }
         // It would probably be more consistent to push it to the caller, but it's not that
         // important right now.

@@ -29,6 +29,17 @@ impl Style {
         self.layers.iter().map(StyleLayer::source)
     }
 
+    /// Paint of the hillshade layers among `layers`, in the order they are drawn.
+    pub(crate) fn hillshades(&self, layers: std::ops::Range<usize>) -> Vec<&Paint> {
+        self.layers[layers]
+            .iter()
+            .filter_map(|layer| match layer {
+                StyleLayer::Hillshade { paint, .. } => Some(paint),
+                _ => None,
+            })
+            .collect()
+    }
+
     /// Opacity of the first raster layer among `layers`, or 1 if there is none.
     pub(crate) fn raster_opacity(&self, layers: std::ops::Range<usize>, zoom: u8) -> f32 {
         self.layers[layers]
@@ -152,6 +163,14 @@ pub enum StyleLayer {
         source_layer: SourceLayer,
         filter: Option<Filter>,
     },
+    /// Shades elevation into relief, following MapLibre's `standard` method. Draws from a source
+    /// made `with_elevation`, such as [`crate::sources::Mapterhorn`].
+    Hillshade {
+        #[serde(default)]
+        source: Option<String>,
+        #[serde(default)]
+        paint: Paint,
+    },
     /// Draws raster tiles as they are.
     Raster {
         #[serde(default)]
@@ -171,6 +190,7 @@ impl StyleLayer {
             | StyleLayer::Line { source, .. }
             | StyleLayer::Symbol { source, .. }
             | StyleLayer::Circle { source, .. }
+            | StyleLayer::Hillshade { source, .. }
             | StyleLayer::Raster { source, .. } => source.as_deref(),
             StyleLayer::FillExtrusion => None,
         }
@@ -199,6 +219,16 @@ pub struct Paint {
     pub text_halo_width: Option<Float>,
     /// <https://maplibre.org/maplibre-style-spec/layers/>#raster-opacity
     pub raster_opacity: Option<Float>,
+    /// <https://maplibre.org/maplibre-style-spec/layers/>#hillshade-illumination-direction
+    pub hillshade_illumination_direction: Option<Float>,
+    /// <https://maplibre.org/maplibre-style-spec/layers/>#hillshade-exaggeration
+    pub hillshade_exaggeration: Option<Float>,
+    /// <https://maplibre.org/maplibre-style-spec/layers/>#hillshade-shadow-color
+    pub hillshade_shadow_color: Option<Color>,
+    /// <https://maplibre.org/maplibre-style-spec/layers/>#hillshade-highlight-color
+    pub hillshade_highlight_color: Option<Color>,
+    /// <https://maplibre.org/maplibre-style-spec/layers/>#hillshade-accent-color
+    pub hillshade_accent_color: Option<Color>,
 }
 
 #[derive(Debug, Error)]

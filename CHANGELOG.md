@@ -10,6 +10,10 @@ playground and can change or break at any time without an entry here.
 * Style layers have an optional `source`.
 * `TileSource` is renamed to `TileUrls`. The old name still works.
 * Raster style layers support `raster-opacity`.
+* New `hillshade` style layer, which shades elevation into relief, following MapLibre's `standard`
+  method. It draws from an `HttpSource` or `PmTilesSource` made `with_elevation`.
+* New `Mapterhorn` source, with elevation of the whole world.
+* Raster tiles can be WebP.
 
 ## 0.65.0
 
