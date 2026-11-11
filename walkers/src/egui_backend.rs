@@ -61,7 +61,7 @@ pub mod wgpu {
 
     use crate::Drawables;
     use crate::render::drawable::Drawable;
-    use crate::render::gpu::{Renderer, key_of};
+    use crate::render::gpu::Renderer;
 
     /// Call at startup to get walkers ready to draw vector tiles.
     ///
@@ -171,10 +171,6 @@ pub mod wgpu {
             )
             .into()
         }
-
-        fn drawable(&self) -> Option<&Drawable> {
-            self.drawables.get(self.index)
-        }
     }
 
     impl CallbackTrait for Run {
@@ -186,18 +182,13 @@ pub mod wgpu {
             _egui_encoder: &mut wgpu::CommandEncoder,
             resources: &mut egui_wgpu::CallbackResources,
         ) -> Vec<wgpu::CommandBuffer> {
-            let Some(drawable) = self.drawable() else {
-                return Vec::new();
-            };
-
             // Put there by `install_renderer` when the app started.
             let Some(renderer) = resources.get_mut::<Renderer>() else {
                 complain_about_missing_renderer_once();
                 return Vec::new();
             };
 
-            renderer.upload(device, drawable, &self.drawables, self.frame);
-            renderer.forget_stale(self.frame);
+            renderer.upload(device, &self.drawables, self.index, self.frame);
 
             if let Ok(mut placement) = self.placement.lock() {
                 *placement = Some(renderer.placement(
@@ -217,8 +208,7 @@ pub mod wgpu {
             render_pass: &mut wgpu::RenderPass<'static>,
             resources: &egui_wgpu::CallbackResources,
         ) {
-            let (Some(renderer), Some(drawable)) = (resources.get::<Renderer>(), self.drawable())
-            else {
+            let Some(renderer) = resources.get::<Renderer>() else {
                 return;
             };
 
@@ -244,7 +234,7 @@ pub mod wgpu {
             );
 
             if let Some(placement) = placement.as_ref() {
-                renderer.draw(render_pass, key_of(drawable), placement);
+                renderer.draw(render_pass, &self.drawables, self.index, placement);
             }
         }
     }
