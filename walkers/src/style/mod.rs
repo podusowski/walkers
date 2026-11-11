@@ -246,7 +246,7 @@ impl Color {
             Value::String(color) => {
                 let color: color::AlphaColor<color::Srgb> = color.parse()?;
                 let Rgba8 { r, g, b, a } = color.to_rgba8();
-                Ok(Color32::from_rgba_premultiplied(r, g, b, a))
+                Ok(Color32::from_rgba_unmultiplied(r, g, b, a))
             }
             _ => Err(StyleError::InvalidType),
         }
@@ -374,6 +374,24 @@ mod tests {
     fn test_style_parsing() {
         Style::protomaps_dark();
         Style::protomaps_light();
+    }
+
+    /// `Color32` is premultiplied, which is what everything drawing with it counts on.
+    #[test]
+    fn translucent_color_is_premultiplied() {
+        let context = Context::new("None".to_string(), Default::default(), 0);
+        let white = Color(json!("rgba(255, 255, 255, 0.5)")).evaluate(&context);
+
+        assert_eq!(white, Color32::from_rgba_unmultiplied(255, 255, 255, 128));
+        assert!(white.r() <= white.a());
+    }
+
+    #[test]
+    fn opaque_color_is_as_written() {
+        let context = Context::new("None".to_string(), Default::default(), 0);
+        let color = Color(json!("#4a7fb5")).evaluate(&context);
+
+        assert_eq!(color, Color32::from_rgb(0x4a, 0x7f, 0xb5));
     }
 }
 
