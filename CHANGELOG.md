@@ -5,6 +5,8 @@ playground and can change or break at any time without an entry here.
 
 ## Unreleased
 
+* Fix GPU memory growing until wgpu ran out of it, with layers which make new drawables every
+  frame, such as `GeoJsonLayer` and `KmlLayer`.
 * New `StyledSources`, which draws one `Style` from several named sources, such as the new
   `HttpSource` and `PmTilesSource`.
 * Style layers have an optional `source`.

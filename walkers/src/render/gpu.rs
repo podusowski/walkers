@@ -1,5 +1,5 @@
 use std::collections::HashMap;
-use std::sync::Arc;
+use std::sync::{Arc, Weak};
 
 use egui_wgpu::wgpu;
 use egui_wgpu::wgpu::{
@@ -138,6 +138,83 @@ fn line_vertices(run: &[Line]) -> (Vec<LineVertex>, Vec<u32>) {
 /// Number of frames after which a mesh is freed.
 const FORGET_AFTER: u64 = 120;
 
+/// What is uploaded for which drawable, and when it is let go of. Apart from the GPU, so that it
+/// can be tested without one.
+struct Uploads<T> {
+    /// By the address of the drawables and the index of the one among them.
+    entries: HashMap<(usize, usize), Entry<T>>,
+
+    /// Counted here rather than taken from egui, which numbers the frames of each viewport on
+    /// their own.
+    frame: u64,
+
+    /// The frame of egui's which `frame` was last counted for.
+    seen: Option<u64>,
+}
+
+struct Entry<T> {
+    /// Keeps the address used as the key from being given to other drawables, without keeping
+    /// the drawables themselves.
+    owner: Weak<Vec<Drawable>>,
+    last_drawn: u64,
+    uploaded: T,
+}
+
+impl<T> Uploads<T> {
+    fn new() -> Self {
+        Self {
+            entries: HashMap::new(),
+            frame: 0,
+            seen: None,
+        }
+    }
+
+    /// To be called before anything is drawn in `egui_frame`, any number of times. Lets go of
+    /// what has not been drawn for a while, and right away of what nobody holds anymore, as
+    /// otherwise drawables made anew every frame would pile up.
+    fn begin_frame(&mut self, egui_frame: u64) {
+        if self.seen.replace(egui_frame) == Some(egui_frame) {
+            return;
+        }
+
+        self.frame += 1;
+        let frame = self.frame;
+        self.entries.retain(|_, entry| {
+            entry.owner.strong_count() > 0 && frame - entry.last_drawn < FORGET_AFTER
+        });
+    }
+
+    /// What is uploaded for that drawable, made with `upload` unless it is there already. Says
+    /// that it is still wanted.
+    fn wanted(
+        &mut self,
+        drawables: &Arc<Vec<Drawable>>,
+        index: usize,
+        upload: impl FnOnce() -> T,
+    ) -> &T {
+        let entry = self
+            .entries
+            .entry(key_of(drawables, index))
+            .or_insert_with(|| Entry {
+                owner: Arc::downgrade(drawables),
+                last_drawn: self.frame,
+                uploaded: upload(),
+            });
+        entry.last_drawn = self.frame;
+        &entry.uploaded
+    }
+
+    fn get(&self, drawables: &Arc<Vec<Drawable>>, index: usize) -> Option<&T> {
+        self.entries
+            .get(&key_of(drawables, index))
+            .map(|entry| &entry.uploaded)
+    }
+}
+
+fn key_of(drawables: &Arc<Vec<Drawable>>, index: usize) -> (usize, usize) {
+    (Arc::as_ptr(drawables) as usize, index)
+}
+
 /// Which pipeline draws a piece of geometry.
 #[derive(Clone, Copy, PartialEq)]
 enum Kind {
@@ -148,28 +225,16 @@ enum Kind {
 /// One drawable's buffers, kept between frames.
 struct Uploaded {
     kind: Kind,
-
-    /// Holds the tile's drawables, so that nothing else can be allocated at the address being
-    /// used as its key while it is still in here.
-    _keepalive: Arc<Vec<Drawable>>,
-
     vertices: wgpu::Buffer,
     indices: wgpu::Buffer,
     indices_count: u32,
-    last_drawn: u64,
-}
-
-/// Identifies a drawable by where it lives, which is unique for as long as [`Uploaded`] holds
-/// onto the tile it belongs to.
-pub(crate) fn key_of(drawable: &Drawable) -> usize {
-    std::ptr::from_ref(drawable) as usize
 }
 
 pub(crate) struct Renderer {
     fills: RenderPipeline,
     lines: RenderPipeline,
     bind_group_layout: BindGroupLayout,
-    uploaded: HashMap<usize, Uploaded>,
+    uploads: Uploads<Uploaded>,
 }
 
 impl Renderer {
@@ -312,19 +377,25 @@ impl Renderer {
             fills,
             lines,
             bind_group_layout,
-            uploaded: Default::default(),
+            uploads: Uploads::new(),
         }
     }
 
-    /// Put a drawable on the GPU, unless it is already there, and say it is still wanted.
+    /// Put the drawable at `index` of `drawables` on the GPU, unless it is already there, and say
+    /// it is still wanted. `frame` is egui's.
     pub(crate) fn upload(
         &mut self,
         device: &Device,
-        drawable: &Drawable,
-        keepalive: &Arc<Vec<Drawable>>,
+        drawables: &Arc<Vec<Drawable>>,
+        index: usize,
         frame: u64,
     ) {
-        let uploaded = self.uploaded.entry(key_of(drawable)).or_insert_with(|| {
+        let Some(drawable) = drawables.get(index) else {
+            return;
+        };
+
+        self.uploads.begin_frame(frame);
+        self.uploads.wanted(drawables, index, || {
             let buffer = |contents: &[u8], usage| {
                 device.create_buffer_init(&BufferInitDescriptor {
                     label: Some("walkers"),
@@ -365,21 +436,11 @@ impl Renderer {
 
             Uploaded {
                 kind,
-                _keepalive: keepalive.to_owned(),
                 vertices,
                 indices,
                 indices_count,
-                last_drawn: frame,
             }
         });
-
-        uploaded.last_drawn = frame;
-    }
-
-    /// Let go of what has not been drawn for a while.
-    pub(crate) fn forget_stale(&mut self, frame: u64) {
-        self.uploaded
-            .retain(|_, mesh| frame.saturating_sub(mesh.last_drawn) < FORGET_AFTER);
     }
 
     /// Where a tile's vertices should end up, ready to be handed to the shader.
@@ -419,10 +480,11 @@ impl Renderer {
     pub(crate) fn draw(
         &self,
         render_pass: &mut wgpu::RenderPass<'static>,
-        key: usize,
+        drawables: &Arc<Vec<Drawable>>,
+        index: usize,
         placement: &BindGroup,
     ) {
-        let Some(uploaded) = self.uploaded.get(&key) else {
+        let Some(uploaded) = self.uploads.get(drawables, index) else {
             return;
         };
 
@@ -443,6 +505,75 @@ mod tests {
     use crate::render::drawable::Line;
     use ecolor::Color32;
     use emath::pos2;
+
+    fn drawables() -> Arc<Vec<Drawable>> {
+        Arc::new(Vec::new())
+    }
+
+    /// Like those of a layer which makes them anew every frame. Nothing can draw them again.
+    #[test]
+    fn drawables_nobody_holds_anymore_are_forgotten_in_the_next_frame() {
+        let mut uploads = Uploads::new();
+        let made_this_frame = drawables();
+
+        uploads.begin_frame(0);
+        uploads.wanted(&made_this_frame, 0, || ());
+        uploads.wanted(&made_this_frame, 1, || ());
+        assert_eq!(uploads.entries.len(), 2);
+
+        drop(made_this_frame);
+        uploads.begin_frame(1);
+        assert!(uploads.entries.is_empty());
+    }
+
+    /// Like those of a tile, which are uploaded once for as long as it is drawn.
+    #[test]
+    fn drawables_which_keep_being_drawn_stay() {
+        let mut uploads = Uploads::new();
+        let tile = drawables();
+        let mut uploaded = 0;
+
+        for frame in 0..FORGET_AFTER * 2 {
+            uploads.begin_frame(frame);
+            uploads.wanted(&tile, 0, || uploaded += 1);
+        }
+
+        assert_eq!(uploaded, 1);
+    }
+
+    /// Like those of a tile which is still cached, but no longer visible.
+    #[test]
+    fn drawables_not_drawn_for_a_while_are_forgotten() {
+        let mut uploads = Uploads::new();
+        let tile = drawables();
+
+        uploads.begin_frame(0);
+        uploads.wanted(&tile, 0, || ());
+
+        for frame in 1..FORGET_AFTER {
+            uploads.begin_frame(frame);
+        }
+        assert!(uploads.get(&tile, 0).is_some());
+
+        uploads.begin_frame(FORGET_AFTER);
+        assert!(uploads.get(&tile, 0).is_none());
+    }
+
+    /// Every drawable drawn in a frame begins it, and viewports number their frames on their
+    /// own, so the same number says nothing about how much time has passed.
+    #[test]
+    fn frame_begun_again_is_still_the_same_frame() {
+        let mut uploads = Uploads::new();
+        let tile = drawables();
+
+        uploads.begin_frame(0);
+        uploads.wanted(&tile, 0, || ());
+
+        for _ in 0..FORGET_AFTER * 2 {
+            uploads.begin_frame(1);
+        }
+        assert!(uploads.get(&tile, 0).is_some());
+    }
 
     fn horizontal(width: f32) -> Vec<Line> {
         vec![Line {
