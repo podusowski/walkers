@@ -57,7 +57,18 @@ impl Basemaps {
         }
     }
 
-    /// Of the selected basemap. Empty until it is first added to a map.
+    pub fn selected_mut(&mut self) -> Option<&mut StyledSources> {
+        if self.built.is_none() {
+            self.built = self
+                .available
+                .get(self.selected)
+                .map(|(_, build)| build(&self.egui_ctx));
+        }
+
+        self.built.as_mut()
+    }
+
+    /// Of the selected basemap. Empty until it is first built.
     pub fn attributions(&self) -> Vec<Attribution> {
         self.built
             .as_ref()
@@ -75,14 +86,7 @@ impl Basemaps {
 
     /// Put the selected basemap on the map.
     pub fn add_to<'a, 'b, 'c>(&'b mut self, map: Map<'a, 'b, 'c>) -> Map<'a, 'b, 'c> {
-        if self.built.is_none() {
-            self.built = self
-                .available
-                .get(self.selected)
-                .map(|(_, build)| build(&self.egui_ctx));
-        }
-
-        match &mut self.built {
+        match self.selected_mut() {
             Some(basemap) => map.with_layer(basemap, 1.0),
             None => map,
         }
