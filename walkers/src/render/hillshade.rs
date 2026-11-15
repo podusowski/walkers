@@ -17,13 +17,14 @@ use crate::{
 
 const EARTH_CIRCUMFERENCE: f32 = 40_075_016.686;
 
-/// Shade the elevation `image` with each of `paints`, the later ones on top. Pixels come out
-/// premultiplied, row by row.
+/// Shade the elevation `image` of `tile_id` with each of `paints`, the later ones on top, as they
+/// are at `zoom`. Pixels come out premultiplied, row by row.
 pub(crate) fn render(
     image: &RgbaImage,
     encoding: DemEncoding,
     paints: &[&Paint],
     tile_id: TileId,
+    zoom: u8,
 ) -> Vec<Color32> {
     let (width, height) = (image.width() as usize, image.height() as usize);
     let elevations: Vec<f32> = image
@@ -34,7 +35,7 @@ pub(crate) fn render(
     let mut shaded = vec![[0.0; 4]; width * height];
 
     for paint in paints {
-        let light = Light::new(paint, tile_id.zoom);
+        let light = Light::new(paint, zoom);
 
         for (row, (slopes, shaded)) in slopes
             .chunks(width)
@@ -254,7 +255,7 @@ pub(crate) mod tests {
     }
 
     fn shade(image: &RgbaImage, paint: &Paint) -> Vec<Color32> {
-        render(image, DemEncoding::Terrarium, &[paint], TILE)
+        render(image, DemEncoding::Terrarium, &[paint], TILE, TILE.zoom)
     }
 
     fn middle(pixels: &[Color32]) -> Color32 {
