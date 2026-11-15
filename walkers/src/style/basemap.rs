@@ -142,8 +142,9 @@ const LIGHT: Palette = Palette {
 const LANDUSE: [&str; 3] = ["landcover", "landuse", "park"];
 
 /// Widths of the classes of road, the same whether a road is in a tunnel, on the ground or on a
-/// bridge. Links, such as motorway ramps, are as wide as minor roads.
-const OTHER: &[(f64, f64)] = &[(14.0, 0.5), (15.0, 2.0)];
+/// bridge. Links, such as motorway ramps, are as wide as minor roads, and paths, service roads
+/// and tracks half as wide, from zoom 15 on.
+const OTHER: &[(f64, f64)] = &[(13.0, 0.0), (14.0, 0.5), (15.0, 1.0), (18.0, 5.5)];
 const MINOR: &[(f64, f64)] = &[(11.0, 0.0), (12.5, 0.5), (15.0, 2.0), (18.0, 11.0)];
 const MAJOR: &[(f64, f64)] = &[(6.0, 0.0), (12.0, 1.6), (15.0, 3.0), (18.0, 13.0)];
 const HIGHWAY: &[(f64, f64)] = &[
@@ -1178,6 +1179,34 @@ mod tests {
                 .len(),
                 2,
                 "{class}"
+            );
+        }
+    }
+
+    /// Paths, service roads and tracks follow minor roads at half their width. They used to stop
+    /// growing at zoom 15, as wide as a minor road there and a sixth of one at zoom 18, and were
+    /// the wider of the two at low zooms.
+    #[test]
+    fn a_path_is_half_as_wide_as_a_minor_road() {
+        let style = Style::openmaptiles_basemap_light();
+        let width = |class, zoom| {
+            let widths = line_widths(&style, "transportation", json!({ "class": class }), zoom);
+            let [width] = widths[..] else {
+                panic!("{class} at zoom {zoom}: expected one line, got {widths:?}");
+            };
+            width
+        };
+
+        for zoom in 10..15 {
+            let (path, minor) = (width("path", zoom), width("minor", zoom));
+            assert!(path <= minor, "zoom {zoom}: path {path}, minor {minor}");
+        }
+
+        for zoom in 15..=20 {
+            let (path, minor) = (width("path", zoom), width("minor", zoom));
+            assert!(
+                (path - minor / 2.0).abs() < 0.001,
+                "zoom {zoom}: path {path}, minor {minor}"
             );
         }
     }
