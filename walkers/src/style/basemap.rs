@@ -6,7 +6,6 @@ use super::{
     Color, Dasharray, Filter, Float, Layout, Paint, Style, StyleLayer,
     exponential_zoom_interpolation, json, linear_zoom_interpolation,
 };
-use crate::expression::Context;
 
 /// What a style source of OpenMapTiles is called, as MapLibre styles usually call it.
 const SOURCE: &str = "openmaptiles";
@@ -162,23 +161,9 @@ fn road_width(factor: f64) -> Float {
 
 /// Width of a tunnel's casing: its road, with a border either side. The border is never wider
 /// than the road, so that a road too thin to see does not get a casing which is not.
-///
-/// Expressions cannot add one width to another, so the road is sampled at every whole zoom,
-/// which are the only zooms the renderer draws at.
 fn casing_width(factor: f64) -> Float {
-    let road_width = road_width(factor);
-    let first = ROAD_WIDTH[0].0.floor() as u8;
-    let last = ROAD_WIDTH[ROAD_WIDTH.len() - 1].0.ceil() as u8;
-
-    let stops: Vec<_> = (first..=last)
-        .map(|zoom| {
-            let context = Context::new("LineString".to_owned(), Default::default(), zoom);
-            let road = f64::from(road_width.evaluate(&context));
-            (f64::from(zoom), road + 2.0 * TUNNEL_BORDER.min(road))
-        })
-        .collect();
-
-    linear_zoom_interpolation(&stops)
+    let road = road_width(factor).0;
+    Float(json!(["+", road, ["*", 2, ["min", TUNNEL_BORDER, road]]]))
 }
 
 fn build(palette: &Palette) -> Style {
