@@ -140,6 +140,30 @@ const LIGHT: Palette = Palette {
 /// OpenMapTiles spreads land use over three layers.
 const LANDUSE: [&str; 3] = ["landcover", "landuse", "park"];
 
+const ROAD_WIDTH: [(f64, f64); 5] = [
+    (3.0, 0.0),
+    (6.0, 0.66),
+    (12.0, 0.96),
+    (15.0, 2.0),
+    (18.0, 11.0),
+];
+
+const PATH_FACTOR: f64 = 0.5;
+const MINOR_ROAD_FACTOR: f64 = 1.0;
+const MAJOR_ROAD_FACTOR: f64 = 1.5;
+const MOTORWAY_FACTOR: f64 = 2.5;
+
+fn road_width(factor: f64) -> Float {
+    exponential_zoom_interpolation(1.6, &ROAD_WIDTH.map(|(zoom, width)| (zoom, width * factor)))
+}
+
+/// Width of a tunnel's casing: its road, with a pixel either side. That is never wider than the
+/// road, so that a road too thin to see does not get a casing which is not.
+fn casing_width(factor: f64) -> Float {
+    let road = road_width(factor).0;
+    Float(json!(["+", road, ["*", 2, ["min", 1, road]]]))
+}
+
 fn build(palette: &Palette) -> Style {
     let layers = vec![
         // background
@@ -341,6 +365,7 @@ fn build(palette: &Palette) -> Style {
             ]))),
             paint: Paint {
                 line_color: Some(Color(json!(palette.tunnel_casing))),
+                line_width: Some(casing_width(PATH_FACTOR)),
                 ..Default::default()
             },
         },
@@ -356,7 +381,7 @@ fn build(palette: &Palette) -> Style {
             paint: Paint {
                 line_color: Some(Color(json!(palette.tunnel_casing))),
                 line_dasharray: Some(Dasharray(json!([2, 2]))),
-                line_width: Some(linear_zoom_interpolation(&[(12.0, 0.0), (12.5, 1.0)])),
+                line_width: Some(casing_width(MINOR_ROAD_FACTOR)),
                 ..Default::default()
             },
         },
@@ -372,7 +397,7 @@ fn build(palette: &Palette) -> Style {
             paint: Paint {
                 line_color: Some(Color(json!(palette.tunnel_casing))),
                 line_dasharray: Some(Dasharray(json!([2, 2]))),
-                line_width: Some(linear_zoom_interpolation(&[(12.0, 0.0), (12.5, 1.0)])),
+                line_width: Some(casing_width(MINOR_ROAD_FACTOR)),
                 ..Default::default()
             },
         },
@@ -388,7 +413,7 @@ fn build(palette: &Palette) -> Style {
             paint: Paint {
                 line_color: Some(Color(json!(palette.tunnel_casing))),
                 line_dasharray: Some(Dasharray(json!([2, 2]))),
-                line_width: Some(linear_zoom_interpolation(&[(9.0, 0.0), (9.5, 1.0)])),
+                line_width: Some(casing_width(MAJOR_ROAD_FACTOR)),
                 ..Default::default()
             },
         },
@@ -405,11 +430,7 @@ fn build(palette: &Palette) -> Style {
             paint: Paint {
                 line_color: Some(Color(json!(palette.tunnel_casing))),
                 line_dasharray: Some(Dasharray(json!([2, 2]))),
-                line_width: Some(linear_zoom_interpolation(&[
-                    (7.0, 0.0),
-                    (7.5, 1.5),
-                    (20.0, 22.5),
-                ])),
+                line_width: Some(casing_width(MOTORWAY_FACTOR)),
                 ..Default::default()
             },
         },
@@ -425,10 +446,7 @@ fn build(palette: &Palette) -> Style {
             paint: Paint {
                 line_color: Some(Color(json!(palette.structure))),
                 line_dasharray: Some(Dasharray(json!([2, 2]))),
-                line_width: Some(exponential_zoom_interpolation(
-                    1.6,
-                    &[(14.0, 0.0), (20.0, 7.0)],
-                )),
+                line_width: Some(road_width(PATH_FACTOR)),
                 ..Default::default()
             },
         },
@@ -443,10 +461,7 @@ fn build(palette: &Palette) -> Style {
             ]))),
             paint: Paint {
                 line_color: Some(Color(json!(palette.structure))),
-                line_width: Some(exponential_zoom_interpolation(
-                    1.6,
-                    &[(11.0, 0.0), (12.5, 0.5), (15.0, 2.0), (18.0, 11.0)],
-                )),
+                line_width: Some(road_width(MINOR_ROAD_FACTOR)),
                 ..Default::default()
             },
         },
@@ -461,10 +476,7 @@ fn build(palette: &Palette) -> Style {
             ]))),
             paint: Paint {
                 line_color: Some(Color(json!(palette.structure))),
-                line_width: Some(exponential_zoom_interpolation(
-                    1.6,
-                    &[(13.0, 0.0), (13.5, 1.0), (18.0, 11.0)],
-                )),
+                line_width: Some(road_width(MINOR_ROAD_FACTOR)),
                 ..Default::default()
             },
         },
@@ -479,10 +491,7 @@ fn build(palette: &Palette) -> Style {
             ]))),
             paint: Paint {
                 line_color: Some(Color(json!(palette.structure))),
-                line_width: Some(exponential_zoom_interpolation(
-                    1.6,
-                    &[(6.0, 0.0), (12.0, 1.6), (15.0, 3.0), (18.0, 13.0)],
-                )),
+                line_width: Some(road_width(MAJOR_ROAD_FACTOR)),
                 ..Default::default()
             },
         },
@@ -498,16 +507,7 @@ fn build(palette: &Palette) -> Style {
             ]))),
             paint: Paint {
                 line_color: Some(Color(json!(palette.structure))),
-                line_width: Some(exponential_zoom_interpolation(
-                    1.6,
-                    &[
-                        (3.0, 0.0),
-                        (6.0, 1.65),
-                        (12.0, 2.4),
-                        (15.0, 7.5),
-                        (18.0, 22.5),
-                    ],
-                )),
+                line_width: Some(road_width(MOTORWAY_FACTOR)),
                 ..Default::default()
             },
         },
@@ -550,7 +550,7 @@ fn build(palette: &Palette) -> Style {
             ]))),
             paint: Paint {
                 line_color: Some(Color(json!(palette.path))),
-                line_width: Some(linear_zoom_interpolation(&[(14.0, 0.5), (15.0, 2.0)])),
+                line_width: Some(road_width(PATH_FACTOR)),
                 ..Default::default()
             },
         },
@@ -561,10 +561,7 @@ fn build(palette: &Palette) -> Style {
             filter: Some(Filter(json!(["==", "ramp", 1]))),
             paint: Paint {
                 line_color: Some(Color(json!(palette.bridge))),
-                line_width: Some(exponential_zoom_interpolation(
-                    1.6,
-                    &[(13.0, 0.0), (13.5, 1.0), (18.0, 11.0)],
-                )),
+                line_width: Some(road_width(MINOR_ROAD_FACTOR)),
                 ..Default::default()
             },
         },
@@ -580,10 +577,7 @@ fn build(palette: &Palette) -> Style {
             ]))),
             paint: Paint {
                 line_color: Some(Color(json!(palette.road))),
-                line_width: Some(exponential_zoom_interpolation(
-                    1.6,
-                    &[(11.0, 0.0), (12.5, 0.5), (15.0, 2.0), (18.0, 11.0)],
-                )),
+                line_width: Some(road_width(MINOR_ROAD_FACTOR)),
                 ..Default::default()
             },
         },
@@ -599,10 +593,7 @@ fn build(palette: &Palette) -> Style {
             ]))),
             paint: Paint {
                 line_color: Some(Color(json!(palette.road))),
-                line_width: Some(exponential_zoom_interpolation(
-                    1.6,
-                    &[(6.0, 0.0), (12.0, 1.6), (15.0, 3.0), (18.0, 13.0)],
-                )),
+                line_width: Some(road_width(MAJOR_ROAD_FACTOR)),
                 ..Default::default()
             },
         },
@@ -619,16 +610,7 @@ fn build(palette: &Palette) -> Style {
             ]))),
             paint: Paint {
                 line_color: Some(Color(json!(palette.highway))),
-                line_width: Some(exponential_zoom_interpolation(
-                    1.6,
-                    &[
-                        (3.0, 0.0),
-                        (6.0, 1.65),
-                        (12.0, 2.4),
-                        (15.0, 7.5),
-                        (18.0, 22.5),
-                    ],
-                )),
+                line_width: Some(road_width(MOTORWAY_FACTOR)),
                 ..Default::default()
             },
         },
@@ -685,7 +667,7 @@ fn build(palette: &Palette) -> Style {
             ]))),
             paint: Paint {
                 line_color: Some(Color(json!(palette.path))),
-                line_width: Some(linear_zoom_interpolation(&[(14.0, 0.5), (15.0, 2.0)])),
+                line_width: Some(road_width(PATH_FACTOR)),
                 ..Default::default()
             },
         },
@@ -700,10 +682,7 @@ fn build(palette: &Palette) -> Style {
             ]))),
             paint: Paint {
                 line_color: Some(Color(json!(palette.road))),
-                line_width: Some(exponential_zoom_interpolation(
-                    1.6,
-                    &[(11.0, 0.0), (12.5, 0.5), (15.0, 2.0), (18.0, 11.0)],
-                )),
+                line_width: Some(road_width(MINOR_ROAD_FACTOR)),
                 ..Default::default()
             },
         },
@@ -718,10 +697,7 @@ fn build(palette: &Palette) -> Style {
             ]))),
             paint: Paint {
                 line_color: Some(Color(json!(palette.bridge))),
-                line_width: Some(exponential_zoom_interpolation(
-                    1.6,
-                    &[(13.0, 0.0), (13.5, 1.0), (18.0, 11.0)],
-                )),
+                line_width: Some(road_width(MINOR_ROAD_FACTOR)),
                 ..Default::default()
             },
         },
@@ -736,10 +712,7 @@ fn build(palette: &Palette) -> Style {
             ]))),
             paint: Paint {
                 line_color: Some(Color(json!(palette.road))),
-                line_width: Some(exponential_zoom_interpolation(
-                    1.6,
-                    &[(6.0, 0.0), (12.0, 1.6), (15.0, 3.0), (18.0, 13.0)],
-                )),
+                line_width: Some(road_width(MAJOR_ROAD_FACTOR)),
                 ..Default::default()
             },
         },
@@ -755,16 +728,7 @@ fn build(palette: &Palette) -> Style {
             ]))),
             paint: Paint {
                 line_color: Some(Color(json!(palette.highway))),
-                line_width: Some(exponential_zoom_interpolation(
-                    1.6,
-                    &[
-                        (3.0, 0.0),
-                        (6.0, 1.65),
-                        (12.0, 2.4),
-                        (15.0, 7.5),
-                        (18.0, 22.5),
-                    ],
-                )),
+                line_width: Some(road_width(MOTORWAY_FACTOR)),
                 ..Default::default()
             },
         },
@@ -1131,31 +1095,52 @@ mod tests {
         assert_eq!(labels, [(Some("12a".to_owned()), Some(18.0))]);
     }
 
-    /// Line layers which draw a feature of `source`, found the way the renderer finds them.
-    fn lines_drawing(style: &Style, source: &str, properties: Value) -> usize {
+    /// Every class of road OpenMapTiles has a tunnel of.
+    const ROAD_CLASSES: [&str; 9] = [
+        "motorway",
+        "trunk",
+        "primary",
+        "secondary",
+        "tertiary",
+        "minor",
+        "service",
+        "track",
+        "path",
+    ];
+
+    /// Widths of the line layers which draw a feature of `source`, in the order they are drawn,
+    /// found the way the renderer finds them.
+    fn line_widths(style: &Style, source: &str, properties: Value, zoom: u8) -> Vec<f32> {
         let context = Context::new(
             "LineString".to_owned(),
             serde_json::from_value::<HashMap<String, Value>>(properties).unwrap(),
-            16,
+            zoom,
         );
 
         style
             .layers
             .iter()
-            .filter(|layer| match layer {
+            .filter_map(|layer| match layer {
                 StyleLayer::Line {
                     source_layer,
                     filter,
+                    paint,
                     ..
-                } => {
-                    source_layer.matches(source)
-                        && filter
+                } if source_layer.matches(source)
+                    && filter
+                        .as_ref()
+                        .is_none_or(|filter| filter.matches(&context)) =>
+                {
+                    Some(
+                        paint
+                            .line_width
                             .as_ref()
-                            .is_none_or(|filter| filter.matches(&context))
+                            .map_or(1.0, |width| width.evaluate(&context)),
+                    )
                 }
-                _ => false,
+                _ => None,
             })
-            .count()
+            .collect()
     }
 
     /// A tunnel is drawn as a dashed casing with the road over it, whatever the road. Motorway
@@ -1164,26 +1149,65 @@ mod tests {
     fn a_tunnel_has_a_casing_and_a_road() {
         let style = Style::openmaptiles_basemap_light();
 
-        for class in [
-            "motorway",
-            "trunk",
-            "primary",
-            "secondary",
-            "tertiary",
-            "minor",
-            "service",
-            "track",
-            "path",
-        ] {
+        for class in ROAD_CLASSES {
             assert_eq!(
-                lines_drawing(
+                line_widths(
                     &style,
                     "transportation",
-                    json!({"class": class, "brunnel": "tunnel"})
-                ),
+                    json!({"class": class, "brunnel": "tunnel"}),
+                    16
+                )
+                .len(),
                 2,
                 "{class}"
             );
+        }
+    }
+
+    /// Each class of road grows, or at least does not shrink, as the map zooms in.
+    #[test]
+    fn a_road_never_gets_thinner_when_zooming_in() {
+        let style = Style::openmaptiles_basemap_light();
+
+        for class in ROAD_CLASSES {
+            let widths: Vec<f32> = (0..=22)
+                .map(|zoom| {
+                    line_widths(&style, "transportation", json!({ "class": class }), zoom)
+                        .into_iter()
+                        .sum()
+                })
+                .collect();
+
+            assert!(
+                widths.windows(2).all(|pair| pair[0] <= pair[1]),
+                "{class}: {widths:?}"
+            );
+        }
+    }
+
+    /// The casing is drawn under the road, so only what is wider than the road shows. It used to
+    /// be a line a pixel wide, hidden as soon as the road grew past that.
+    #[test]
+    fn a_tunnel_casing_shows_either_side_of_its_road() {
+        let style = Style::openmaptiles_basemap_light();
+
+        for class in ROAD_CLASSES {
+            for zoom in [15, 16, 18] {
+                let widths = line_widths(
+                    &style,
+                    "transportation",
+                    json!({"class": class, "brunnel": "tunnel"}),
+                    zoom,
+                );
+                let [casing, road] = widths[..] else {
+                    panic!("{class} at zoom {zoom}: expected a casing and a road, got {widths:?}");
+                };
+
+                assert!(
+                    casing >= road + 1.0,
+                    "{class} at zoom {zoom}: casing {casing}, road {road}"
+                );
+            }
         }
     }
 }

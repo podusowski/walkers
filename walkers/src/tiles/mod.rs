@@ -150,6 +150,7 @@ impl Tile {
             style,
             all_layers(style),
             somewhere_at(zoom),
+            zoom,
             tile_size,
         )?;
         Ok(Self::from_styled(styled, ctx))
@@ -168,6 +169,7 @@ impl Tile {
             style,
             all_layers(style),
             somewhere_at(zoom),
+            zoom,
             tile_size,
         )? {
             Styled::Vector { drawables, texts } => Ok(Self::Vector {

@@ -25,6 +25,9 @@ playground and can change or break at any time without an entry here.
 * Fix the map slowing down when zoomed in far past the last zoom level of its source.
 * `Projector::clip_rect` is renamed to `Projector::map_rect`. The old name still works.
 * `+`, `-`, `*`, `/`, `min` and `max` expressions are supported.
+* Fix tunnels in Walkers' own basemap styles, whose dashed casing was hidden under the road.
+* Zoomed in past the last zoom level of a source, styles keep following the map's zoom, so that,
+  for example, roads keep growing wider.
 
 ## 0.65.0
 

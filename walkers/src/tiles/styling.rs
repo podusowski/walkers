@@ -22,6 +22,10 @@ struct Key {
     source: usize,
     layers: Range<usize>,
     tile_id: TileId,
+
+    /// Zoom the style is evaluated at, that of the map. Past the last zoom level of a source, it
+    /// is deeper than `tile_id`'s, so that the style keeps changing with the zoom.
+    zoom: u8,
 }
 
 struct Request {
@@ -84,10 +88,11 @@ impl Styling {
             return None;
         }
 
-        let key = |tile_id| Key {
+        let key = |tile_id_to_style| Key {
             source: index,
             layers: layers.clone(),
-            tile_id,
+            tile_id: tile_id_to_style,
+            zoom: tile_id.zoom,
         };
 
         let mut tile_id_to_style = if tile_id.zoom > source.max_zoom() {
@@ -162,27 +167,29 @@ impl Styling {
     }
 
     /// That tile, `key` is of, if it is cached, otherwise the part of the nearest zoomed-out one
-    /// covering the same ground.
+    /// covering the same ground. Each is preferably styled at the zoom it is drawn at, but one
+    /// styled at a lower zoom stands in while it is being styled again.
     fn best_available(&mut self, key: Key, tile_id: TileId) -> Option<TilePiece> {
-        let mut zoom_candidate = tile_id.zoom;
+        for tile_zoom in (0..=tile_id.zoom).rev() {
+            let (zoomed_tile_id, uv) = interpolate_from_lower_zoom(tile_id, tile_zoom);
 
-        loop {
-            let (zoomed_tile_id, uv) = interpolate_from_lower_zoom(tile_id, zoom_candidate);
-            let zoomed_key = Key {
-                tile_id: zoomed_tile_id,
-                ..key.clone()
-            };
+            for zoom in (tile_zoom..=key.zoom).rev() {
+                let zoomed_key = Key {
+                    tile_id: zoomed_tile_id,
+                    zoom,
+                    ..key.clone()
+                };
 
-            if let Some(Some(tile)) = self.cache.get(&zoomed_key) {
-                break Some(TilePiece {
-                    tile: tile.clone(),
-                    uv,
-                });
+                if let Some(Some(tile)) = self.cache.get(&zoomed_key) {
+                    return Some(TilePiece {
+                        tile: tile.clone(),
+                        uv,
+                    });
+                }
             }
-
-            // Keep zooming out until we find a donor or there is no more zoom levels.
-            zoom_candidate = zoom_candidate.checked_sub(1)?;
         }
+
+        None
     }
 }
 
@@ -199,12 +206,19 @@ async fn style_continuously(
         tile_size,
     }) = request_rx.next().await
     {
-        let tile = apply_style(&data, &style, key.layers.clone(), key.tile_id, tile_size)
-            // It would probably be more consistent to push it to the caller, but it's not that
-            // important right now.
-            .inspect_err(|err| log::warn!("{err}"))
-            .ok()
-            .map(|styled| Tile::from_styled(styled, &egui_ctx));
+        let tile = apply_style(
+            &data,
+            &style,
+            key.layers.clone(),
+            key.tile_id,
+            key.zoom,
+            tile_size,
+        )
+        // It would probably be more consistent to push it to the caller, but it's not that
+        // important right now.
+        .inspect_err(|err| log::warn!("{err}"))
+        .ok()
+        .map(|styled| Tile::from_styled(styled, &egui_ctx));
 
         // Failures too, so that the main thread knows they are no longer in progress.
         if tile_tx.send((key, tile)).await.is_err() {
@@ -221,7 +235,8 @@ mod tests {
     use super::*;
     use std::time::{Duration, Instant};
 
-    /// Only its tiles at zoom 0 exist, and they are all the same raster image.
+    /// Only its tiles at zoom 0 exist, and they are all the same raster image of a single white
+    /// pixel.
     struct OnlyZoomZero {
         png: bytes::Bytes,
     }
@@ -229,11 +244,86 @@ mod tests {
     impl OnlyZoomZero {
         fn new() -> Self {
             let mut png = Vec::new();
-            image::RgbaImage::new(1, 1)
+            image::RgbaImage::from_pixel(1, 1, image::Rgba([255; 4]))
                 .write_to(&mut std::io::Cursor::new(&mut png), image::ImageFormat::Png)
                 .unwrap();
             Self { png: png.into() }
         }
+    }
+
+    /// [`OnlyZoomZero`], which says so, as a PMTiles file says how far it zooms.
+    #[cfg(feature = "vector")]
+    struct StopsAtZoomZero(OnlyZoomZero);
+
+    #[cfg(feature = "vector")]
+    impl TiledSource for StopsAtZoomZero {
+        fn data(&mut self, tile_id: TileId) -> TileData {
+            self.0.data(tile_id)
+        }
+
+        fn attribution(&self) -> crate::sources::Attribution {
+            self.0.attribution()
+        }
+
+        fn max_zoom(&self) -> u8 {
+            0
+        }
+    }
+
+    /// Pixels of the raster `tile`, as egui was given them.
+    #[cfg(feature = "vector")]
+    fn pixels(egui_ctx: &Context, tile: &Tile) -> Vec<egui::Color32> {
+        let Tile::Raster(texture) = tile else {
+            panic!("not a raster tile");
+        };
+        let mut delta = egui_ctx.tex_manager().write().take_delta();
+        let Some(image) = delta
+            .set
+            .get(&texture.id())
+            .and_then(|deltas| deltas.first())
+        else {
+            panic!("no texture was made");
+        };
+        let egui::ImageData::Color(image) = &image.image;
+        let pixels = image.pixels.clone();
+
+        // Nothing is painted here to take the rest.
+        delta.clear();
+        pixels
+    }
+
+    /// Zoomed in past the last zoom level of a source, a style keeps changing with the zoom, as
+    /// roads keep growing wider. The tile standing in is styled at the zoom it is drawn at.
+    #[test]
+    #[cfg(feature = "vector")]
+    fn tile_of_a_lower_zoom_level_is_styled_at_the_zoom_it_is_drawn_at() {
+        // Opaque at zoom 0, and gone at zoom 2.
+        let style: Style = serde_json::from_value(serde_json::json!({
+            "layers": [{
+                "type": "raster",
+                "paint": {"raster-opacity": ["interpolate", ["linear"], ["zoom"], 0, 1, 2, 0]}
+            }]
+        }))
+        .unwrap();
+        let egui_ctx = Context::default();
+        let mut styling = Styling::new(Arc::new(style), egui_ctx.clone());
+        let mut source = StopsAtZoomZero(OnlyZoomZero::new());
+        let tile_id = TileId {
+            x: 3,
+            y: 2,
+            zoom: 2,
+        };
+
+        let deadline = Instant::now() + Duration::from_secs(5);
+        let piece = loop {
+            if let Some(piece) = styling.at(0, &mut source, 0..1, tile_id) {
+                break piece;
+            }
+            assert!(Instant::now() < deadline, "never drawn");
+            std::thread::sleep(Duration::from_millis(10));
+        };
+
+        assert_eq!(pixels(&egui_ctx, &piece.tile), [egui::Color32::TRANSPARENT]);
     }
 
     impl TiledSource for OnlyZoomZero {
@@ -292,6 +382,7 @@ mod tests {
                 y: 0,
                 zoom: 0,
             },
+            zoom: 0,
         };
 
         // Empty data never makes a tile.

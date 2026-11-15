@@ -49,16 +49,19 @@ pub(crate) enum Styled {
     Image(ColorImage),
 }
 
-/// What `layers` of the style make of `data`, the data of the tile `tile_id`.
+/// What `layers` of the style make of `data`, the data of the tile `tile_id`, at `zoom`. That is
+/// the zoom the tile is drawn at, deeper than the tile's own where it stands in for tiles past
+/// the last zoom level of its source.
 pub(crate) fn apply_style(
     data: &SourceData,
     style: &Style,
     layers: Range<usize>,
     tile_id: TileId,
+    zoom: u8,
     tile_size: u32,
 ) -> Result<Styled, TileError> {
-    let decoded = decode(data, style, layers.clone(), tile_id.zoom, tile_size)?;
-    apply(decoded, style, layers, tile_id, tile_size)
+    let decoded = decode(data, style, layers.clone(), zoom, tile_size)?;
+    apply(decoded, style, layers, tile_id, zoom, tile_size)
 }
 
 fn decode(
@@ -130,9 +133,9 @@ fn apply(
     style: &Style,
     layers: Range<usize>,
     tile_id: TileId,
+    zoom: u8,
     tile_size: u32,
 ) -> Result<Styled, TileError> {
-    let zoom = tile_id.zoom;
     let mut drawables = Vec::new();
     let mut texts = Vec::new();
     let mut hillshades = Vec::new();
@@ -225,7 +228,7 @@ fn apply(
         Decoded::Elevation { .. } if hillshades.is_empty() => Err(UNSHADED),
         Decoded::Elevation { image, encoding } => {
             let size = [image.width() as usize, image.height() as usize];
-            let pixels = render::hillshade::render(&image, encoding, &hillshades, tile_id);
+            let pixels = render::hillshade::render(&image, encoding, &hillshades, tile_id, zoom);
             Ok(Styled::Image(ColorImage::new(size, pixels)))
         }
     }
@@ -241,6 +244,7 @@ fn apply(
     _style: &Style,
     _layers: Range<usize>,
     _tile_id: TileId,
+    _zoom: u8,
     _tile_size: u32,
 ) -> Result<Styled, TileError> {
     match decoded {
@@ -329,7 +333,7 @@ mod tests {
     fn elevation_is_shaded_by_hillshade_layers() {
         let style = style(serde_json::json!([{ "type": "hillshade" }]));
         assert!(matches!(
-            apply(elevation(), &style, 0..1, TILE, 256),
+            apply(elevation(), &style, 0..1, TILE, TILE.zoom, 256),
             Ok(Styled::Image(_))
         ));
     }
@@ -338,7 +342,7 @@ mod tests {
     #[test]
     fn elevation_is_not_drawn_without_a_hillshade_layer() {
         let style = style(serde_json::json!([{ "type": "raster" }]));
-        assert!(apply(elevation(), &style, 0..1, TILE, 256).is_err());
+        assert!(apply(elevation(), &style, 0..1, TILE, TILE.zoom, 256).is_err());
     }
 
     /// Not even by a hillshade layer, as its colors are not packed elevation, which only a source
@@ -348,9 +352,19 @@ mod tests {
         let image = || Decoded::Image(ramp(0.0, 0.0));
         let hillshade = style(serde_json::json!([{ "type": "hillshade" }]));
 
-        assert!(apply(image(), &hillshade, 0..1, TILE, 256).is_err());
-        assert!(apply(image(), &Style { layers: Vec::new() }, 0..0, TILE, 256).is_err());
-        assert!(apply(image(), &Style::default(), 0..1, TILE, 256).is_ok());
+        assert!(apply(image(), &hillshade, 0..1, TILE, TILE.zoom, 256).is_err());
+        assert!(
+            apply(
+                image(),
+                &Style { layers: Vec::new() },
+                0..0,
+                TILE,
+                TILE.zoom,
+                256
+            )
+            .is_err()
+        );
+        assert!(apply(image(), &Style::default(), 0..1, TILE, TILE.zoom, 256).is_ok());
     }
 
     #[test]
@@ -359,9 +373,14 @@ mod tests {
             { "type": "raster", "paint": { "raster-opacity": 0.25 } }
         ]));
 
-        let Ok(Styled::Image(image)) =
-            apply(Decoded::Image(ramp(0.0, 0.0)), &style, 0..1, TILE, 256)
-        else {
+        let Ok(Styled::Image(image)) = apply(
+            Decoded::Image(ramp(0.0, 0.0)),
+            &style,
+            0..1,
+            TILE,
+            TILE.zoom,
+            256,
+        ) else {
             panic!("expected an image");
         };
         assert!(image.pixels.iter().all(|pixel| pixel.a() == 64));
