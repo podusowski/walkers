@@ -153,17 +153,15 @@ const MINOR_ROAD_FACTOR: f64 = 1.0;
 const MAJOR_ROAD_FACTOR: f64 = 1.5;
 const MOTORWAY_FACTOR: f64 = 2.5;
 
-const TUNNEL_BORDER: f64 = 1.0;
-
 fn road_width(factor: f64) -> Float {
     exponential_zoom_interpolation(1.6, &ROAD_WIDTH.map(|(zoom, width)| (zoom, width * factor)))
 }
 
-/// Width of a tunnel's casing: its road, with a border either side. The border is never wider
-/// than the road, so that a road too thin to see does not get a casing which is not.
+/// Width of a tunnel's casing: its road, with a pixel either side. That is never wider than the
+/// road, so that a road too thin to see does not get a casing which is not.
 fn casing_width(factor: f64) -> Float {
     let road = road_width(factor).0;
-    Float(json!(["+", road, ["*", 2, ["min", TUNNEL_BORDER, road]]]))
+    Float(json!(["+", road, ["*", 2, ["min", 1, road]]]))
 }
 
 fn build(palette: &Palette) -> Style {
