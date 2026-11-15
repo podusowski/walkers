@@ -22,8 +22,7 @@ playground and can change or break at any time without an entry here.
 * PMTiles files are read up to the max zoom their header gives, instead of always zoom 15.
 * Walkers' own basemap styles support only the OpenMapTiles schema, such as OpenFreeMap's.
   `Style::protomaps_basemap_light` and `Style::protomaps_basemap_dark` are removed.
-* Fix frames slowing down the further the map is zoomed in past the last zoom level of its
-  source, as every tile drawn there placed all the labels of the one it was cut from.
+* Fix the map slowing down when zoomed in far past the last zoom level of its source.
 
 ## 0.65.0
 
