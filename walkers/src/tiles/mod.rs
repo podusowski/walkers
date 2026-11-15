@@ -195,10 +195,19 @@ impl Tile {
     }
 
     /// Draw the tile on the given `rect`. The `uv` parameter defines which part of the tile
-    /// should be drawn on the `rect`. `zoom` is the map's.
-    fn draw(&self, canvas: &mut Canvas, rect: Rect, uv: Rect, tile_size: u32, zoom: f64) {
+    /// should be drawn on the `rect`. `zoom` is the map's, and `visible` is the part of the
+    /// screen the map takes.
+    fn draw(
+        &self,
+        canvas: &mut Canvas,
+        rect: Rect,
+        uv: Rect,
+        tile_size: u32,
+        zoom: f64,
+        visible: Rect,
+    ) {
         #[cfg(not(feature = "vector"))]
-        let _ = (tile_size, zoom);
+        let _ = (tile_size, zoom, visible);
 
         match self {
             Tile::Raster(texture_handle) => {
@@ -220,9 +229,25 @@ impl Tile {
                         .with_clip_rect(rect),
                 );
 
+                // Labels are anchored at their middle, so one anchored this far outside the map
+                // may still hang into it.
+                const LABEL_MARGIN: f32 = 256.;
+
+                // Each piece of a tile carries all of its labels. Only those in the piece, and near
+                // enough the map to be seen, are given, so that the other pieces do not repeat
+                // them, and placing labels does not take longer the further the map is zoomed in.
+                let piece = Rect::from_min_max(
+                    (uv.min.to_vec2() * tile_size as f32).to_pos2(),
+                    (uv.max.to_vec2() * tile_size as f32).to_pos2(),
+                );
+                let near_map = transform.inverse() * visible.expand(LABEL_MARGIN);
+                let given = piece.intersect(near_map);
+
                 let z_order = canvas.z_order();
                 for text in render::transformed_texts(
-                    from_tile,
+                    from_tile
+                        .iter()
+                        .filter(|text| contains_up_to_max(given, text.position)),
                     transform,
                     zoom - grid::zoom_offset(tile_size) as f64,
                 ) {
@@ -324,6 +349,7 @@ fn flood_fill_tiles(
                 tile.uv,
                 tile_size,
                 zoom,
+                clip_rect,
             )
         }
 
@@ -391,6 +417,13 @@ fn transform_onto(rect: Rect, tile_size: u32) -> egui::emath::TSTransform {
         scaling: rect.width() / tile_size as f32,
         translation: rect.min.to_vec2(),
     }
+}
+
+/// Whether `position` is in `rect`, counting its left and top edges in, and its right and bottom
+/// ones out, so that a position on the edge two neighbouring rects share is in just one of them.
+#[cfg(feature = "vector")]
+fn contains_up_to_max(rect: Rect, position: egui::Pos2) -> bool {
+    (rect.min.x..rect.max.x).contains(&position.x) && (rect.min.y..rect.max.y).contains(&position.y)
 }
 
 pub(crate) fn rect(screen_position: Vec2, tile_size: f64) -> Rect {
@@ -596,16 +629,12 @@ mod tests {
         }
     }
 
-    /// The same label arriving from two neighbouring tiles should be drawn once. Before labels
-    /// were gathered across tiles, each tile placed its own copy.
+    /// The same label arriving from two neighbouring tiles should be drawn once. Placement used
+    /// to drop one of the two copies, but now only one tile gives it: a label on the edge two
+    /// tiles share is inside the right one, and not the left one.
     #[cfg(feature = "vector")]
     #[test]
-    fn a_label_shared_by_two_tiles_is_placed_once() {
-        let ctx = Context::default();
-        // Fonts only exist once a pass has been run.
-        let mut output = ctx.run_ui(egui::RawInput::default(), |_| {});
-        output.textures_delta.clear();
-
+    fn a_label_shared_by_two_tiles_is_gathered_once() {
         let mut canvas = Canvas::new();
         draw_tiles(
             &mut canvas,
@@ -620,24 +649,112 @@ mod tests {
             .map(|(_, text)| (text.position.x as i32, text.position.y as i32))
             .collect();
 
-        // Neighbouring tiles put a label on the very same spot.
-        assert!(
-            gathered > positions.len(),
-            "{gathered} labels landed on {} distinct spots, so none were shared",
+        assert!(gathered > 0);
+        assert_eq!(
+            gathered,
+            positions.len(),
+            "{gathered} labels landed on {} distinct spots",
             positions.len()
         );
+    }
+
+    /// Like a source zoomed in past its last zoom level: every tile is a piece of the same
+    /// one, three levels up, which is covered in labels.
+    #[cfg(feature = "vector")]
+    struct PiecesOfOneTile;
+
+    #[cfg(feature = "vector")]
+    impl Tiles for PiecesOfOneTile {
+        fn at(&mut self, tile_id: TileId) -> Option<TilePiece> {
+            const SPACING: u32 = 8;
+            let texts = (0..TILE_SIZE / SPACING)
+                .flat_map(|x| (0..TILE_SIZE / SPACING).map(move |y| (x, y)))
+                .map(|(x, y)| {
+                    crate::text::Text::new(
+                        pos2(
+                            (x * SPACING + SPACING / 2) as f32,
+                            (y * SPACING + SPACING / 2) as f32,
+                        ),
+                        format!("{x}, {y}"),
+                        12.,
+                        egui::Color32::BLACK,
+                        0.,
+                    )
+                })
+                .collect();
+
+            Some(TilePiece::new(
+                Tile::Vector {
+                    drawables: std::sync::Arc::new(Vec::new()),
+                    texts,
+                },
+                interpolate_from_lower_zoom(tile_id, tile_id.zoom - 3).1,
+            ))
+        }
+
+        fn attribution(&self) -> Attribution {
+            Attribution {
+                text: "",
+                url: "",
+                logo_light: None,
+                logo_dark: None,
+            }
+        }
+
+        fn tile_size(&self) -> u32 {
+            TILE_SIZE
+        }
+    }
+
+    /// Labels which [`draw_tiles`] gathers from [`PiecesOfOneTile`], and the projector it
+    /// drew with.
+    #[cfg(feature = "vector")]
+    fn labels_of_pieces() -> (Vec<crate::text::Text>, Projector<'static>) {
+        let projector = projector_at(TILE_SIZE as f32 * 2., 16.);
+        let mut canvas = Canvas::new();
+        draw_tiles(&mut canvas, &projector, &mut PiecesOfOneTile);
 
         let texts = canvas.texts.into_iter().map(|(_, text)| text).collect();
-        let placed = crate::text::place_texts(texts, &ctx)
-            .into_iter()
-            .filter(|shape| !matches!(shape, egui::Shape::Noop))
-            .count();
+        (texts, projector)
+    }
 
+    /// Every piece holds every label of the tile, but draws only a part of it. Each label is
+    /// to be gathered once, by the piece it falls in, rather than once per piece.
+    #[cfg(feature = "vector")]
+    #[test]
+    fn a_label_of_a_tile_drawn_in_pieces_is_gathered_once() {
+        let (texts, _) = labels_of_pieces();
+        let positions: std::collections::HashSet<_> = texts
+            .iter()
+            .map(|text| (text.position.x.to_bits(), text.position.y.to_bits()))
+            .collect();
+
+        assert!(!texts.is_empty());
         assert_eq!(
-            placed,
+            texts.len(),
             positions.len(),
-            "expected one label per spot, got {placed} for {} spots",
-            positions.len()
+            "some labels were gathered twice"
         );
+    }
+
+    /// Zoomed in far past the last zoom level of a source, nearly all labels of a tile land
+    /// far off the map, and placing them was most of the time a frame took.
+    #[cfg(feature = "vector")]
+    #[test]
+    fn labels_far_off_the_map_are_not_gathered() {
+        let (texts, projector) = labels_of_pieces();
+        // Further than a label could hang into the map from, whatever margin it is given.
+        let clip_rect = projector.clip_rect();
+        let near = clip_rect.expand(clip_rect.width());
+
+        assert!(!texts.is_empty());
+        for text in texts {
+            assert!(
+                near.contains(text.position),
+                "{} at {:?}",
+                text.text,
+                text.position
+            );
+        }
     }
 }
