@@ -32,7 +32,7 @@ fn cache_dir() -> Option<PathBuf> {
     Some(base.join("wanderers").join("tiles"))
 }
 
-/// Maps the places can be drawn on top of. Protomaps only shows up when there is a file for it.
+/// Maps the places can be drawn on top of. PMTiles only show up when there is a file for them.
 fn basemaps(egui_ctx: egui::Context) -> Basemaps {
     let mut basemaps = Basemaps::new(egui_ctx);
 
@@ -57,18 +57,18 @@ fn basemaps(egui_ctx: egui::Context) -> Basemaps {
         http(sources::Geoportal, Style::default(), ctx)
     });
 
-    // See `just protomaps-dolnoslaskie` in `walkers` for one way of getting a file.
+    // See `just openfreemap-dolnoslaskie` in `walkers` for one way of getting a file.
     for path in pmtiles_files(Path::new(".")) {
         let name = path.file_stem().unwrap_or_default().to_string_lossy();
 
         let light = path.to_owned();
         basemaps.add(format!("{name} (light)"), move |ctx| {
-            pmtiles(&light, Style::protomaps_basemap_light(), ctx)
+            pmtiles(&light, Style::openmaptiles_basemap_light(), ctx)
         });
 
         let dark = path.to_owned();
         basemaps.add(format!("{name} (dark)"), move |ctx| {
-            pmtiles(&dark, Style::protomaps_basemap_dark(), ctx)
+            pmtiles(&dark, Style::openmaptiles_basemap_dark(), ctx)
         });
     }
 

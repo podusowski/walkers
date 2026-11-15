@@ -83,7 +83,12 @@ overpass-peaks-dolnoslaskie:
         -o peaks.json
     osmtogeojson peaks.json > peaks.geojson
 
-# Download the latest PMTiles file for Dolnośląskie, Poland from Protomaps.
+# Download the latest PMTiles file for Dolnośląskie, Poland from OpenFreeMap, for Walkers' own styles
+[group('data')]
+openfreemap-dolnoslaskie:
+    pmtiles extract https://btrfs.openfreemap.com/$(curl -s https://btrfs.openfreemap.com/files.txt | grep -E '^areas/planet/[^/]+/done$' | tail -1 | sed 's|/done$||')/tiles.pmtiles --bbox {{ DOLNOSLASKIE_BBOX }} dolnoslaskie.pmtiles
+
+# Download the latest PMTiles file for Dolnośląskie, Poland from Protomaps, for Protomaps' own styles
 [group('data')]
 protomaps-dolnoslaskie:
     pmtiles extract https://build.protomaps.com/$(date -d 'yesterday' +%Y%m%d).pmtiles --bbox {{ DOLNOSLASKIE_BBOX }} dolnoslaskie.pmtiles

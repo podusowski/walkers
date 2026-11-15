@@ -98,7 +98,14 @@ make run-on-device
 ## Offline maps
 
 To obtain offline maps in `.pmtiles` format, you can fetch Dolnośląskie region extract from
-[Protomaps](https://docs.protomaps.com/guide/getting-started) using:
+[OpenFreeMap](https://openfreemap.org/), which Walkers' own styles are made for, using:
+
+```sh
+just openfreemap-dolnoslaskie
+```
+
+Extracts from [Protomaps](https://docs.protomaps.com/guide/getting-started), drawn with Protomaps'
+own styles, work as well:
 
 ```sh
 just protomaps-dolnoslaskie

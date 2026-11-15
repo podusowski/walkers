@@ -84,7 +84,7 @@ impl ScrollPerf {
             Some(path) => (
                 Box::new(walkers::PmTiles::with_style(
                     &path,
-                    Style::protomaps_basemap_light(),
+                    Style::openmaptiles_basemap_light(),
                     egui_ctx,
                 )),
                 path,

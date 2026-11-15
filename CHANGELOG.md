@@ -19,6 +19,8 @@ playground and can change or break at any time without an entry here.
   `PmTilesSource` made `with_elevation`.
 * New `Mapterhorn` source, with elevation of the whole world.
 * Raster tiles can be WebP.
+* Walkers' own basemap styles support only the OpenMapTiles schema, such as OpenFreeMap's.
+  `Style::protomaps_basemap_light` and `Style::protomaps_basemap_dark` are removed.
 
 ## 0.65.0
 
