@@ -25,6 +25,8 @@ pub enum Error {
     TwoElementsExpected(Vec<Value>),
     #[error("At least two elemented expected, got: {0:?}")]
     AtLeastTwoElementsExpected(Vec<Value>),
+    #[error("At least one number expected, got: {0:?}")]
+    NumbersExpected(Vec<Value>),
     #[error("Property '{0}' missing in {1:?}")]
     PropertyMissing(String, HashMap<String, Value>),
     #[error("Value must be a number, got: {0}")]
@@ -194,6 +196,27 @@ impl Context {
                             Ok(acc && self.evaluate(value)? == Value::Bool(true))
                         })?
                         .into()),
+                    "+" => number(self.numbers(arguments)?.into_iter().sum()),
+                    "*" => number(self.numbers(arguments)?.into_iter().product()),
+                    "-" => match self.numbers(arguments)?[..] {
+                        [value] => number(-value),
+                        [left, right] => number(left - right),
+                        _ => Err(Error::TwoElementsExpected(arguments.to_vec())),
+                    },
+                    "/" => match self.numbers(arguments)?[..] {
+                        [left, right] => number(left / right),
+                        _ => Err(Error::TwoElementsExpected(arguments.to_vec())),
+                    },
+                    "min" => number(
+                        self.numbers(arguments)?
+                            .into_iter()
+                            .fold(f64::INFINITY, f64::min),
+                    ),
+                    "max" => number(
+                        self.numbers(arguments)?
+                            .into_iter()
+                            .fold(f64::NEG_INFINITY, f64::max),
+                    ),
                     "interpolate" => {
                         let (interpolation_type, args) = first_and_rest(arguments)?;
                         let base = interpolation_base(interpolation_type);
@@ -252,6 +275,19 @@ impl Context {
         }
     }
 
+    /// Evaluate each of `arguments`, all of which have to be numbers, and of which there has to
+    /// be at least one.
+    fn numbers(&self, arguments: &[Value]) -> Result<Vec<f64>, Error> {
+        if arguments.is_empty() {
+            return Err(Error::NumbersExpected(arguments.to_vec()));
+        }
+
+        arguments
+            .iter()
+            .map(|argument| float(&self.evaluate(argument)?))
+            .collect()
+    }
+
     /// Evaluate token as either a property key (String) or an expression (Array).
     fn property_or_expression(&self, value: &Value) -> Result<Value, Error> {
         match value {
@@ -286,6 +322,17 @@ fn float(v: &Value) -> Result<f64, Error> {
         n.as_f64().ok_or(Error::ExpectedFloat(n.clone()))
     } else {
         Err(Error::ExpectedNumber(v.clone()))
+    }
+}
+
+/// A number, kept an integer when it is whole, so that it equals the ones a style writes.
+fn number(value: f64) -> Result<Value, Error> {
+    if value.fract() == 0.0 && value.abs() < 2f64.powi(53) {
+        Ok(Value::Number((value as i64).into()))
+    } else {
+        Number::from_f64(value)
+            .map(Value::Number)
+            .ok_or(Error::CouldNotSerializeFloat)
     }
 }
 
@@ -945,5 +992,63 @@ mod tests {
                 .unwrap(),
             json!("HelloWorld")
         );
+    }
+
+    /// Evaluate `expression` at zoom 10, for a feature whose `width` is 1.
+    fn evaluate_math(expression: Value) -> Result<Value, Error> {
+        let properties = HashMap::from([("width".to_string(), json!(1))]);
+        Context::new("LineString".to_string(), properties, 10).evaluate(&expression)
+    }
+
+    #[test]
+    fn test_arithmetic_operators() {
+        for (expression, expected) in [
+            (json!(["+", 1, 2, 3.5]), json!(6.5)),
+            (json!(["-", 10, 4]), json!(6)),
+            (json!(["-", 3]), json!(-3)),
+            (json!(["*", 2, 3, 0.5]), json!(3)),
+            (json!(["/", 7, 2]), json!(3.5)),
+            (json!(["min", 3, 1.5, 2]), json!(1.5)),
+            (json!(["max", 3, 1.5, 2]), json!(3)),
+        ] {
+            assert_eq!(
+                evaluate_math(expression.clone()).unwrap(),
+                expected,
+                "{expression}"
+            );
+        }
+    }
+
+    /// 1 + 2 is the 3 a style writes, rather than a 3.0 which does not equal it.
+    #[test]
+    fn test_whole_arithmetic_result_equals_an_integer() {
+        assert_eq!(
+            evaluate_math(json!(["==", ["+", 1, 2], 3])).unwrap(),
+            json!(true)
+        );
+    }
+
+    /// Such as a line which is a pixel wider than another one, whatever the zoom.
+    #[test]
+    fn test_arithmetic_operands_are_expressions() {
+        let wider = json!([
+            "+",
+            ["interpolate", ["linear"], ["zoom"], 0, 0, 20, 20],
+            ["get", "width"]
+        ]);
+
+        assert_eq!(evaluate_math(wider).unwrap(), json!(11));
+    }
+
+    #[test]
+    fn test_arithmetic_errors() {
+        for expression in [
+            json!(["+"]),
+            json!(["+", "one", 2]),
+            json!(["-", 1, 2, 3]),
+            json!(["/", 1, 0]),
+        ] {
+            assert!(evaluate_math(expression.clone()).is_err(), "{expression}");
+        }
     }
 }
