@@ -153,7 +153,7 @@ impl ClusterApp {
     fn rebuild_plugin(&mut self) {
         let plugin = GroupedPlacesTree::new(self.points.clone(), DemoClusterGroup)
             .with_screen_radius_px(RADIUS_PX)
-            .viewport_only(true)
+            .visible_only(true)
             .include_offscreen_neighbors(true)
             .with_max_group_size(None);
         self.plugin = Some(Rc::new(plugin));

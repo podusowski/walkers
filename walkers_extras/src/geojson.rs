@@ -60,20 +60,20 @@ impl GeoJsonLayer {
 
     pub fn render(&self, canvas: &mut Canvas, projector: &Projector) {
         let zoom = projector.zoom().round() as u8;
-        let viewport = viewport(projector);
+        let map_bounds = map_bounds(projector);
         let z_order = canvas.z_order();
         let mut drawables = Vec::new();
 
         for (index, layer) in self.style.layers.iter().enumerate() {
             match layer {
                 StyleLayer::Fill { paint, filter, .. } => {
-                    for (geometry, context) in self.features(viewport, filter.as_ref(), zoom) {
+                    for (geometry, context) in self.features(map_bounds, filter.as_ref(), zoom) {
                         let projected = project_geometry(geometry, projector);
                         let _ = render_fill(&projected, &context, paint, &mut drawables);
                     }
                 }
                 StyleLayer::Line { paint, filter, .. } => {
-                    for (geometry, context) in self.features(viewport, filter.as_ref(), zoom) {
+                    for (geometry, context) in self.features(map_bounds, filter.as_ref(), zoom) {
                         let projected = project_geometry(geometry, projector);
                         let _ = render_line(&projected, &context, paint, &mut drawables);
                     }
@@ -89,7 +89,7 @@ impl GeoJsonLayer {
                         continue;
                     }
 
-                    for (geometry, context) in self.features(viewport, filter.as_ref(), zoom) {
+                    for (geometry, context) in self.features(map_bounds, filter.as_ref(), zoom) {
                         let projected = project_geometry(geometry, projector);
                         let mut texts = Vec::new();
                         let _ = render_symbol(
@@ -109,15 +109,15 @@ impl GeoJsonLayer {
         canvas.add_drawables(Drawables::new(drawables));
     }
 
-    /// Features in the viewport which the layer's filter lets through.
+    /// Features within `map_bounds` which the layer's filter lets through.
     fn features<'a>(
         &'a self,
-        viewport: AABB<[f64; 2]>,
+        map_bounds: AABB<[f64; 2]>,
         filter: Option<&'a Filter>,
         zoom: u8,
     ) -> impl Iterator<Item = (&'a Geometry<f32>, Context)> + 'a {
         self.rtree
-            .locate_in_envelope_intersecting(viewport)
+            .locate_in_envelope_intersecting(map_bounds)
             .filter_map(move |entry| {
                 let context = Context::new(
                     "geometry_type/TODO".to_string(),
@@ -154,11 +154,12 @@ fn bounding_rect(geometry: &Geometry<f32>) -> Rectangle<[f64; 2]> {
     Rectangle::from_corners([min_lon, min_lat], [max_lon, max_lat])
 }
 
-/// Compute the geographic envelope of the current viewport by unprojecting its corners.
-fn viewport(projector: &Projector) -> AABB<[f64; 2]> {
-    let clip_rect = projector.clip_rect();
-    let top_left = projector.unproject(clip_rect.min.to_vec2());
-    let bottom_right = projector.unproject(clip_rect.max.to_vec2());
+/// Where the map is, in longitude and latitude, found by unprojecting the corners of its
+/// [`Projector::map_rect`].
+fn map_bounds(projector: &Projector) -> AABB<[f64; 2]> {
+    let map_rect = projector.map_rect();
+    let top_left = projector.unproject(map_rect.min.to_vec2());
+    let bottom_right = projector.unproject(map_rect.max.to_vec2());
 
     // Position is geo_types::Point where x() = longitude, y() = latitude.
     let min_lon = top_left.x().min(bottom_right.x());

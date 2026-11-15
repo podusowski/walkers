@@ -9,14 +9,14 @@ use crate::{
 #[derive(Clone)]
 pub struct Projector<'a> {
     projection: &'a dyn Projection,
-    clip_rect: Rect,
+    map_rect: Rect,
     zoom: f64,
     map_center_projected_position: Pixels,
 }
 
 impl<'a> Projector<'a> {
     pub fn new(
-        clip_rect: Rect,
+        map_rect: Rect,
         projection: &'a dyn Projection,
         map_memory: &MapMemory,
         my_position: Position,
@@ -27,15 +27,20 @@ impl<'a> Projector<'a> {
 
         Self {
             projection,
-            clip_rect,
+            map_rect,
             zoom,
             map_center_projected_position,
         }
     }
 
     /// Where on the screen the map is.
+    pub fn map_rect(&self) -> Rect {
+        self.map_rect
+    }
+
+    #[deprecated(note = "renamed to `map_rect`")]
     pub fn clip_rect(&self) -> Rect {
-        self.clip_rect
+        self.map_rect
     }
 
     pub fn zoom(&self) -> f64 {
@@ -52,7 +57,7 @@ impl<'a> Projector<'a> {
         let projected_position = self.projection.project(position, self.zoom);
 
         // From the two points above we can calculate the actual point on the screen.
-        self.clip_rect.center().to_vec2()
+        self.map_rect.center().to_vec2()
             + (projected_position - self.map_center_projected_position).to_vec2()
     }
 
@@ -60,11 +65,11 @@ impl<'a> Projector<'a> {
     pub fn unproject(&self, position: Vec2) -> Position {
         // Despite being in pixel space `map_center_projected_position` is sufficiently large
         // that we must do the arithmetic in f64 to avoid imprecision.
-        let clip_center = self.clip_rect.center();
+        let map_center = self.map_rect.center();
         let x =
-            self.map_center_projected_position.x() + (position.x as f64) - (clip_center.x as f64);
+            self.map_center_projected_position.x() + (position.x as f64) - (map_center.x as f64);
         let y =
-            self.map_center_projected_position.y() + (position.y as f64) - (clip_center.y as f64);
+            self.map_center_projected_position.y() + (position.y as f64) - (map_center.y as f64);
 
         self.projection.unproject(Pixels::new(x, y), self.zoom)
     }

@@ -159,7 +159,7 @@ fn center(positions: &[Position]) -> Position {
 pub struct GroupedPlacesTreeSettings {
     pub screen_radius_px: Option<f32>,
     pub geo_radius_deg: f64,
-    pub viewport_only: bool,
+    pub visible_only: bool,
     pub include_offscreen_neighbors: bool,
     pub max_group_size: Option<usize>,
 }
@@ -169,7 +169,7 @@ impl Default for GroupedPlacesTreeSettings {
         Self {
             screen_radius_px: None,
             geo_radius_deg: 0.001,
-            viewport_only: false,
+            visible_only: false,
             include_offscreen_neighbors: true,
             max_group_size: None,
         }
@@ -263,8 +263,8 @@ impl<T: Place, G: Group> GroupedPlacesTree<T, G> {
         self
     }
 
-    pub fn viewport_only(mut self, on: bool) -> Self {
-        self.settings.viewport_only = on;
+    pub fn visible_only(mut self, on: bool) -> Self {
+        self.settings.visible_only = on;
         self
     }
 
@@ -309,7 +309,7 @@ impl<T: Place, G: Group> GroupedPlacesTree<T, G> {
 
     fn visit_clusters_with_cache<F>(
         &self,
-        response_rect: egui::Rect,
+        map_rect: egui::Rect,
         projector: &Projector,
         screen_positions: &[egui::Pos2],
         mut handle: F,
@@ -323,13 +323,13 @@ impl<T: Place, G: Group> GroupedPlacesTree<T, G> {
         let mut visited = vec![false; places.len()];
         let mut scratch: Vec<usize> = Vec::with_capacity(64);
 
-        let mut screen_rect = response_rect;
-        if s.viewport_only
+        let mut map_rect = map_rect;
+        if s.visible_only
             && let Some(px) = s.screen_radius_px
             && s.include_offscreen_neighbors
             && px > 0.0
         {
-            screen_rect = screen_rect.expand(px);
+            map_rect = map_rect.expand(px);
         }
 
         for seed in rtree.iter() {
@@ -339,7 +339,7 @@ impl<T: Place, G: Group> GroupedPlacesTree<T, G> {
             scratch.clear();
 
             let seed_screen = screen_positions[seed.idx];
-            if s.viewport_only && !screen_rect.contains(seed_screen) {
+            if s.visible_only && !map_rect.contains(seed_screen) {
                 continue;
             }
 
@@ -358,7 +358,7 @@ impl<T: Place, G: Group> GroupedPlacesTree<T, G> {
                 }
 
                 let sp = screen_positions[n.idx];
-                if s.viewport_only && !screen_rect.contains(sp) {
+                if s.visible_only && !map_rect.contains(sp) {
                     continue;
                 }
                 if (sp - seed_screen).length() > r_px_check {
@@ -437,7 +437,7 @@ impl<T: Place, G: Group> GroupedPlacesTree<T, G> {
         (clusters, max_size)
     }
 
-    pub fn cluster_stats(&self, rect: egui::Rect, projector: &Projector) -> (usize, usize) {
+    pub fn cluster_stats(&self, map_rect: egui::Rect, projector: &Projector) -> (usize, usize) {
         let mut clusters = 0usize;
         let mut max_size = 0usize;
         let mut cache = self.screen_positions.borrow_mut();
@@ -447,7 +447,7 @@ impl<T: Place, G: Group> GroupedPlacesTree<T, G> {
         for (pos, place) in cache.iter_mut().zip(self.places.iter()) {
             *pos = projector.project(place.position()).to_pos2();
         }
-        self.visit_clusters_with_cache(rect, projector, &cache, |_, members, _| {
+        self.visit_clusters_with_cache(map_rect, projector, &cache, |_, members, _| {
             clusters += 1;
             max_size = max_size.max(members.len());
         });
@@ -531,7 +531,7 @@ mod tests {
         ];
         let tree = GroupedPlacesTree::new(places, DummyGroup)
             .with_screen_radius_px(50.0)
-            .viewport_only(false);
+            .visible_only(false);
 
         let (rect_far, proj_far) = projector_for_zoom(8.0);
         let (clusters_far, max_far) = tree.cluster_stats(rect_far, &proj_far);
@@ -570,7 +570,7 @@ mod tests {
         ];
         let tree = GroupedPlacesTree::new(places, DummyGroup)
             .with_screen_radius_px(50.0)
-            .viewport_only(false);
+            .visible_only(false);
 
         let rect = Rect::from_min_size(Pos2::ZERO, Vec2::splat(512.0));
         let mut memory = MapMemory::default();
