@@ -158,12 +158,19 @@ fn ground(style: &Style) -> usize {
 
 #[cfg(feature = "pmtiles")]
 fn add_pmtiles_basemaps(basemaps: &mut Basemaps) {
+    // A file follows one schema, so only some of these draw anything: Walkers' and OpenFreeMap's
+    // own styles draw OpenMapTiles, from `just openfreemap-dolnoslaskie`, and the rest draw
+    // Protomaps, from `just protomaps-dolnoslaskie`.
     let styles = [
-        ("", Style::protomaps_dark as fn() -> Style),
+        (
+            " (Walkers light)",
+            Style::openmaptiles_basemap_light as fn() -> Style,
+        ),
+        (" (Walkers dark)", Style::openmaptiles_basemap_dark),
+        (" (OpenFreeMap)", Style::openfreemap_bright),
+        (" (Protomaps Dark)", Style::protomaps_dark),
         (" (Protomaps Dark Vis)", Style::protomaps_dark_vis),
         (" (Protomaps Light)", Style::protomaps_light),
-        (" (Walkers light)", Style::protomaps_basemap_light),
-        (" (Walkers dark)", Style::protomaps_basemap_dark),
     ];
 
     for path in walkers_extras::pmtiles_files(std::path::Path::new(".")) {
@@ -178,17 +185,20 @@ fn add_pmtiles_basemaps(basemaps: &mut Basemaps) {
         }
 
         let with_geoportal = path.clone();
-        basemaps.add(format!("{name}WithGeoportal"), move |ctx| {
-            let mut style = Style::protomaps_dark();
-            style.layers.push(raster_layer("geoportal", 0.25));
+        basemaps.add(
+            format!("{name} with Geoportal (Protomaps Dark)"),
+            move |ctx| {
+                let mut style = Style::protomaps_dark();
+                style.layers.push(raster_layer("geoportal", 0.25));
 
-            StyledSources::new(style, ctx.to_owned())
-                .with_tiled_source(
-                    "protomaps",
-                    PmTilesSource::new(&with_geoportal, ctx.to_owned()),
-                )
-                .with_tiled_source("geoportal", http(Geoportal, ctx))
-        });
+                StyledSources::new(style, ctx.to_owned())
+                    .with_tiled_source(
+                        "protomaps",
+                        PmTilesSource::new(&with_geoportal, ctx.to_owned()),
+                    )
+                    .with_tiled_source("geoportal", http(Geoportal, ctx))
+            },
+        );
 
         basemaps.select(&format!("{name} (Walkers dark)"));
     }
