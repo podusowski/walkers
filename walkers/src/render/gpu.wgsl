@@ -110,28 +110,34 @@ fn vs_line(
     return out;
 }
 
-// Whether this pixel falls on a dash rather than in a gap. A pattern which adds up to nothing
-// is a solid line.
-fn on_dash(in: LineOut) -> bool {
+// How much of the line's length up to `x` is dashes rather than gaps.
+fn dashed_up_to(x: f32, pattern: vec4<f32>, period: f32) -> f32 {
+    let repeats = floor(x / period);
+    let rest = x - repeats * period;
+    let first = min(rest, pattern.x);
+    let second = clamp(rest - pattern.x - pattern.y, 0.0, pattern.z);
+    return repeats * (pattern.x + pattern.z) + first + second;
+}
+
+// How much of this pixel, along the line, falls on dashes rather than gaps. Dashes shorter than
+// a pixel blend into a fainter line, instead of each pixel being all dash or all gap. A pattern
+// which adds up to nothing is a solid line.
+fn dash_coverage(in: LineOut) -> f32 {
     let pattern = in.dasharray;
     let period = pattern.x + pattern.y + pattern.z + pattern.w;
     if period <= 0.0 {
-        return true;
+        return 1.0;
     }
 
-    let position = in.along % period;
-    return position < pattern.x
-        || (position >= pattern.x + pattern.y && position < pattern.x + pattern.y + pattern.z);
+    return dashed_up_to(in.along + 0.5, pattern, period)
+        - dashed_up_to(in.along - 0.5, pattern, period);
 }
 
 // How much of this pixel the line covers. Full in the middle, fading over the last half pixel
 // at each edge, and never more than the line's own width - which is what keeps a road thinner
 // than a pixel looking thin rather than disappearing or turning into a solid one.
 fn line_alpha(in: LineOut) -> f32 {
-    if !on_dash(in) {
-        return 0.0;
-    }
-    return clamp(in.half_width - abs(in.distance) + 0.5, 0.0, 1.0);
+    return dash_coverage(in) * clamp(in.half_width - abs(in.distance) + 0.5, 0.0, 1.0);
 }
 
 @fragment
