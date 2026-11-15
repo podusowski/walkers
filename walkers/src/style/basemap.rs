@@ -97,7 +97,7 @@ const DARK: Palette = Palette {
     landuse_dark: "#191919",
     bridge: "#1f1f1f",
     structure: "#292929",
-    path: "#3a2312",
+    path: "#5a4a3a",
     muted: "#333333",
     highway: "#352121",
     road: "#464646",
@@ -123,7 +123,7 @@ const LIGHT: Palette = Palette {
     landuse_dark: "#e0e0e0",
     bridge: "#bfbfbf",
     structure: "#d4d4d4",
-    path: "#d4d4d4",
+    path: "#9a8a78",
     muted: "#b3b3b3",
     highway: "#bb5f5f",
     road: "#4a4a4a",
@@ -162,6 +162,23 @@ fn road_width(factor: f64) -> Float {
 fn casing_width(factor: f64) -> Float {
     let road = road_width(factor).0;
     Float(json!(["+", road, ["*", 2, ["min", 1, road]]]))
+}
+
+/// Paths, tracks and service roads. Paths and tracks are dashed, so that they stand apart from
+/// service roads.
+fn path_paint(palette: &Palette) -> Paint {
+    Paint {
+        line_color: Some(Color(json!(palette.path))),
+        line_width: Some(road_width(PATH_FACTOR)),
+        line_dasharray: Some(Dasharray(json!([
+            "match",
+            ["get", "class"],
+            "service",
+            ["literal", []],
+            ["literal", [6, 2]]
+        ]))),
+        ..Default::default()
+    }
 }
 
 fn build(palette: &Palette) -> Style {
@@ -548,11 +565,7 @@ fn build(palette: &Palette) -> Style {
                 ["in", "class", "path", "service", "track"],
                 ["!=", "subclass", "pier"]
             ]))),
-            paint: Paint {
-                line_color: Some(Color(json!(palette.path))),
-                line_width: Some(road_width(PATH_FACTOR)),
-                ..Default::default()
-            },
+            paint: path_paint(palette),
         },
         // roads_link
         StyleLayer::Line {
@@ -665,11 +678,7 @@ fn build(palette: &Palette) -> Style {
                 ["==", "brunnel", "bridge"],
                 ["in", "class", "path", "service", "track"]
             ]))),
-            paint: Paint {
-                line_color: Some(Color(json!(palette.path))),
-                line_width: Some(road_width(PATH_FACTOR)),
-                ..Default::default()
-            },
+            paint: path_paint(palette),
         },
         // roads_bridges_minor
         StyleLayer::Line {
