@@ -195,8 +195,8 @@ impl Tile {
     }
 
     /// Draw the tile on the given `rect`. The `uv` parameter defines which part of the tile
-    /// should be drawn on the `rect`. `zoom` is the map's, and `visible` is the part of the
-    /// screen the map takes.
+    /// should be drawn on the `rect`. `zoom` is the map's, and `map_rect` is where on the screen
+    /// the map is.
     fn draw(
         &self,
         canvas: &mut Canvas,
@@ -204,10 +204,10 @@ impl Tile {
         uv: Rect,
         tile_size: u32,
         zoom: f64,
-        visible: Rect,
+        map_rect: Rect,
     ) {
         #[cfg(not(feature = "vector"))]
-        let _ = (tile_size, zoom, visible);
+        let _ = (tile_size, zoom, map_rect);
 
         match self {
             Tile::Raster(texture_handle) => {
@@ -240,7 +240,7 @@ impl Tile {
                     (uv.min.to_vec2() * tile_size as f32).to_pos2(),
                     (uv.max.to_vec2() * tile_size as f32).to_pos2(),
                 );
-                let near_map = transform.inverse() * visible.expand(LABEL_MARGIN);
+                let near_map = transform.inverse() * map_rect.expand(LABEL_MARGIN);
                 let given = piece.intersect(near_map);
 
                 let z_order = canvas.z_order();
@@ -293,7 +293,7 @@ pub(crate) fn draw_tiles_with(
     let mut meshes = Default::default();
     flood_fill_tiles(
         &Spread {
-            clip_rect: projector.clip_rect(),
+            map_rect: projector.map_rect(),
             map_center_projected_position: projector.map_center_projected_position(),
             zoom: projector.zoom(),
             tile_size,
@@ -311,7 +311,7 @@ pub(crate) fn draw_tiles_with(
 
 /// What stays the same as the fill spreads from one tile to the next.
 struct Spread {
-    clip_rect: Rect,
+    map_rect: Rect,
     map_center_projected_position: Pixels,
     zoom: f64,
     tile_size: u32,
@@ -326,7 +326,7 @@ fn flood_fill_tiles(
     canvas: &mut Canvas,
 ) {
     let Spread {
-        clip_rect,
+        map_rect,
         map_center_projected_position,
         zoom,
         tile_size,
@@ -337,9 +337,9 @@ fn flood_fill_tiles(
     let corrected_tile_size = TILE_SIZE as f64 * 2f64.powf(zoom - tile_id.zoom as f64);
     let tile_projected = tile_id.project(corrected_tile_size);
     let tile_screen_position =
-        clip_rect.center().to_vec2() + (tile_projected - map_center_projected_position).to_vec2();
+        map_rect.center().to_vec2() + (tile_projected - map_center_projected_position).to_vec2();
 
-    if clip_rect.intersects(rect(tile_screen_position, corrected_tile_size))
+    if map_rect.intersects(rect(tile_screen_position, corrected_tile_size))
         && meshes.insert(tile_id)
     {
         if let Some(tile) = at(tile_id) {
@@ -349,7 +349,7 @@ fn flood_fill_tiles(
                 tile.uv,
                 tile_size,
                 zoom,
-                clip_rect,
+                map_rect,
             )
         }
 
@@ -744,8 +744,8 @@ mod tests {
     fn labels_far_off_the_map_are_not_gathered() {
         let (texts, projector) = labels_of_pieces();
         // Further than a label could hang into the map from, whatever margin it is given.
-        let clip_rect = projector.clip_rect();
-        let near = clip_rect.expand(clip_rect.width());
+        let map_rect = projector.map_rect();
+        let near = map_rect.expand(map_rect.width());
 
         assert!(!texts.is_empty());
         for text in texts {

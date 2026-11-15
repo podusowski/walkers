@@ -23,6 +23,7 @@ playground and can change or break at any time without an entry here.
 * Walkers' own basemap styles support only the OpenMapTiles schema, such as OpenFreeMap's.
   `Style::protomaps_basemap_light` and `Style::protomaps_basemap_dark` are removed.
 * Fix the map slowing down when zoomed in far past the last zoom level of its source.
+* `Projector::clip_rect` is renamed to `Projector::map_rect`. The old name still works.
 
 ## 0.65.0
 
