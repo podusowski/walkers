@@ -6,9 +6,9 @@ use crate::{
 };
 use bytes::Bytes;
 use egui::Context;
-use pmtiles::{AsyncPmTilesReader, TileCoord};
+use pmtiles::{AsyncPmTilesReader, Header, TileCoord};
 use std::{
-    io::{self},
+    io::{self, Read},
     path::{Path, PathBuf},
 };
 use thiserror::Error;
@@ -65,6 +65,7 @@ impl PmTiles {
 pub struct PmTilesSource {
     io: TilesIo,
     tile_size: u32,
+    max_zoom: u8,
 }
 
 impl PmTilesSource {
@@ -75,9 +76,15 @@ impl PmTilesSource {
     /// Vector tiles are drawn for `tile_size`, which is the size they are drawn at when the map
     /// is at one of their zoom levels.
     pub fn with_tile_size(path: impl AsRef<Path>, tile_size: u32, egui_ctx: Context) -> Self {
+        let path = path.as_ref();
+
         Self {
-            io: TilesIo::new(PmTilesFetch::new(path.as_ref()), egui_ctx),
+            io: TilesIo::new(PmTilesFetch::new(path), egui_ctx),
             tile_size,
+            max_zoom: max_zoom(path).unwrap_or_else(|err| {
+                log::warn!("Cannot read the max zoom of {}: {err}", path.display());
+                DEFAULT_MAX_ZOOM
+            }),
         }
     }
 
@@ -107,7 +114,7 @@ impl TiledSource for PmTilesSource {
     }
 
     fn max_zoom(&self) -> u8 {
-        DEFAULT_MAX_ZOOM
+        self.max_zoom
     }
 
     fn stats(&self) -> Stats {
@@ -143,6 +150,16 @@ enum PmTilesError {
     Other(#[from] pmtiles::PmtError),
 }
 
+/// The zoom level the file has tiles up to, as its header says.
+fn max_zoom(path: &Path) -> Result<u8, PmTilesError> {
+    /// What a PMTiles header takes, at the start of the file.
+    const HEADER_SIZE: usize = 127;
+
+    let mut header = vec![0; HEADER_SIZE];
+    std::fs::File::open(path)?.read_exact(&mut header)?;
+    Ok(Header::try_from_bytes(Bytes::from(header))?.max_zoom)
+}
+
 struct PmTilesFetch {
     path: PathBuf,
 }
@@ -173,5 +190,37 @@ impl Fetch for PmTilesFetch {
         // of the vector tile loading work is CPU-bound. Number of threads for Tokio runtime should
         // follow this value as well.
         6
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    /// A PMTiles file of nothing but its header, which says how far it zooms.
+    fn file_zooming_to(max_zoom: u8, name: &str) -> PathBuf {
+        let mut header = b"PMTiles".to_vec();
+        header.push(3); // Version.
+        header.extend([0; 11 * 8]); // Offsets, lengths and counts.
+        header.extend([1, 1, 1, 1]); // Clustered, no compression, no compression, MVT.
+        header.extend([0, max_zoom]);
+        header.extend([0; 4 * 4 + 1 + 2 * 4]); // Bounds and center.
+        assert_eq!(header.len(), 127);
+
+        let path =
+            std::env::temp_dir().join(format!("walkers-{}-{name}.pmtiles", std::process::id()));
+        std::fs::write(&path, header).expect("temporary file can be written");
+        path
+    }
+
+    /// OpenFreeMap's files stop at zoom 14. Asking them for zoom 15 tiles found every one
+    /// missing.
+    #[tokio::test]
+    async fn max_zoom_is_that_of_the_file() {
+        let path = file_zooming_to(14, "max-zoom");
+        let source = PmTilesSource::new(&path, Context::default());
+        let _ = std::fs::remove_file(&path);
+
+        assert_eq!(source.max_zoom(), 14);
     }
 }
