@@ -46,6 +46,11 @@ name = "decode_mvt"
 harness = false
 required-features = ["mvt"]
 
+[[bench]]
+name = "place_texts"
+harness = false
+required-features = ["mvt"]
+
 [target.'cfg(not(target_family = "wasm"))'.dependencies]
 http-cache-reqwest.workspace = true
 rustls.workspace = true
