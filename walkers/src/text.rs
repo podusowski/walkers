@@ -1,5 +1,4 @@
-use egui::{Color32, Pos2, Shape, Vec2, vec2};
-use geo::{BoundingRect, Coord, Intersects, LineString, Polygon};
+use egui::{Color32, Pos2, Rect, Shape, Vec2, vec2};
 use std::collections::HashMap;
 
 /// What the label names, which decides whether it may be said again nearby. Mirrors MapLibre's
@@ -95,9 +94,12 @@ const HALO_RING: [Vec2; 8] = [
     Vec2 { x: 0.7, y: -0.7 },
 ];
 
+/// The area a label takes on the screen: a rectangle, turned with the label.
+#[derive(Debug, Clone, Copy)]
 pub struct OrientedRect {
-    polygon: Polygon<f32>,
-    bbox: geo::Rect<f32>,
+    /// Top-left, top-right, bottom-right, bottom-left, before turning.
+    corners: [Pos2; 4],
+    bbox: Rect,
 }
 
 impl OrientedRect {
@@ -108,44 +110,57 @@ impl OrientedRect {
         let ux = vec2(half.x * c, half.x * s);
         let uy = vec2(-half.y * s, half.y * c);
 
-        let p0 = center - ux - uy; // top-left
-        let p1 = center + ux - uy; // top-right
-        let p2 = center + ux + uy; // bottom-right
-        let p3 = center - ux + uy; // bottom-left
-
-        let polygon = Polygon::new(
-            LineString::from(vec![
-                Coord { x: p0.x, y: p0.y },
-                Coord { x: p1.x, y: p1.y },
-                Coord { x: p2.x, y: p2.y },
-                Coord { x: p3.x, y: p3.y },
-                Coord { x: p0.x, y: p0.y }, // Close the polygon
-            ]),
-            vec![],
-        );
-
-        let bounding_rect = polygon
-            .bounding_rect()
-            .expect("can not happen because polygon always has some points");
+        let corners = [
+            center - ux - uy,
+            center + ux - uy,
+            center + ux + uy,
+            center - ux + uy,
+        ];
 
         Self {
-            polygon,
-            bbox: bounding_rect,
+            corners,
+            bbox: Rect::from_points(&corners),
         }
     }
 
     pub fn top_left(&self) -> Pos2 {
-        self.polygon
-            .exterior()
-            .points()
-            .nth(0)
-            .map(|p| Pos2 { x: p.x(), y: p.y() })
-            .expect("can not happen because polygon always has some points")
+        self.corners[0]
     }
 
+    /// Whether the two overlap, touching included.
     pub fn intersects(&self, other: &OrientedRect) -> bool {
         // Checking bbox first gives huge performance boost.
-        self.bbox.intersects(&other.bbox) && self.polygon.intersects(&other.polygon)
+        self.bbox.intersects(other.bbox) && !self.separates(other) && !other.separates(self)
+    }
+
+    /// Whether one of this rectangle's edges is the direction of an axis on which the two do
+    /// not overlap. Two convex polygons are apart exactly if some edge of either is such an
+    /// axis (the separating axis theorem), and a rectangle has two directions of edges.
+    fn separates(&self, other: &OrientedRect) -> bool {
+        let [p0, p1, _, p3] = self.corners;
+        [p1 - p0, p3 - p0].into_iter().any(|axis| {
+            let (a_min, a_max) = self.extent_along(axis);
+            let (b_min, b_max) = other.extent_along(axis);
+            a_max < b_min || b_max < a_min
+        })
+    }
+
+    /// The span of the corners projected on `axis`.
+    fn extent_along(&self, axis: Vec2) -> (f32, f32) {
+        self.corners
+            .iter()
+            .map(|p| p.to_vec2().dot(axis))
+            .fold((f32::INFINITY, f32::NEG_INFINITY), |(lo, hi), d| {
+                (lo.min(d), hi.max(d))
+            })
+    }
+}
+
+impl rstar::RTreeObject for OrientedRect {
+    type Envelope = rstar::AABB<[f32; 2]>;
+
+    fn envelope(&self) -> Self::Envelope {
+        rstar::AABB::from_corners(self.bbox.min.into(), self.bbox.max.into())
     }
 }
 
@@ -159,7 +174,8 @@ const MIN_REPEAT_DISTANCE: f32 = 400.0;
 /// different things - house numbers being the obvious case.
 #[derive(Default)]
 struct PlacedTexts {
-    occupied_areas: Vec<OrientedRect>,
+    /// In an R-tree, so that a new label is checked only against the ones near it.
+    occupied_areas: rstar::RTree<OrientedRect>,
     text_positions: HashMap<String, Vec<Pos2>>,
 }
 
@@ -179,15 +195,21 @@ impl PlacedTexts {
     /// Take the area, unless something is already there. The text is remembered only once it
     /// turned out to be free.
     fn try_place(&mut self, text: &Text, area: OrientedRect) -> bool {
+        // A label with no finite position or angle, such as an empty one on a line of no length,
+        // whose angle is atan(0 / 0), could not be drawn anyway, and the tree cannot sort it.
+        if !area.corners.iter().all(|corner| corner.is_finite()) {
+            return false;
+        }
+
         if self
             .occupied_areas
-            .iter()
+            .locate_in_envelope_intersecting(rstar::RTreeObject::envelope(&area))
             .any(|occupied| occupied.intersects(&area))
         {
             return false;
         }
 
-        self.occupied_areas.push(area);
+        self.occupied_areas.insert(area);
 
         if text.placement == Placement::Line {
             self.text_positions
@@ -284,6 +306,7 @@ pub fn place_texts(texts: Vec<Text>, ctx: &egui::Context) -> Vec<Shape> {
 mod tests {
     use super::*;
     use egui::pos2;
+    use rand::{RngExt as _, SeedableRng as _, rngs::StdRng};
 
     fn context() -> egui::Context {
         let ctx = egui::Context::default();
@@ -350,5 +373,138 @@ mod tests {
         let texts = column("5", MIN_REPEAT_DISTANCE / 2., Placement::Point);
 
         assert_eq!(count_placed(texts, &ctx), 2);
+    }
+
+    fn rect(x: f32, y: f32, w: f32, h: f32, angle: f32) -> OrientedRect {
+        OrientedRect::new(pos2(x, y), angle, vec2(w, h))
+    }
+
+    #[test]
+    fn overlapping_rectangles_intersect() {
+        assert!(rect(0., 0., 10., 10., 0.).intersects(&rect(8., 3., 10., 10., 0.)));
+        assert!(rect(0., 0., 10., 10., 0.).intersects(&rect(2., 2., 10., 4., 0.7)));
+    }
+
+    #[test]
+    fn rectangles_apart_do_not_intersect() {
+        assert!(!rect(0., 0., 10., 10., 0.).intersects(&rect(20., 0., 10., 10., 0.)));
+        assert!(!rect(0., 0., 10., 10., 0.).intersects(&rect(0., -20., 10., 10., 0.3)));
+    }
+
+    #[test]
+    fn rectangles_sharing_an_edge_intersect() {
+        assert!(rect(0., 0., 10., 10., 0.).intersects(&rect(10., 0., 10., 10., 0.)));
+    }
+
+    /// The bounding boxes overlap, the rectangles do not: the case the bounding boxes alone
+    /// would get wrong.
+    #[test]
+    fn a_turned_rectangle_off_the_corner_does_not_intersect() {
+        let square = rect(0., 0., 10., 10., 0.);
+        let diamond = rect(11., 11., 10., 10., std::f32::consts::FRAC_PI_4);
+
+        assert!(square.bbox.intersects(diamond.bbox));
+        assert!(!square.intersects(&diamond));
+        assert!(!diamond.intersects(&square));
+    }
+
+    fn random_rect(rng: &mut StdRng, extent: f32, max_size: f32) -> OrientedRect {
+        rect(
+            rng.random_range(0. ..extent),
+            rng.random_range(0. ..extent),
+            rng.random_range(1. ..max_size),
+            rng.random_range(1. ..max_size),
+            rng.random_range(-std::f32::consts::PI..std::f32::consts::PI),
+        )
+    }
+
+    fn polygon(rect: &OrientedRect) -> geo::Polygon<f32> {
+        let ring: Vec<_> = rect
+            .corners
+            .iter()
+            .chain(&rect.corners[..1])
+            .map(|p| geo::Coord { x: p.x, y: p.y })
+            .collect();
+        geo::Polygon::new(ring.into(), vec![])
+    }
+
+    #[test]
+    fn intersection_agrees_with_geo() {
+        use geo::Intersects;
+
+        let mut rng = StdRng::seed_from_u64(1);
+        for _ in 0..20_000 {
+            let a = random_rect(&mut rng, 100., 60.);
+            let b = random_rect(&mut rng, 100., 60.);
+            assert_eq!(
+                a.intersects(&b),
+                polygon(&a).intersects(&polygon(&b)),
+                "{:?} and {:?}",
+                a.corners,
+                b.corners
+            );
+        }
+    }
+
+    /// The labels the tree takes are those a check against every placed one takes, small and
+    /// large ones alike.
+    #[test]
+    fn placing_agrees_with_checking_every_placed_label() {
+        let text = Text::new(pos2(0., 0.), "label".into(), 12., Color32::BLACK, 0.);
+        let mut rng = StdRng::seed_from_u64(2);
+        let mut placed = PlacedTexts::default();
+        let mut reference: Vec<OrientedRect> = Vec::new();
+
+        for k in 0..3000 {
+            let max_size = match k % 100 {
+                0 => 5000.,
+                1..10 => 600.,
+                _ => 80.,
+            };
+            let area = random_rect(&mut rng, 2000., max_size);
+            let expected = !reference.iter().any(|r| r.intersects(&area));
+            if expected {
+                reference.push(area);
+            }
+            assert_eq!(placed.try_place(&text, area), expected, "label {k}");
+        }
+
+        assert!(reference.len() > 100, "the test should place a fair number");
+    }
+
+    fn grid_of_labels() -> Vec<Text> {
+        (0..400)
+            .map(|k| {
+                Text::new(
+                    pos2((k % 20) as f32 * 30., (k / 20) as f32 * 8.),
+                    format!("Label {k}"),
+                    12.,
+                    Color32::BLACK,
+                    0.,
+                )
+            })
+            .collect()
+    }
+
+    /// An empty label on a line of no length, whose slope, and so angle, is 0 / 0.
+    #[test]
+    fn a_label_with_no_angle_is_dropped_and_the_others_placed_as_without_it() {
+        let ctx = context();
+        let no_angle = Text::new(pos2(0., 0.), String::new(), 12., Color32::BLACK, f32::NAN)
+            .with_placement(Placement::Line)
+            .with_max_width(Some(0.));
+        let mut texts = vec![no_angle];
+        texts.extend(grid_of_labels());
+
+        let shapes = place_texts(texts, &ctx);
+
+        assert!(matches!(shapes[0], Shape::Noop));
+        assert_eq!(
+            shapes[1..]
+                .iter()
+                .filter(|s| !matches!(s, Shape::Noop))
+                .count(),
+            count_placed(grid_of_labels(), &ctx)
+        );
     }
 }
