@@ -129,8 +129,7 @@ impl OrientedRect {
 
     /// Whether the two overlap, touching included.
     pub fn intersects(&self, other: &OrientedRect) -> bool {
-        // Checking bbox first gives huge performance boost.
-        self.bbox.intersects(other.bbox) && !self.separates(other) && !other.separates(self)
+        !self.separates(other) && !other.separates(self)
     }
 
     /// Whether one of this rectangle's edges is the direction of an axis on which the two do
