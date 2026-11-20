@@ -63,6 +63,7 @@ struct Palette {
     background: &'static str,
     rail: &'static str,
     rail_tie: &'static str,
+    tram: &'static str,
     forest: &'static str,
     urban_green: &'static str,
     pier: &'static str,
@@ -88,6 +89,7 @@ struct Palette {
 const DARK: Palette = Palette {
     background: "#000000",
     rail_tie: "#6d6d6d",
+    tram: "#2d2d2d",
     rail: "#000000",
     forest: "#061009",
     urban_green: "#000c00",
@@ -114,6 +116,7 @@ const DARK: Palette = Palette {
 const LIGHT: Palette = Palette {
     background: "#f2f2f0",
     rail_tie: "#000000",
+    tram: "#a04040",
     rail: "#ffffff",
     forest: "#86a180",
     urban_green: "#e2f0df",
@@ -153,6 +156,7 @@ const MINOR_ROAD_FACTOR: f64 = 1.0;
 const MAJOR_ROAD_FACTOR: f64 = 1.5;
 const MOTORWAY_FACTOR: f64 = 2.5;
 const RAIL_FACTOR: f64 = 0.5;
+const TRAM_FACTOR: f64 = 0.3;
 
 fn road_width(factor: f64) -> Float {
     exponential_zoom_interpolation(1.6, &ROAD_WIDTH.map(|(zoom, width)| (zoom, width * factor)))
@@ -627,7 +631,7 @@ fn build(palette: &Palette) -> Style {
         StyleLayer::Line {
             source: Some(SOURCE.into()),
             source_layer: "transportation".into(),
-            filter: Some(Filter(json!(["in", "class", "rail", "transit"]))),
+            filter: Some(Filter(json!(["==", "class", "rail"]))),
             paint: Paint {
                 line_color: Some(Color(json!(palette.rail))),
                 line_width: Some(casing_width(road_width(RAIL_FACTOR).0)),
@@ -638,12 +642,23 @@ fn build(palette: &Palette) -> Style {
         StyleLayer::Line {
             source: Some(SOURCE.into()),
             source_layer: "transportation".into(),
-            filter: Some(Filter(json!(["in", "class", "rail", "transit"]))),
+            filter: Some(Filter(json!(["==", "class", "rail"]))),
             paint: Paint {
                 //line_opacity: Some(Float(json!(0.5))),
                 line_color: Some(Color(json!(palette.rail_tie))),
                 line_dasharray: Some(Dasharray(json!([4, 2]))),
                 line_width: Some(road_width(RAIL_FACTOR)),
+                ..Default::default()
+            },
+        },
+        // roads_tram
+        StyleLayer::Line {
+            source: Some(SOURCE.into()),
+            source_layer: "transportation".into(),
+            filter: Some(Filter(json!(["==", "class", "transit"]))),
+            paint: Paint {
+                line_color: Some(Color(json!(palette.tram))),
+                line_width: Some(road_width(TRAM_FACTOR)),
                 ..Default::default()
             },
         },
