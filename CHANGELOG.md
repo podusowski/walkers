@@ -28,6 +28,10 @@ playground and can change or break at any time without an entry here.
 * Fix tunnels in Walkers' own basemap styles, whose dashed casing was hidden under the road.
 * Zoomed in past the last zoom level of a source, styles keep following the map's zoom, so that,
   for example, roads keep growing wider.
+* Fix the map slowing down with many labels, such as zoomed out over a dense area. Placing them
+  took a time growing with the square of their number.
+* Fix a panic on a label with no finite position or angle, such as an empty one on a line of no
+  length.
 
 ## 0.65.0
 

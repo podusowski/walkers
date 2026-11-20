@@ -42,6 +42,7 @@ typos:
 [group('develop')]
 bench:
     cargo bench -p walkers --features mvt --bench decode_mvt
+    cargo bench -p walkers --features mvt --bench place_texts
 
 [group('publish')]
 publish *args:
