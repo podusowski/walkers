@@ -214,6 +214,19 @@ fn build(palette: &Palette) -> Style {
         road_width(MINOR_ROAD_FACTOR).0
     ]);
 
+    // Ramps, such as motorway exits, are drawn with their road, as wide as minor roads.
+    let with_ramps = |factor| {
+        json!([
+            "match",
+            ["get", "ramp"],
+            1,
+            road_width(MINOR_ROAD_FACTOR).0,
+            road_width(factor).0
+        ])
+    };
+    let major_road_width = with_ramps(MAJOR_ROAD_FACTOR);
+    let motorway_width = with_ramps(MOTORWAY_FACTOR);
+
     let layers = vec![
         // background
         StyleLayer::Background {
@@ -436,22 +449,6 @@ fn build(palette: &Palette) -> Style {
                 ..Default::default()
             },
         },
-        // roads_tunnels_link_casing
-        StyleLayer::Line {
-            source: Some(SOURCE.into()),
-            source_layer: "transportation".into(),
-            filter: Some(Filter(json!([
-                "all",
-                ["==", "brunnel", "tunnel"],
-                ["==", "ramp", 1]
-            ]))),
-            paint: Paint {
-                line_color: Some(Color(json!(palette.tunnel_casing))),
-                line_dasharray: Some(Dasharray(json!([2, 2]))),
-                line_width: Some(casing_width(road_width(MINOR_ROAD_FACTOR).0)),
-                ..Default::default()
-            },
-        },
         // roads_tunnels_major_casing
         StyleLayer::Line {
             source: Some(SOURCE.into()),
@@ -464,7 +461,7 @@ fn build(palette: &Palette) -> Style {
             paint: Paint {
                 line_color: Some(Color(json!(palette.tunnel_casing))),
                 line_dasharray: Some(Dasharray(json!([2, 2]))),
-                line_width: Some(casing_width(road_width(MAJOR_ROAD_FACTOR).0)),
+                line_width: Some(casing_width(major_road_width.clone())),
                 ..Default::default()
             },
         },
@@ -475,13 +472,12 @@ fn build(palette: &Palette) -> Style {
             filter: Some(Filter(json!([
                 "all",
                 ["==", "brunnel", "tunnel"],
-                ["in", "class", "motorway", "trunk"],
-                ["!=", "ramp", 1]
+                ["in", "class", "motorway", "trunk"]
             ]))),
             paint: Paint {
                 line_color: Some(Color(json!(palette.tunnel_casing))),
                 line_dasharray: Some(Dasharray(json!([2, 2]))),
-                line_width: Some(casing_width(road_width(MOTORWAY_FACTOR).0)),
+                line_width: Some(casing_width(motorway_width.clone())),
                 ..Default::default()
             },
         },
@@ -512,21 +508,6 @@ fn build(palette: &Palette) -> Style {
                 ..Default::default()
             },
         },
-        // roads_tunnels_link
-        StyleLayer::Line {
-            source: Some(SOURCE.into()),
-            source_layer: "transportation".into(),
-            filter: Some(Filter(json!([
-                "all",
-                ["==", "brunnel", "tunnel"],
-                ["==", "ramp", 1]
-            ]))),
-            paint: Paint {
-                line_color: Some(Color(json!(palette.structure))),
-                line_width: Some(road_width(MINOR_ROAD_FACTOR)),
-                ..Default::default()
-            },
-        },
         // roads_tunnels_major
         StyleLayer::Line {
             source: Some(SOURCE.into()),
@@ -538,7 +519,7 @@ fn build(palette: &Palette) -> Style {
             ]))),
             paint: Paint {
                 line_color: Some(Color(json!(palette.structure))),
-                line_width: Some(road_width(MAJOR_ROAD_FACTOR)),
+                line_width: Some(Float(major_road_width.clone())),
                 ..Default::default()
             },
         },
@@ -549,12 +530,11 @@ fn build(palette: &Palette) -> Style {
             filter: Some(Filter(json!([
                 "all",
                 ["==", "brunnel", "tunnel"],
-                ["in", "class", "motorway", "trunk"],
-                ["!=", "ramp", 1]
+                ["in", "class", "motorway", "trunk"]
             ]))),
             paint: Paint {
                 line_color: Some(Color(json!(palette.structure))),
-                line_width: Some(road_width(MOTORWAY_FACTOR)),
+                line_width: Some(Float(motorway_width.clone())),
                 ..Default::default()
             },
         },
@@ -597,17 +577,6 @@ fn build(palette: &Palette) -> Style {
             ]))),
             paint: path_paint(palette.path, palette.cycleway),
         },
-        // roads_link
-        StyleLayer::Line {
-            source: Some(SOURCE.into()),
-            source_layer: "transportation".into(),
-            filter: Some(Filter(json!(["==", "ramp", 1]))),
-            paint: Paint {
-                line_color: Some(Color(json!(palette.bridge))),
-                line_width: Some(road_width(MINOR_ROAD_FACTOR)),
-                ..Default::default()
-            },
-        },
         // roads_minor
         StyleLayer::Line {
             source: Some(SOURCE.into()),
@@ -637,7 +606,7 @@ fn build(palette: &Palette) -> Style {
             ]))),
             paint: Paint {
                 line_color: Some(Color(json!(palette.road))),
-                line_width: Some(road_width(MAJOR_ROAD_FACTOR)),
+                line_width: Some(Float(major_road_width.clone())),
                 ..Default::default()
             },
         },
@@ -649,12 +618,11 @@ fn build(palette: &Palette) -> Style {
                 "all",
                 ["!=", "brunnel", "tunnel"],
                 ["!=", "brunnel", "bridge"],
-                ["in", "class", "motorway", "trunk"],
-                ["!=", "ramp", 1]
+                ["in", "class", "motorway", "trunk"]
             ]))),
             paint: Paint {
                 line_color: Some(Color(json!(palette.highway))),
-                line_width: Some(road_width(MOTORWAY_FACTOR)),
+                line_width: Some(Float(motorway_width.clone())),
                 ..Default::default()
             },
         },
@@ -738,21 +706,6 @@ fn build(palette: &Palette) -> Style {
                 ..Default::default()
             },
         },
-        // roads_bridges_link
-        StyleLayer::Line {
-            source: Some(SOURCE.into()),
-            source_layer: "transportation".into(),
-            filter: Some(Filter(json!([
-                "all",
-                ["==", "brunnel", "bridge"],
-                ["==", "ramp", 1]
-            ]))),
-            paint: Paint {
-                line_color: Some(Color(json!(palette.bridge))),
-                line_width: Some(road_width(MINOR_ROAD_FACTOR)),
-                ..Default::default()
-            },
-        },
         // roads_bridges_major
         StyleLayer::Line {
             source: Some(SOURCE.into()),
@@ -764,7 +717,7 @@ fn build(palette: &Palette) -> Style {
             ]))),
             paint: Paint {
                 line_color: Some(Color(json!(palette.road))),
-                line_width: Some(road_width(MAJOR_ROAD_FACTOR)),
+                line_width: Some(Float(major_road_width.clone())),
                 ..Default::default()
             },
         },
@@ -775,12 +728,11 @@ fn build(palette: &Palette) -> Style {
             filter: Some(Filter(json!([
                 "all",
                 ["==", "brunnel", "bridge"],
-                ["in", "class", "motorway", "trunk"],
-                ["!=", "ramp", 1]
+                ["in", "class", "motorway", "trunk"]
             ]))),
             paint: Paint {
                 line_color: Some(Color(json!(palette.highway))),
-                line_width: Some(road_width(MOTORWAY_FACTOR)),
+                line_width: Some(Float(motorway_width.clone())),
                 ..Default::default()
             },
         },
@@ -1284,6 +1236,28 @@ mod tests {
                     "{class} at zoom {zoom}: casing {casing}, road {road}"
                 );
             }
+        }
+    }
+
+    /// A ramp, such as a motorway exit, is drawn once, by its own road: as a casing and a road in
+    /// a tunnel, and as one road elsewhere. A ramp layer of their own drew ramps a second time.
+    #[test]
+    fn a_ramp_is_drawn_once() {
+        let style = Style::openmaptiles_basemap_light();
+        let drawn = |properties| line_widths(&style, "transportation", properties, 16).len();
+
+        for class in ["motorway", "trunk", "primary", "secondary"] {
+            assert_eq!(drawn(json!({"class": class, "ramp": 1})), 1, "{class}");
+            assert_eq!(
+                drawn(json!({"class": class, "ramp": 1, "brunnel": "bridge"})),
+                1,
+                "{class} on a bridge"
+            );
+            assert_eq!(
+                drawn(json!({"class": class, "ramp": 1, "brunnel": "tunnel"})),
+                2,
+                "{class} in a tunnel"
+            );
         }
     }
 }
