@@ -77,7 +77,6 @@ struct Palette {
     muted: &'static str,
     highway: &'static str,
     road: &'static str,
-    label_muted: &'static str,
     label: &'static str,
     locality_text: &'static str,
     water: &'static str,
@@ -105,8 +104,7 @@ const DARK: Palette = Palette {
     muted: "#333333",
     highway: "#352121",
     road: "#464646",
-    label_muted: "#5c5c5c",
-    label: "#707070",
+    label: "#a0a0a0",
     locality_text: "#999999",
     water: "#161e31",
     water_label: "#134164",
@@ -118,7 +116,7 @@ const DARK: Palette = Palette {
 const LIGHT: Palette = Palette {
     background: "#f2f2f0",
     rail_tie: "#000000",
-    tram: "#a04040",
+    tram: "#000000",
     rail: "#ffffff",
     forest: "#86a180",
     urban_green: "#e2f0df",
@@ -129,12 +127,11 @@ const LIGHT: Palette = Palette {
     bridge: "#bfbfbf",
     structure: "#d4d4d4",
     path: "#4c3316",
-    cycleway: "#7a3420",
+    cycleway: "#b86b6b",
     muted: "#b3b3b3",
     highway: "#bb5f5f",
     road: "#4a4a4a",
-    label_muted: "#595959",
-    label: "#1f1f1f",
+    label: "#000000",
     locality_text: "#1a1a1a",
     water: "#88b2e2",
     water_label: "#2f6690",
@@ -831,7 +828,7 @@ fn build(palette: &Palette) -> Style {
                 ..Default::default()
             },
             paint: Some(Paint {
-                text_color: Some(Color(json!(palette.label_muted))),
+                text_color: Some(Color(json!(palette.label))),
                 text_halo_color: Some(Color(json!(palette.background))),
                 text_halo_width: Some(Float(json!(1.5))),
                 ..Default::default()
@@ -926,7 +923,7 @@ fn build(palette: &Palette) -> Style {
                 ..Default::default()
             },
             paint: Some(Paint {
-                text_color: Some(Color(json!(palette.label_muted))),
+                text_color: Some(Color(json!(palette.label))),
                 text_halo_color: Some(Color(json!(palette.casing))),
                 text_halo_width: Some(Float(json!(1.5))),
                 ..Default::default()
