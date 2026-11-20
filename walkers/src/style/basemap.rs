@@ -168,24 +168,34 @@ fn casing_width(line: Value) -> Float {
     Float(json!(["+", line, ["*", 2, ["min", 1, line]]]))
 }
 
-/// Paths, tracks and service roads, in `color`. Paths and tracks are dashed, so that they stand
-/// apart from service roads.
+/// Paths and tracks, dashed in `color`.
 fn path_paint(color: &str) -> Paint {
     Paint {
         line_color: Some(Color(json!(color))),
         line_width: Some(road_width(PATH_FACTOR)),
-        line_dasharray: Some(Dasharray(json!([
-            "match",
-            ["get", "class"],
-            "service",
-            ["literal", []],
-            ["literal", [6, 2]]
-        ]))),
+        line_dasharray: Some(Dasharray(json!([6, 2]))),
         ..Default::default()
     }
 }
 
 fn build(palette: &Palette) -> Style {
+    // Parking aisles and driveways only from up close, as they cover car parks and housing
+    // estates in a mesh of lines.
+    let service_road_shown = json!([
+        "any",
+        ["!", ["in", "service", "parking_aisle", "driveway"]],
+        [">=", ["zoom"], 16]
+    ]);
+
+    // Service roads are minor roads, as narrow as paths.
+    let minor_road_width = json!([
+        "match",
+        ["get", "class"],
+        "service",
+        road_width(PATH_FACTOR).0,
+        road_width(MINOR_ROAD_FACTOR).0
+    ]);
+
     let layers = vec![
         // background
         StyleLayer::Background {
@@ -382,7 +392,7 @@ fn build(palette: &Palette) -> Style {
             filter: Some(Filter(json!([
                 "all",
                 ["==", "brunnel", "tunnel"],
-                ["in", "class", "path", "service", "track"]
+                ["in", "class", "path", "track"]
             ]))),
             paint: Paint {
                 line_color: Some(Color(json!(palette.tunnel_casing))),
@@ -398,12 +408,13 @@ fn build(palette: &Palette) -> Style {
             filter: Some(Filter(json!([
                 "all",
                 ["==", "brunnel", "tunnel"],
-                ["in", "class", "minor", "tertiary"]
+                ["in", "class", "minor", "tertiary", "service"],
+                service_road_shown.clone()
             ]))),
             paint: Paint {
                 line_color: Some(Color(json!(palette.tunnel_casing))),
                 line_dasharray: Some(Dasharray(json!([2, 2]))),
-                line_width: Some(casing_width(road_width(MINOR_ROAD_FACTOR).0)),
+                line_width: Some(casing_width(minor_road_width.clone())),
                 ..Default::default()
             },
         },
@@ -463,7 +474,7 @@ fn build(palette: &Palette) -> Style {
             filter: Some(Filter(json!([
                 "all",
                 ["==", "brunnel", "tunnel"],
-                ["in", "class", "path", "service", "track"]
+                ["in", "class", "path", "track"]
             ]))),
             paint: path_paint(palette.structure),
         },
@@ -474,11 +485,12 @@ fn build(palette: &Palette) -> Style {
             filter: Some(Filter(json!([
                 "all",
                 ["==", "brunnel", "tunnel"],
-                ["in", "class", "minor", "tertiary"]
+                ["in", "class", "minor", "tertiary", "service"],
+                service_road_shown.clone()
             ]))),
             paint: Paint {
                 line_color: Some(Color(json!(palette.structure))),
-                line_width: Some(road_width(MINOR_ROAD_FACTOR)),
+                line_width: Some(Float(minor_road_width.clone())),
                 ..Default::default()
             },
         },
@@ -562,7 +574,7 @@ fn build(palette: &Palette) -> Style {
                 "all",
                 ["!=", "brunnel", "tunnel"],
                 ["!=", "brunnel", "bridge"],
-                ["in", "class", "path", "service", "track"],
+                ["in", "class", "path", "track"],
                 ["!=", "subclass", "pier"]
             ]))),
             paint: path_paint(palette.path),
@@ -586,11 +598,12 @@ fn build(palette: &Palette) -> Style {
                 "all",
                 ["!=", "brunnel", "tunnel"],
                 ["!=", "brunnel", "bridge"],
-                ["in", "class", "minor", "tertiary"]
+                ["in", "class", "minor", "tertiary", "service"],
+                service_road_shown.clone()
             ]))),
             paint: Paint {
                 line_color: Some(Color(json!(palette.road))),
-                line_width: Some(road_width(MINOR_ROAD_FACTOR)),
+                line_width: Some(Float(minor_road_width.clone())),
                 ..Default::default()
             },
         },
@@ -687,7 +700,7 @@ fn build(palette: &Palette) -> Style {
             filter: Some(Filter(json!([
                 "all",
                 ["==", "brunnel", "bridge"],
-                ["in", "class", "path", "service", "track"]
+                ["in", "class", "path", "track"]
             ]))),
             paint: path_paint(palette.path),
         },
@@ -698,11 +711,12 @@ fn build(palette: &Palette) -> Style {
             filter: Some(Filter(json!([
                 "all",
                 ["==", "brunnel", "bridge"],
-                ["in", "class", "minor", "tertiary"]
+                ["in", "class", "minor", "tertiary", "service"],
+                service_road_shown.clone()
             ]))),
             paint: Paint {
                 line_color: Some(Color(json!(palette.road))),
-                line_width: Some(road_width(MINOR_ROAD_FACTOR)),
+                line_width: Some(Float(minor_road_width.clone())),
                 ..Default::default()
             },
         },
