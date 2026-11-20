@@ -830,18 +830,53 @@ fn build(palette: &Palette) -> Style {
                 ..Default::default()
             }),
         },
+        // roads_labels_junction_symbol, motorway exits
+        StyleLayer::Symbol {
+            source: Some(SOURCE.into()),
+            source_layer: "transportation_name".into(),
+            minzoom: None,
+            filter: Some(Filter(json!(["==", "subclass", "junction"]))),
+            layout: Layout {
+                text_field: Some(json!("⬈")),
+                text_size: Some(Float(json!(TEXT))),
+                ..Default::default()
+            },
+            paint: Some(Paint {
+                text_color: Some(Color(json!(palette.label))),
+                text_halo_color: Some(Color(json!(palette.background))),
+                text_halo_width: Some(Float(json!(HALO_WIDTH))),
+                ..Default::default()
+            }),
+        },
+        // roads_labels_junction, named under the symbol
+        StyleLayer::Symbol {
+            source: Some(SOURCE.into()),
+            source_layer: "transportation_name".into(),
+            minzoom: None,
+            filter: Some(Filter(json!(["==", "subclass", "junction"]))),
+            layout: Layout {
+                text_field: Some(json!(["get", "name"])),
+                text_size: Some(Float(json!(SMALL_TEXT))),
+                text_anchor: Some(json!("top")),
+                text_offset: Some(json!([0, 0.8])),
+                ..Default::default()
+            },
+            paint: Some(Paint {
+                text_color: Some(Color(json!(palette.label))),
+                text_halo_color: Some(Color(json!(palette.background))),
+                text_halo_width: Some(Float(json!(HALO_WIDTH))),
+                ..Default::default()
+            }),
+        },
         // roads_labels_major
         StyleLayer::Symbol {
             source: Some(SOURCE.into()),
             source_layer: "transportation_name".into(),
             minzoom: None,
             filter: Some(Filter(json!([
-                "in",
-                "class",
-                "motorway",
-                "trunk",
-                "primary",
-                "secondary"
+                "all",
+                ["in", "class", "motorway", "trunk", "primary", "secondary"],
+                ["!=", "subclass", "junction"]
             ]))),
             layout: Layout {
                 text_field: Some(json!(["get", "name"])),
