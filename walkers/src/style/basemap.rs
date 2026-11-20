@@ -158,6 +158,8 @@ const MOTORWAY_FACTOR: f64 = 2.5;
 const RAIL_FACTOR: f64 = 0.5;
 const TRAM_FACTOR: f64 = 0.3;
 
+const HALO_WIDTH: f64 = 2.0;
+
 fn road_width(factor: f64) -> Float {
     exponential_zoom_interpolation(1.6, &ROAD_WIDTH.map(|(zoom, width)| (zoom, width * factor)))
 }
@@ -792,7 +794,7 @@ fn build(palette: &Palette) -> Style {
             paint: Some(Paint {
                 text_color: Some(Color(json!(palette.label))),
                 text_halo_color: Some(Color(json!(palette.casing))),
-                text_halo_width: Some(Float(json!(1.5))),
+                text_halo_width: Some(Float(json!(HALO_WIDTH))),
                 ..Default::default()
             }),
         },
@@ -810,7 +812,7 @@ fn build(palette: &Palette) -> Style {
             paint: Some(Paint {
                 text_color: Some(Color(json!(palette.water_label))),
                 text_halo_color: Some(Color(json!(palette.water_label_halo))),
-                text_halo_width: Some(Float(json!(1.5))),
+                text_halo_width: Some(Float(json!(HALO_WIDTH))),
                 ..Default::default()
             }),
         },
@@ -830,7 +832,7 @@ fn build(palette: &Palette) -> Style {
             paint: Some(Paint {
                 text_color: Some(Color(json!(palette.label))),
                 text_halo_color: Some(Color(json!(palette.background))),
-                text_halo_width: Some(Float(json!(1.5))),
+                text_halo_width: Some(Float(json!(HALO_WIDTH))),
                 ..Default::default()
             }),
         },
@@ -850,7 +852,7 @@ fn build(palette: &Palette) -> Style {
             paint: Some(Paint {
                 text_color: Some(Color(json!(palette.water_label))),
                 text_halo_color: Some(Color(json!(palette.water_label_halo))),
-                text_halo_width: Some(Float(json!(1.5))),
+                text_halo_width: Some(Float(json!(HALO_WIDTH))),
                 ..Default::default()
             }),
         },
@@ -872,7 +874,7 @@ fn build(palette: &Palette) -> Style {
             paint: Some(Paint {
                 text_color: Some(Color(json!(palette.water_label))),
                 text_halo_color: Some(Color(json!(palette.water_label_halo))),
-                text_halo_width: Some(Float(json!(1.5))),
+                text_halo_width: Some(Float(json!(HALO_WIDTH))),
                 ..Default::default()
             }),
         },
@@ -897,7 +899,7 @@ fn build(palette: &Palette) -> Style {
             paint: Some(Paint {
                 text_color: Some(Color(json!(palette.label))),
                 text_halo_color: Some(Color(json!(palette.background))),
-                text_halo_width: Some(Float(json!(1.5))),
+                text_halo_width: Some(Float(json!(HALO_WIDTH))),
                 ..Default::default()
             }),
         },
@@ -925,7 +927,7 @@ fn build(palette: &Palette) -> Style {
             paint: Some(Paint {
                 text_color: Some(Color(json!(palette.label))),
                 text_halo_color: Some(Color(json!(palette.casing))),
-                text_halo_width: Some(Float(json!(1.5))),
+                text_halo_width: Some(Float(json!(HALO_WIDTH))),
                 ..Default::default()
             }),
         },
@@ -943,7 +945,7 @@ fn build(palette: &Palette) -> Style {
             paint: Some(Paint {
                 text_color: Some(Color(json!(palette.label))),
                 text_halo_color: Some(Color(json!(palette.casing))),
-                text_halo_width: Some(Float(json!(1.5))),
+                text_halo_width: Some(Float(json!(HALO_WIDTH))),
                 ..Default::default()
             }),
         },
@@ -967,7 +969,7 @@ fn build(palette: &Palette) -> Style {
             paint: Some(Paint {
                 text_color: Some(Color(json!(palette.locality_text))),
                 text_halo_color: Some(Color(json!(palette.casing))),
-                text_halo_width: Some(Float(json!(1.5))),
+                text_halo_width: Some(Float(json!(HALO_WIDTH))),
                 ..Default::default()
             }),
         },
@@ -985,7 +987,7 @@ fn build(palette: &Palette) -> Style {
             paint: Some(Paint {
                 text_color: Some(Color(json!(palette.label))),
                 text_halo_color: Some(Color(json!(palette.casing))),
-                text_halo_width: Some(Float(json!(1.5))),
+                text_halo_width: Some(Float(json!(HALO_WIDTH))),
                 ..Default::default()
             }),
         },
@@ -1003,7 +1005,7 @@ fn build(palette: &Palette) -> Style {
             paint: Some(Paint {
                 text_color: Some(Color(json!(palette.station))),
                 text_halo_color: Some(Color(json!(palette.casing))),
-                text_halo_width: Some(Float(json!(1.5))),
+                text_halo_width: Some(Float(json!(HALO_WIDTH))),
                 ..Default::default()
             }),
         },
@@ -1021,7 +1023,7 @@ fn build(palette: &Palette) -> Style {
             paint: Some(Paint {
                 text_color: Some(Color(json!(palette.peak))),
                 text_halo_color: Some(Color(json!(palette.casing))),
-                text_halo_width: Some(Float(json!(1.5))),
+                text_halo_width: Some(Float(json!(HALO_WIDTH))),
                 ..Default::default()
             }),
         },
