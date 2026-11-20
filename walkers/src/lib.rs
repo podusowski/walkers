@@ -74,7 +74,7 @@ pub use style::{
 };
 pub use styled_sources::StyledSources;
 #[cfg(feature = "vector")]
-pub use text::{Placement, Text, place_texts};
+pub use text::{Anchor, Placement, Text, place_texts};
 pub use tiles::http::{HttpSource, HttpTiles};
 #[cfg(feature = "pmtiles")]
 pub use tiles::pmtiles::{PmTiles, PmTilesSource};

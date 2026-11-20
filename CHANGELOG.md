@@ -32,6 +32,9 @@ playground and can change or break at any time without an entry here.
   took a time growing with the square of their number.
 * Fix a panic on a label with no finite position or angle, such as an empty one on a line of no
   length.
+* Labels of points support `text-anchor` and `text-offset`, and `Text` has an `anchor` and an
+  `offset`. `Layout` has fields for them, so one built without `..Default::default()` has to
+  name them.
 
 ## 0.65.0
 

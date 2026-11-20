@@ -916,6 +916,7 @@ fn build(palette: &Palette) -> Style {
                     (8.0, 7.0),
                     (12.0, 11.0),
                 ])),
+                ..Default::default()
             },
             paint: Some(Paint {
                 text_color: Some(Color(json!(palette.locality_text))),
