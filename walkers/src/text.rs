@@ -10,6 +10,55 @@ pub enum Placement {
     Line,
 }
 
+/// Which part of a label sits on its position.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+pub enum Anchor {
+    #[default]
+    Center,
+    Left,
+    Right,
+    Top,
+    Bottom,
+    TopLeft,
+    TopRight,
+    BottomLeft,
+    BottomRight,
+}
+
+impl Anchor {
+    /// The anchor a style names, as `text-anchor` does.
+    pub fn from_name(name: &str) -> Option<Self> {
+        Some(match name {
+            "center" => Self::Center,
+            "left" => Self::Left,
+            "right" => Self::Right,
+            "top" => Self::Top,
+            "bottom" => Self::Bottom,
+            "top-left" => Self::TopLeft,
+            "top-right" => Self::TopRight,
+            "bottom-left" => Self::BottomLeft,
+            "bottom-right" => Self::BottomRight,
+            _ => return None,
+        })
+    }
+
+    /// Where the middle of a label of `size` is, from its anchor, in the label's own axes.
+    fn to_center(self, size: Vec2) -> Vec2 {
+        let half = size / 2.0;
+        let x = match self {
+            Self::Left | Self::TopLeft | Self::BottomLeft => half.x,
+            Self::Right | Self::TopRight | Self::BottomRight => -half.x,
+            _ => 0.0,
+        };
+        let y = match self {
+            Self::Top | Self::TopLeft | Self::TopRight => half.y,
+            Self::Bottom | Self::BottomLeft | Self::BottomRight => -half.y,
+            _ => 0.0,
+        };
+        vec2(x, y)
+    }
+}
+
 #[derive(Debug, Clone)]
 pub struct Text {
     pub text: String,
@@ -24,6 +73,8 @@ pub struct Text {
     pub layer: usize,
     pub padding: f32,
     pub max_width: Option<f32>,
+    pub anchor: Anchor,
+    pub offset: Vec2,
 }
 
 impl Text {
@@ -47,6 +98,8 @@ impl Text {
             layer: 0,
             padding: 0.0,
             max_width: None,
+            anchor: Anchor::Center,
+            offset: Vec2::ZERO,
         }
     }
 
@@ -78,6 +131,12 @@ impl Text {
 
     pub fn with_max_width(mut self, max_width: Option<f32>) -> Self {
         self.max_width = max_width;
+        self
+    }
+
+    pub fn with_anchor(mut self, anchor: Anchor, offset: Vec2) -> Self {
+        self.anchor = anchor;
+        self.offset = offset;
         self
     }
 }
@@ -252,9 +311,11 @@ fn place_text(text: Text, ctx: &egui::Context, placed_texts: &mut PlacedTexts) -
         return Shape::Noop;
     }
 
-    let top_left = OrientedRect::new(text.position, text.angle, galley.size()).top_left();
+    let center =
+        text.position + text.offset + rotated(text.anchor.to_center(galley.size()), text.angle);
+    let top_left = OrientedRect::new(center, text.angle, galley.size()).top_left();
     let area = OrientedRect::new(
-        text.position,
+        center,
         text.angle,
         galley.size() + Vec2::splat(2.0 * text.padding),
     );
@@ -287,6 +348,15 @@ fn place_text(text: Text, ctx: &egui::Context, placed_texts: &mut PlacedTexts) -
 
     shapes.push(on_top.into());
     Shape::Vec(shapes)
+}
+
+/// `vector` turned by `angle`, in radians.
+fn rotated(vector: Vec2, angle: f32) -> Vec2 {
+    let (sin, cos) = angle.sin_cos();
+    vec2(
+        vector.x * cos - vector.y * sin,
+        vector.x * sin + vector.y * cos,
+    )
 }
 
 /// Lay out the labels, dropping the ones which repeat a nearby label or would land on top of an
@@ -330,6 +400,37 @@ mod tests {
                 .with_placement(placement)
             })
             .collect()
+    }
+
+    /// Where the top-left corner of `text` lands once placed, with no halo to complicate it.
+    fn placed_top_left(text: Text, ctx: &egui::Context) -> (Pos2, Vec2) {
+        match place_texts(vec![text], ctx).as_slice() {
+            [Shape::Text(shape)] => (shape.pos, shape.galley.size()),
+            other => panic!("expected a single text, got {other:?}"),
+        }
+    }
+
+    /// Such as the name of a peak, set under a symbol which stands on the peak itself.
+    #[test]
+    fn a_label_anchored_at_its_top_hangs_below_its_point() {
+        let ctx = context();
+        let text = Text::new(pos2(100., 100.), "Ślęża".into(), 12., Color32::BLACK, 0.);
+
+        let (centered, size) = placed_top_left(text.clone(), &ctx);
+        assert_eq!(centered, pos2(100. - size.x / 2., 100. - size.y / 2.));
+
+        let (hanging, _) = placed_top_left(text.with_anchor(Anchor::Top, Vec2::ZERO), &ctx);
+        assert_eq!(hanging, pos2(100. - size.x / 2., 100.));
+    }
+
+    #[test]
+    fn a_label_is_moved_by_its_offset() {
+        let ctx = context();
+        let text = Text::new(pos2(100., 100.), "Ślęża".into(), 12., Color32::BLACK, 0.);
+
+        let (at_point, _) = placed_top_left(text.clone(), &ctx);
+        let (moved, _) = placed_top_left(text.with_anchor(Anchor::Center, vec2(5., 10.)), &ctx);
+        assert_eq!(moved, at_point + vec2(5., 10.));
     }
 
     fn count_placed(texts: Vec<Text>, ctx: &egui::Context) -> usize {

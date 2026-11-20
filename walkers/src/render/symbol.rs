@@ -78,6 +78,8 @@ fn label_points(
     let text_color = evaluate_text_color(paint, context);
     let (halo_color, halo_width) = evaluate_halo(paint, context);
     let padding = evaluate_text_padding(layout, context);
+    let anchor = layout.anchor(context);
+    let offset = layout.offset(context) * text_size;
 
     texts.extend(points.iter().map(|p| {
         Text::new(pos2(p.x(), p.y()), text.clone(), text_size, text_color, 0.0)
@@ -85,6 +87,7 @@ fn label_points(
             .with_min_zoom(min_zoom)
             .with_layer(layer)
             .with_padding(padding)
+            .with_anchor(anchor, offset)
     }))
 }
 
@@ -282,6 +285,31 @@ mod tests {
 
         assert_eq!(placed(1.), 0);
         assert_eq!(placed(10.), 1);
+    }
+
+    /// The offset is in the label's own font size, as `text-offset` is.
+    #[test]
+    fn a_point_label_takes_its_anchor_and_offset_from_the_style() {
+        let point = Geometry::Point(geo_types::Point::new(1.0, 2.0));
+        let context = Context::new("Point".to_string(), HashMap::new(), 12);
+        let layout: Layout = serde_json::from_value(crate::style::json!({
+            "text-field": "Ślęża",
+            "text-size": 10,
+            "text-anchor": "top",
+            "text-offset": [0, 1.5]
+        }))
+        .unwrap();
+
+        let mut texts = Vec::new();
+        render(&point, &context, &mut texts, &layout, &None, None, 0).unwrap();
+
+        match texts.as_slice() {
+            [text] => {
+                assert_eq!(text.anchor, crate::text::Anchor::Top);
+                assert_eq!(text.offset, emath::vec2(0.0, 15.0));
+            }
+            other => panic!("expected a single label, got {other:?}"),
+        }
     }
 
     /// Labels are placed on the geometry, not at the origin.

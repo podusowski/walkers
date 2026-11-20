@@ -353,6 +353,8 @@ pub struct Layout {
     pub text_field: Option<Value>,
     pub text_size: Option<Float>,
     pub text_padding: Option<Float>,
+    pub text_anchor: Option<Value>,
+    pub text_offset: Option<Value>,
 }
 
 impl Layout {
@@ -363,6 +365,54 @@ impl Layout {
                 Ok(Value::String(s)) => Some(s),
                 _ => None,
             })
+    }
+
+    pub fn anchor(&self, context: &Context) -> crate::text::Anchor {
+        let Some(anchor) = &self.text_anchor else {
+            return Default::default();
+        };
+
+        match context.evaluate(anchor) {
+            Ok(Value::String(name)) => crate::text::Anchor::from_name(&name).unwrap_or_else(|| {
+                warn!("Unknown text anchor '{name}'.");
+                Default::default()
+            }),
+            other => {
+                warn!("Expected text anchor to evaluate to a string, got: {other:?}");
+                Default::default()
+            }
+        }
+    }
+
+    /// In the label's font size.
+    pub fn offset(&self, context: &Context) -> egui::Vec2 {
+        let Some(offset) = &self.text_offset else {
+            return egui::Vec2::ZERO;
+        };
+
+        // A plain pair of numbers is not an expression, so it has to be told apart first.
+        let offset = match offset {
+            Value::Array(values) if values.first().is_some_and(Value::is_number) => {
+                Ok(offset.clone())
+            }
+            expression => context.evaluate(expression),
+        };
+
+        match offset
+            .as_ref()
+            .ok()
+            .and_then(Value::as_array)
+            .map(Vec::as_slice)
+        {
+            Some([x, y]) if x.is_number() && y.is_number() => egui::vec2(
+                x.as_f64().unwrap_or_default() as f32,
+                y.as_f64().unwrap_or_default() as f32,
+            ),
+            _ => {
+                warn!("Expected text offset to evaluate to two numbers, got: {offset:?}");
+                egui::Vec2::ZERO
+            }
+        }
     }
 }
 
