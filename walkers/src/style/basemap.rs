@@ -160,6 +160,10 @@ const TRAM_FACTOR: f64 = 0.3;
 
 const HALO_WIDTH: f64 = 2.0;
 
+const SMALL_TEXT: f64 = 10.0;
+const TEXT: f64 = 12.0;
+const LARGE_TEXT: f64 = 14.0;
+
 fn road_width(factor: f64) -> Float {
     exponential_zoom_interpolation(1.6, &ROAD_WIDTH.map(|(zoom, width)| (zoom, width * factor)))
 }
@@ -788,7 +792,7 @@ fn build(palette: &Palette) -> Style {
             filter: None,
             layout: Layout {
                 text_field: Some(json!(["get", "housenumber"])),
-                text_size: Some(Float(json!(10))),
+                text_size: Some(Float(json!(SMALL_TEXT))),
                 ..Default::default()
             },
             paint: Some(Paint {
@@ -806,7 +810,7 @@ fn build(palette: &Palette) -> Style {
             filter: Some(Filter(json!(["in", "class", "river", "stream"]))),
             layout: Layout {
                 text_field: Some(json!(["get", "name"])),
-                text_size: Some(Float(json!(12))),
+                text_size: Some(Float(json!(TEXT))),
                 ..Default::default()
             },
             paint: Some(Paint {
@@ -826,7 +830,7 @@ fn build(palette: &Palette) -> Style {
             ]))),
             layout: Layout {
                 text_field: Some(json!(["get", "name"])),
-                text_size: Some(Float(json!(12))),
+                text_size: Some(Float(json!(TEXT))),
                 ..Default::default()
             },
             paint: Some(Paint {
@@ -846,7 +850,7 @@ fn build(palette: &Palette) -> Style {
             ]))),
             layout: Layout {
                 text_field: Some(json!(["get", "name"])),
-                text_size: Some(linear_zoom_interpolation(&[(3.0, 10.0), (10.0, 12.0)])),
+                text_size: Some(Float(json!(TEXT))),
                 ..Default::default()
             },
             paint: Some(Paint {
@@ -864,11 +868,7 @@ fn build(palette: &Palette) -> Style {
             filter: Some(Filter(json!(["in", "class", "lake", "water"]))),
             layout: Layout {
                 text_field: Some(json!(["get", "name"])),
-                text_size: Some(linear_zoom_interpolation(&[
-                    (3.0, 10.0),
-                    (6.0, 12.0),
-                    (10.0, 12.0),
-                ])),
+                text_size: Some(Float(json!(TEXT))),
                 ..Default::default()
             },
             paint: Some(Paint {
@@ -893,7 +893,7 @@ fn build(palette: &Palette) -> Style {
             ]))),
             layout: Layout {
                 text_field: Some(json!(["get", "name"])),
-                text_size: Some(Float(json!(13))),
+                text_size: Some(Float(json!(LARGE_TEXT))),
                 ..Default::default()
             },
             paint: Some(Paint {
@@ -918,9 +918,9 @@ fn build(palette: &Palette) -> Style {
             layout: Layout {
                 text_field: Some(json!(["get", "name"])),
                 text_size: Some(linear_zoom_interpolation(&[
-                    (11.0, 8.0),
-                    (14.0, 14.0),
-                    (18.0, 24.0),
+                    (11.0, SMALL_TEXT),
+                    (14.0, LARGE_TEXT),
+                    (18.0, 16.0),
                 ])),
                 ..Default::default()
             },
@@ -999,7 +999,7 @@ fn build(palette: &Palette) -> Style {
             filter: Some(Filter(json!(["==", "class", "station"]))),
             layout: Layout {
                 text_field: Some(json!(["get", "name"])),
-                text_size: Some(Float(json!(11))),
+                text_size: Some(Float(json!(TEXT))),
                 ..Default::default()
             },
             paint: Some(Paint {
@@ -1017,7 +1017,7 @@ fn build(palette: &Palette) -> Style {
             filter: Some(Filter(json!(["in", "class", "peak", "volcano"]))),
             layout: Layout {
                 text_field: Some(json!(["get", "name"])),
-                text_size: Some(linear_zoom_interpolation(&[(8.0, 10.0), (14.0, 14.0)])),
+                text_size: Some(Float(json!(TEXT))),
                 ..Default::default()
             },
             paint: Some(Paint {
