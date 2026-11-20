@@ -1034,7 +1034,14 @@ fn build(palette: &Palette) -> Style {
             minzoom: None,
             filter: Some(Filter(json!(["in", "class", "peak", "volcano"]))),
             layout: Layout {
-                text_field: Some(json!(["get", "name"])),
+                text_field: Some(json!([
+                    "case",
+                    ["!has", "ele"],
+                    ["get", "name"],
+                    ["!has", "name"],
+                    ["concat", ["get", "ele"], " m"],
+                    ["concat", ["get", "name"], "\n", ["get", "ele"], " m"]
+                ])),
                 text_size: Some(Float(json!(TEXT))),
                 text_anchor: Some(json!("top")),
                 text_offset: Some(json!([0, 0.7])),

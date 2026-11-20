@@ -290,7 +290,11 @@ fn place_text(text: Text, ctx: &egui::Context, placed_texts: &mut PlacedTexts) -
         return Shape::Noop;
     }
 
-    let mut layout_job = egui::text::LayoutJob::default();
+    // Lines of a label are centred on each other.
+    let mut layout_job = egui::text::LayoutJob {
+        halign: egui::Align::Center,
+        ..Default::default()
+    };
 
     layout_job.append(
         &text.text,
@@ -313,7 +317,9 @@ fn place_text(text: Text, ctx: &egui::Context, placed_texts: &mut PlacedTexts) -
 
     let center =
         text.position + text.offset + rotated(text.anchor.to_center(galley.size()), text.angle);
-    let top_left = OrientedRect::new(center, text.angle, galley.size()).top_left();
+    // Centred lines put the galley's own origin in their middle, not at its top-left.
+    let top_left = OrientedRect::new(center, text.angle, galley.size()).top_left()
+        - rotated(galley.rect.min.to_vec2(), text.angle);
     let area = OrientedRect::new(
         center,
         text.angle,
@@ -402,12 +408,43 @@ mod tests {
             .collect()
     }
 
-    /// Where the top-left corner of `text` lands once placed, with no halo to complicate it.
-    fn placed_top_left(text: Text, ctx: &egui::Context) -> (Pos2, Vec2) {
+    /// The text shape `text` is drawn as, with no halo to complicate it.
+    fn placed(text: Text, ctx: &egui::Context) -> egui::epaint::TextShape {
         match place_texts(vec![text], ctx).as_slice() {
-            [Shape::Text(shape)] => (shape.pos, shape.galley.size()),
+            [Shape::Text(shape)] => shape.clone(),
             other => panic!("expected a single text, got {other:?}"),
         }
+    }
+
+    /// Where the top-left corner of `text` lands once placed, and how big it is.
+    fn placed_top_left(text: Text, ctx: &egui::Context) -> (Pos2, Vec2) {
+        let shape = placed(text, ctx);
+        (
+            shape.pos + shape.galley.rect.min.to_vec2(),
+            shape.galley.size(),
+        )
+    }
+
+    /// Such as a peak's height under its name.
+    #[test]
+    fn lines_of_a_label_are_centred_on_each_other() {
+        let ctx = context();
+        let text = Text::new(
+            pos2(100., 100.),
+            "Ślęża\n718 m".into(),
+            12.,
+            Color32::BLACK,
+            0.,
+        );
+
+        let shape = placed(text.clone(), &ctx);
+        let [name, height] = &shape.galley.rows[..] else {
+            panic!("expected two lines, got {:?}", shape.galley.rows);
+        };
+        assert!((name.rect().center().x - height.rect().center().x).abs() < 0.5);
+
+        let (top_left, size) = placed_top_left(text, &ctx);
+        assert_eq!(top_left, pos2(100. - size.x / 2., 100. - size.y / 2.));
     }
 
     /// Such as the name of a peak, set under a symbol which stands on the peak itself.
