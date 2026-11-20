@@ -3,7 +3,7 @@
 //! <https://openmaptiles.org/schema/>
 
 use super::{
-    Color, Dasharray, Filter, Float, Layout, Paint, Style, StyleLayer,
+    Color, Dasharray, Filter, Float, Layout, Paint, Style, StyleLayer, Value,
     exponential_zoom_interpolation, json, linear_zoom_interpolation,
 };
 
@@ -87,7 +87,7 @@ struct Palette {
 
 const DARK: Palette = Palette {
     background: "#000000",
-    rail_tie: "#bfbfbf",
+    rail_tie: "#6d6d6d",
     rail: "#000000",
     forest: "#061009",
     urban_green: "#000c00",
@@ -123,7 +123,7 @@ const LIGHT: Palette = Palette {
     landuse_dark: "#e0e0e0",
     bridge: "#bfbfbf",
     structure: "#d4d4d4",
-    path: "#9a8a78",
+    path: "#4c3316",
     muted: "#b3b3b3",
     highway: "#bb5f5f",
     road: "#4a4a4a",
@@ -152,23 +152,23 @@ const PATH_FACTOR: f64 = 0.5;
 const MINOR_ROAD_FACTOR: f64 = 1.0;
 const MAJOR_ROAD_FACTOR: f64 = 1.5;
 const MOTORWAY_FACTOR: f64 = 2.5;
+const RAIL_FACTOR: f64 = 0.5;
 
 fn road_width(factor: f64) -> Float {
     exponential_zoom_interpolation(1.6, &ROAD_WIDTH.map(|(zoom, width)| (zoom, width * factor)))
 }
 
-/// Width of a tunnel's casing: its road, with a pixel either side. That is never wider than the
-/// road, so that a road too thin to see does not get a casing which is not.
-fn casing_width(factor: f64) -> Float {
-    let road = road_width(factor).0;
-    Float(json!(["+", road, ["*", 2, ["min", 1, road]]]))
+/// Width of a casing: its line, with a pixel either side. That is never wider than the line, so
+/// that a line too thin to see does not get a casing which is not.
+fn casing_width(line: Value) -> Float {
+    Float(json!(["+", line, ["*", 2, ["min", 1, line]]]))
 }
 
-/// Paths, tracks and service roads. Paths and tracks are dashed, so that they stand apart from
-/// service roads.
-fn path_paint(palette: &Palette) -> Paint {
+/// Paths, tracks and service roads, in `color`. Paths and tracks are dashed, so that they stand
+/// apart from service roads.
+fn path_paint(color: &str) -> Paint {
     Paint {
-        line_color: Some(Color(json!(palette.path))),
+        line_color: Some(Color(json!(color))),
         line_width: Some(road_width(PATH_FACTOR)),
         line_dasharray: Some(Dasharray(json!([
             "match",
@@ -382,7 +382,8 @@ fn build(palette: &Palette) -> Style {
             ]))),
             paint: Paint {
                 line_color: Some(Color(json!(palette.tunnel_casing))),
-                line_width: Some(casing_width(PATH_FACTOR)),
+                line_dasharray: Some(Dasharray(json!([2, 2]))),
+                line_width: Some(casing_width(road_width(PATH_FACTOR).0)),
                 ..Default::default()
             },
         },
@@ -398,7 +399,7 @@ fn build(palette: &Palette) -> Style {
             paint: Paint {
                 line_color: Some(Color(json!(palette.tunnel_casing))),
                 line_dasharray: Some(Dasharray(json!([2, 2]))),
-                line_width: Some(casing_width(MINOR_ROAD_FACTOR)),
+                line_width: Some(casing_width(road_width(MINOR_ROAD_FACTOR).0)),
                 ..Default::default()
             },
         },
@@ -414,7 +415,7 @@ fn build(palette: &Palette) -> Style {
             paint: Paint {
                 line_color: Some(Color(json!(palette.tunnel_casing))),
                 line_dasharray: Some(Dasharray(json!([2, 2]))),
-                line_width: Some(casing_width(MINOR_ROAD_FACTOR)),
+                line_width: Some(casing_width(road_width(MINOR_ROAD_FACTOR).0)),
                 ..Default::default()
             },
         },
@@ -430,7 +431,7 @@ fn build(palette: &Palette) -> Style {
             paint: Paint {
                 line_color: Some(Color(json!(palette.tunnel_casing))),
                 line_dasharray: Some(Dasharray(json!([2, 2]))),
-                line_width: Some(casing_width(MAJOR_ROAD_FACTOR)),
+                line_width: Some(casing_width(road_width(MAJOR_ROAD_FACTOR).0)),
                 ..Default::default()
             },
         },
@@ -447,7 +448,7 @@ fn build(palette: &Palette) -> Style {
             paint: Paint {
                 line_color: Some(Color(json!(palette.tunnel_casing))),
                 line_dasharray: Some(Dasharray(json!([2, 2]))),
-                line_width: Some(casing_width(MOTORWAY_FACTOR)),
+                line_width: Some(casing_width(road_width(MOTORWAY_FACTOR).0)),
                 ..Default::default()
             },
         },
@@ -460,12 +461,7 @@ fn build(palette: &Palette) -> Style {
                 ["==", "brunnel", "tunnel"],
                 ["in", "class", "path", "service", "track"]
             ]))),
-            paint: Paint {
-                line_color: Some(Color(json!(palette.structure))),
-                line_dasharray: Some(Dasharray(json!([2, 2]))),
-                line_width: Some(road_width(PATH_FACTOR)),
-                ..Default::default()
-            },
+            paint: path_paint(palette.structure),
         },
         // roads_tunnels_minor
         StyleLayer::Line {
@@ -565,7 +561,7 @@ fn build(palette: &Palette) -> Style {
                 ["in", "class", "path", "service", "track"],
                 ["!=", "subclass", "pier"]
             ]))),
-            paint: path_paint(palette),
+            paint: path_paint(palette.path),
         },
         // roads_link
         StyleLayer::Line {
@@ -634,7 +630,7 @@ fn build(palette: &Palette) -> Style {
             filter: Some(Filter(json!(["in", "class", "rail", "transit"]))),
             paint: Paint {
                 line_color: Some(Color(json!(palette.rail))),
-                line_width: Some(linear_zoom_interpolation(&[(3.0, 0.0), (18.0, 3.5)])),
+                line_width: Some(casing_width(road_width(RAIL_FACTOR).0)),
                 ..Default::default()
             },
         },
@@ -644,10 +640,10 @@ fn build(palette: &Palette) -> Style {
             source_layer: "transportation".into(),
             filter: Some(Filter(json!(["in", "class", "rail", "transit"]))),
             paint: Paint {
-                line_opacity: Some(Float(json!(0.5))),
+                //line_opacity: Some(Float(json!(0.5))),
                 line_color: Some(Color(json!(palette.rail_tie))),
-                line_dasharray: Some(Dasharray(json!([2, 2]))),
-                line_width: Some(linear_zoom_interpolation(&[(3.0, 0.0), (18.0, 2.0)])),
+                line_dasharray: Some(Dasharray(json!([4, 2]))),
+                line_width: Some(road_width(RAIL_FACTOR)),
                 ..Default::default()
             },
         },
@@ -678,7 +674,7 @@ fn build(palette: &Palette) -> Style {
                 ["==", "brunnel", "bridge"],
                 ["in", "class", "path", "service", "track"]
             ]))),
-            paint: path_paint(palette),
+            paint: path_paint(palette.path),
         },
         // roads_bridges_minor
         StyleLayer::Line {
