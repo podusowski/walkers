@@ -978,15 +978,127 @@ fn build(palette: &Palette) -> Style {
                 ..Default::default()
             }),
         },
-        // stations
+        // stations_symbol
         StyleLayer::Symbol {
             source: Some(SOURCE.into()),
             source_layer: "poi".into(),
             minzoom: None,
-            filter: Some(Filter(json!(["==", "class", "station"]))),
+            filter: Some(Filter(json!([
+                "all",
+                ["==", "class", "railway"],
+                ["in", "subclass", "station", "halt"]
+            ]))),
+            layout: Layout {
+                text_field: Some(json!("🚆")),
+                text_size: Some(Float(json!(TEXT))),
+                ..Default::default()
+            },
+            paint: Some(Paint {
+                text_color: Some(Color(json!(palette.station))),
+                text_halo_color: Some(Color(json!(palette.casing))),
+                text_halo_width: Some(Float(json!(HALO_WIDTH))),
+                ..Default::default()
+            }),
+        },
+        // stations, named under the symbol
+        StyleLayer::Symbol {
+            source: Some(SOURCE.into()),
+            source_layer: "poi".into(),
+            minzoom: None,
+            filter: Some(Filter(json!([
+                "all",
+                ["==", "class", "railway"],
+                ["in", "subclass", "station", "halt"]
+            ]))),
             layout: Layout {
                 text_field: Some(json!(["get", "name"])),
                 text_size: Some(Float(json!(TEXT))),
+                text_anchor: Some(json!("top")),
+                text_offset: Some(json!([0, 0.8])),
+                ..Default::default()
+            },
+            paint: Some(Paint {
+                text_color: Some(Color(json!(palette.station))),
+                text_halo_color: Some(Color(json!(palette.casing))),
+                text_halo_width: Some(Float(json!(HALO_WIDTH))),
+                ..Default::default()
+            }),
+        },
+        // tram_stops_symbol
+        StyleLayer::Symbol {
+            source: Some(SOURCE.into()),
+            source_layer: "poi".into(),
+            minzoom: Some(16.0),
+            filter: Some(Filter(json!([
+                "all",
+                ["==", "class", "railway"],
+                ["==", "subclass", "tram_stop"]
+            ]))),
+            layout: Layout {
+                text_field: Some(json!("🚊")),
+                text_size: Some(Float(json!(SMALL_TEXT))),
+                ..Default::default()
+            },
+            paint: Some(Paint {
+                text_color: Some(Color(json!(palette.station))),
+                text_halo_color: Some(Color(json!(palette.casing))),
+                text_halo_width: Some(Float(json!(HALO_WIDTH))),
+                ..Default::default()
+            }),
+        },
+        // tram_stops, named under the symbol
+        StyleLayer::Symbol {
+            source: Some(SOURCE.into()),
+            source_layer: "poi".into(),
+            minzoom: Some(16.0),
+            filter: Some(Filter(json!([
+                "all",
+                ["==", "class", "railway"],
+                ["==", "subclass", "tram_stop"]
+            ]))),
+            layout: Layout {
+                text_field: Some(json!(["get", "name"])),
+                text_size: Some(Float(json!(SMALL_TEXT))),
+                text_anchor: Some(json!("top")),
+                text_offset: Some(json!([0, 0.8])),
+                ..Default::default()
+            },
+            paint: Some(Paint {
+                text_color: Some(Color(json!(palette.station))),
+                text_halo_color: Some(Color(json!(palette.casing))),
+                text_halo_width: Some(Float(json!(HALO_WIDTH))),
+                ..Default::default()
+            }),
+        },
+        // bus_stops_symbol
+        StyleLayer::Symbol {
+            source: Some(SOURCE.into()),
+            source_layer: "poi".into(),
+            minzoom: Some(16.0),
+            filter: Some(Filter(json!(["==", "class", "bus"]))),
+            layout: Layout {
+                text_field: Some(json!("🚌")),
+                text_size: Some(Float(json!(SMALL_TEXT))),
+                ..Default::default()
+            },
+            paint: Some(Paint {
+                text_color: Some(Color(json!(palette.station))),
+                text_halo_color: Some(Color(json!(palette.casing))),
+                text_halo_width: Some(Float(json!(HALO_WIDTH))),
+                ..Default::default()
+            }),
+        },
+        // bus_stops, named under the symbol
+        StyleLayer::Symbol {
+            source: Some(SOURCE.into()),
+            source_layer: "poi".into(),
+            minzoom: Some(16.0),
+            filter: Some(Filter(json!(["==", "class", "bus"]))),
+            layout: Layout {
+                text_field: Some(json!(["get", "name"])),
+                text_size: Some(Float(json!(SMALL_TEXT))),
+                text_anchor: Some(json!("top")),
+                text_offset: Some(json!([0, 0.8])),
                 ..Default::default()
             },
             paint: Some(Paint {
@@ -1294,5 +1406,56 @@ mod tests {
                 "{class} in a tunnel"
             );
         }
+    }
+
+    /// Texts which the style's label layers give a feature of `source`, at `zoom`, found the way
+    /// the renderer finds them.
+    fn labels(style: &Style, source: &str, properties: Value, zoom: u8) -> Vec<String> {
+        let context = Context::new(
+            "Point".to_owned(),
+            serde_json::from_value::<HashMap<String, Value>>(properties).unwrap(),
+            zoom,
+        );
+
+        style
+            .layers
+            .iter()
+            .filter_map(|layer| match layer {
+                StyleLayer::Symbol {
+                    source_layer,
+                    filter,
+                    layout,
+                    minzoom,
+                    ..
+                } if source_layer.matches(source)
+                    && minzoom.is_none_or(|minzoom| f32::from(zoom) >= minzoom)
+                    && filter
+                        .as_ref()
+                        .is_none_or(|filter| filter.matches(&context)) =>
+                {
+                    layout.text(&context)
+                }
+                _ => None,
+            })
+            .collect()
+    }
+
+    /// OpenMapTiles has railway stations as a `railway` with a `station` subclass. The style
+    /// asked for a `station` class, as Protomaps has it, and drew none.
+    #[test]
+    fn a_railway_station_is_named() {
+        let style = Style::openmaptiles_basemap_light();
+        let station = json!({"class": "railway", "subclass": "station", "name": "Wrocław Główny"});
+
+        assert!(
+            labels(&style, "poi", station, 14).contains(&"Wrocław Główny".to_owned()),
+            "{:?}",
+            labels(
+                &style,
+                "poi",
+                json!({"class": "railway", "subclass": "station", "name": "Wrocław Główny"}),
+                14
+            )
+        );
     }
 }
