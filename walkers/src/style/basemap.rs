@@ -1009,7 +1009,25 @@ fn build(palette: &Palette) -> Style {
                 ..Default::default()
             }),
         },
-        // peaks
+        // peaks_symbol, on the peak itself
+        StyleLayer::Symbol {
+            source: Some(SOURCE.into()),
+            source_layer: "mountain_peak".into(),
+            minzoom: None,
+            filter: Some(Filter(json!(["in", "class", "peak", "volcano"]))),
+            layout: Layout {
+                text_field: Some(json!("⛰")),
+                text_size: Some(Float(json!(TEXT))),
+                ..Default::default()
+            },
+            paint: Some(Paint {
+                text_color: Some(Color(json!(palette.peak))),
+                text_halo_color: Some(Color(json!(palette.casing))),
+                text_halo_width: Some(Float(json!(HALO_WIDTH))),
+                ..Default::default()
+            }),
+        },
+        // peaks, named under the symbol
         StyleLayer::Symbol {
             source: Some(SOURCE.into()),
             source_layer: "mountain_peak".into(),
@@ -1018,6 +1036,8 @@ fn build(palette: &Palette) -> Style {
             layout: Layout {
                 text_field: Some(json!(["get", "name"])),
                 text_size: Some(Float(json!(TEXT))),
+                text_anchor: Some(json!("top")),
+                text_offset: Some(json!([0, 0.7])),
                 ..Default::default()
             },
             paint: Some(Paint {
