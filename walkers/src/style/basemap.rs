@@ -73,6 +73,7 @@ struct Palette {
     bridge: &'static str,
     structure: &'static str,
     path: &'static str,
+    cycleway: &'static str,
     muted: &'static str,
     highway: &'static str,
     road: &'static str,
@@ -100,6 +101,7 @@ const DARK: Palette = Palette {
     bridge: "#1f1f1f",
     structure: "#292929",
     path: "#5a4a3a",
+    cycleway: "#74463a",
     muted: "#333333",
     highway: "#352121",
     road: "#464646",
@@ -127,6 +129,7 @@ const LIGHT: Palette = Palette {
     bridge: "#bfbfbf",
     structure: "#d4d4d4",
     path: "#4c3316",
+    cycleway: "#7a3420",
     muted: "#b3b3b3",
     highway: "#bb5f5f",
     road: "#4a4a4a",
@@ -168,12 +171,24 @@ fn casing_width(line: Value) -> Float {
     Float(json!(["+", line, ["*", 2, ["min", 1, line]]]))
 }
 
-/// Paths and tracks, dashed in `color`.
-fn path_paint(color: &str) -> Paint {
+/// Paths and tracks, dashed in `color`, and cycleways, solid in `cycleway_color`.
+fn path_paint(color: &str, cycleway_color: &str) -> Paint {
     Paint {
-        line_color: Some(Color(json!(color))),
+        line_color: Some(Color(json!([
+            "match",
+            ["get", "subclass"],
+            "cycleway",
+            cycleway_color,
+            color
+        ]))),
         line_width: Some(road_width(PATH_FACTOR)),
-        line_dasharray: Some(Dasharray(json!([6, 2]))),
+        line_dasharray: Some(Dasharray(json!([
+            "match",
+            ["get", "subclass"],
+            "cycleway",
+            ["literal", []],
+            ["literal", [6, 2]]
+        ]))),
         ..Default::default()
     }
 }
@@ -476,7 +491,7 @@ fn build(palette: &Palette) -> Style {
                 ["==", "brunnel", "tunnel"],
                 ["in", "class", "path", "track"]
             ]))),
-            paint: path_paint(palette.structure),
+            paint: path_paint(palette.structure, palette.structure),
         },
         // roads_tunnels_minor
         StyleLayer::Line {
@@ -577,7 +592,7 @@ fn build(palette: &Palette) -> Style {
                 ["in", "class", "path", "track"],
                 ["!=", "subclass", "pier"]
             ]))),
-            paint: path_paint(palette.path),
+            paint: path_paint(palette.path, palette.cycleway),
         },
         // roads_link
         StyleLayer::Line {
@@ -702,7 +717,7 @@ fn build(palette: &Palette) -> Style {
                 ["==", "brunnel", "bridge"],
                 ["in", "class", "path", "track"]
             ]))),
-            paint: path_paint(palette.path),
+            paint: path_paint(palette.path, palette.cycleway),
         },
         // roads_bridges_minor
         StyleLayer::Line {
