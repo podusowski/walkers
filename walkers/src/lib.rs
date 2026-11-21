@@ -32,6 +32,7 @@ mod style {
 }
 
 mod egui_backend;
+#[cfg(feature = "vector")]
 mod elevation;
 
 #[cfg(feature = "vector")]
@@ -51,6 +52,7 @@ pub use canvas::Canvas;
 pub use canvas::Drawables;
 #[cfg(feature = "vector")]
 pub use egui_backend::wgpu::install_renderer;
+#[cfg(feature = "vector")]
 pub use elevation::Elevation;
 #[cfg(feature = "vector")]
 pub use expression::Context;
@@ -83,7 +85,9 @@ pub use text::{Anchor, Placement, Text, place_texts};
 pub use tiles::http::{HttpSource, HttpTiles};
 #[cfg(feature = "pmtiles")]
 pub use tiles::pmtiles::{PmTiles, PmTilesSource};
-pub use tiles::source::{DemEncoding, SourceData, TileData, TiledSource};
+#[cfg(feature = "vector")]
+pub use tiles::source::DemEncoding;
+pub use tiles::source::{SourceData, TileData, TiledSource};
 pub use tiles::{Tile, TileId, TilePiece, Tiles};
 pub use z_order::ZOrder;
 pub use zoom::InvalidZoom;

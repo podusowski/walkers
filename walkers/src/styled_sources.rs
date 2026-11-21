@@ -271,11 +271,11 @@ mod tests {
     }
 
     fn contours(source: &str) -> StyleLayer {
-        StyleLayer::Line {
+        StyleLayer::Contour {
             source: Some(source.to_owned()),
-            source_layer: crate::SourceLayer::One("contours".to_owned()),
             filter: None,
-            paint: Default::default(),
+            layout: Default::default(),
+            paint: None,
         }
     }
 

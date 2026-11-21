@@ -5,12 +5,14 @@ playground and can change or break at any time without an entry here.
 
 ## Unreleased
 
-* Elevation has contour lines, which `line` and `symbol` style layers draw from its `contours`
-  layer, with `ele` and `level` (1 for major lines) to style them by.
+* New `contour` style layer, which traces elevation into contour lines, labelled where it has a
+  `text-field`. Each line has `ele` and `level` (1 for major lines) to style it by.
 * New `Elevation`, which reads the elevation at a position from a source made `with_elevation`,
   falling back to lower zoom levels where the source has no tile.
 * New `DemEncoding::decode`, which unpacks a pixel into meters.
 * New `TileId::at`, the tile a position is on at a zoom level, and where on it.
+* Elevation needs the `vector` feature, as only style layers draw it: `SourceData::Elevation`,
+  `DemEncoding`, `with_elevation` and `Mapterhorn` are not there without it.
 
 ## 0.66.0
 

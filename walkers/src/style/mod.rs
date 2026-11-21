@@ -161,6 +161,23 @@ pub enum StyleLayer {
         #[serde(default)]
         paint: Paint,
     },
+    /// Traces elevation into contour lines, drawn as `line` paint says, and labelled as `layout`
+    /// and `paint` say when there is a `text-field`. Draws from a source made `with_elevation`,
+    /// such as [`crate::sources::Mapterhorn`]. A `line-opacity` of 0 leaves only the labels.
+    ///
+    /// Each elevation is one feature, with `ele` in meters, and `level` being 1 for major lines
+    /// and 0 for the others, for `filter` and expressions. How far apart they are follows the zoom,
+    /// from 200 meters at zoom 9, with every 1000 major, to 5 meters from zoom 16, with every 25
+    /// major. There are none below zoom 9.
+    #[serde(rename_all = "kebab-case")]
+    Contour {
+        #[serde(default)]
+        source: Option<String>,
+        filter: Option<Filter>,
+        #[serde(default)]
+        layout: Layout,
+        paint: Option<Paint>,
+    },
     /// Draws raster tiles as they are.
     Raster {
         #[serde(default)]
@@ -181,6 +198,7 @@ impl StyleLayer {
             | StyleLayer::Symbol { source, .. }
             | StyleLayer::Circle { source, .. }
             | StyleLayer::Hillshade { source, .. }
+            | StyleLayer::Contour { source, .. }
             | StyleLayer::Raster { source, .. } => source.as_deref(),
             StyleLayer::FillExtrusion => None,
         }
@@ -194,7 +212,8 @@ impl StyleLayer {
             StyleLayer::Fill { .. }
             | StyleLayer::Line { .. }
             | StyleLayer::Symbol { .. }
-            | StyleLayer::Circle { .. } => Some(Drawn::Shapes),
+            | StyleLayer::Circle { .. }
+            | StyleLayer::Contour { .. } => Some(Drawn::Shapes),
             StyleLayer::Hillshade { .. } | StyleLayer::Raster { .. } => Some(Drawn::Image),
         }
     }

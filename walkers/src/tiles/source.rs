@@ -12,13 +12,8 @@ pub enum SourceData {
     Encoded(Bytes),
 
     /// A raster image whose pixels are elevation, packed as `encoding` says. A `hillshade` style
-    /// layer shades it into relief.
-    ///
-    /// It also has contour lines, in a layer named `contours`, for `line` and `symbol` style layers
-    /// to draw. Each elevation is one feature, with `ele` in meters, and `level` being 1 for major
-    /// lines and 0 for the others. How far apart they are follows the zoom, from 200 meters at
-    /// zoom 9, with every 1000 major, to 5 meters from zoom 16, with every 25 major. There are none
-    /// below zoom 9.
+    /// layer shades it into relief, and a `contour` one traces it into contour lines.
+    #[cfg(feature = "vector")]
     Elevation { data: Bytes, encoding: DemEncoding },
 }
 
@@ -37,6 +32,7 @@ pub enum TileData {
 /// How elevation is packed into the pixels of a raster image.
 ///
 /// <https://maplibre.org/maplibre-style-spec/sources/#encoding>
+#[cfg(feature = "vector")]
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum DemEncoding {
     /// Mapbox Terrain-RGB.
@@ -44,6 +40,7 @@ pub enum DemEncoding {
     Terrarium,
 }
 
+#[cfg(feature = "vector")]
 impl DemEncoding {
     /// Elevation, in meters, packed into a pixel's red, green, blue and alpha.
     pub fn decode(self, [r, g, b, _]: [u8; 4]) -> f32 {
@@ -80,7 +77,7 @@ pub trait TiledSource {
     }
 }
 
-#[cfg(test)]
+#[cfg(all(test, feature = "vector"))]
 mod tests {
     use super::*;
 

@@ -6,14 +6,8 @@ use geo::Simplify;
 use geo_types::{Coord, LineString, MultiLineString};
 use serde_json::json;
 
-use super::{
-    apply_style::FeatureLayer,
-    heights::{Grid, Heights},
-};
+use super::heights::{Grid, Heights};
 use crate::{expression::Context, render::Geometry};
-
-/// Name of the layer of contour lines, as style layers give it in `source-layer`.
-pub(crate) const LAYER: &str = "contours";
 
 /// How far a simplified line may stray from the traced one, in pixels as drawn.
 const TOLERANCE: f32 = 0.5;
@@ -41,8 +35,13 @@ fn intervals(zoom: u8) -> Option<(i32, i32)> {
 ///
 /// Each elevation is one feature, with `ele` in meters, and `level` being 1 for major lines and 0
 /// for the others.
-pub(crate) fn decode(heights: &Heights, data_zoom: u8, zoom: u8, tile_size: u32) -> FeatureLayer {
-    let features = match (intervals(zoom), Grid::new(heights)) {
+pub(crate) fn features(
+    heights: &Heights,
+    data_zoom: u8,
+    zoom: u8,
+    tile_size: u32,
+) -> Vec<(Geometry<f32>, Context)> {
+    match (intervals(zoom), Grid::new(heights)) {
         (Some((minor, major)), Some(grid)) => {
             let scale = Coord {
                 x: tile_size as f32 / heights.width() as f32,
@@ -77,11 +76,6 @@ pub(crate) fn decode(heights: &Heights, data_zoom: u8, zoom: u8, tile_size: u32)
                 .collect()
         }
         _ => Vec::new(),
-    };
-
-    FeatureLayer {
-        name: LAYER.to_owned(),
-        features,
     }
 }
 
@@ -315,9 +309,8 @@ mod tests {
         ground(|_, y| 1002.0 + 10.0 * y)
     }
 
-    fn lines(layer: &FeatureLayer) -> Vec<(i64, i64, &MultiLineString<f32>)> {
+    fn lines(layer: &[(Geometry<f32>, Context)]) -> Vec<(i64, i64, &MultiLineString<f32>)> {
         layer
-            .features
             .iter()
             .map(|(geometry, context)| {
                 let Geometry::MultiLineString(lines) = geometry else {
@@ -337,8 +330,7 @@ mod tests {
 
     #[test]
     fn lines_are_drawn_where_the_ground_is_at_each_interval() {
-        let layer = decode(&slope(), 13, 13, 16);
-        assert_eq!(layer.name, "contours");
+        let layer = features(&slope(), 13, 13, 16);
 
         let lines = lines(&layer);
         let elevations: Vec<i64> = lines.iter().map(|(ele, _, _)| *ele).collect();
@@ -361,7 +353,7 @@ mod tests {
     /// So that they meet the lines of the tiles around, rather than stop half a pixel short.
     #[test]
     fn lines_reach_the_edges_of_the_tile() {
-        let layer = decode(&slope(), 13, 13, 16);
+        let layer = features(&slope(), 13, 13, 16);
 
         for (_, _, line) in lines(&layer) {
             let xs: Vec<f32> = line.0[0].0.iter().map(|point| point.x).collect();
@@ -372,7 +364,7 @@ mod tests {
 
     #[test]
     fn lines_are_in_pixels_of_the_tile() {
-        let layer = decode(&slope(), 13, 13, 512);
+        let layer = features(&slope(), 13, 13, 512);
 
         for (ele, _, line) in lines(&layer) {
             let y = (ele as f32 - 1002.0) / 10.0 * 32.0;
@@ -383,7 +375,7 @@ mod tests {
 
     #[test]
     fn major_lines_are_told_apart() {
-        let layer = decode(&slope(), 13, 13, 16);
+        let layer = features(&slope(), 13, 13, 16);
 
         let majors: Vec<i64> = lines(&layer)
             .into_iter()
@@ -395,7 +387,7 @@ mod tests {
 
     #[test]
     fn lines_get_closer_with_the_zoom_they_are_drawn_at() {
-        let count = |zoom| lines(&decode(&slope(), 13, zoom, 16)).len();
+        let count = |zoom| lines(&features(&slope(), 13, zoom, 16)).len();
         assert_eq!(count(12), 3);
         assert_eq!(count(13), 8);
         assert_eq!(count(16), 32);
@@ -403,14 +395,14 @@ mod tests {
 
     #[test]
     fn there_are_none_when_zoomed_out() {
-        let layer = decode(&slope(), 8, 8, 16);
-        assert!(layer.features.is_empty());
+        let layer = features(&slope(), 8, 8, 16);
+        assert!(layer.is_empty());
     }
 
     #[test]
     fn hill_is_ringed_by_closed_lines() {
         let hill = ground(|x, y| 1090.0 - 4.0 * (x - 8.0).hypot(y - 8.0));
-        let layer = decode(&hill, 13, 13, 256);
+        let layer = features(&hill, 13, 13, 256);
 
         let lines = lines(&layer);
         let elevations: Vec<i64> = lines.iter().map(|(ele, _, _)| *ele).collect();
@@ -426,8 +418,8 @@ mod tests {
     #[test]
     fn bumps_too_small_to_make_out_are_left_out() {
         let bump = ground(|x, y| if x == 8.5 && y == 8.5 { 1030.0 } else { 1001.0 });
-        let layer = decode(&bump, 13, 13, 16);
-        assert!(layer.features.is_empty());
+        let layer = features(&bump, 13, 13, 16);
+        assert!(layer.is_empty());
     }
 
     #[test]

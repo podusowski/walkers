@@ -2,6 +2,7 @@
 
 mod geoportal;
 mod mapbox;
+#[cfg(feature = "vector")]
 mod mapterhorn;
 #[cfg(feature = "mvt")]
 mod openfreemap;
@@ -11,6 +12,7 @@ mod opentopomap;
 use crate::TileId;
 pub use geoportal::Geoportal;
 pub use mapbox::{Mapbox, MapboxStyle};
+#[cfg(feature = "vector")]
 pub use mapterhorn::Mapterhorn;
 #[cfg(feature = "mvt")]
 pub use openfreemap::OpenFreeMap;

@@ -32,11 +32,7 @@ impl Heights {
                 .collect(),
         }
     }
-}
 
-/// For hillshade and contour lines, which need `vector`.
-#[cfg_attr(not(feature = "vector"), allow(dead_code))]
-impl Heights {
     pub(crate) fn width(&self) -> usize {
         self.width
     }

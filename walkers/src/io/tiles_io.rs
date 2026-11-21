@@ -5,8 +5,10 @@ use egui::Context;
 use futures::channel::mpsc::{Receiver, Sender, TryRecvError, TrySendError, channel};
 use lru::LruCache;
 
+#[cfg(feature = "vector")]
+use crate::DemEncoding;
 use crate::{
-    DemEncoding, SourceData, TileData, TileId,
+    SourceData, TileData, TileId,
     io::{Fetch, fetch::fetch_continuously, runtime::Runtime},
 };
 
@@ -23,6 +25,7 @@ pub struct TilesIo {
     pub stats: Arc<Mutex<Stats>>,
 
     /// Set if the tiles are elevation, packed that way.
+    #[cfg(feature = "vector")]
     elevation: Option<DemEncoding>,
 
     #[allow(dead_code)] // Significant Drop
@@ -57,12 +60,14 @@ impl TilesIo {
             stats,
             request_tx,
             tile_rx,
+            #[cfg(feature = "vector")]
             elevation: None,
             runtime,
         }
     }
 
     /// Tiles are elevation, packed as `encoding` says.
+    #[cfg(feature = "vector")]
     pub fn with_elevation(mut self, encoding: DemEncoding) -> Self {
         self.elevation = Some(encoding);
         self
@@ -76,10 +81,13 @@ impl TilesIo {
                 self.cache.put(tile_id, TileData::Missing);
             }
             Ok((tile_id, Some(data))) => {
+                #[cfg(feature = "vector")]
                 let data = match self.elevation {
                     Some(encoding) => SourceData::Elevation { data, encoding },
                     None => SourceData::Encoded(data),
                 };
+                #[cfg(not(feature = "vector"))]
+                let data = SourceData::Encoded(data);
                 self.cache.put(tile_id, TileData::Ready(Arc::new(data)));
             }
             Err(TryRecvError::Empty) => {

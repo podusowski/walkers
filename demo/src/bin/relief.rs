@@ -8,7 +8,7 @@
 use egui::{Align2, Color32, Slider, Ui, Window, color_picker::Alpha};
 use walkers::{
     Color, DemEncoding, Filter, Float, HttpOptions, HttpSource, Layout, Map, MapMemory, Paint,
-    Position, SourceLayer, Style, StyleLayer, StyledSources, json, lon_lat,
+    Position, Style, StyleLayer, StyledSources, json, lon_lat,
     sources::{Mapterhorn, OpenFreeMap},
 };
 
@@ -127,27 +127,24 @@ impl Relief {
 
 /// Contour lines of the terrain in `base` color, the major ones thicker, more opaque and labelled
 /// with their elevation.
-fn contours(base: Color32) -> [StyleLayer; 3] {
-    let major = || Some(Filter(json!(["==", ["get", "level"], 1])));
-    let line = |filter, width: f32, opacity: f32| StyleLayer::Line {
-        source: Some("terrain".to_owned()),
-        source_layer: SourceLayer::One("contours".to_owned()),
-        filter,
-        paint: Paint {
-            line_color: Some(color(base.gamma_multiply(opacity))),
-            line_width: Some(Float(json!(width))),
-            ..Default::default()
-        },
+fn contours(base: Color32) -> [StyleLayer; 2] {
+    let level = |level: i32| Some(Filter(json!(["==", ["get", "level"], level])));
+    let lines = |width: f32, opacity: f32| Paint {
+        line_color: Some(color(base.gamma_multiply(opacity))),
+        line_width: Some(Float(json!(width))),
+        ..Default::default()
     };
 
     [
-        line(Some(Filter(json!(["==", ["get", "level"], 0]))), 0.6, 0.3),
-        line(major(), 1.2, 0.5),
-        StyleLayer::Symbol {
+        StyleLayer::Contour {
             source: Some("terrain".to_owned()),
-            source_layer: SourceLayer::One("contours".to_owned()),
-            minzoom: None,
-            filter: major(),
+            filter: level(0),
+            layout: Layout::default(),
+            paint: Some(lines(0.6, 0.3)),
+        },
+        StyleLayer::Contour {
+            source: Some("terrain".to_owned()),
+            filter: level(1),
             layout: Layout {
                 text_field: Some(json!(["to-string", ["get", "ele"]])),
                 text_size: Some(Float(json!(10.0))),
@@ -157,7 +154,7 @@ fn contours(base: Color32) -> [StyleLayer; 3] {
                 text_color: Some(color(base.gamma_multiply(0.8))),
                 text_halo_color: Some(Color(json!("rgba(0, 0, 0, 0.6)"))),
                 text_halo_width: Some(Float(json!(1.0))),
-                ..Default::default()
+                ..lines(1.2, 0.5)
             }),
         },
     ]

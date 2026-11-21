@@ -2,6 +2,7 @@ pub(crate) mod apply_style;
 #[cfg(feature = "vector")]
 mod contours;
 pub(crate) mod grid;
+#[cfg(feature = "vector")]
 pub(crate) mod heights;
 pub(crate) mod http;
 #[cfg(feature = "mvt")]
