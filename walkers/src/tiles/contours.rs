@@ -15,6 +15,11 @@ const TOLERANCE: f32 = 0.5;
 /// Closed lines shorter than that, in pixels as drawn, are left out.
 const SHORTEST_RING: f32 = 12.0;
 
+/// Zoom levels past its own a tile is still traced at. Deeper than that, as where a lower zoom
+/// level's tile stands in for a missing one, the lines would be too coarse to mean anything, and
+/// too many, as a single tile then covers a vast area traced at the fine interval of a deep zoom.
+const DEEPEST_MAGNIFICATION: u8 = 5;
+
 /// Meters between contour lines, and between the major ones among them, at `zoom`. None below
 /// zoom 9.
 fn intervals(zoom: u8) -> Option<(i32, i32)> {
@@ -40,6 +45,10 @@ pub(crate) fn features(
     zoom: u8,
     tile_size: u32,
 ) -> Vec<(Geometry<f32>, Context)> {
+    if zoom.saturating_sub(data_zoom) > DEEPEST_MAGNIFICATION {
+        return Vec::new();
+    }
+
     match (intervals(zoom), Grid::new(heights)) {
         (Some((minor, major)), Some(grid)) => {
             let scale = Coord {

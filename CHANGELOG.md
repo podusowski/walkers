@@ -6,7 +6,9 @@ playground and can change or break at any time without an entry here.
 ## Unreleased
 
 * New `contour` style layer, which traces elevation into contour lines, labelled where it has a
-  `text-field`. Each line has `ele` and `level` (1 for major lines) to style it by.
+  `text-field`. Each line has `ele` and `level` (1 for major lines) to style it by. A tile is not
+  traced more than 5 zoom levels past its own, as where a much shallower one stands in for those
+  a source is missing.
 * New `Elevation`, which reads the elevation at a position from a source made `with_elevation`,
   falling back to lower zoom levels where the source has no tile.
 * New `DemEncoding::decode`, which unpacks a pixel into meters.
