@@ -122,7 +122,7 @@ const LIGHT: Palette = Palette {
     urban_green: "#e2f0df",
     pier: "#8c8c8c",
     tunnel_casing: "#595959",
-    casing: "#ffffff",
+    casing: "#e9e9e9",
     landuse_dark: "#e0e0e0",
     bridge: "#bfbfbf",
     structure: "#d4d4d4",
@@ -158,7 +158,7 @@ const MOTORWAY_FACTOR: f64 = 2.5;
 const RAIL_FACTOR: f64 = 0.5;
 const TRAM_FACTOR: f64 = 0.3;
 
-const HALO_WIDTH: f64 = 2.0;
+const HALO_WIDTH: f64 = 1.0;
 
 const SMALL_TEXT: f64 = 10.0;
 const TEXT: f64 = 12.0;
