@@ -371,13 +371,20 @@ fn build(palette: &Palette) -> Style {
                 ..Default::default()
             },
         },
-        // water_stream
+        // water_stream, and canals, which are wider
         StyleLayer::Line {
             source: Some(SOURCE.into()),
             source_layer: "waterway".into(),
-            filter: Some(Filter(json!(["in", "class", "stream"]))),
+            filter: Some(Filter(json!(["in", "class", "stream", "canal"]))),
             paint: Paint {
                 line_color: Some(Color(json!(palette.water))),
+                line_width: Some(Float(json!([
+                    "match",
+                    ["get", "class"],
+                    "canal",
+                    linear_zoom_interpolation(&[(12.0, 1.0), (18.0, 8.0)]).0,
+                    linear_zoom_interpolation(&[(12.0, 1.0), (18.0, 4.0)]).0
+                ]))),
                 ..Default::default()
             },
         },
