@@ -35,6 +35,11 @@ playground and can change or break at any time without an entry here.
 * Labels of points support `text-anchor` and `text-offset`, and `Text` has an `anchor` and an
   `offset`. `Layout` has fields for them, so one built without `..Default::default()` has to
   name them.
+* Lines of a label are centred on each other.
+* Walkers' own basemap styles draw paths and tracks dashed, cycleways, trams, service roads and
+  ramps each in their own way, and mark peaks, motorway exits, stations, and tram and bus stops
+  with a symbol. Peaks show their height.
+* Fix railway stations missing from Walkers' own basemap styles, and ramps drawn twice.
 
 ## 0.65.0
 

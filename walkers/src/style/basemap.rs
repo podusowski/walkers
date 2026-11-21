@@ -3,7 +3,7 @@
 //! <https://openmaptiles.org/schema/>
 
 use super::{
-    Color, Dasharray, Filter, Float, Layout, Paint, Style, StyleLayer,
+    Color, Dasharray, Filter, Float, Layout, Paint, Style, StyleLayer, Value,
     exponential_zoom_interpolation, json, linear_zoom_interpolation,
 };
 
@@ -63,6 +63,7 @@ struct Palette {
     background: &'static str,
     rail: &'static str,
     rail_tie: &'static str,
+    tram: &'static str,
     forest: &'static str,
     urban_green: &'static str,
     pier: &'static str,
@@ -72,10 +73,10 @@ struct Palette {
     bridge: &'static str,
     structure: &'static str,
     path: &'static str,
+    cycleway: &'static str,
     muted: &'static str,
     highway: &'static str,
     road: &'static str,
-    label_muted: &'static str,
     label: &'static str,
     locality_text: &'static str,
     water: &'static str,
@@ -87,7 +88,8 @@ struct Palette {
 
 const DARK: Palette = Palette {
     background: "#000000",
-    rail_tie: "#bfbfbf",
+    rail_tie: "#6d6d6d",
+    tram: "#2d2d2d",
     rail: "#000000",
     forest: "#061009",
     urban_green: "#000c00",
@@ -97,43 +99,44 @@ const DARK: Palette = Palette {
     landuse_dark: "#191919",
     bridge: "#1f1f1f",
     structure: "#292929",
-    path: "#3a2312",
+    path: "#5a4a3a",
+    cycleway: "#74463a",
     muted: "#333333",
     highway: "#352121",
     road: "#464646",
-    label_muted: "#5c5c5c",
-    label: "#707070",
+    label: "#a0a0a0",
     locality_text: "#999999",
     water: "#161e31",
     water_label: "#134164",
     water_label_halo: "#0d1526",
-    station: "#7fb3d9",
+    station: "#98b07a",
     peak: "#b59a6a",
 };
 
 const LIGHT: Palette = Palette {
     background: "#f2f2f0",
     rail_tie: "#000000",
+    tram: "#000000",
     rail: "#ffffff",
     forest: "#86a180",
     urban_green: "#e2f0df",
     pier: "#8c8c8c",
     tunnel_casing: "#595959",
-    casing: "#ffffff",
+    casing: "#e9e9e9",
     landuse_dark: "#e0e0e0",
     bridge: "#bfbfbf",
-    structure: "#d4d4d4",
-    path: "#d4d4d4",
+    structure: "#5b5b5b",
+    path: "#4c3316",
+    cycleway: "#b86b6b",
     muted: "#b3b3b3",
     highway: "#bb5f5f",
     road: "#4a4a4a",
-    label_muted: "#595959",
-    label: "#1f1f1f",
+    label: "#000000",
     locality_text: "#1a1a1a",
     water: "#88b2e2",
     water_label: "#2f6690",
     water_label_halo: "#ffffff",
-    station: "#2b6ca3",
+    station: "#3f5934",
     peak: "#6b5330",
 };
 
@@ -152,19 +155,78 @@ const PATH_FACTOR: f64 = 0.5;
 const MINOR_ROAD_FACTOR: f64 = 1.0;
 const MAJOR_ROAD_FACTOR: f64 = 1.5;
 const MOTORWAY_FACTOR: f64 = 2.5;
+const RAIL_FACTOR: f64 = 0.5;
+const TRAM_FACTOR: f64 = 0.3;
+
+const HALO_WIDTH: f64 = 1.0;
+
+const SMALL_TEXT: f64 = 10.0;
+const TEXT: f64 = 12.0;
+const LARGE_TEXT: f64 = 14.0;
 
 fn road_width(factor: f64) -> Float {
     exponential_zoom_interpolation(1.6, &ROAD_WIDTH.map(|(zoom, width)| (zoom, width * factor)))
 }
 
-/// Width of a tunnel's casing: its road, with a pixel either side. That is never wider than the
-/// road, so that a road too thin to see does not get a casing which is not.
-fn casing_width(factor: f64) -> Float {
-    let road = road_width(factor).0;
-    Float(json!(["+", road, ["*", 2, ["min", 1, road]]]))
+/// Width of a casing: its line, with a pixel either side. That is never wider than the line, so
+/// that a line too thin to see does not get a casing which is not.
+fn casing_width(line: Value) -> Float {
+    Float(json!(["+", line, ["*", 2, ["min", 1, line]]]))
+}
+
+/// Paths and tracks, dashed in `color`, and cycleways, solid in `cycleway_color`.
+fn path_paint(color: &str, cycleway_color: &str) -> Paint {
+    Paint {
+        line_color: Some(Color(json!([
+            "match",
+            ["get", "subclass"],
+            "cycleway",
+            cycleway_color,
+            color
+        ]))),
+        line_width: Some(road_width(PATH_FACTOR)),
+        line_dasharray: Some(Dasharray(json!([
+            "match",
+            ["get", "subclass"],
+            "cycleway",
+            ["literal", []],
+            ["literal", [6, 2]]
+        ]))),
+        ..Default::default()
+    }
 }
 
 fn build(palette: &Palette) -> Style {
+    // Parking aisles and driveways only from up close, as they cover car parks and housing
+    // estates in a mesh of lines.
+    let service_road_shown = json!([
+        "any",
+        ["!", ["in", "service", "parking_aisle", "driveway"]],
+        [">=", ["zoom"], 16]
+    ]);
+
+    // Service roads are minor roads, as narrow as paths.
+    let minor_road_width = json!([
+        "match",
+        ["get", "class"],
+        "service",
+        road_width(PATH_FACTOR).0,
+        road_width(MINOR_ROAD_FACTOR).0
+    ]);
+
+    // Ramps, such as motorway exits, are drawn with their road, as wide as minor roads.
+    let with_ramps = |factor| {
+        json!([
+            "match",
+            ["get", "ramp"],
+            1,
+            road_width(MINOR_ROAD_FACTOR).0,
+            road_width(factor).0
+        ])
+    };
+    let major_road_width = with_ramps(MAJOR_ROAD_FACTOR);
+    let motorway_width = with_ramps(MOTORWAY_FACTOR);
+
     let layers = vec![
         // background
         StyleLayer::Background {
@@ -309,13 +371,20 @@ fn build(palette: &Palette) -> Style {
                 ..Default::default()
             },
         },
-        // water_stream
+        // water_stream, and canals, which are wider
         StyleLayer::Line {
             source: Some(SOURCE.into()),
             source_layer: "waterway".into(),
-            filter: Some(Filter(json!(["in", "class", "stream"]))),
+            filter: Some(Filter(json!(["in", "class", "stream", "canal"]))),
             paint: Paint {
                 line_color: Some(Color(json!(palette.water))),
+                line_width: Some(Float(json!([
+                    "match",
+                    ["get", "class"],
+                    "canal",
+                    linear_zoom_interpolation(&[(12.0, 1.0), (18.0, 8.0)]).0,
+                    linear_zoom_interpolation(&[(12.0, 1.0), (18.0, 4.0)]).0
+                ]))),
                 ..Default::default()
             },
         },
@@ -361,11 +430,12 @@ fn build(palette: &Palette) -> Style {
             filter: Some(Filter(json!([
                 "all",
                 ["==", "brunnel", "tunnel"],
-                ["in", "class", "path", "service", "track"]
+                ["in", "class", "path", "track"]
             ]))),
             paint: Paint {
                 line_color: Some(Color(json!(palette.tunnel_casing))),
-                line_width: Some(casing_width(PATH_FACTOR)),
+                line_dasharray: Some(Dasharray(json!([2, 2]))),
+                line_width: Some(casing_width(road_width(PATH_FACTOR).0)),
                 ..Default::default()
             },
         },
@@ -376,28 +446,13 @@ fn build(palette: &Palette) -> Style {
             filter: Some(Filter(json!([
                 "all",
                 ["==", "brunnel", "tunnel"],
-                ["in", "class", "minor", "tertiary"]
+                ["in", "class", "minor", "tertiary", "service"],
+                service_road_shown.clone()
             ]))),
             paint: Paint {
                 line_color: Some(Color(json!(palette.tunnel_casing))),
                 line_dasharray: Some(Dasharray(json!([2, 2]))),
-                line_width: Some(casing_width(MINOR_ROAD_FACTOR)),
-                ..Default::default()
-            },
-        },
-        // roads_tunnels_link_casing
-        StyleLayer::Line {
-            source: Some(SOURCE.into()),
-            source_layer: "transportation".into(),
-            filter: Some(Filter(json!([
-                "all",
-                ["==", "brunnel", "tunnel"],
-                ["==", "ramp", 1]
-            ]))),
-            paint: Paint {
-                line_color: Some(Color(json!(palette.tunnel_casing))),
-                line_dasharray: Some(Dasharray(json!([2, 2]))),
-                line_width: Some(casing_width(MINOR_ROAD_FACTOR)),
+                line_width: Some(casing_width(minor_road_width.clone())),
                 ..Default::default()
             },
         },
@@ -413,7 +468,7 @@ fn build(palette: &Palette) -> Style {
             paint: Paint {
                 line_color: Some(Color(json!(palette.tunnel_casing))),
                 line_dasharray: Some(Dasharray(json!([2, 2]))),
-                line_width: Some(casing_width(MAJOR_ROAD_FACTOR)),
+                line_width: Some(casing_width(major_road_width.clone())),
                 ..Default::default()
             },
         },
@@ -424,13 +479,12 @@ fn build(palette: &Palette) -> Style {
             filter: Some(Filter(json!([
                 "all",
                 ["==", "brunnel", "tunnel"],
-                ["in", "class", "motorway", "trunk"],
-                ["!=", "ramp", 1]
+                ["in", "class", "motorway", "trunk"]
             ]))),
             paint: Paint {
                 line_color: Some(Color(json!(palette.tunnel_casing))),
                 line_dasharray: Some(Dasharray(json!([2, 2]))),
-                line_width: Some(casing_width(MOTORWAY_FACTOR)),
+                line_width: Some(casing_width(motorway_width.clone())),
                 ..Default::default()
             },
         },
@@ -441,14 +495,9 @@ fn build(palette: &Palette) -> Style {
             filter: Some(Filter(json!([
                 "all",
                 ["==", "brunnel", "tunnel"],
-                ["in", "class", "path", "service", "track"]
+                ["in", "class", "path", "track"]
             ]))),
-            paint: Paint {
-                line_color: Some(Color(json!(palette.structure))),
-                line_dasharray: Some(Dasharray(json!([2, 2]))),
-                line_width: Some(road_width(PATH_FACTOR)),
-                ..Default::default()
-            },
+            paint: path_paint(palette.structure, palette.structure),
         },
         // roads_tunnels_minor
         StyleLayer::Line {
@@ -457,26 +506,12 @@ fn build(palette: &Palette) -> Style {
             filter: Some(Filter(json!([
                 "all",
                 ["==", "brunnel", "tunnel"],
-                ["in", "class", "minor", "tertiary"]
+                ["in", "class", "minor", "tertiary", "service"],
+                service_road_shown.clone()
             ]))),
             paint: Paint {
                 line_color: Some(Color(json!(palette.structure))),
-                line_width: Some(road_width(MINOR_ROAD_FACTOR)),
-                ..Default::default()
-            },
-        },
-        // roads_tunnels_link
-        StyleLayer::Line {
-            source: Some(SOURCE.into()),
-            source_layer: "transportation".into(),
-            filter: Some(Filter(json!([
-                "all",
-                ["==", "brunnel", "tunnel"],
-                ["==", "ramp", 1]
-            ]))),
-            paint: Paint {
-                line_color: Some(Color(json!(palette.structure))),
-                line_width: Some(road_width(MINOR_ROAD_FACTOR)),
+                line_width: Some(Float(minor_road_width.clone())),
                 ..Default::default()
             },
         },
@@ -491,7 +526,7 @@ fn build(palette: &Palette) -> Style {
             ]))),
             paint: Paint {
                 line_color: Some(Color(json!(palette.structure))),
-                line_width: Some(road_width(MAJOR_ROAD_FACTOR)),
+                line_width: Some(Float(major_road_width.clone())),
                 ..Default::default()
             },
         },
@@ -502,12 +537,11 @@ fn build(palette: &Palette) -> Style {
             filter: Some(Filter(json!([
                 "all",
                 ["==", "brunnel", "tunnel"],
-                ["in", "class", "motorway", "trunk"],
-                ["!=", "ramp", 1]
+                ["in", "class", "motorway", "trunk"]
             ]))),
             paint: Paint {
                 line_color: Some(Color(json!(palette.structure))),
-                line_width: Some(road_width(MOTORWAY_FACTOR)),
+                line_width: Some(Float(motorway_width.clone())),
                 ..Default::default()
             },
         },
@@ -545,25 +579,10 @@ fn build(palette: &Palette) -> Style {
                 "all",
                 ["!=", "brunnel", "tunnel"],
                 ["!=", "brunnel", "bridge"],
-                ["in", "class", "path", "service", "track"],
+                ["in", "class", "path", "track"],
                 ["!=", "subclass", "pier"]
             ]))),
-            paint: Paint {
-                line_color: Some(Color(json!(palette.path))),
-                line_width: Some(road_width(PATH_FACTOR)),
-                ..Default::default()
-            },
-        },
-        // roads_link
-        StyleLayer::Line {
-            source: Some(SOURCE.into()),
-            source_layer: "transportation".into(),
-            filter: Some(Filter(json!(["==", "ramp", 1]))),
-            paint: Paint {
-                line_color: Some(Color(json!(palette.bridge))),
-                line_width: Some(road_width(MINOR_ROAD_FACTOR)),
-                ..Default::default()
-            },
+            paint: path_paint(palette.path, palette.cycleway),
         },
         // roads_minor
         StyleLayer::Line {
@@ -573,11 +592,12 @@ fn build(palette: &Palette) -> Style {
                 "all",
                 ["!=", "brunnel", "tunnel"],
                 ["!=", "brunnel", "bridge"],
-                ["in", "class", "minor", "tertiary"]
+                ["in", "class", "minor", "tertiary", "service"],
+                service_road_shown.clone()
             ]))),
             paint: Paint {
                 line_color: Some(Color(json!(palette.road))),
-                line_width: Some(road_width(MINOR_ROAD_FACTOR)),
+                line_width: Some(Float(minor_road_width.clone())),
                 ..Default::default()
             },
         },
@@ -593,7 +613,7 @@ fn build(palette: &Palette) -> Style {
             ]))),
             paint: Paint {
                 line_color: Some(Color(json!(palette.road))),
-                line_width: Some(road_width(MAJOR_ROAD_FACTOR)),
+                line_width: Some(Float(major_road_width.clone())),
                 ..Default::default()
             },
         },
@@ -605,12 +625,11 @@ fn build(palette: &Palette) -> Style {
                 "all",
                 ["!=", "brunnel", "tunnel"],
                 ["!=", "brunnel", "bridge"],
-                ["in", "class", "motorway", "trunk"],
-                ["!=", "ramp", 1]
+                ["in", "class", "motorway", "trunk"]
             ]))),
             paint: Paint {
                 line_color: Some(Color(json!(palette.highway))),
-                line_width: Some(road_width(MOTORWAY_FACTOR)),
+                line_width: Some(Float(motorway_width.clone())),
                 ..Default::default()
             },
         },
@@ -618,10 +637,10 @@ fn build(palette: &Palette) -> Style {
         StyleLayer::Line {
             source: Some(SOURCE.into()),
             source_layer: "transportation".into(),
-            filter: Some(Filter(json!(["in", "class", "rail", "transit"]))),
+            filter: Some(Filter(json!(["==", "class", "rail"]))),
             paint: Paint {
                 line_color: Some(Color(json!(palette.rail))),
-                line_width: Some(linear_zoom_interpolation(&[(3.0, 0.0), (18.0, 3.5)])),
+                line_width: Some(casing_width(road_width(RAIL_FACTOR).0)),
                 ..Default::default()
             },
         },
@@ -629,12 +648,23 @@ fn build(palette: &Palette) -> Style {
         StyleLayer::Line {
             source: Some(SOURCE.into()),
             source_layer: "transportation".into(),
-            filter: Some(Filter(json!(["in", "class", "rail", "transit"]))),
+            filter: Some(Filter(json!(["==", "class", "rail"]))),
             paint: Paint {
-                line_opacity: Some(Float(json!(0.5))),
+                //line_opacity: Some(Float(json!(0.5))),
                 line_color: Some(Color(json!(palette.rail_tie))),
-                line_dasharray: Some(Dasharray(json!([2, 2]))),
-                line_width: Some(linear_zoom_interpolation(&[(3.0, 0.0), (18.0, 2.0)])),
+                line_dasharray: Some(Dasharray(json!([4, 2]))),
+                line_width: Some(road_width(RAIL_FACTOR)),
+                ..Default::default()
+            },
+        },
+        // roads_tram
+        StyleLayer::Line {
+            source: Some(SOURCE.into()),
+            source_layer: "transportation".into(),
+            filter: Some(Filter(json!(["==", "class", "transit"]))),
+            paint: Paint {
+                line_color: Some(Color(json!(palette.tram))),
+                line_width: Some(road_width(TRAM_FACTOR)),
                 ..Default::default()
             },
         },
@@ -663,13 +693,9 @@ fn build(palette: &Palette) -> Style {
             filter: Some(Filter(json!([
                 "all",
                 ["==", "brunnel", "bridge"],
-                ["in", "class", "path", "service", "track"]
+                ["in", "class", "path", "track"]
             ]))),
-            paint: Paint {
-                line_color: Some(Color(json!(palette.path))),
-                line_width: Some(road_width(PATH_FACTOR)),
-                ..Default::default()
-            },
+            paint: path_paint(palette.path, palette.cycleway),
         },
         // roads_bridges_minor
         StyleLayer::Line {
@@ -678,26 +704,12 @@ fn build(palette: &Palette) -> Style {
             filter: Some(Filter(json!([
                 "all",
                 ["==", "brunnel", "bridge"],
-                ["in", "class", "minor", "tertiary"]
+                ["in", "class", "minor", "tertiary", "service"],
+                service_road_shown.clone()
             ]))),
             paint: Paint {
                 line_color: Some(Color(json!(palette.road))),
-                line_width: Some(road_width(MINOR_ROAD_FACTOR)),
-                ..Default::default()
-            },
-        },
-        // roads_bridges_link
-        StyleLayer::Line {
-            source: Some(SOURCE.into()),
-            source_layer: "transportation".into(),
-            filter: Some(Filter(json!([
-                "all",
-                ["==", "brunnel", "bridge"],
-                ["==", "ramp", 1]
-            ]))),
-            paint: Paint {
-                line_color: Some(Color(json!(palette.bridge))),
-                line_width: Some(road_width(MINOR_ROAD_FACTOR)),
+                line_width: Some(Float(minor_road_width.clone())),
                 ..Default::default()
             },
         },
@@ -712,7 +724,7 @@ fn build(palette: &Palette) -> Style {
             ]))),
             paint: Paint {
                 line_color: Some(Color(json!(palette.road))),
-                line_width: Some(road_width(MAJOR_ROAD_FACTOR)),
+                line_width: Some(Float(major_road_width.clone())),
                 ..Default::default()
             },
         },
@@ -723,12 +735,11 @@ fn build(palette: &Palette) -> Style {
             filter: Some(Filter(json!([
                 "all",
                 ["==", "brunnel", "bridge"],
-                ["in", "class", "motorway", "trunk"],
-                ["!=", "ramp", 1]
+                ["in", "class", "motorway", "trunk"]
             ]))),
             paint: Paint {
                 line_color: Some(Color(json!(palette.highway))),
-                line_width: Some(road_width(MOTORWAY_FACTOR)),
+                line_width: Some(Float(motorway_width.clone())),
                 ..Default::default()
             },
         },
@@ -740,13 +751,13 @@ fn build(palette: &Palette) -> Style {
             filter: None,
             layout: Layout {
                 text_field: Some(json!(["get", "housenumber"])),
-                text_size: Some(Float(json!(10))),
+                text_size: Some(Float(json!(SMALL_TEXT))),
                 ..Default::default()
             },
             paint: Some(Paint {
                 text_color: Some(Color(json!(palette.label))),
                 text_halo_color: Some(Color(json!(palette.casing))),
-                text_halo_width: Some(Float(json!(1.5))),
+                text_halo_width: Some(Float(json!(HALO_WIDTH))),
                 ..Default::default()
             }),
         },
@@ -758,13 +769,13 @@ fn build(palette: &Palette) -> Style {
             filter: Some(Filter(json!(["in", "class", "river", "stream"]))),
             layout: Layout {
                 text_field: Some(json!(["get", "name"])),
-                text_size: Some(Float(json!(12))),
+                text_size: Some(Float(json!(TEXT))),
                 ..Default::default()
             },
             paint: Some(Paint {
                 text_color: Some(Color(json!(palette.water_label))),
                 text_halo_color: Some(Color(json!(palette.water_label_halo))),
-                text_halo_width: Some(Float(json!(1.5))),
+                text_halo_width: Some(Float(json!(HALO_WIDTH))),
                 ..Default::default()
             }),
         },
@@ -778,13 +789,13 @@ fn build(palette: &Palette) -> Style {
             ]))),
             layout: Layout {
                 text_field: Some(json!(["get", "name"])),
-                text_size: Some(Float(json!(12))),
+                text_size: Some(Float(json!(TEXT))),
                 ..Default::default()
             },
             paint: Some(Paint {
-                text_color: Some(Color(json!(palette.label_muted))),
+                text_color: Some(Color(json!(palette.label))),
                 text_halo_color: Some(Color(json!(palette.background))),
-                text_halo_width: Some(Float(json!(1.5))),
+                text_halo_width: Some(Float(json!(HALO_WIDTH))),
                 ..Default::default()
             }),
         },
@@ -798,13 +809,13 @@ fn build(palette: &Palette) -> Style {
             ]))),
             layout: Layout {
                 text_field: Some(json!(["get", "name"])),
-                text_size: Some(linear_zoom_interpolation(&[(3.0, 10.0), (10.0, 12.0)])),
+                text_size: Some(Float(json!(TEXT))),
                 ..Default::default()
             },
             paint: Some(Paint {
                 text_color: Some(Color(json!(palette.water_label))),
                 text_halo_color: Some(Color(json!(palette.water_label_halo))),
-                text_halo_width: Some(Float(json!(1.5))),
+                text_halo_width: Some(Float(json!(HALO_WIDTH))),
                 ..Default::default()
             }),
         },
@@ -816,17 +827,51 @@ fn build(palette: &Palette) -> Style {
             filter: Some(Filter(json!(["in", "class", "lake", "water"]))),
             layout: Layout {
                 text_field: Some(json!(["get", "name"])),
-                text_size: Some(linear_zoom_interpolation(&[
-                    (3.0, 10.0),
-                    (6.0, 12.0),
-                    (10.0, 12.0),
-                ])),
+                text_size: Some(Float(json!(TEXT))),
                 ..Default::default()
             },
             paint: Some(Paint {
                 text_color: Some(Color(json!(palette.water_label))),
                 text_halo_color: Some(Color(json!(palette.water_label_halo))),
-                text_halo_width: Some(Float(json!(1.5))),
+                text_halo_width: Some(Float(json!(HALO_WIDTH))),
+                ..Default::default()
+            }),
+        },
+        // roads_labels_junction_symbol, motorway exits
+        StyleLayer::Symbol {
+            source: Some(SOURCE.into()),
+            source_layer: "transportation_name".into(),
+            minzoom: None,
+            filter: Some(Filter(json!(["==", "subclass", "junction"]))),
+            layout: Layout {
+                text_field: Some(json!("⬈")),
+                text_size: Some(Float(json!(TEXT))),
+                ..Default::default()
+            },
+            paint: Some(Paint {
+                text_color: Some(Color(json!(palette.label))),
+                text_halo_color: Some(Color(json!(palette.background))),
+                text_halo_width: Some(Float(json!(HALO_WIDTH))),
+                ..Default::default()
+            }),
+        },
+        // roads_labels_junction, named under the symbol
+        StyleLayer::Symbol {
+            source: Some(SOURCE.into()),
+            source_layer: "transportation_name".into(),
+            minzoom: None,
+            filter: Some(Filter(json!(["==", "subclass", "junction"]))),
+            layout: Layout {
+                text_field: Some(json!(["get", "name"])),
+                text_size: Some(Float(json!(SMALL_TEXT))),
+                text_anchor: Some(json!("top")),
+                text_offset: Some(json!([0, 0.8])),
+                ..Default::default()
+            },
+            paint: Some(Paint {
+                text_color: Some(Color(json!(palette.label))),
+                text_halo_color: Some(Color(json!(palette.background))),
+                text_halo_width: Some(Float(json!(HALO_WIDTH))),
                 ..Default::default()
             }),
         },
@@ -836,22 +881,19 @@ fn build(palette: &Palette) -> Style {
             source_layer: "transportation_name".into(),
             minzoom: None,
             filter: Some(Filter(json!([
-                "in",
-                "class",
-                "motorway",
-                "trunk",
-                "primary",
-                "secondary"
+                "all",
+                ["in", "class", "motorway", "trunk", "primary", "secondary"],
+                ["!=", "subclass", "junction"]
             ]))),
             layout: Layout {
                 text_field: Some(json!(["get", "name"])),
-                text_size: Some(Float(json!(13))),
+                text_size: Some(Float(json!(LARGE_TEXT))),
                 ..Default::default()
             },
             paint: Some(Paint {
                 text_color: Some(Color(json!(palette.label))),
                 text_halo_color: Some(Color(json!(palette.background))),
-                text_halo_width: Some(Float(json!(1.5))),
+                text_halo_width: Some(Float(json!(HALO_WIDTH))),
                 ..Default::default()
             }),
         },
@@ -870,16 +912,16 @@ fn build(palette: &Palette) -> Style {
             layout: Layout {
                 text_field: Some(json!(["get", "name"])),
                 text_size: Some(linear_zoom_interpolation(&[
-                    (11.0, 8.0),
-                    (14.0, 14.0),
-                    (18.0, 24.0),
+                    (11.0, SMALL_TEXT),
+                    (14.0, LARGE_TEXT),
+                    (18.0, 16.0),
                 ])),
                 ..Default::default()
             },
             paint: Some(Paint {
-                text_color: Some(Color(json!(palette.label_muted))),
+                text_color: Some(Color(json!(palette.label))),
                 text_halo_color: Some(Color(json!(palette.casing))),
-                text_halo_width: Some(Float(json!(1.5))),
+                text_halo_width: Some(Float(json!(HALO_WIDTH))),
                 ..Default::default()
             }),
         },
@@ -897,7 +939,7 @@ fn build(palette: &Palette) -> Style {
             paint: Some(Paint {
                 text_color: Some(Color(json!(palette.label))),
                 text_halo_color: Some(Color(json!(palette.casing))),
-                text_halo_width: Some(Float(json!(1.5))),
+                text_halo_width: Some(Float(json!(HALO_WIDTH))),
                 ..Default::default()
             }),
         },
@@ -921,7 +963,7 @@ fn build(palette: &Palette) -> Style {
             paint: Some(Paint {
                 text_color: Some(Color(json!(palette.locality_text))),
                 text_halo_color: Some(Color(json!(palette.casing))),
-                text_halo_width: Some(Float(json!(1.5))),
+                text_halo_width: Some(Float(json!(HALO_WIDTH))),
                 ..Default::default()
             }),
         },
@@ -939,43 +981,182 @@ fn build(palette: &Palette) -> Style {
             paint: Some(Paint {
                 text_color: Some(Color(json!(palette.label))),
                 text_halo_color: Some(Color(json!(palette.casing))),
-                text_halo_width: Some(Float(json!(1.5))),
+                text_halo_width: Some(Float(json!(HALO_WIDTH))),
                 ..Default::default()
             }),
         },
-        // stations
+        // stations_symbol
         StyleLayer::Symbol {
             source: Some(SOURCE.into()),
             source_layer: "poi".into(),
             minzoom: None,
-            filter: Some(Filter(json!(["==", "class", "station"]))),
+            filter: Some(Filter(json!([
+                "all",
+                ["==", "class", "railway"],
+                ["in", "subclass", "station", "halt"]
+            ]))),
             layout: Layout {
-                text_field: Some(json!(["get", "name"])),
-                text_size: Some(Float(json!(11))),
+                text_field: Some(json!("🚆")),
+                text_size: Some(Float(json!(TEXT))),
                 ..Default::default()
             },
             paint: Some(Paint {
                 text_color: Some(Color(json!(palette.station))),
                 text_halo_color: Some(Color(json!(palette.casing))),
-                text_halo_width: Some(Float(json!(1.5))),
+                text_halo_width: Some(Float(json!(HALO_WIDTH))),
                 ..Default::default()
             }),
         },
-        // peaks
+        // stations, named under the symbol
+        StyleLayer::Symbol {
+            source: Some(SOURCE.into()),
+            source_layer: "poi".into(),
+            minzoom: None,
+            filter: Some(Filter(json!([
+                "all",
+                ["==", "class", "railway"],
+                ["in", "subclass", "station", "halt"]
+            ]))),
+            layout: Layout {
+                text_field: Some(json!(["get", "name"])),
+                text_size: Some(Float(json!(TEXT))),
+                text_anchor: Some(json!("top")),
+                text_offset: Some(json!([0, 0.8])),
+                ..Default::default()
+            },
+            paint: Some(Paint {
+                text_color: Some(Color(json!(palette.station))),
+                text_halo_color: Some(Color(json!(palette.casing))),
+                text_halo_width: Some(Float(json!(HALO_WIDTH))),
+                ..Default::default()
+            }),
+        },
+        // tram_stops_symbol
+        StyleLayer::Symbol {
+            source: Some(SOURCE.into()),
+            source_layer: "poi".into(),
+            minzoom: Some(16.0),
+            filter: Some(Filter(json!([
+                "all",
+                ["==", "class", "railway"],
+                ["==", "subclass", "tram_stop"]
+            ]))),
+            layout: Layout {
+                text_field: Some(json!("🚊")),
+                text_size: Some(Float(json!(SMALL_TEXT))),
+                ..Default::default()
+            },
+            paint: Some(Paint {
+                text_color: Some(Color(json!(palette.station))),
+                text_halo_color: Some(Color(json!(palette.casing))),
+                text_halo_width: Some(Float(json!(HALO_WIDTH))),
+                ..Default::default()
+            }),
+        },
+        // tram_stops, named under the symbol
+        StyleLayer::Symbol {
+            source: Some(SOURCE.into()),
+            source_layer: "poi".into(),
+            minzoom: Some(16.0),
+            filter: Some(Filter(json!([
+                "all",
+                ["==", "class", "railway"],
+                ["==", "subclass", "tram_stop"]
+            ]))),
+            layout: Layout {
+                text_field: Some(json!(["get", "name"])),
+                text_size: Some(Float(json!(SMALL_TEXT))),
+                text_anchor: Some(json!("top")),
+                text_offset: Some(json!([0, 0.8])),
+                ..Default::default()
+            },
+            paint: Some(Paint {
+                text_color: Some(Color(json!(palette.station))),
+                text_halo_color: Some(Color(json!(palette.casing))),
+                text_halo_width: Some(Float(json!(HALO_WIDTH))),
+                ..Default::default()
+            }),
+        },
+        // bus_stops_symbol
+        StyleLayer::Symbol {
+            source: Some(SOURCE.into()),
+            source_layer: "poi".into(),
+            minzoom: Some(16.0),
+            filter: Some(Filter(json!(["==", "class", "bus"]))),
+            layout: Layout {
+                text_field: Some(json!("🚌")),
+                text_size: Some(Float(json!(SMALL_TEXT))),
+                ..Default::default()
+            },
+            paint: Some(Paint {
+                text_color: Some(Color(json!(palette.station))),
+                text_halo_color: Some(Color(json!(palette.casing))),
+                text_halo_width: Some(Float(json!(HALO_WIDTH))),
+                ..Default::default()
+            }),
+        },
+        // bus_stops, named under the symbol
+        StyleLayer::Symbol {
+            source: Some(SOURCE.into()),
+            source_layer: "poi".into(),
+            minzoom: Some(16.0),
+            filter: Some(Filter(json!(["==", "class", "bus"]))),
+            layout: Layout {
+                text_field: Some(json!(["get", "name"])),
+                text_size: Some(Float(json!(SMALL_TEXT))),
+                text_anchor: Some(json!("top")),
+                text_offset: Some(json!([0, 0.8])),
+                ..Default::default()
+            },
+            paint: Some(Paint {
+                text_color: Some(Color(json!(palette.station))),
+                text_halo_color: Some(Color(json!(palette.casing))),
+                text_halo_width: Some(Float(json!(HALO_WIDTH))),
+                ..Default::default()
+            }),
+        },
+        // peaks_symbol, on the peak itself
         StyleLayer::Symbol {
             source: Some(SOURCE.into()),
             source_layer: "mountain_peak".into(),
             minzoom: None,
             filter: Some(Filter(json!(["in", "class", "peak", "volcano"]))),
             layout: Layout {
-                text_field: Some(json!(["get", "name"])),
-                text_size: Some(linear_zoom_interpolation(&[(8.0, 10.0), (14.0, 14.0)])),
+                text_field: Some(json!("⛰")),
+                text_size: Some(Float(json!(TEXT))),
                 ..Default::default()
             },
             paint: Some(Paint {
                 text_color: Some(Color(json!(palette.peak))),
                 text_halo_color: Some(Color(json!(palette.casing))),
-                text_halo_width: Some(Float(json!(1.5))),
+                text_halo_width: Some(Float(json!(HALO_WIDTH))),
+                ..Default::default()
+            }),
+        },
+        // peaks, named under the symbol
+        StyleLayer::Symbol {
+            source: Some(SOURCE.into()),
+            source_layer: "mountain_peak".into(),
+            minzoom: None,
+            filter: Some(Filter(json!(["in", "class", "peak", "volcano"]))),
+            layout: Layout {
+                text_field: Some(json!([
+                    "case",
+                    ["!has", "ele"],
+                    ["get", "name"],
+                    ["!has", "name"],
+                    ["concat", ["get", "ele"], " m"],
+                    ["concat", ["get", "name"], "\n", ["get", "ele"], " m"]
+                ])),
+                text_size: Some(Float(json!(TEXT))),
+                text_anchor: Some(json!("top")),
+                text_offset: Some(json!([0, 0.7])),
+                ..Default::default()
+            },
+            paint: Some(Paint {
+                text_color: Some(Color(json!(palette.peak))),
+                text_halo_color: Some(Color(json!(palette.casing))),
+                text_halo_width: Some(Float(json!(HALO_WIDTH))),
                 ..Default::default()
             }),
         },
@@ -1210,5 +1391,78 @@ mod tests {
                 );
             }
         }
+    }
+
+    /// A ramp, such as a motorway exit, is drawn once, by its own road: as a casing and a road in
+    /// a tunnel, and as one road elsewhere. A ramp layer of their own drew ramps a second time.
+    #[test]
+    fn a_ramp_is_drawn_once() {
+        let style = Style::openmaptiles_basemap_light();
+        let drawn = |properties| line_widths(&style, "transportation", properties, 16).len();
+
+        for class in ["motorway", "trunk", "primary", "secondary"] {
+            assert_eq!(drawn(json!({"class": class, "ramp": 1})), 1, "{class}");
+            assert_eq!(
+                drawn(json!({"class": class, "ramp": 1, "brunnel": "bridge"})),
+                1,
+                "{class} on a bridge"
+            );
+            assert_eq!(
+                drawn(json!({"class": class, "ramp": 1, "brunnel": "tunnel"})),
+                2,
+                "{class} in a tunnel"
+            );
+        }
+    }
+
+    /// Texts which the style's label layers give a feature of `source`, at `zoom`, found the way
+    /// the renderer finds them.
+    fn labels(style: &Style, source: &str, properties: Value, zoom: u8) -> Vec<String> {
+        let context = Context::new(
+            "Point".to_owned(),
+            serde_json::from_value::<HashMap<String, Value>>(properties).unwrap(),
+            zoom,
+        );
+
+        style
+            .layers
+            .iter()
+            .filter_map(|layer| match layer {
+                StyleLayer::Symbol {
+                    source_layer,
+                    filter,
+                    layout,
+                    minzoom,
+                    ..
+                } if source_layer.matches(source)
+                    && minzoom.is_none_or(|minzoom| f32::from(zoom) >= minzoom)
+                    && filter
+                        .as_ref()
+                        .is_none_or(|filter| filter.matches(&context)) =>
+                {
+                    layout.text(&context)
+                }
+                _ => None,
+            })
+            .collect()
+    }
+
+    /// OpenMapTiles has railway stations as a `railway` with a `station` subclass. The style
+    /// asked for a `station` class, as Protomaps has it, and drew none.
+    #[test]
+    fn a_railway_station_is_named() {
+        let style = Style::openmaptiles_basemap_light();
+        let station = json!({"class": "railway", "subclass": "station", "name": "Wrocław Główny"});
+
+        assert!(
+            labels(&style, "poi", station, 14).contains(&"Wrocław Główny".to_owned()),
+            "{:?}",
+            labels(
+                &style,
+                "poi",
+                json!({"class": "railway", "subclass": "station", "name": "Wrocław Główny"}),
+                14
+            )
+        );
     }
 }
