@@ -14,6 +14,7 @@ playground and can change or break at any time without an entry here.
 * New `Waymark`, which builds Walkers' style for OpenMapTiles in the colors of a `Palette`, such
   as `Palette::light()` or `Palette::dark()`, optionally with relief and contour lines from a
   source of elevation.
+* `Waymark` draws unpaved roads dashed.
 * `Color` can be made from a CSS color string, such as `"#ff0000".into()`.
 * `Style::openmaptiles_basemap_light` and `Style::openmaptiles_basemap_dark` are deprecated in favor
   of `Waymark::new(Palette::light()).build()` and `Waymark::new(Palette::dark()).build()`.

@@ -294,6 +294,20 @@ fn casing_width(line: Value) -> Float {
     Float(json!(["+", line, ["*", 2, ["min", 1, line]]]))
 }
 
+/// Dash and gap of an unpaved road, in widths of the road.
+const UNPAVED_ROAD_DASHES: [f64; 2] = [2.0, 1.0];
+
+/// Dashes for an unpaved road, and none for a paved road or one of unknown surface.
+fn surface_dashes() -> Dasharray {
+    Dasharray(json!([
+        "match",
+        ["get", "surface"],
+        "unpaved",
+        ["literal", UNPAVED_ROAD_DASHES],
+        ["literal", []]
+    ]))
+}
+
 /// Paths and tracks, dashed in `color`, and cycleways, solid in `cycleway_color`.
 fn path_paint(color: &Color, cycleway_color: &Color) -> Paint {
     Paint {
@@ -785,6 +799,7 @@ fn build(palette: &Palette, hillshade: Option<String>, contours: Option<String>)
             paint: Paint {
                 line_color: Some(palette.road.clone()),
                 line_width: Some(Float(minor_road_width.clone())),
+                line_dasharray: Some(surface_dashes()),
                 ..Default::default()
             },
         },
@@ -801,6 +816,7 @@ fn build(palette: &Palette, hillshade: Option<String>, contours: Option<String>)
             paint: Paint {
                 line_color: Some(palette.road.clone()),
                 line_width: Some(Float(major_road_width.clone())),
+                line_dasharray: Some(surface_dashes()),
                 ..Default::default()
             },
         },
@@ -897,6 +913,7 @@ fn build(palette: &Palette, hillshade: Option<String>, contours: Option<String>)
             paint: Paint {
                 line_color: Some(palette.road.clone()),
                 line_width: Some(Float(minor_road_width.clone())),
+                line_dasharray: Some(surface_dashes()),
                 ..Default::default()
             },
         },
@@ -912,6 +929,7 @@ fn build(palette: &Palette, hillshade: Option<String>, contours: Option<String>)
             paint: Paint {
                 line_color: Some(palette.road.clone()),
                 line_width: Some(Float(major_road_width.clone())),
+                line_dasharray: Some(surface_dashes()),
                 ..Default::default()
             },
         },
@@ -1576,6 +1594,75 @@ mod tests {
                     casing >= road + 1.0,
                     "{class} at zoom {zoom}: casing {casing}, road {road}"
                 );
+            }
+        }
+    }
+
+    /// Dash patterns of the line layers which draw a feature of `source`, in the order they are
+    /// drawn, empty for a solid line. Found the way the renderer finds them.
+    fn dashes(style: &Style, source: &str, properties: Value, zoom: u8) -> Vec<Vec<f32>> {
+        let context = Context::new(
+            "LineString".to_owned(),
+            serde_json::from_value::<HashMap<String, Value>>(properties).unwrap(),
+            zoom,
+        );
+
+        style
+            .layers
+            .iter()
+            .filter_map(|layer| match layer {
+                StyleLayer::Line {
+                    source_layer,
+                    filter,
+                    paint,
+                    ..
+                } if source_layer.matches(source)
+                    && filter
+                        .as_ref()
+                        .is_none_or(|filter| filter.matches(&context)) =>
+                {
+                    Some(
+                        paint
+                            .line_dasharray
+                            .as_ref()
+                            .and_then(|dashes| dashes.evaluate(&context))
+                            .unwrap_or_default(),
+                    )
+                }
+                _ => None,
+            })
+            .collect()
+    }
+
+    /// An unpaved road is dashed, on a bridge too, and a paved one, or one of unknown surface,
+    /// is solid.
+    #[test]
+    fn an_unpaved_road_is_dashed() {
+        let style = Waymark::new(Palette::light()).build();
+
+        for class in ["primary", "secondary", "tertiary", "minor", "service"] {
+            for brunnel in [None, Some("bridge")] {
+                let road = |surface: Option<&str>| {
+                    let mut properties = json!({ "class": class });
+                    if let Some(surface) = surface {
+                        properties["surface"] = json!(surface);
+                    }
+                    if let Some(brunnel) = brunnel {
+                        properties["brunnel"] = json!(brunnel);
+                    }
+                    dashes(&style, "transportation", properties, 16)
+                };
+
+                let [unpaved] = &road(Some("unpaved"))[..] else {
+                    panic!("{class} {brunnel:?}: expected one line");
+                };
+                assert!(!unpaved.is_empty(), "{class} {brunnel:?}");
+                assert_eq!(
+                    road(Some("paved")),
+                    [Vec::<f32>::new()],
+                    "{class} {brunnel:?}"
+                );
+                assert_eq!(road(None), [Vec::<f32>::new()], "{class} {brunnel:?}");
             }
         }
     }
