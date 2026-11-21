@@ -125,7 +125,7 @@ const LIGHT: Palette = Palette {
     casing: "#e9e9e9",
     landuse_dark: "#e0e0e0",
     bridge: "#bfbfbf",
-    structure: "#d4d4d4",
+    structure: "#5b5b5b",
     path: "#4c3316",
     cycleway: "#b86b6b",
     muted: "#b3b3b3",
