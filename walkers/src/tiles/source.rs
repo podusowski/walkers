@@ -11,8 +11,7 @@ pub enum SourceData {
     /// enabled. Which one it is, is told by the data itself.
     Encoded(Bytes),
 
-    /// A raster image whose pixels are elevation, packed as `encoding` says. A `hillshade` style
-    /// layer shades it into relief, and a `contour` one traces it into contour lines.
+    /// A raster image whose pixels are elevation, packed as `encoding` says.
     #[cfg(feature = "vector")]
     Elevation { data: Bytes, encoding: DemEncoding },
 }

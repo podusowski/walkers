@@ -12,12 +12,11 @@ use crate::{expression::Context, render::Geometry};
 /// How far a simplified line may stray from the traced one, in pixels as drawn.
 const TOLERANCE: f32 = 0.5;
 
-/// Closed lines shorter than that, in pixels as drawn, ring bumps too small to make out, and
-/// would only clutter flat ground.
+/// Closed lines shorter than that, in pixels as drawn, are left out.
 const SHORTEST_RING: f32 = 12.0;
 
 /// Meters between contour lines, and between the major ones among them, at `zoom`. None below
-/// zoom 9, where they would be too dense to read.
+/// zoom 9.
 fn intervals(zoom: u8) -> Option<(i32, i32)> {
     match zoom {
         ..=8 => None,
@@ -30,8 +29,8 @@ fn intervals(zoom: u8) -> Option<(i32, i32)> {
     }
 }
 
-/// Contour lines through `heights`, of a tile of `data_zoom`. They are drawn at `zoom`, which picks
-/// how far apart they are, in pixels of a tile `tile_size` wide.
+/// Contour lines through `heights`, of a tile of `data_zoom` drawn at `zoom`, in pixels of a tile
+/// `tile_size` wide.
 ///
 /// Each elevation is one feature, with `ele` in meters, and `level` being 1 for major lines and 0
 /// for the others.
@@ -98,8 +97,8 @@ struct Segment {
     to: (Edge, Coord<f32>),
 }
 
-/// Lines where the ground is at each multiple of `interval`, by how many intervals that is, with
-/// the ground higher on one side of them, in pixels of the tile times `scale`. Marching squares.
+/// Lines where the ground is at each multiple of `interval`, by how many intervals that is, in
+/// pixels of the tile times `scale`. Marching squares.
 fn trace(grid: &Grid, interval: f32, scale: Coord<f32>) -> BTreeMap<i32, Vec<LineString<f32>>> {
     let mut segments: BTreeMap<i32, Vec<Segment>> = BTreeMap::new();
 

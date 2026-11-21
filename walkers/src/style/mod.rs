@@ -161,14 +161,13 @@ pub enum StyleLayer {
         #[serde(default)]
         paint: Paint,
     },
-    /// Traces elevation into contour lines, drawn as `line` paint says, and labelled as `layout`
-    /// and `paint` say when there is a `text-field`. Draws from a source made `with_elevation`,
-    /// such as [`crate::sources::Mapterhorn`]. A `line-opacity` of 0 leaves only the labels.
+    /// Contour lines of elevation, labelled where `layout` has a `text-field`, and left out where
+    /// `line-opacity` is 0.
     ///
-    /// Each elevation is one feature, with `ele` in meters, and `level` being 1 for major lines
-    /// and 0 for the others, for `filter` and expressions. How far apart they are follows the zoom,
-    /// from 200 meters at zoom 9, with every 1000 major, to 5 meters from zoom 16, with every 25
-    /// major. There are none below zoom 9.
+    /// Each elevation is one feature, with `ele` in meters, and `level`, which is 1 for major lines
+    /// and 0 for the others. By the zoom level of the elevation tiles, they are 200 meters apart at
+    /// zoom 9, every 1000 major, down to 5 meters from zoom 16, every 25 major, and there are none
+    /// below zoom 9.
     #[serde(rename_all = "kebab-case")]
     Contour {
         #[serde(default)]
@@ -204,17 +203,12 @@ impl StyleLayer {
         }
     }
 
-    /// What the layer draws, unless it goes with whatever the layers around it draw.
+    /// What the layer makes of elevation, if anything.
     fn drawn(&self) -> Option<Drawn> {
         match self {
-            // A background goes under either, and fill extrusions are not drawn at all.
-            StyleLayer::Background { .. } | StyleLayer::FillExtrusion => None,
-            StyleLayer::Fill { .. }
-            | StyleLayer::Line { .. }
-            | StyleLayer::Symbol { .. }
-            | StyleLayer::Circle { .. }
-            | StyleLayer::Contour { .. } => Some(Drawn::Shapes),
-            StyleLayer::Hillshade { .. } | StyleLayer::Raster { .. } => Some(Drawn::Image),
+            StyleLayer::Hillshade { .. } => Some(Drawn::Relief),
+            StyleLayer::Contour { .. } => Some(Drawn::Contours),
+            _ => None,
         }
     }
 }

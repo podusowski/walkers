@@ -1,4 +1,4 @@
-//! Elevation of a tile, in meters, as hillshade, contour lines and [`crate::Elevation`] read it.
+//! Elevation of a tile, in meters.
 
 use image::RgbaImage;
 
@@ -48,11 +48,7 @@ impl Heights {
 }
 
 /// Elevation at the centers of the pixels, and at the edges of the tile, where it goes on as it
-/// does next to them. In between, the ground is taken to change linearly.
-///
-/// Without the edges, contour lines would stop half a pixel short of them, leaving gaps between
-/// tiles, and nothing could be read there. The tiles around are not at hand, so neighbouring
-/// tiles agree only nearly where the ground bends at their edge.
+/// does next to them. In between, it changes linearly.
 pub(crate) struct Grid {
     /// Row by row.
     values: Vec<f32>,

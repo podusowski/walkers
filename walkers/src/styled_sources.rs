@@ -86,7 +86,7 @@ impl StyledSources {
         }
     }
 
-    /// That tile, for those holding a single source, which draws the whole style as one tile.
+    /// That tile, with the whole style drawn from the first source as one tile.
     pub(crate) fn single_source_at(&mut self, tile_id: TileId) -> Option<TilePiece> {
         let Self {
             style,
@@ -127,17 +127,17 @@ fn consecutive_layers_of(style: &Style, sources: &[NamedSource]) -> Vec<Consecut
     consecutive_layers(style, &names)
 }
 
-/// What a style layer draws. Layers drawing images and those drawing shapes are styled apart, even
-/// from the same source, as a tile is styled into either.
+/// What a style layer makes of elevation. A tile is styled into either an image or shapes, so
+/// layers making relief and those making contour lines are grouped apart.
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 #[cfg_attr(not(feature = "vector"), allow(dead_code))]
 pub(crate) enum Drawn {
-    Image,
-    Shapes,
+    Relief,
+    Contours,
 }
 
-/// The style's layers, grouped into consecutive ones drawing from the same of `sources`, and the
-/// same kind of thing. When there is only one source, the whole style draws from it.
+/// The style's layers, grouped into consecutive ones drawing from the same of `sources`, and
+/// making the same of elevation. When there is only one source, the whole style draws from it.
 fn consecutive_layers(style: &Style, sources: &[&str]) -> Vec<ConsecutiveLayers> {
     let layer_sources = style.layer_sources();
     let count = layer_sources.len();
@@ -279,10 +279,8 @@ mod tests {
         }
     }
 
-    /// As a tile is styled into either an image or shapes, relief and contour lines of the same
-    /// elevation are styled apart.
     #[test]
-    fn layers_drawing_images_and_shapes_from_one_source_split_it() {
+    fn relief_and_contour_lines_of_one_source_are_grouped_apart() {
         let style = style(vec![
             hillshade("terrain"),
             contours("terrain"),
@@ -293,6 +291,20 @@ mod tests {
 
         assert_eq!(consecutive_layers(&style, &["terrain", "other"]), split);
         assert_eq!(consecutive_layers(&style, &["terrain"]), split);
+    }
+
+    /// Such as a raster layer of a source the style has, but the map does not, in a style drawing
+    /// vector tiles.
+    #[test]
+    fn other_layers_drawing_images_go_with_those_drawing_shapes() {
+        let fill = || StyleLayer::Fill {
+            source: Some("openmaptiles".to_owned()),
+            source_layer: crate::SourceLayer::One("water".to_owned()),
+            filter: None,
+            paint: Default::default(),
+        };
+        let style = style(vec![fill(), raster("natural_earth"), fill()]);
+        assert_eq!(consecutive_layers(&style, &["openmaptiles"]), [(0, 0..3)]);
     }
 
     #[test]

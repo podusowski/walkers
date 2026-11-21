@@ -37,7 +37,7 @@ impl Default for Relief {
     fn default() -> Self {
         Self {
             contours: true,
-            contour_color: Color32::from_rgb(214, 180, 130),
+            contour_color: Color32::from_rgb(51, 68, 51),
             exaggeration: 0.5,
             illumination_direction: 335.0,
             shadow: Color32::BLACK,
@@ -147,7 +147,7 @@ fn contours(base: Color32) -> [StyleLayer; 2] {
             filter: level(1),
             layout: Layout {
                 text_field: Some(json!(["to-string", ["get", "ele"]])),
-                text_size: Some(Float(json!(10.0))),
+                text_size: Some(Float(json!(12.0))),
                 ..Default::default()
             },
             paint: Some(Paint {
