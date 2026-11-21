@@ -1,4 +1,4 @@
-//! A basemap for OpenFreeMap, or anything else following the OpenMapTiles schema.
+//! Waymark, Walkers' style for OpenFreeMap, or anything else following the OpenMapTiles schema.
 //!
 //! <https://openmaptiles.org/schema/>
 
@@ -10,15 +10,72 @@ use super::{
 /// What a style source of OpenMapTiles is called, as MapLibre styles usually call it.
 const SOURCE: &str = "openmaptiles";
 
-impl Style {
-    /// Light Walkers style for OpenMapTiles schema.
-    pub fn openmaptiles_basemap_light() -> Self {
-        build(&LIGHT)
+/// Waymark, Walkers' style for the OpenMapTiles schema, drawing from a source called
+/// `openmaptiles`, and optionally relief and contour lines from sources of elevation.
+///
+/// ```
+/// # use walkers::{Waymark, Palette};
+/// let palette = Palette {
+///     contour: "#006400".into(),
+///     ..Palette::dark()
+/// };
+/// let style = Waymark::new(palette)
+///     .hillshade("terrain")
+///     .contours("terrain")
+///     .build();
+/// ```
+#[derive(Clone, Debug)]
+pub struct Waymark {
+    palette: Palette,
+    hillshade: Option<String>,
+    contours: Option<String>,
+}
+
+impl Waymark {
+    /// In the colors of `palette`.
+    pub fn new(palette: Palette) -> Self {
+        Self {
+            palette,
+            hillshade: None,
+            contours: None,
+        }
     }
 
-    /// Dark Walkers style for OpenMapTiles schema.
+    /// With the elevation of `source` shaded into relief, over land and water.
+    pub fn hillshade(mut self, source: impl Into<String>) -> Self {
+        self.hillshade = Some(source.into());
+        self
+    }
+
+    /// With contour lines of the elevation of `source`, over land, water and relief. The major
+    /// ones are thicker, and labelled with their elevation.
+    pub fn contours(mut self, source: impl Into<String>) -> Self {
+        self.contours = Some(source.into());
+        self
+    }
+
+    pub fn build(self) -> Style {
+        build(&self.palette, self.hillshade, self.contours)
+    }
+}
+
+impl From<Waymark> for Style {
+    fn from(waymark: Waymark) -> Self {
+        waymark.build()
+    }
+}
+
+impl Style {
+    /// [`Waymark`] in its light palette.
+    #[deprecated(note = "use `Waymark::new(Palette::light()).build()`")]
+    pub fn openmaptiles_basemap_light() -> Self {
+        Waymark::new(Palette::light()).build()
+    }
+
+    /// [`Waymark`] in its dark palette.
+    #[deprecated(note = "use `Waymark::new(Palette::dark()).build()`")]
     pub fn openmaptiles_basemap_dark() -> Self {
-        build(&DARK)
+        Waymark::new(Palette::dark()).build()
     }
 }
 
@@ -59,86 +116,144 @@ fn settlement_text_size() -> Float {
     ]))
 }
 
-struct Palette {
-    background: &'static str,
-    rail: &'static str,
-    rail_tie: &'static str,
-    tram: &'static str,
-    forest: &'static str,
-    urban_green: &'static str,
-    pier: &'static str,
-    tunnel_casing: &'static str,
-    casing: &'static str,
-    landuse_dark: &'static str,
-    bridge: &'static str,
-    structure: &'static str,
-    path: &'static str,
-    cycleway: &'static str,
-    muted: &'static str,
-    highway: &'static str,
-    road: &'static str,
-    label: &'static str,
-    locality_text: &'static str,
-    water: &'static str,
-    water_label: &'static str,
-    water_label_halo: &'static str,
-    station: &'static str,
-    peak: &'static str,
+/// Colors of a [`Waymark`].
+#[derive(Clone, Debug)]
+pub struct Palette {
+    /// Land, and the halo of road labels.
+    pub background: Color,
+    /// Railways.
+    pub rail: Color,
+    /// The dashes inside railways.
+    pub rail_tie: Color,
+    /// Tram lines.
+    pub tram: Color,
+    /// Parks, forests, farmland and other green land.
+    pub forest: Color,
+    /// Allotments, village greens and playgrounds.
+    pub urban_green: Color,
+    /// Piers.
+    pub pier: Color,
+    /// Outlines of tunnels.
+    pub tunnel_casing: Color,
+    /// The halo of place, stop and peak labels, and of house numbers.
+    pub casing: Color,
+    /// Hospitals, zoos, airports and pedestrian areas.
+    pub landuse_dark: Color,
+    /// Beaches.
+    pub bridge: Color,
+    /// Tunnels and buildings.
+    pub structure: Color,
+    /// Paths and tracks.
+    pub path: Color,
+    /// Cycleways.
+    pub cycleway: Color,
+    /// Runways and taxiways.
+    pub muted: Color,
+    /// Motorways.
+    pub highway: Color,
+    /// Other roads.
+    pub road: Color,
+    /// Labels of roads and places, house numbers, and country borders.
+    pub label: Color,
+    /// Labels of cities, towns and villages.
+    pub locality_text: Color,
+    /// Water.
+    pub water: Color,
+    /// Labels of water.
+    pub water_label: Color,
+    /// The halo of water labels.
+    pub water_label_halo: Color,
+    /// Stations and stops, and their labels.
+    pub station: Color,
+    /// Peaks, and their labels.
+    pub peak: Color,
+    /// Shadows of the relief.
+    pub hillshade_shadow: Color,
+    /// Highlights of the relief.
+    pub hillshade_highlight: Color,
+    /// Accents of the relief, on its steepest slopes.
+    pub hillshade_accent: Color,
+    /// Contour lines, the minor ones more transparent than the major ones.
+    pub contour: Color,
+    /// Labels of contour lines.
+    pub contour_label: Color,
+    /// The halo of contour labels.
+    pub contour_halo: Color,
 }
 
-const DARK: Palette = Palette {
-    background: "#000000",
-    rail_tie: "#6d6d6d",
-    tram: "#2d2d2d",
-    rail: "#000000",
-    forest: "#061009",
-    urban_green: "#000c00",
-    pier: "#0a0a0a",
-    tunnel_casing: "#101010",
-    casing: "#141414",
-    landuse_dark: "#191919",
-    bridge: "#1f1f1f",
-    structure: "#292929",
-    path: "#5a4a3a",
-    cycleway: "#74463a",
-    muted: "#333333",
-    highway: "#352121",
-    road: "#464646",
-    label: "#a0a0a0",
-    locality_text: "#999999",
-    water: "#161e31",
-    water_label: "#134164",
-    water_label_halo: "#0d1526",
-    station: "#98b07a",
-    peak: "#b59a6a",
-};
+impl Palette {
+    /// Light on dark.
+    pub fn dark() -> Self {
+        Self {
+            background: "#000000".into(),
+            rail_tie: "#6d6d6d".into(),
+            tram: "#2d2d2d".into(),
+            rail: "#000000".into(),
+            forest: "#061009".into(),
+            urban_green: "#000c00".into(),
+            pier: "#0a0a0a".into(),
+            tunnel_casing: "#101010".into(),
+            casing: "#141414".into(),
+            landuse_dark: "#191919".into(),
+            bridge: "#1f1f1f".into(),
+            structure: "#292929".into(),
+            path: "#5a4a3a".into(),
+            cycleway: "#74463a".into(),
+            muted: "#333333".into(),
+            highway: "#352121".into(),
+            road: "#464646".into(),
+            label: "#a0a0a0".into(),
+            locality_text: "#999999".into(),
+            water: "#161e31".into(),
+            water_label: "#134164".into(),
+            water_label_halo: "#0d1526".into(),
+            station: "#98b07a".into(),
+            peak: "#b59a6a".into(),
+            hillshade_shadow: "#000000".into(),
+            hillshade_highlight: "#ffffff".into(),
+            hillshade_accent: "#000000".into(),
+            contour: "#334433".into(),
+            contour_label: "rgba(51, 68, 51, 0.8)".into(),
+            contour_halo: "rgba(0, 0, 0, 0.6)".into(),
+        }
+    }
 
-const LIGHT: Palette = Palette {
-    background: "#f2f2f0",
-    rail_tie: "#000000",
-    tram: "#000000",
-    rail: "#ffffff",
-    forest: "#86a180",
-    urban_green: "#e2f0df",
-    pier: "#8c8c8c",
-    tunnel_casing: "#595959",
-    casing: "#e9e9e9",
-    landuse_dark: "#e0e0e0",
-    bridge: "#bfbfbf",
-    structure: "#5b5b5b",
-    path: "#4c3316",
-    cycleway: "#b86b6b",
-    muted: "#b3b3b3",
-    highway: "#bb5f5f",
-    road: "#4a4a4a",
-    label: "#000000",
-    locality_text: "#1a1a1a",
-    water: "#88b2e2",
-    water_label: "#2f6690",
-    water_label_halo: "#ffffff",
-    station: "#3f5934",
-    peak: "#6b5330",
-};
+    /// Dark on light.
+    pub fn light() -> Self {
+        Self {
+            background: "#f2f2f0".into(),
+            rail_tie: "#000000".into(),
+            tram: "#000000".into(),
+            rail: "#ffffff".into(),
+            forest: "#86a180".into(),
+            urban_green: "#e2f0df".into(),
+            pier: "#8c8c8c".into(),
+            tunnel_casing: "#595959".into(),
+            casing: "#e9e9e9".into(),
+            landuse_dark: "#e0e0e0".into(),
+            bridge: "#bfbfbf".into(),
+            structure: "#5b5b5b".into(),
+            path: "#4c3316".into(),
+            cycleway: "#b86b6b".into(),
+            muted: "#b3b3b3".into(),
+            highway: "#bb5f5f".into(),
+            road: "#4a4a4a".into(),
+            label: "#000000".into(),
+            locality_text: "#1a1a1a".into(),
+            water: "#88b2e2".into(),
+            water_label: "#2f6690".into(),
+            water_label_halo: "#ffffff".into(),
+            station: "#3f5934".into(),
+            peak: "#6b5330".into(),
+            hillshade_shadow: "#000000".into(),
+            hillshade_highlight: "#ffffff".into(),
+            hillshade_accent: "#000000".into(),
+            contour: "#334433".into(),
+            contour_label: "rgba(51, 68, 51, 0.8)".into(),
+            contour_halo: "rgba(255, 255, 255, 0.6)".into(),
+        }
+    }
+}
 
 /// OpenMapTiles spreads land use over three layers.
 const LANDUSE: [&str; 3] = ["landcover", "landuse", "park"];
@@ -160,6 +275,11 @@ const TRAM_FACTOR: f64 = 0.3;
 
 const HALO_WIDTH: f64 = 1.0;
 
+const MINOR_CONTOUR_WIDTH: f64 = 0.6;
+const MAJOR_CONTOUR_WIDTH: f64 = 1.2;
+const MINOR_CONTOUR_OPACITY: f64 = 0.3;
+const MAJOR_CONTOUR_OPACITY: f64 = 0.5;
+
 const SMALL_TEXT: f64 = 10.0;
 const TEXT: f64 = 12.0;
 const LARGE_TEXT: f64 = 14.0;
@@ -175,14 +295,14 @@ fn casing_width(line: Value) -> Float {
 }
 
 /// Paths and tracks, dashed in `color`, and cycleways, solid in `cycleway_color`.
-fn path_paint(color: &str, cycleway_color: &str) -> Paint {
+fn path_paint(color: &Color, cycleway_color: &Color) -> Paint {
     Paint {
         line_color: Some(Color(json!([
             "match",
             ["get", "subclass"],
             "cycleway",
-            cycleway_color,
-            color
+            cycleway_color.0,
+            color.0
         ]))),
         line_width: Some(road_width(PATH_FACTOR)),
         line_dasharray: Some(Dasharray(json!([
@@ -196,7 +316,68 @@ fn path_paint(color: &str, cycleway_color: &str) -> Paint {
     }
 }
 
-fn build(palette: &Palette) -> Style {
+/// Relief shaded from `hillshade`, and contour lines traced from `contours`, under them the minor
+/// ones.
+fn relief(
+    palette: &Palette,
+    hillshade: Option<String>,
+    contours: Option<String>,
+) -> Vec<StyleLayer> {
+    let hillshade = hillshade.map(|source| StyleLayer::Hillshade {
+        source: Some(source),
+        paint: Paint {
+            hillshade_shadow_color: Some(palette.hillshade_shadow.clone()),
+            hillshade_highlight_color: Some(palette.hillshade_highlight.clone()),
+            hillshade_accent_color: Some(palette.hillshade_accent.clone()),
+            ..Default::default()
+        },
+    });
+
+    let contours = contours.into_iter().flat_map(|source| {
+        let contour = |level: i32, opacity: f64, layout, paint: Paint| StyleLayer::Contour {
+            source: Some(source.clone()),
+            filter: Some(Filter(json!(["==", ["get", "level"], level]))),
+            layout,
+            paint: Some(Paint {
+                line_color: Some(palette.contour.clone()),
+                line_opacity: Some(Float(json!(opacity))),
+                ..paint
+            }),
+        };
+
+        [
+            contour(
+                0,
+                MINOR_CONTOUR_OPACITY,
+                Layout::default(),
+                Paint {
+                    line_width: Some(Float(json!(MINOR_CONTOUR_WIDTH))),
+                    ..Default::default()
+                },
+            ),
+            contour(
+                1,
+                MAJOR_CONTOUR_OPACITY,
+                Layout {
+                    text_field: Some(json!(["to-string", ["get", "ele"]])),
+                    text_size: Some(Float(json!(TEXT))),
+                    ..Default::default()
+                },
+                Paint {
+                    line_width: Some(Float(json!(MAJOR_CONTOUR_WIDTH))),
+                    text_color: Some(palette.contour_label.clone()),
+                    text_halo_color: Some(palette.contour_halo.clone()),
+                    text_halo_width: Some(Float(json!(HALO_WIDTH))),
+                    ..Default::default()
+                },
+            ),
+        ]
+    });
+
+    hillshade.into_iter().chain(contours).collect()
+}
+
+fn build(palette: &Palette, hillshade: Option<String>, contours: Option<String>) -> Style {
     // Parking aisles and driveways only from up close, as they cover car parks and housing
     // estates in a mesh of lines.
     let service_road_shown = json!([
@@ -227,12 +408,12 @@ fn build(palette: &Palette) -> Style {
     let major_road_width = with_ramps(MAJOR_ROAD_FACTOR);
     let motorway_width = with_ramps(MOTORWAY_FACTOR);
 
-    let layers = vec![
+    let mut layers = vec![
         // background
         StyleLayer::Background {
             source: Some(SOURCE.into()),
             paint: Paint {
-                background_color: Some(Color(json!(palette.background))),
+                background_color: Some(palette.background.clone()),
                 ..Default::default()
             },
         },
@@ -261,7 +442,7 @@ fn build(palette: &Palette) -> Style {
             ]))),
             paint: Paint {
                 fill_opacity: Some(Float(json!(0.5))),
-                fill_color: Some(Color(json!(palette.forest))),
+                fill_color: Some(palette.forest.clone()),
                 ..Default::default()
             },
         },
@@ -277,7 +458,7 @@ fn build(palette: &Palette) -> Style {
                 "playground"
             ]))),
             paint: Paint {
-                fill_color: Some(Color(json!(palette.urban_green))),
+                fill_color: Some(palette.urban_green.clone()),
                 ..Default::default()
             },
         },
@@ -287,7 +468,7 @@ fn build(palette: &Palette) -> Style {
             source_layer: LANDUSE.into(),
             filter: Some(Filter(json!(["==", "class", "hospital"]))),
             paint: Paint {
-                fill_color: Some(Color(json!(palette.landuse_dark))),
+                fill_color: Some(palette.landuse_dark.clone()),
                 ..Default::default()
             },
         },
@@ -297,7 +478,7 @@ fn build(palette: &Palette) -> Style {
             source_layer: LANDUSE.into(),
             filter: Some(Filter(json!(["in", "class", "beach"]))),
             paint: Paint {
-                fill_color: Some(Color(json!(palette.bridge))),
+                fill_color: Some(palette.bridge.clone()),
                 ..Default::default()
             },
         },
@@ -307,7 +488,7 @@ fn build(palette: &Palette) -> Style {
             source_layer: LANDUSE.into(),
             filter: Some(Filter(json!(["in", "class", "zoo"]))),
             paint: Paint {
-                fill_color: Some(Color(json!(palette.landuse_dark))),
+                fill_color: Some(palette.landuse_dark.clone()),
                 ..Default::default()
             },
         },
@@ -317,7 +498,7 @@ fn build(palette: &Palette) -> Style {
             source_layer: LANDUSE.into(),
             filter: Some(Filter(json!(["in", "class", "aerodrome"]))),
             paint: Paint {
-                fill_color: Some(Color(json!(palette.landuse_dark))),
+                fill_color: Some(palette.landuse_dark.clone()),
                 ..Default::default()
             },
         },
@@ -327,7 +508,7 @@ fn build(palette: &Palette) -> Style {
             source_layer: "transportation".into(),
             filter: Some(Filter(json!(["==", "subclass", "runway"]))),
             paint: Paint {
-                line_color: Some(Color(json!(palette.muted))),
+                line_color: Some(palette.muted.clone()),
                 line_width: Some(linear_zoom_interpolation(&[
                     (10.0, 0.0),
                     (12.0, 4.0),
@@ -342,7 +523,7 @@ fn build(palette: &Palette) -> Style {
             source_layer: "transportation".into(),
             filter: Some(Filter(json!(["==", "subclass", "taxiway"]))),
             paint: Paint {
-                line_color: Some(Color(json!(palette.muted))),
+                line_color: Some(palette.muted.clone()),
                 line_width: Some(linear_zoom_interpolation(&[
                     (13.0, 0.0),
                     (13.5, 1.0),
@@ -357,7 +538,7 @@ fn build(palette: &Palette) -> Style {
             source_layer: LANDUSE.into(),
             filter: Some(Filter(json!(["in", "class", "runway", "taxiway"]))),
             paint: Paint {
-                fill_color: Some(Color(json!(palette.muted))),
+                fill_color: Some(palette.muted.clone()),
                 ..Default::default()
             },
         },
@@ -367,7 +548,7 @@ fn build(palette: &Palette) -> Style {
             source_layer: "water".into(),
             filter: Some(Filter(json!(["==", ["geometry-type"], "Polygon"]))),
             paint: Paint {
-                fill_color: Some(Color(json!(palette.water))),
+                fill_color: Some(palette.water.clone()),
                 ..Default::default()
             },
         },
@@ -377,7 +558,7 @@ fn build(palette: &Palette) -> Style {
             source_layer: "waterway".into(),
             filter: Some(Filter(json!(["in", "class", "stream", "canal"]))),
             paint: Paint {
-                line_color: Some(Color(json!(palette.water))),
+                line_color: Some(palette.water.clone()),
                 line_width: Some(Float(json!([
                     "match",
                     ["get", "class"],
@@ -394,7 +575,7 @@ fn build(palette: &Palette) -> Style {
             source_layer: "waterway".into(),
             filter: Some(Filter(json!(["in", "class", "river"]))),
             paint: Paint {
-                line_color: Some(Color(json!(palette.water))),
+                line_color: Some(palette.water.clone()),
                 line_width: Some(linear_zoom_interpolation(&[
                     (9.0, 0.0),
                     (9.5, 1.0),
@@ -409,7 +590,7 @@ fn build(palette: &Palette) -> Style {
             source_layer: LANDUSE.into(),
             filter: Some(Filter(json!(["in", "class", "pedestrian", "dam"]))),
             paint: Paint {
-                fill_color: Some(Color(json!(palette.landuse_dark))),
+                fill_color: Some(palette.landuse_dark.clone()),
                 ..Default::default()
             },
         },
@@ -419,10 +600,16 @@ fn build(palette: &Palette) -> Style {
             source_layer: LANDUSE.into(),
             filter: Some(Filter(json!(["==", "class", "pier"]))),
             paint: Paint {
-                fill_color: Some(Color(json!(palette.pier))),
+                fill_color: Some(palette.pier.clone()),
                 ..Default::default()
             },
         },
+    ];
+
+    // Over land and water, under everything else.
+    layers.extend(relief(palette, hillshade, contours));
+
+    layers.extend([
         // roads_tunnels_other_casing
         StyleLayer::Line {
             source: Some(SOURCE.into()),
@@ -433,7 +620,7 @@ fn build(palette: &Palette) -> Style {
                 ["in", "class", "path", "track"]
             ]))),
             paint: Paint {
-                line_color: Some(Color(json!(palette.tunnel_casing))),
+                line_color: Some(palette.tunnel_casing.clone()),
                 line_dasharray: Some(Dasharray(json!([2, 2]))),
                 line_width: Some(casing_width(road_width(PATH_FACTOR).0)),
                 ..Default::default()
@@ -450,7 +637,7 @@ fn build(palette: &Palette) -> Style {
                 service_road_shown.clone()
             ]))),
             paint: Paint {
-                line_color: Some(Color(json!(palette.tunnel_casing))),
+                line_color: Some(palette.tunnel_casing.clone()),
                 line_dasharray: Some(Dasharray(json!([2, 2]))),
                 line_width: Some(casing_width(minor_road_width.clone())),
                 ..Default::default()
@@ -466,7 +653,7 @@ fn build(palette: &Palette) -> Style {
                 ["in", "class", "primary", "secondary"]
             ]))),
             paint: Paint {
-                line_color: Some(Color(json!(palette.tunnel_casing))),
+                line_color: Some(palette.tunnel_casing.clone()),
                 line_dasharray: Some(Dasharray(json!([2, 2]))),
                 line_width: Some(casing_width(major_road_width.clone())),
                 ..Default::default()
@@ -482,7 +669,7 @@ fn build(palette: &Palette) -> Style {
                 ["in", "class", "motorway", "trunk"]
             ]))),
             paint: Paint {
-                line_color: Some(Color(json!(palette.tunnel_casing))),
+                line_color: Some(palette.tunnel_casing.clone()),
                 line_dasharray: Some(Dasharray(json!([2, 2]))),
                 line_width: Some(casing_width(motorway_width.clone())),
                 ..Default::default()
@@ -497,7 +684,7 @@ fn build(palette: &Palette) -> Style {
                 ["==", "brunnel", "tunnel"],
                 ["in", "class", "path", "track"]
             ]))),
-            paint: path_paint(palette.structure, palette.structure),
+            paint: path_paint(&palette.structure, &palette.structure),
         },
         // roads_tunnels_minor
         StyleLayer::Line {
@@ -510,7 +697,7 @@ fn build(palette: &Palette) -> Style {
                 service_road_shown.clone()
             ]))),
             paint: Paint {
-                line_color: Some(Color(json!(palette.structure))),
+                line_color: Some(palette.structure.clone()),
                 line_width: Some(Float(minor_road_width.clone())),
                 ..Default::default()
             },
@@ -525,7 +712,7 @@ fn build(palette: &Palette) -> Style {
                 ["in", "class", "primary", "secondary"]
             ]))),
             paint: Paint {
-                line_color: Some(Color(json!(palette.structure))),
+                line_color: Some(palette.structure.clone()),
                 line_width: Some(Float(major_road_width.clone())),
                 ..Default::default()
             },
@@ -540,7 +727,7 @@ fn build(palette: &Palette) -> Style {
                 ["in", "class", "motorway", "trunk"]
             ]))),
             paint: Paint {
-                line_color: Some(Color(json!(palette.structure))),
+                line_color: Some(palette.structure.clone()),
                 line_width: Some(Float(motorway_width.clone())),
                 ..Default::default()
             },
@@ -551,7 +738,7 @@ fn build(palette: &Palette) -> Style {
             source_layer: "building".into(),
             filter: None,
             paint: Paint {
-                fill_color: Some(Color(json!(palette.structure))),
+                fill_color: Some(palette.structure.clone()),
                 fill_opacity: Some(Float(json!(0.5))),
                 ..Default::default()
             },
@@ -562,7 +749,7 @@ fn build(palette: &Palette) -> Style {
             source_layer: "transportation".into(),
             filter: Some(Filter(json!(["==", "subclass", "pier"]))),
             paint: Paint {
-                line_color: Some(Color(json!(palette.pier))),
+                line_color: Some(palette.pier.clone()),
                 line_width: Some(linear_zoom_interpolation(&[
                     (12.0, 0.0),
                     (12.5, 0.5),
@@ -582,7 +769,7 @@ fn build(palette: &Palette) -> Style {
                 ["in", "class", "path", "track"],
                 ["!=", "subclass", "pier"]
             ]))),
-            paint: path_paint(palette.path, palette.cycleway),
+            paint: path_paint(&palette.path, &palette.cycleway),
         },
         // roads_minor
         StyleLayer::Line {
@@ -596,7 +783,7 @@ fn build(palette: &Palette) -> Style {
                 service_road_shown.clone()
             ]))),
             paint: Paint {
-                line_color: Some(Color(json!(palette.road))),
+                line_color: Some(palette.road.clone()),
                 line_width: Some(Float(minor_road_width.clone())),
                 ..Default::default()
             },
@@ -612,7 +799,7 @@ fn build(palette: &Palette) -> Style {
                 ["in", "class", "primary", "secondary"]
             ]))),
             paint: Paint {
-                line_color: Some(Color(json!(palette.road))),
+                line_color: Some(palette.road.clone()),
                 line_width: Some(Float(major_road_width.clone())),
                 ..Default::default()
             },
@@ -628,7 +815,7 @@ fn build(palette: &Palette) -> Style {
                 ["in", "class", "motorway", "trunk"]
             ]))),
             paint: Paint {
-                line_color: Some(Color(json!(palette.highway))),
+                line_color: Some(palette.highway.clone()),
                 line_width: Some(Float(motorway_width.clone())),
                 ..Default::default()
             },
@@ -639,7 +826,7 @@ fn build(palette: &Palette) -> Style {
             source_layer: "transportation".into(),
             filter: Some(Filter(json!(["==", "class", "rail"]))),
             paint: Paint {
-                line_color: Some(Color(json!(palette.rail))),
+                line_color: Some(palette.rail.clone()),
                 line_width: Some(casing_width(road_width(RAIL_FACTOR).0)),
                 ..Default::default()
             },
@@ -651,7 +838,7 @@ fn build(palette: &Palette) -> Style {
             filter: Some(Filter(json!(["==", "class", "rail"]))),
             paint: Paint {
                 //line_opacity: Some(Float(json!(0.5))),
-                line_color: Some(Color(json!(palette.rail_tie))),
+                line_color: Some(palette.rail_tie.clone()),
                 line_dasharray: Some(Dasharray(json!([4, 2]))),
                 line_width: Some(road_width(RAIL_FACTOR)),
                 ..Default::default()
@@ -663,7 +850,7 @@ fn build(palette: &Palette) -> Style {
             source_layer: "transportation".into(),
             filter: Some(Filter(json!(["==", "class", "transit"]))),
             paint: Paint {
-                line_color: Some(Color(json!(palette.tram))),
+                line_color: Some(palette.tram.clone()),
                 line_width: Some(road_width(TRAM_FACTOR)),
                 ..Default::default()
             },
@@ -674,7 +861,7 @@ fn build(palette: &Palette) -> Style {
             source_layer: "boundary".into(),
             filter: Some(Filter(json!(["<=", "admin_level", 2]))),
             paint: Paint {
-                line_color: Some(Color(json!(palette.label))),
+                line_color: Some(palette.label.clone()),
                 line_width: Some(Float(json!(2))),
                 line_dasharray: Some(Dasharray(json!([
                     "step",
@@ -695,7 +882,7 @@ fn build(palette: &Palette) -> Style {
                 ["==", "brunnel", "bridge"],
                 ["in", "class", "path", "track"]
             ]))),
-            paint: path_paint(palette.path, palette.cycleway),
+            paint: path_paint(&palette.path, &palette.cycleway),
         },
         // roads_bridges_minor
         StyleLayer::Line {
@@ -708,7 +895,7 @@ fn build(palette: &Palette) -> Style {
                 service_road_shown.clone()
             ]))),
             paint: Paint {
-                line_color: Some(Color(json!(palette.road))),
+                line_color: Some(palette.road.clone()),
                 line_width: Some(Float(minor_road_width.clone())),
                 ..Default::default()
             },
@@ -723,7 +910,7 @@ fn build(palette: &Palette) -> Style {
                 ["in", "class", "primary", "secondary"]
             ]))),
             paint: Paint {
-                line_color: Some(Color(json!(palette.road))),
+                line_color: Some(palette.road.clone()),
                 line_width: Some(Float(major_road_width.clone())),
                 ..Default::default()
             },
@@ -738,7 +925,7 @@ fn build(palette: &Palette) -> Style {
                 ["in", "class", "motorway", "trunk"]
             ]))),
             paint: Paint {
-                line_color: Some(Color(json!(palette.highway))),
+                line_color: Some(palette.highway.clone()),
                 line_width: Some(Float(motorway_width.clone())),
                 ..Default::default()
             },
@@ -755,8 +942,8 @@ fn build(palette: &Palette) -> Style {
                 ..Default::default()
             },
             paint: Some(Paint {
-                text_color: Some(Color(json!(palette.label))),
-                text_halo_color: Some(Color(json!(palette.casing))),
+                text_color: Some(palette.label.clone()),
+                text_halo_color: Some(palette.casing.clone()),
                 text_halo_width: Some(Float(json!(HALO_WIDTH))),
                 ..Default::default()
             }),
@@ -773,8 +960,8 @@ fn build(palette: &Palette) -> Style {
                 ..Default::default()
             },
             paint: Some(Paint {
-                text_color: Some(Color(json!(palette.water_label))),
-                text_halo_color: Some(Color(json!(palette.water_label_halo))),
+                text_color: Some(palette.water_label.clone()),
+                text_halo_color: Some(palette.water_label_halo.clone()),
                 text_halo_width: Some(Float(json!(HALO_WIDTH))),
                 ..Default::default()
             }),
@@ -793,8 +980,8 @@ fn build(palette: &Palette) -> Style {
                 ..Default::default()
             },
             paint: Some(Paint {
-                text_color: Some(Color(json!(palette.label))),
-                text_halo_color: Some(Color(json!(palette.background))),
+                text_color: Some(palette.label.clone()),
+                text_halo_color: Some(palette.background.clone()),
                 text_halo_width: Some(Float(json!(HALO_WIDTH))),
                 ..Default::default()
             }),
@@ -813,8 +1000,8 @@ fn build(palette: &Palette) -> Style {
                 ..Default::default()
             },
             paint: Some(Paint {
-                text_color: Some(Color(json!(palette.water_label))),
-                text_halo_color: Some(Color(json!(palette.water_label_halo))),
+                text_color: Some(palette.water_label.clone()),
+                text_halo_color: Some(palette.water_label_halo.clone()),
                 text_halo_width: Some(Float(json!(HALO_WIDTH))),
                 ..Default::default()
             }),
@@ -831,8 +1018,8 @@ fn build(palette: &Palette) -> Style {
                 ..Default::default()
             },
             paint: Some(Paint {
-                text_color: Some(Color(json!(palette.water_label))),
-                text_halo_color: Some(Color(json!(palette.water_label_halo))),
+                text_color: Some(palette.water_label.clone()),
+                text_halo_color: Some(palette.water_label_halo.clone()),
                 text_halo_width: Some(Float(json!(HALO_WIDTH))),
                 ..Default::default()
             }),
@@ -849,8 +1036,8 @@ fn build(palette: &Palette) -> Style {
                 ..Default::default()
             },
             paint: Some(Paint {
-                text_color: Some(Color(json!(palette.label))),
-                text_halo_color: Some(Color(json!(palette.background))),
+                text_color: Some(palette.label.clone()),
+                text_halo_color: Some(palette.background.clone()),
                 text_halo_width: Some(Float(json!(HALO_WIDTH))),
                 ..Default::default()
             }),
@@ -869,8 +1056,8 @@ fn build(palette: &Palette) -> Style {
                 ..Default::default()
             },
             paint: Some(Paint {
-                text_color: Some(Color(json!(palette.label))),
-                text_halo_color: Some(Color(json!(palette.background))),
+                text_color: Some(palette.label.clone()),
+                text_halo_color: Some(palette.background.clone()),
                 text_halo_width: Some(Float(json!(HALO_WIDTH))),
                 ..Default::default()
             }),
@@ -891,8 +1078,8 @@ fn build(palette: &Palette) -> Style {
                 ..Default::default()
             },
             paint: Some(Paint {
-                text_color: Some(Color(json!(palette.label))),
-                text_halo_color: Some(Color(json!(palette.background))),
+                text_color: Some(palette.label.clone()),
+                text_halo_color: Some(palette.background.clone()),
                 text_halo_width: Some(Float(json!(HALO_WIDTH))),
                 ..Default::default()
             }),
@@ -919,8 +1106,8 @@ fn build(palette: &Palette) -> Style {
                 ..Default::default()
             },
             paint: Some(Paint {
-                text_color: Some(Color(json!(palette.label))),
-                text_halo_color: Some(Color(json!(palette.casing))),
+                text_color: Some(palette.label.clone()),
+                text_halo_color: Some(palette.casing.clone()),
                 text_halo_width: Some(Float(json!(HALO_WIDTH))),
                 ..Default::default()
             }),
@@ -937,8 +1124,8 @@ fn build(palette: &Palette) -> Style {
                 ..Default::default()
             },
             paint: Some(Paint {
-                text_color: Some(Color(json!(palette.label))),
-                text_halo_color: Some(Color(json!(palette.casing))),
+                text_color: Some(palette.label.clone()),
+                text_halo_color: Some(palette.casing.clone()),
                 text_halo_width: Some(Float(json!(HALO_WIDTH))),
                 ..Default::default()
             }),
@@ -961,8 +1148,8 @@ fn build(palette: &Palette) -> Style {
                 ..Default::default()
             },
             paint: Some(Paint {
-                text_color: Some(Color(json!(palette.locality_text))),
-                text_halo_color: Some(Color(json!(palette.casing))),
+                text_color: Some(palette.locality_text.clone()),
+                text_halo_color: Some(palette.casing.clone()),
                 text_halo_width: Some(Float(json!(HALO_WIDTH))),
                 ..Default::default()
             }),
@@ -979,8 +1166,8 @@ fn build(palette: &Palette) -> Style {
                 ..Default::default()
             },
             paint: Some(Paint {
-                text_color: Some(Color(json!(palette.label))),
-                text_halo_color: Some(Color(json!(palette.casing))),
+                text_color: Some(palette.label.clone()),
+                text_halo_color: Some(palette.casing.clone()),
                 text_halo_width: Some(Float(json!(HALO_WIDTH))),
                 ..Default::default()
             }),
@@ -1001,8 +1188,8 @@ fn build(palette: &Palette) -> Style {
                 ..Default::default()
             },
             paint: Some(Paint {
-                text_color: Some(Color(json!(palette.station))),
-                text_halo_color: Some(Color(json!(palette.casing))),
+                text_color: Some(palette.station.clone()),
+                text_halo_color: Some(palette.casing.clone()),
                 text_halo_width: Some(Float(json!(HALO_WIDTH))),
                 ..Default::default()
             }),
@@ -1025,8 +1212,8 @@ fn build(palette: &Palette) -> Style {
                 ..Default::default()
             },
             paint: Some(Paint {
-                text_color: Some(Color(json!(palette.station))),
-                text_halo_color: Some(Color(json!(palette.casing))),
+                text_color: Some(palette.station.clone()),
+                text_halo_color: Some(palette.casing.clone()),
                 text_halo_width: Some(Float(json!(HALO_WIDTH))),
                 ..Default::default()
             }),
@@ -1047,8 +1234,8 @@ fn build(palette: &Palette) -> Style {
                 ..Default::default()
             },
             paint: Some(Paint {
-                text_color: Some(Color(json!(palette.station))),
-                text_halo_color: Some(Color(json!(palette.casing))),
+                text_color: Some(palette.station.clone()),
+                text_halo_color: Some(palette.casing.clone()),
                 text_halo_width: Some(Float(json!(HALO_WIDTH))),
                 ..Default::default()
             }),
@@ -1071,8 +1258,8 @@ fn build(palette: &Palette) -> Style {
                 ..Default::default()
             },
             paint: Some(Paint {
-                text_color: Some(Color(json!(palette.station))),
-                text_halo_color: Some(Color(json!(palette.casing))),
+                text_color: Some(palette.station.clone()),
+                text_halo_color: Some(palette.casing.clone()),
                 text_halo_width: Some(Float(json!(HALO_WIDTH))),
                 ..Default::default()
             }),
@@ -1089,8 +1276,8 @@ fn build(palette: &Palette) -> Style {
                 ..Default::default()
             },
             paint: Some(Paint {
-                text_color: Some(Color(json!(palette.station))),
-                text_halo_color: Some(Color(json!(palette.casing))),
+                text_color: Some(palette.station.clone()),
+                text_halo_color: Some(palette.casing.clone()),
                 text_halo_width: Some(Float(json!(HALO_WIDTH))),
                 ..Default::default()
             }),
@@ -1109,8 +1296,8 @@ fn build(palette: &Palette) -> Style {
                 ..Default::default()
             },
             paint: Some(Paint {
-                text_color: Some(Color(json!(palette.station))),
-                text_halo_color: Some(Color(json!(palette.casing))),
+                text_color: Some(palette.station.clone()),
+                text_halo_color: Some(palette.casing.clone()),
                 text_halo_width: Some(Float(json!(HALO_WIDTH))),
                 ..Default::default()
             }),
@@ -1127,8 +1314,8 @@ fn build(palette: &Palette) -> Style {
                 ..Default::default()
             },
             paint: Some(Paint {
-                text_color: Some(Color(json!(palette.peak))),
-                text_halo_color: Some(Color(json!(palette.casing))),
+                text_color: Some(palette.peak.clone()),
+                text_halo_color: Some(palette.casing.clone()),
                 text_halo_width: Some(Float(json!(HALO_WIDTH))),
                 ..Default::default()
             }),
@@ -1154,13 +1341,13 @@ fn build(palette: &Palette) -> Style {
                 ..Default::default()
             },
             paint: Some(Paint {
-                text_color: Some(Color(json!(palette.peak))),
-                text_halo_color: Some(Color(json!(palette.casing))),
+                text_color: Some(palette.peak.clone()),
+                text_halo_color: Some(palette.casing.clone()),
                 text_halo_width: Some(Float(json!(HALO_WIDTH))),
                 ..Default::default()
             }),
         },
-    ];
+    ]);
 
     Style { layers }
 }
@@ -1217,7 +1404,7 @@ mod tests {
     /// than the city.
     #[test]
     fn a_city_is_labelled_larger_than_a_village() {
-        let style = Style::openmaptiles_basemap_light();
+        let style = Waymark::new(Palette::light()).build();
 
         for zoom in [6, 10, 14] {
             assert!(
@@ -1235,7 +1422,7 @@ mod tests {
 
     #[test]
     fn a_town_is_labelled_between_a_city_and_a_village() {
-        let style = Style::openmaptiles_basemap_light();
+        let style = Waymark::new(Palette::light()).build();
         let size = |class| label_size(&style, "place", json!({ "class": class, "rank": 11 }), 12);
 
         assert!(size("city") > size("town"));
@@ -1246,7 +1433,7 @@ mod tests {
     /// label waits for the map, not the tile, to reach zoom 18.
     #[test]
     fn a_house_number_is_labelled_from_zoom_18() {
-        let style = Style::openmaptiles_basemap_light();
+        let style = Waymark::new(Palette::light()).build();
         let context = Context::new(
             "Point".to_owned(),
             HashMap::from([("housenumber".to_owned(), json!("12a"))]),
@@ -1329,7 +1516,7 @@ mod tests {
     /// and trunk tunnels used to get only the casing.
     #[test]
     fn a_tunnel_has_a_casing_and_a_road() {
-        let style = Style::openmaptiles_basemap_light();
+        let style = Waymark::new(Palette::light()).build();
 
         for class in ROAD_CLASSES {
             assert_eq!(
@@ -1349,7 +1536,7 @@ mod tests {
     /// Each class of road grows, or at least does not shrink, as the map zooms in.
     #[test]
     fn a_road_never_gets_thinner_when_zooming_in() {
-        let style = Style::openmaptiles_basemap_light();
+        let style = Waymark::new(Palette::light()).build();
 
         for class in ROAD_CLASSES {
             let widths: Vec<f32> = (0..=22)
@@ -1371,7 +1558,7 @@ mod tests {
     /// be a line a pixel wide, hidden as soon as the road grew past that.
     #[test]
     fn a_tunnel_casing_shows_either_side_of_its_road() {
-        let style = Style::openmaptiles_basemap_light();
+        let style = Waymark::new(Palette::light()).build();
 
         for class in ROAD_CLASSES {
             for zoom in [15, 16, 18] {
@@ -1397,7 +1584,7 @@ mod tests {
     /// a tunnel, and as one road elsewhere. A ramp layer of their own drew ramps a second time.
     #[test]
     fn a_ramp_is_drawn_once() {
-        let style = Style::openmaptiles_basemap_light();
+        let style = Waymark::new(Palette::light()).build();
         let drawn = |properties| line_widths(&style, "transportation", properties, 16).len();
 
         for class in ["motorway", "trunk", "primary", "secondary"] {
@@ -1451,7 +1638,7 @@ mod tests {
     /// asked for a `station` class, as Protomaps has it, and drew none.
     #[test]
     fn a_railway_station_is_named() {
-        let style = Style::openmaptiles_basemap_light();
+        let style = Waymark::new(Palette::light()).build();
         let station = json!({"class": "railway", "subclass": "station", "name": "Wrocław Główny"});
 
         assert!(
@@ -1464,5 +1651,87 @@ mod tests {
                 14
             )
         );
+    }
+
+    fn relief() -> Style {
+        Waymark::new(Palette::light())
+            .hillshade("terrain")
+            .contours("contours")
+            .build()
+    }
+
+    #[test]
+    fn relief_and_contour_lines_are_over_land_and_water_and_under_roads() {
+        let style = relief();
+        let hillshade = style
+            .layers
+            .iter()
+            .position(|layer| matches!(layer, StyleLayer::Hillshade { .. }))
+            .unwrap();
+        let last_ground = style
+            .layers
+            .iter()
+            .rposition(|layer| {
+                matches!(layer, StyleLayer::Fill { source_layer, .. }
+                    if source_layer.matches("landuse") || source_layer.matches("water"))
+            })
+            .unwrap();
+        assert_eq!(hillshade, last_ground + 1);
+        assert!(matches!(
+            &style.layers[hillshade + 1..hillshade + 3],
+            [StyleLayer::Contour { .. }, StyleLayer::Contour { .. }]
+        ));
+        assert!(matches!(
+            &style.layers[hillshade + 3],
+            StyleLayer::Line { source_layer, .. } if source_layer.matches("transportation")
+        ));
+    }
+
+    #[test]
+    fn relief_and_contour_lines_draw_from_their_sources() {
+        let style = relief();
+        let sources: Vec<_> = style
+            .layer_sources()
+            .filter_map(|(source, drawn)| drawn.and(source))
+            .collect();
+        assert_eq!(sources, ["terrain", "contours", "contours"]);
+    }
+
+    #[test]
+    fn there_is_no_relief_unless_asked_for() {
+        assert!(
+            Waymark::new(Palette::dark())
+                .build()
+                .layer_sources()
+                .all(|(_, drawn)| drawn.is_none())
+        );
+    }
+
+    #[test]
+    fn contour_lines_are_of_the_palette_color() {
+        let style = Waymark::new(Palette {
+            contour: "#c80000".into(),
+            ..Palette::dark()
+        })
+        .contours("terrain")
+        .build();
+        let context = Context::new("LineString".to_owned(), HashMap::new(), 12);
+
+        let lines: Vec<_> = style
+            .layers
+            .iter()
+            .filter_map(|layer| match layer {
+                StyleLayer::Contour {
+                    paint: Some(paint), ..
+                } => Some((
+                    paint.line_color.as_ref()?.evaluate(&context),
+                    paint.line_opacity.as_ref()?.evaluate(&context),
+                )),
+                _ => None,
+            })
+            .collect();
+
+        let red = egui::Color32::from_rgb(200, 0, 0);
+        assert_eq!(lines, [(red, 0.3), (red, 0.5)]);
     }
 }

@@ -75,6 +75,8 @@ pub use render::{
 };
 pub use style::Style;
 #[cfg(feature = "vector")]
+pub use style::waymark::{Palette, Waymark};
+#[cfg(feature = "vector")]
 pub use style::{
     Color, Dasharray, Filter, Float, Layout, Paint, SourceLayer, StyleLayer, Value,
     exponential_zoom_interpolation, json, linear_zoom_interpolation,

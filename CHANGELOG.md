@@ -11,6 +11,12 @@ playground and can change or break at any time without an entry here.
   falling back to lower zoom levels where the source has no tile.
 * New `DemEncoding::decode`, which unpacks a pixel into meters.
 * New `TileId::at`, the tile a position is on at a zoom level, and where on it.
+* New `Waymark`, which builds Walkers' style for OpenMapTiles in the colors of a `Palette`, such
+  as `Palette::light()` or `Palette::dark()`, optionally with relief and contour lines from a
+  source of elevation.
+* `Color` can be made from a CSS color string, such as `"#ff0000".into()`.
+* `Style::openmaptiles_basemap_light` and `Style::openmaptiles_basemap_dark` are deprecated in favor
+  of `Waymark::new(Palette::light()).build()` and `Waymark::new(Palette::dark()).build()`.
 * Elevation needs the `vector` feature, as only style layers draw it: `SourceData::Elevation`,
   `DemEncoding`, `with_elevation` and `Mapterhorn` are not there without it.
 

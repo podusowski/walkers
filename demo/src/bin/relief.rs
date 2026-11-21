@@ -7,8 +7,8 @@
 
 use egui::{Align2, Color32, Slider, Ui, Window, color_picker::Alpha};
 use walkers::{
-    Color, DemEncoding, Filter, Float, HttpOptions, HttpSource, Layout, Map, MapMemory, Paint,
-    Position, Style, StyleLayer, StyledSources, json, lon_lat,
+    Color, DemEncoding, Float, HttpOptions, HttpSource, Map, MapMemory, Palette, Position, Style,
+    StyleLayer, StyledSources, Waymark, json, lon_lat,
     sources::{Mapterhorn, OpenFreeMap},
 };
 
@@ -49,31 +49,27 @@ impl Default for Relief {
 
 impl Relief {
     fn style(&self) -> Style {
-        let mut style = Style::openmaptiles_basemap_dark();
-        let ground = ground(&style);
-        style.layers.insert(
-            ground,
-            StyleLayer::Hillshade {
-                source: Some("terrain".to_owned()),
-                paint: Paint {
-                    hillshade_exaggeration: Some(Float(json!(self.exaggeration))),
-                    hillshade_illumination_direction: Some(Float(json!(
-                        self.illumination_direction
-                    ))),
-                    hillshade_shadow_color: Some(color(self.shadow)),
-                    hillshade_highlight_color: Some(color(self.highlight)),
-                    hillshade_accent_color: Some(color(self.accent)),
-                    ..Default::default()
-                },
-            },
-        );
-
-        // Over the relief, under roads.
+        let mut waymark = Waymark::new(Palette {
+            contour: color(self.contour_color),
+            contour_label: color(self.contour_color.gamma_multiply(0.8)),
+            hillshade_shadow: color(self.shadow),
+            hillshade_highlight: color(self.highlight),
+            hillshade_accent: color(self.accent),
+            ..Palette::dark()
+        })
+        .hillshade("terrain");
         if self.contours {
-            let over = ground + 1;
-            style
-                .layers
-                .splice(over..over, contours(self.contour_color));
+            waymark = waymark.contours("terrain");
+        }
+        let mut style = waymark.build();
+
+        // Not colors, so not in the palette.
+        for layer in &mut style.layers {
+            if let StyleLayer::Hillshade { paint, .. } = layer {
+                paint.hillshade_exaggeration = Some(Float(json!(self.exaggeration)));
+                paint.hillshade_illumination_direction =
+                    Some(Float(json!(self.illumination_direction)));
+            }
         }
 
         style
@@ -125,57 +121,10 @@ impl Relief {
     }
 }
 
-/// Contour lines of the terrain in `base` color, the major ones thicker, more opaque and labelled
-/// with their elevation.
-fn contours(base: Color32) -> [StyleLayer; 2] {
-    let level = |level: i32| Some(Filter(json!(["==", ["get", "level"], level])));
-    let lines = |width: f32, opacity: f32| Paint {
-        line_color: Some(color(base.gamma_multiply(opacity))),
-        line_width: Some(Float(json!(width))),
-        ..Default::default()
-    };
-
-    [
-        StyleLayer::Contour {
-            source: Some("terrain".to_owned()),
-            filter: level(0),
-            layout: Layout::default(),
-            paint: Some(lines(0.6, 0.3)),
-        },
-        StyleLayer::Contour {
-            source: Some("terrain".to_owned()),
-            filter: level(1),
-            layout: Layout {
-                text_field: Some(json!(["to-string", ["get", "ele"]])),
-                text_size: Some(Float(json!(12.0))),
-                ..Default::default()
-            },
-            paint: Some(Paint {
-                text_color: Some(color(base.gamma_multiply(0.8))),
-                text_halo_color: Some(Color(json!("rgba(0, 0, 0, 0.6)"))),
-                text_halo_width: Some(Float(json!(1.0))),
-                ..lines(1.2, 0.5)
-            }),
-        },
-    ]
-}
-
 /// As a style writes it.
 fn color(color: Color32) -> Color {
     let [r, g, b, a] = color.to_srgba_unmultiplied();
     Color(json!(format!("rgba({r}, {g}, {b}, {})", a as f32 / 255.0)))
-}
-
-/// Where layers go to be over land and water, but under everything else.
-fn ground(style: &Style) -> usize {
-    style
-        .layers
-        .iter()
-        .rposition(|layer| {
-            matches!(layer, StyleLayer::Fill { source_layer, .. }
-                if source_layer.matches("landuse") || source_layer.matches("water"))
-        })
-        .map_or(0, |index| index + 1)
 }
 
 struct ReliefDemo {

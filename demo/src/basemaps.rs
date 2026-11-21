@@ -3,7 +3,7 @@ use egui::Context;
 use walkers::PmTilesSource;
 #[cfg(feature = "mvt")]
 use walkers::{
-    Color, DemEncoding, Filter, Layout,
+    DemEncoding, Palette, Waymark,
     sources::{Mapterhorn, OpenFreeMap},
 };
 use walkers::{
@@ -81,14 +81,12 @@ fn add_raster_basemaps(basemaps: &mut Basemaps) {
 fn add_openfreemap_basemaps(basemaps: &mut Basemaps) {
     let styles = [
         ("OpenFreeMap", Style::openfreemap_bright as fn() -> Style),
-        (
-            "OpenFreeMap (Walkers light)",
-            Style::openmaptiles_basemap_light,
-        ),
-        (
-            "OpenFreeMap (Walkers dark)",
-            Style::openmaptiles_basemap_dark,
-        ),
+        ("OpenFreeMap (Walkers light)", || {
+            Waymark::new(Palette::light()).build()
+        }),
+        ("OpenFreeMap (Walkers dark)", || {
+            Waymark::new(Palette::dark()).build()
+        }),
     ];
 
     for (name, style) in styles {
@@ -100,18 +98,10 @@ fn add_openfreemap_basemaps(basemaps: &mut Basemaps) {
 
     basemaps.add("OpenFreeMap over Geoportal", hybrid);
     basemaps.add("OpenFreeMap with relief (Walkers light)", |ctx| {
-        relief(
-            Style::openmaptiles_basemap_light(),
-            "rgba(255, 255, 255, 0.6)",
-            ctx,
-        )
+        relief(Palette::light(), ctx)
     });
     basemaps.add("OpenFreeMap with relief (Walkers dark)", |ctx| {
-        relief(
-            Style::openmaptiles_basemap_dark(),
-            "rgba(0, 0, 0, 0.6)",
-            ctx,
-        )
+        relief(Palette::dark(), ctx)
     });
 
     basemaps.select("OpenFreeMap (Walkers dark)");
@@ -121,7 +111,7 @@ fn add_openfreemap_basemaps(basemaps: &mut Basemaps) {
 /// drawing from two sources.
 #[cfg(feature = "mvt")]
 fn hybrid(ctx: &Context) -> StyledSources {
-    let mut style = Style::openmaptiles_basemap_light();
+    let mut style = Waymark::new(Palette::light()).build();
     style
         .layers
         .insert(ground(&style), raster_layer("geoportal", 1.0));
@@ -131,22 +121,14 @@ fn hybrid(ctx: &Context) -> StyledSources {
         .with_tiled_source("geoportal", http(Geoportal, ctx))
 }
 
-/// OpenFreeMap drawn with `style`, and Mapterhorn's elevation shaded into relief and traced into
-/// contour lines between its land and its roads, their labels with a `halo` of that color.
+/// OpenFreeMap drawn in the colors of `palette`, and Mapterhorn's elevation shaded into relief and traced into
+/// contour lines.
 #[cfg(feature = "mvt")]
-fn relief(mut style: Style, halo: &str, ctx: &Context) -> StyledSources {
-    let ground = ground(&style);
-    style.layers.splice(
-        ground..ground,
-        [
-            StyleLayer::Hillshade {
-                source: Some("terrain".to_owned()),
-                paint: Paint::default(),
-            },
-            contours(0, 0.6, 0.3, None),
-            contours(1, 1.2, 0.5, Some(halo)),
-        ],
-    );
+fn relief(palette: Palette, ctx: &Context) -> StyledSources {
+    let style = Waymark::new(palette)
+        .hillshade("terrain")
+        .contours("terrain")
+        .build();
 
     StyledSources::new(style, ctx.to_owned())
         .with_tiled_source("openmaptiles", http(OpenFreeMap, ctx))
@@ -154,36 +136,6 @@ fn relief(mut style: Style, halo: &str, ctx: &Context) -> StyledSources {
             "terrain",
             http(Mapterhorn, ctx).with_elevation(DemEncoding::Terrarium),
         )
-}
-
-/// Contour lines of `level`, 1 for major ones, `width` wide and `opacity` opaque, and labelled
-/// with their elevation, with a `halo` of that color, if there is one.
-#[cfg(feature = "mvt")]
-fn contours(level: i32, width: f32, opacity: f32, halo: Option<&str>) -> StyleLayer {
-    let color = |opacity: f32| Some(Color(json!(format!("rgba(51, 68, 51, {opacity})"))));
-    let layout = if halo.is_some() {
-        Layout {
-            text_field: Some(json!(["to-string", ["get", "ele"]])),
-            text_size: Some(Float(json!(12.0))),
-            ..Default::default()
-        }
-    } else {
-        Layout::default()
-    };
-
-    StyleLayer::Contour {
-        source: Some("terrain".to_owned()),
-        filter: Some(Filter(json!(["==", ["get", "level"], level]))),
-        layout,
-        paint: Some(Paint {
-            line_color: color(opacity),
-            line_width: Some(Float(json!(width))),
-            text_color: color(0.8),
-            text_halo_color: halo.map(|halo| Color(json!(halo))),
-            text_halo_width: Some(Float(json!(1.0))),
-            ..Default::default()
-        }),
-    }
 }
 
 /// Where layers go to be over land and water, but under everything else.
@@ -207,9 +159,9 @@ fn add_pmtiles_basemaps(basemaps: &mut Basemaps) {
     let styles = [
         (
             " (Walkers light)",
-            Style::openmaptiles_basemap_light as fn() -> Style,
+            (|| Waymark::new(Palette::light()).build()) as fn() -> Style,
         ),
-        (" (Walkers dark)", Style::openmaptiles_basemap_dark),
+        (" (Walkers dark)", || Waymark::new(Palette::dark()).build()),
         (" (OpenFreeMap)", Style::openfreemap_bright),
         (" (Protomaps Dark)", Style::protomaps_dark),
         (" (Protomaps Dark Vis)", Style::protomaps_dark_vis),

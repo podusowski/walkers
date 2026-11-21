@@ -1,5 +1,5 @@
-pub mod basemap;
 mod third_party;
+pub mod waymark;
 
 use color::Rgba8;
 use egui::Color32;
@@ -257,8 +257,14 @@ enum StyleError {
     Parsing(#[from] color::ParseError),
 }
 
-#[derive(Deserialize, Debug)]
+#[derive(Deserialize, Debug, Clone)]
 pub struct Color(pub Value);
+
+impl From<&str> for Color {
+    fn from(css: &str) -> Self {
+        Self(Value::String(css.to_owned()))
+    }
+}
 
 impl Color {
     pub fn evaluate(&self, context: &Context) -> Color32 {
