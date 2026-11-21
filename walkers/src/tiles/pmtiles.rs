@@ -88,7 +88,8 @@ impl PmTilesSource {
         }
     }
 
-    /// Tiles are elevation, packed as `encoding` says, for a `hillshade` style layer to draw.
+    /// Tiles are elevation, packed as `encoding` says, for a `hillshade` style layer to draw, or
+    /// as contour lines. See [`crate::SourceData::Elevation`].
     pub fn with_elevation(mut self, encoding: DemEncoding) -> Self {
         self.io = self.io.with_elevation(encoding);
         self

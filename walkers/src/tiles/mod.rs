@@ -1,5 +1,8 @@
 pub(crate) mod apply_style;
+#[cfg(feature = "vector")]
+mod contours;
 pub(crate) mod grid;
+pub(crate) mod heights;
 pub(crate) mod http;
 #[cfg(feature = "mvt")]
 mod mvt;
@@ -22,9 +25,9 @@ use crate::SourceData;
 use crate::position::{Pixels, PixelsExt};
 use crate::sources::Attribution;
 use crate::style::Style;
-use crate::{Canvas, Projector, Stats};
+use crate::{Canvas, MercatorProjection, Position, Projection, Projector, Stats};
 use apply_style::{Styled, apply_style};
-use grid::{TILE_SIZE, tile_id_at, total_tiles};
+use grid::{MAX_TILE_ZOOM, TILE_SIZE, tile_id_at, total_tiles};
 
 #[derive(Error, Debug)]
 pub enum TileError {
@@ -64,6 +67,26 @@ pub struct TileId {
 }
 
 impl TileId {
+    /// The tile at `zoom` which `position` is on, in the Web Mercator grid of tile servers, and
+    /// where on it, from 0 at its top left corner to 1 at its bottom right. Zoom levels past 31
+    /// are taken as 31.
+    pub fn at(position: Position, zoom: u8) -> (TileId, Vec2) {
+        let zoom = zoom.min(MAX_TILE_ZOOM);
+        let tiles = total_tiles(zoom) as f64;
+        let pixels = MercatorProjection.project(position, zoom as f64);
+
+        // Positions past the edges of the grid, such as at the poles, are on its edge tiles.
+        let along = |pixels: f64| {
+            let at = pixels / TILE_SIZE as f64;
+            let tile = at.floor().clamp(0.0, tiles - 1.0);
+            (tile as u32, ((at - tile) as f32).clamp(0.0, 1.0))
+        };
+        let (x, across) = along(pixels.x());
+        let (y, down) = along(pixels.y());
+
+        (TileId { x, y, zoom }, Vec2::new(across, down))
+    }
+
     /// Tile position (in pixels) on the "World bitmap".
     pub fn project(&self, tile_size: f64) -> Pixels {
         Pixels::new(self.x as f64 * tile_size, self.y as f64 * tile_size)
@@ -447,6 +470,46 @@ fn all_layers(style: &Style) -> Range<usize> {
 mod tests {
     use super::*;
     use crate::lon_lat;
+
+    #[test]
+    fn a_position_is_on_a_tile() {
+        assert_eq!(
+            TileId::at(lon_lat(45.0, 0.0), 1),
+            (
+                TileId {
+                    x: 1,
+                    y: 1,
+                    zoom: 1
+                },
+                Vec2::new(0.25, 0.0)
+            )
+        );
+
+        let (sniezka, _) = TileId::at(lon_lat(15.7400, 50.7360), 13);
+        assert_eq!(
+            sniezka,
+            TileId {
+                x: 4454,
+                y: 2752,
+                zoom: 13
+            }
+        );
+    }
+
+    /// Past the edges of the grid, such as at the poles where Mercator has no end.
+    #[test]
+    fn a_position_past_the_grid_is_on_its_edge() {
+        let (tile_id, within) = TileId::at(lon_lat(180.0, 90.0), 2);
+        assert_eq!(
+            tile_id,
+            TileId {
+                x: 3,
+                y: 0,
+                zoom: 2
+            }
+        );
+        assert_eq!(within, Vec2::new(1.0, 0.0));
+    }
 
     /// Records which tiles were asked for, without ever returning one.
     struct RecordingTiles {

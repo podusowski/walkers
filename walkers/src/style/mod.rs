@@ -8,7 +8,7 @@ use serde::Deserialize;
 pub use serde_json::{Value, json};
 use thiserror::Error;
 
-use crate::expression::Context;
+use crate::{expression::Context, styled_sources::Drawn};
 
 /// Style for rendering vector maps.
 ///
@@ -36,9 +36,13 @@ impl Default for Style {
 }
 
 impl Style {
-    /// Name of the source each layer draws from, if it says.
-    pub(crate) fn layer_sources(&self) -> impl ExactSizeIterator<Item = Option<&str>> {
-        self.layers.iter().map(StyleLayer::source)
+    /// Name of the source each layer draws from, if it says, and what it draws.
+    pub(crate) fn layer_sources(
+        &self,
+    ) -> impl ExactSizeIterator<Item = (Option<&str>, Option<Drawn>)> {
+        self.layers
+            .iter()
+            .map(|layer| (layer.source(), layer.drawn()))
     }
 }
 
@@ -179,6 +183,19 @@ impl StyleLayer {
             | StyleLayer::Hillshade { source, .. }
             | StyleLayer::Raster { source, .. } => source.as_deref(),
             StyleLayer::FillExtrusion => None,
+        }
+    }
+
+    /// What the layer draws, unless it goes with whatever the layers around it draw.
+    fn drawn(&self) -> Option<Drawn> {
+        match self {
+            // A background goes under either, and fill extrusions are not drawn at all.
+            StyleLayer::Background { .. } | StyleLayer::FillExtrusion => None,
+            StyleLayer::Fill { .. }
+            | StyleLayer::Line { .. }
+            | StyleLayer::Symbol { .. }
+            | StyleLayer::Circle { .. } => Some(Drawn::Shapes),
+            StyleLayer::Hillshade { .. } | StyleLayer::Raster { .. } => Some(Drawn::Image),
         }
     }
 }

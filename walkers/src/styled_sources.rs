@@ -86,24 +86,16 @@ impl StyledSources {
         }
     }
 
-    /// That tile, for those holding a single source, which draws the whole style.
+    /// That tile, for those holding a single source, which draws the whole style as one tile.
     pub(crate) fn single_source_at(&mut self, tile_id: TileId) -> Option<TilePiece> {
         let Self {
             style,
             sources,
-            consecutive_layers,
             styling,
             ..
         } = self;
-        let (source, layers) = consecutive_layers
-            .get_or_insert_with(|| consecutive_layers_of(style, sources))
-            .first()?;
-        styling.at(
-            *source,
-            sources[*source].1.as_mut(),
-            layers.clone(),
-            tile_id,
-        )
+        let (_, source) = sources.first_mut()?;
+        styling.at(0, source.as_mut(), 0..style.layer_sources().len(), tile_id)
     }
 }
 
@@ -135,23 +127,31 @@ fn consecutive_layers_of(style: &Style, sources: &[NamedSource]) -> Vec<Consecut
     consecutive_layers(style, &names)
 }
 
-/// The style's layers, grouped into consecutive ones drawing from the same of `sources`. When there
-/// is only one source, the whole style draws from it.
+/// What a style layer draws. Layers drawing images and those drawing shapes are styled apart, even
+/// from the same source, as a tile is styled into either.
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+#[cfg_attr(not(feature = "vector"), allow(dead_code))]
+pub(crate) enum Drawn {
+    Image,
+    Shapes,
+}
+
+/// The style's layers, grouped into consecutive ones drawing from the same of `sources`, and the
+/// same kind of thing. When there is only one source, the whole style draws from it.
 fn consecutive_layers(style: &Style, sources: &[&str]) -> Vec<ConsecutiveLayers> {
     let layer_sources = style.layer_sources();
+    let count = layer_sources.len();
+    let single = matches!(sources, [_]);
 
-    if let [_] = sources {
-        return vec![(0, 0..layer_sources.len())];
-    }
-
-    let mut consecutive: Vec<ConsecutiveLayers> = Vec::new();
+    let mut consecutive: Vec<(usize, Range<usize>, Option<Drawn>)> = Vec::new();
 
     // Layers naming no source, such as a background, draw from the one before them. Those before
     // any other go with the first ones.
     let mut leading = None;
 
-    for (index, layer_source) in layer_sources.enumerate() {
+    for (index, (layer_source, drawn)) in layer_sources.enumerate() {
         let source = match layer_source {
+            _ if single => 0,
             Some(name) => match sources.iter().position(|source| *source == name) {
                 Some(source) => source,
                 None => {
@@ -162,7 +162,7 @@ fn consecutive_layers(style: &Style, sources: &[&str]) -> Vec<ConsecutiveLayers>
                 }
             },
             None => match consecutive.last() {
-                Some((source, _)) => *source,
+                Some((source, _, _)) => *source,
                 None => {
                     leading.get_or_insert(index);
                     continue;
@@ -171,12 +171,27 @@ fn consecutive_layers(style: &Style, sources: &[&str]) -> Vec<ConsecutiveLayers>
         };
 
         match consecutive.last_mut() {
-            Some((last, layers)) if *last == source && layers.end == index => layers.end += 1,
-            _ => consecutive.push((source, leading.take().unwrap_or(index)..index + 1)),
+            Some((last, layers, last_drawn))
+                if *last == source
+                    && layers.end == index
+                    && (last_drawn.is_none() || drawn.is_none() || *last_drawn == drawn) =>
+            {
+                layers.end += 1;
+                *last_drawn = last_drawn.or(drawn);
+            }
+            _ => consecutive.push((source, leading.take().unwrap_or(index)..index + 1, drawn)),
         }
     }
 
+    // Even with nothing to draw, as raster tiles are drawn without any layer.
+    if single && consecutive.is_empty() {
+        return vec![(0, 0..count)];
+    }
+
     consecutive
+        .into_iter()
+        .map(|(source, layers, _)| (source, layers))
+        .collect()
 }
 
 #[cfg(all(test, feature = "vector"))]
@@ -245,6 +260,57 @@ mod tests {
         assert_eq!(
             consecutive_layers(&style, &["a", "b"]),
             [(0, 0..4), (1, 4..5)]
+        );
+    }
+
+    fn hillshade(source: &str) -> StyleLayer {
+        StyleLayer::Hillshade {
+            source: Some(source.to_owned()),
+            paint: Default::default(),
+        }
+    }
+
+    fn contours(source: &str) -> StyleLayer {
+        StyleLayer::Line {
+            source: Some(source.to_owned()),
+            source_layer: crate::SourceLayer::One("contours".to_owned()),
+            filter: None,
+            paint: Default::default(),
+        }
+    }
+
+    /// As a tile is styled into either an image or shapes, relief and contour lines of the same
+    /// elevation are styled apart.
+    #[test]
+    fn layers_drawing_images_and_shapes_from_one_source_split_it() {
+        let style = style(vec![
+            hillshade("terrain"),
+            contours("terrain"),
+            contours("terrain"),
+            hillshade("terrain"),
+        ]);
+        let split = [(0, 0..1), (0, 1..3), (0, 3..4)];
+
+        assert_eq!(consecutive_layers(&style, &["terrain", "other"]), split);
+        assert_eq!(consecutive_layers(&style, &["terrain"]), split);
+    }
+
+    #[test]
+    fn layers_naming_no_source_go_with_whatever_is_drawn_around_them() {
+        let background = || StyleLayer::Background {
+            source: None,
+            paint: Default::default(),
+        };
+        let style = style(vec![
+            background(),
+            hillshade("terrain"),
+            background(),
+            contours("terrain"),
+        ]);
+
+        assert_eq!(
+            consecutive_layers(&style, &["terrain"]),
+            [(0, 0..3), (0, 3..4)]
         );
     }
 

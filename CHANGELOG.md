@@ -40,6 +40,12 @@ playground and can change or break at any time without an entry here.
   ramps each in their own way, and mark peaks, motorway exits, stations, and tram and bus stops
   with a symbol. Peaks show their height.
 * Fix railway stations missing from Walkers' own basemap styles, and ramps drawn twice.
+* Elevation has contour lines, which `line` and `symbol` style layers draw from its `contours`
+  layer, with `ele` and `level` (1 for major lines) to style them by.
+* New `Elevation`, which reads the elevation at a position from a source made `with_elevation`,
+  falling back to lower zoom levels where the source has no tile.
+* New `DemEncoding::decode`, which unpacks a pixel into meters.
+* New `TileId::at`, the tile a position is on at a zoom level, and where on it.
 
 ## 0.65.0
 

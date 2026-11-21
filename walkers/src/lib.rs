@@ -22,13 +22,17 @@ mod style {
 
     impl Style {
         /// It has no layers.
-        pub(crate) fn layer_sources(&self) -> impl ExactSizeIterator<Item = Option<&str>> {
+        pub(crate) fn layer_sources(
+            &self,
+        ) -> impl ExactSizeIterator<Item = (Option<&str>, Option<crate::styled_sources::Drawn>)>
+        {
             std::iter::empty()
         }
     }
 }
 
 mod egui_backend;
+mod elevation;
 
 #[cfg(feature = "vector")]
 mod expression;
@@ -47,6 +51,7 @@ pub use canvas::Canvas;
 pub use canvas::Drawables;
 #[cfg(feature = "vector")]
 pub use egui_backend::wgpu::install_renderer;
+pub use elevation::Elevation;
 #[cfg(feature = "vector")]
 pub use expression::Context;
 pub use geo_types;

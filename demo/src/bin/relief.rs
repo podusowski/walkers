@@ -1,5 +1,5 @@
-//! Mapterhorn's elevation shaded into relief, over OpenFreeMap's dark style, with the hillshade's
-//! paint at hand to play with.
+//! Mapterhorn's elevation shaded into relief, and traced into contour lines, over OpenFreeMap's
+//! dark style, with the hillshade's paint at hand to play with.
 //!
 //! ```text
 //! cargo run --release -p demo --bin relief --features mvt
@@ -7,8 +7,8 @@
 
 use egui::{Align2, Color32, Slider, Ui, Window, color_picker::Alpha};
 use walkers::{
-    Color, DemEncoding, Float, HttpOptions, HttpSource, Map, MapMemory, Paint, Position, Style,
-    StyleLayer, StyledSources, json, lon_lat,
+    Color, DemEncoding, Filter, Float, HttpOptions, HttpSource, Layout, Map, MapMemory, Paint,
+    Position, SourceLayer, Style, StyleLayer, StyledSources, json, lon_lat,
     sources::{Mapterhorn, OpenFreeMap},
 };
 
@@ -19,9 +19,11 @@ fn start() -> Position {
 
 const STARTING_ZOOM: f64 = 12.0;
 
-/// The hillshade's paint, as the window edits it.
+/// The hillshade's paint, and whether there are contour lines, as the window edits them.
 #[derive(Clone, PartialEq)]
 struct Relief {
+    contours: bool,
+    contour_color: Color32,
     exaggeration: f32,
     /// Where the light comes from, in degrees clockwise from the north.
     illumination_direction: f32,
@@ -34,6 +36,8 @@ struct Relief {
 impl Default for Relief {
     fn default() -> Self {
         Self {
+            contours: true,
+            contour_color: Color32::from_rgb(214, 180, 130),
             exaggeration: 0.5,
             illumination_direction: 335.0,
             shadow: Color32::BLACK,
@@ -46,8 +50,9 @@ impl Default for Relief {
 impl Relief {
     fn style(&self) -> Style {
         let mut style = Style::openmaptiles_basemap_dark();
+        let ground = ground(&style);
         style.layers.insert(
-            ground(&style),
+            ground,
             StyleLayer::Hillshade {
                 source: Some("terrain".to_owned()),
                 paint: Paint {
@@ -63,6 +68,14 @@ impl Relief {
             },
         );
 
+        // Over the relief, under roads.
+        if self.contours {
+            let over = ground + 1;
+            style
+                .layers
+                .splice(over..over, contours(self.contour_color));
+        }
+
         style
     }
 
@@ -71,6 +84,20 @@ impl Relief {
         let before = self.clone();
 
         egui::Grid::new("relief").num_columns(2).show(ui, |ui| {
+            ui.label("Contour lines");
+            ui.checkbox(&mut self.contours, "");
+            ui.end_row();
+
+            ui.label("Contour color");
+            ui.add_enabled_ui(self.contours, |ui| {
+                egui::color_picker::color_edit_button_srgba(
+                    ui,
+                    &mut self.contour_color,
+                    Alpha::Opaque,
+                );
+            });
+            ui.end_row();
+
             ui.label("Exaggeration");
             ui.add(Slider::new(&mut self.exaggeration, 0.0..=1.0));
             ui.end_row();
@@ -96,6 +123,44 @@ impl Relief {
 
         *self != before
     }
+}
+
+/// Contour lines of the terrain in `base` color, the major ones thicker, more opaque and labelled
+/// with their elevation.
+fn contours(base: Color32) -> [StyleLayer; 3] {
+    let major = || Some(Filter(json!(["==", ["get", "level"], 1])));
+    let line = |filter, width: f32, opacity: f32| StyleLayer::Line {
+        source: Some("terrain".to_owned()),
+        source_layer: SourceLayer::One("contours".to_owned()),
+        filter,
+        paint: Paint {
+            line_color: Some(color(base.gamma_multiply(opacity))),
+            line_width: Some(Float(json!(width))),
+            ..Default::default()
+        },
+    };
+
+    [
+        line(Some(Filter(json!(["==", ["get", "level"], 0]))), 0.6, 0.3),
+        line(major(), 1.2, 0.5),
+        StyleLayer::Symbol {
+            source: Some("terrain".to_owned()),
+            source_layer: SourceLayer::One("contours".to_owned()),
+            minzoom: None,
+            filter: major(),
+            layout: Layout {
+                text_field: Some(json!(["to-string", ["get", "ele"]])),
+                text_size: Some(Float(json!(10.0))),
+                ..Default::default()
+            },
+            paint: Some(Paint {
+                text_color: Some(color(base.gamma_multiply(0.8))),
+                text_halo_color: Some(Color(json!("rgba(0, 0, 0, 0.6)"))),
+                text_halo_width: Some(Float(json!(1.0))),
+                ..Default::default()
+            }),
+        },
+    ]
 }
 
 /// As a style writes it.

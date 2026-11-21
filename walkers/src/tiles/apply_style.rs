@@ -6,8 +6,8 @@ use std::ops::Range;
 use egui::ColorImage;
 use image::{ImageReader, RgbaImage};
 
-use super::TileError;
-use crate::{DemEncoding, SourceData, TileId, style::Style};
+use super::{TileError, heights::Heights};
+use crate::{SourceData, TileId, style::Style};
 
 #[cfg(feature = "vector")]
 use crate::{
@@ -20,16 +20,12 @@ use crate::{
 
 /// A tile's data, decoded.
 pub(crate) enum Decoded {
-    /// Features, grouped in named layers. Only MVTs have them, for now.
+    /// Features, grouped in named layers, of MVTs, or contour lines traced through elevation.
     #[cfg(feature = "vector")]
-    #[cfg_attr(not(feature = "mvt"), allow(dead_code))]
     Features(Vec<FeatureLayer>),
     Image(RgbaImage),
     #[cfg_attr(not(feature = "vector"), allow(dead_code))]
-    Elevation {
-        image: RgbaImage,
-        encoding: DemEncoding,
-    },
+    Elevation(Heights),
 }
 
 /// Features of a layer of a vector tile, in the tile's pixels.
@@ -60,7 +56,7 @@ pub(crate) fn apply_style(
     zoom: u8,
     tile_size: u32,
 ) -> Result<Styled, TileError> {
-    let decoded = decode(data, style, layers.clone(), zoom, tile_size)?;
+    let decoded = decode(data, style, layers.clone(), tile_id, zoom, tile_size)?;
     apply(decoded, style, layers, tile_id, zoom, tile_size)
 }
 
@@ -68,15 +64,31 @@ fn decode(
     data: &SourceData,
     style: &Style,
     layers: Range<usize>,
+    tile_id: TileId,
     zoom: u8,
     tile_size: u32,
 ) -> Result<Decoded, TileError> {
     match data {
         SourceData::Encoded(bytes) => decode_encoded(bytes, style, layers, zoom, tile_size),
-        SourceData::Elevation { data, encoding } => Ok(Decoded::Elevation {
-            image: image::load_from_memory(data)?.to_rgba8(),
-            encoding: *encoding,
-        }),
+        SourceData::Elevation { data, encoding } => {
+            let heights = Heights::decode(data, *encoding)?;
+
+            // Layers drawing contour lines are styled apart from hillshade ones, so these never
+            // need both.
+            #[cfg(feature = "vector")]
+            if draws_from(style, layers.clone(), super::contours::LAYER) {
+                return Ok(Decoded::Features(vec![super::contours::decode(
+                    &heights,
+                    tile_id.zoom,
+                    zoom,
+                    tile_size,
+                )]));
+            }
+            #[cfg(not(feature = "vector"))]
+            let _ = (style, layers, tile_id);
+
+            Ok(Decoded::Elevation(heights))
+        }
     }
 }
 
@@ -115,8 +127,8 @@ fn decode_encoded(
     }
 }
 
-/// Whether any of `layers` draws features of the vector tile layer named `name`.
-#[cfg(feature = "mvt")]
+/// Whether any of `layers` draws features of the layer named `name`.
+#[cfg(feature = "vector")]
 fn draws_from(style: &Style, layers: Range<usize>, name: &str) -> bool {
     style.layers[layers].iter().any(|layer| match layer {
         StyleLayer::Fill { source_layer, .. }
@@ -206,7 +218,7 @@ fn apply(
             (StyleLayer::Raster { paint, .. }, Decoded::Image(_)) => {
                 raster_opacity.get_or_insert(opacity(paint, zoom));
             }
-            (StyleLayer::Hillshade { paint, .. }, Decoded::Elevation { .. }) => {
+            (StyleLayer::Hillshade { paint, .. }, Decoded::Elevation(_)) => {
                 hillshades.push(paint);
             }
             // Layers of other kinds of data, which a single source draws every layer of.
@@ -225,10 +237,10 @@ fn apply(
                 "only a raster style layer draws an image",
             )),
         },
-        Decoded::Elevation { .. } if hillshades.is_empty() => Err(UNSHADED),
-        Decoded::Elevation { image, encoding } => {
-            let size = [image.width() as usize, image.height() as usize];
-            let pixels = render::hillshade::render(&image, encoding, &hillshades, tile_id, zoom);
+        Decoded::Elevation(_) if hillshades.is_empty() => Err(UNSHADED),
+        Decoded::Elevation(heights) => {
+            let size = [heights.width(), heights.height()];
+            let pixels = render::hillshade::render(&heights, &hillshades, tile_id, zoom);
             Ok(Styled::Image(ColorImage::new(size, pixels)))
         }
     }
@@ -249,7 +261,7 @@ fn apply(
 ) -> Result<Styled, TileError> {
     match decoded {
         Decoded::Image(image) => Ok(Styled::Image(color_image(&image, 1.0))),
-        Decoded::Elevation { .. } => Err(UNSHADED),
+        Decoded::Elevation(_) => Err(UNSHADED),
     }
 }
 
@@ -310,7 +322,7 @@ fn warn_on_error(result: Result<(), render::Error>) {
 #[cfg(all(test, feature = "vector"))]
 mod tests {
     use super::*;
-    use crate::render::hillshade::tests::ramp;
+    use crate::{DemEncoding, render::hillshade::tests::ramp};
 
     fn style(layers: serde_json::Value) -> Style {
         serde_json::from_value(serde_json::json!({ "layers": layers })).unwrap()
@@ -323,10 +335,10 @@ mod tests {
     };
 
     fn elevation() -> Decoded {
-        Decoded::Elevation {
-            image: ramp(0.0, 20.0),
-            encoding: DemEncoding::Terrarium,
-        }
+        Decoded::Elevation(Heights::from_image(
+            &ramp(0.0, 20.0),
+            DemEncoding::Terrarium,
+        ))
     }
 
     #[test]
@@ -365,6 +377,71 @@ mod tests {
             .is_err()
         );
         assert!(apply(image(), &Style::default(), 0..1, TILE, TILE.zoom, 256).is_ok());
+    }
+
+    fn elevation_data() -> SourceData {
+        let mut png = Vec::new();
+        ramp(0.0, 20.0)
+            .write_to(&mut std::io::Cursor::new(&mut png), image::ImageFormat::Png)
+            .unwrap();
+        SourceData::Elevation {
+            data: png.into(),
+            encoding: DemEncoding::Terrarium,
+        }
+    }
+
+    const ZOOMED_IN: TileId = TileId {
+        x: 4454,
+        y: 2751,
+        zoom: 13,
+    };
+
+    #[test]
+    fn line_layers_draw_contour_lines_of_elevation() {
+        let style = style(serde_json::json!([
+            { "type": "line", "source-layer": "contours", "paint": { "line-color": "red" } }
+        ]));
+
+        let Ok(Styled::Vector { drawables, .. }) = apply_style(
+            &elevation_data(),
+            &style,
+            0..1,
+            ZOOMED_IN,
+            ZOOMED_IN.zoom,
+            256,
+        ) else {
+            panic!("expected lines");
+        };
+        let lines: usize = drawables
+            .iter()
+            .map(|drawable| match drawable {
+                Drawable::Lines(lines) => lines.len(),
+                Drawable::Fill(_) => 0,
+            })
+            .sum();
+        // 1000 to 1300 meters, every 20.
+        assert_eq!(lines, 16);
+    }
+
+    /// Unless a layer draws contour lines, elevation is shaded.
+    #[test]
+    fn hillshade_layers_shade_elevation_when_no_layer_draws_contour_lines() {
+        let style = style(serde_json::json!([
+            { "type": "hillshade" },
+            { "type": "line", "source-layer": "roads", "paint": {} }
+        ]));
+
+        assert!(matches!(
+            apply_style(
+                &elevation_data(),
+                &style,
+                0..2,
+                ZOOMED_IN,
+                ZOOMED_IN.zoom,
+                256
+            ),
+            Ok(Styled::Image(_))
+        ));
     }
 
     #[test]
