@@ -20,7 +20,7 @@ pub(crate) const TILE_SIZE: u32 = 256;
 
 /// Highest zoom level a [`TileId`] can have. Above this, the number of tiles no longer fits
 /// in the `u32` used for the tile coordinates.
-const MAX_TILE_ZOOM: u8 = 31;
+pub(crate) const MAX_TILE_ZOOM: u8 = 31;
 
 /// How many zoom levels a source with `source_tile_size` tiles is off from the 256px grid
 /// Walkers uses internally. Positive for larger tiles, negative for smaller ones.

@@ -22,13 +22,18 @@ mod style {
 
     impl Style {
         /// It has no layers.
-        pub(crate) fn layer_sources(&self) -> impl ExactSizeIterator<Item = Option<&str>> {
+        pub(crate) fn layer_sources(
+            &self,
+        ) -> impl ExactSizeIterator<Item = (Option<&str>, Option<crate::styled_sources::Drawn>)>
+        {
             std::iter::empty()
         }
     }
 }
 
 mod egui_backend;
+#[cfg(feature = "vector")]
+mod elevation;
 
 #[cfg(feature = "vector")]
 mod expression;
@@ -47,6 +52,8 @@ pub use canvas::Canvas;
 pub use canvas::Drawables;
 #[cfg(feature = "vector")]
 pub use egui_backend::wgpu::install_renderer;
+#[cfg(feature = "vector")]
+pub use elevation::Elevation;
 #[cfg(feature = "vector")]
 pub use expression::Context;
 pub use geo_types;
@@ -68,6 +75,8 @@ pub use render::{
 };
 pub use style::Style;
 #[cfg(feature = "vector")]
+pub use style::waymark::{Palette, Waymark};
+#[cfg(feature = "vector")]
 pub use style::{
     Color, Dasharray, Filter, Float, Layout, Paint, SourceLayer, StyleLayer, Value,
     exponential_zoom_interpolation, json, linear_zoom_interpolation,
@@ -78,7 +87,9 @@ pub use text::{Anchor, Placement, Text, place_texts};
 pub use tiles::http::{HttpSource, HttpTiles};
 #[cfg(feature = "pmtiles")]
 pub use tiles::pmtiles::{PmTiles, PmTilesSource};
-pub use tiles::source::{DemEncoding, SourceData, TileData, TiledSource};
+#[cfg(feature = "vector")]
+pub use tiles::source::DemEncoding;
+pub use tiles::source::{SourceData, TileData, TiledSource};
 pub use tiles::{Tile, TileId, TilePiece, Tiles};
 pub use z_order::ZOrder;
 pub use zoom::InvalidZoom;

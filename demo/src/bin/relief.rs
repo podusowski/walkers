@@ -1,5 +1,5 @@
-//! Mapterhorn's elevation shaded into relief, over OpenFreeMap's dark style, with the hillshade's
-//! paint at hand to play with.
+//! Mapterhorn's elevation shaded into relief, and traced into contour lines, over OpenFreeMap's
+//! dark style, with the hillshade's paint at hand to play with.
 //!
 //! ```text
 //! cargo run --release -p demo --bin relief --features mvt
@@ -7,8 +7,8 @@
 
 use egui::{Align2, Color32, Slider, Ui, Window, color_picker::Alpha};
 use walkers::{
-    Color, DemEncoding, Float, HttpOptions, HttpSource, Map, MapMemory, Paint, Position, Style,
-    StyleLayer, StyledSources, json, lon_lat,
+    Color, DemEncoding, Float, HttpOptions, HttpSource, Map, MapMemory, Palette, Position, Style,
+    StyleLayer, StyledSources, Waymark, json, lon_lat,
     sources::{Mapterhorn, OpenFreeMap},
 };
 
@@ -19,9 +19,11 @@ fn start() -> Position {
 
 const STARTING_ZOOM: f64 = 12.0;
 
-/// The hillshade's paint, as the window edits it.
+/// The hillshade's paint, and whether there are contour lines, as the window edits them.
 #[derive(Clone, PartialEq)]
 struct Relief {
+    contours: bool,
+    contour_color: Color32,
     exaggeration: f32,
     /// Where the light comes from, in degrees clockwise from the north.
     illumination_direction: f32,
@@ -34,6 +36,8 @@ struct Relief {
 impl Default for Relief {
     fn default() -> Self {
         Self {
+            contours: true,
+            contour_color: Color32::from_rgb(51, 68, 51),
             exaggeration: 0.5,
             illumination_direction: 335.0,
             shadow: Color32::BLACK,
@@ -45,23 +49,28 @@ impl Default for Relief {
 
 impl Relief {
     fn style(&self) -> Style {
-        let mut style = Style::openmaptiles_basemap_dark();
-        style.layers.insert(
-            ground(&style),
-            StyleLayer::Hillshade {
-                source: Some("terrain".to_owned()),
-                paint: Paint {
-                    hillshade_exaggeration: Some(Float(json!(self.exaggeration))),
-                    hillshade_illumination_direction: Some(Float(json!(
-                        self.illumination_direction
-                    ))),
-                    hillshade_shadow_color: Some(color(self.shadow)),
-                    hillshade_highlight_color: Some(color(self.highlight)),
-                    hillshade_accent_color: Some(color(self.accent)),
-                    ..Default::default()
-                },
-            },
-        );
+        let mut waymark = Waymark::new(Palette {
+            contour: color(self.contour_color),
+            contour_label: color(self.contour_color.gamma_multiply(0.8)),
+            hillshade_shadow: color(self.shadow),
+            hillshade_highlight: color(self.highlight),
+            hillshade_accent: color(self.accent),
+            ..Palette::dark()
+        })
+        .hillshade("terrain");
+        if self.contours {
+            waymark = waymark.contours("terrain");
+        }
+        let mut style = waymark.build();
+
+        // Not colors, so not in the palette.
+        for layer in &mut style.layers {
+            if let StyleLayer::Hillshade { paint, .. } = layer {
+                paint.hillshade_exaggeration = Some(Float(json!(self.exaggeration)));
+                paint.hillshade_illumination_direction =
+                    Some(Float(json!(self.illumination_direction)));
+            }
+        }
 
         style
     }
@@ -71,6 +80,20 @@ impl Relief {
         let before = self.clone();
 
         egui::Grid::new("relief").num_columns(2).show(ui, |ui| {
+            ui.label("Contour lines");
+            ui.checkbox(&mut self.contours, "");
+            ui.end_row();
+
+            ui.label("Contour color");
+            ui.add_enabled_ui(self.contours, |ui| {
+                egui::color_picker::color_edit_button_srgba(
+                    ui,
+                    &mut self.contour_color,
+                    Alpha::Opaque,
+                );
+            });
+            ui.end_row();
+
             ui.label("Exaggeration");
             ui.add(Slider::new(&mut self.exaggeration, 0.0..=1.0));
             ui.end_row();
@@ -102,18 +125,6 @@ impl Relief {
 fn color(color: Color32) -> Color {
     let [r, g, b, a] = color.to_srgba_unmultiplied();
     Color(json!(format!("rgba({r}, {g}, {b}, {})", a as f32 / 255.0)))
-}
-
-/// Where layers go to be over land and water, but under everything else.
-fn ground(style: &Style) -> usize {
-    style
-        .layers
-        .iter()
-        .rposition(|layer| {
-            matches!(layer, StyleLayer::Fill { source_layer, .. }
-                if source_layer.matches("landuse") || source_layer.matches("water"))
-        })
-        .map_or(0, |index| index + 1)
 }
 
 struct ReliefDemo {

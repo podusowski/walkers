@@ -3,7 +3,7 @@ use egui::Context;
 use walkers::PmTilesSource;
 #[cfg(feature = "mvt")]
 use walkers::{
-    DemEncoding,
+    DemEncoding, Palette, Waymark,
     sources::{Mapterhorn, OpenFreeMap},
 };
 use walkers::{
@@ -81,14 +81,12 @@ fn add_raster_basemaps(basemaps: &mut Basemaps) {
 fn add_openfreemap_basemaps(basemaps: &mut Basemaps) {
     let styles = [
         ("OpenFreeMap", Style::openfreemap_bright as fn() -> Style),
-        (
-            "OpenFreeMap (Walkers light)",
-            Style::openmaptiles_basemap_light,
-        ),
-        (
-            "OpenFreeMap (Walkers dark)",
-            Style::openmaptiles_basemap_dark,
-        ),
+        ("OpenFreeMap (Walkers light)", || {
+            Waymark::new(Palette::light()).build()
+        }),
+        ("OpenFreeMap (Walkers dark)", || {
+            Waymark::new(Palette::dark()).build()
+        }),
     ];
 
     for (name, style) in styles {
@@ -100,10 +98,10 @@ fn add_openfreemap_basemaps(basemaps: &mut Basemaps) {
 
     basemaps.add("OpenFreeMap over Geoportal", hybrid);
     basemaps.add("OpenFreeMap with relief (Walkers light)", |ctx| {
-        relief(Style::openmaptiles_basemap_light(), ctx)
+        relief(Palette::light(), ctx)
     });
     basemaps.add("OpenFreeMap with relief (Walkers dark)", |ctx| {
-        relief(Style::openmaptiles_basemap_dark(), ctx)
+        relief(Palette::dark(), ctx)
     });
 
     basemaps.select("OpenFreeMap (Walkers dark)");
@@ -113,7 +111,7 @@ fn add_openfreemap_basemaps(basemaps: &mut Basemaps) {
 /// drawing from two sources.
 #[cfg(feature = "mvt")]
 fn hybrid(ctx: &Context) -> StyledSources {
-    let mut style = Style::openmaptiles_basemap_light();
+    let mut style = Waymark::new(Palette::light()).build();
     style
         .layers
         .insert(ground(&style), raster_layer("geoportal", 1.0));
@@ -123,17 +121,14 @@ fn hybrid(ctx: &Context) -> StyledSources {
         .with_tiled_source("geoportal", http(Geoportal, ctx))
 }
 
-/// OpenFreeMap drawn with `style`, and Mapterhorn's elevation shaded into relief between its land
-/// and its roads.
+/// OpenFreeMap drawn in the colors of `palette`, and Mapterhorn's elevation shaded into relief and traced into
+/// contour lines.
 #[cfg(feature = "mvt")]
-fn relief(mut style: Style, ctx: &Context) -> StyledSources {
-    style.layers.insert(
-        ground(&style),
-        StyleLayer::Hillshade {
-            source: Some("terrain".to_owned()),
-            paint: Paint::default(),
-        },
-    );
+fn relief(palette: Palette, ctx: &Context) -> StyledSources {
+    let style = Waymark::new(palette)
+        .hillshade("terrain")
+        .contours("terrain")
+        .build();
 
     StyledSources::new(style, ctx.to_owned())
         .with_tiled_source("openmaptiles", http(OpenFreeMap, ctx))
@@ -164,9 +159,9 @@ fn add_pmtiles_basemaps(basemaps: &mut Basemaps) {
     let styles = [
         (
             " (Walkers light)",
-            Style::openmaptiles_basemap_light as fn() -> Style,
+            (|| Waymark::new(Palette::light()).build()) as fn() -> Style,
         ),
-        (" (Walkers dark)", Style::openmaptiles_basemap_dark),
+        (" (Walkers dark)", || Waymark::new(Palette::dark()).build()),
         (" (OpenFreeMap)", Style::openfreemap_bright),
         (" (Protomaps Dark)", Style::protomaps_dark),
         (" (Protomaps Dark Vis)", Style::protomaps_dark_vis),

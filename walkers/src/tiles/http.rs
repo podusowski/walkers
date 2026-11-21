@@ -2,12 +2,14 @@ use bytes::Bytes;
 use egui::Context;
 use reqwest_middleware::ClientWithMiddleware;
 
+#[cfg(feature = "vector")]
+use crate::DemEncoding;
 use crate::io::Fetch;
 use crate::io::http::http_client;
 use crate::io::tiles_io::TilesIo;
 use crate::sources::{Attribution, TileUrls};
 use crate::style::Style;
-use crate::{DemEncoding, HttpOptions, StyledSources, TileData, TilePiece, TiledSource, Tiles};
+use crate::{HttpOptions, StyledSources, TileData, TilePiece, TiledSource, Tiles};
 use crate::{Stats, TileId};
 
 /// Downloads the tiles via HTTP, and draws them with a style. A [`StyledSources`] with a single
@@ -78,7 +80,8 @@ impl HttpSource {
         }
     }
 
-    /// Tiles are elevation, packed as `encoding` says, for a `hillshade` style layer to draw.
+    /// Tiles are elevation, packed as `encoding` says.
+    #[cfg(feature = "vector")]
     pub fn with_elevation(mut self, encoding: DemEncoding) -> Self {
         self.io = self.io.with_elevation(encoding);
         self

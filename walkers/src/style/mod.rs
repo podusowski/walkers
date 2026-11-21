@@ -1,5 +1,5 @@
-pub mod basemap;
 mod third_party;
+pub mod waymark;
 
 use color::Rgba8;
 use egui::Color32;
@@ -8,7 +8,7 @@ use serde::Deserialize;
 pub use serde_json::{Value, json};
 use thiserror::Error;
 
-use crate::expression::Context;
+use crate::{expression::Context, styled_sources::Drawn};
 
 /// Style for rendering vector maps.
 ///
@@ -36,9 +36,13 @@ impl Default for Style {
 }
 
 impl Style {
-    /// Name of the source each layer draws from, if it says.
-    pub(crate) fn layer_sources(&self) -> impl ExactSizeIterator<Item = Option<&str>> {
-        self.layers.iter().map(StyleLayer::source)
+    /// Name of the source each layer draws from, if it says, and what it draws.
+    pub(crate) fn layer_sources(
+        &self,
+    ) -> impl ExactSizeIterator<Item = (Option<&str>, Option<Drawn>)> {
+        self.layers
+            .iter()
+            .map(|layer| (layer.source(), layer.drawn()))
     }
 }
 
@@ -157,6 +161,22 @@ pub enum StyleLayer {
         #[serde(default)]
         paint: Paint,
     },
+    /// Contour lines of elevation, labelled where `layout` has a `text-field`, and left out where
+    /// `line-opacity` is 0.
+    ///
+    /// Each elevation is one feature, with `ele` in meters, and `level`, which is 1 for major lines
+    /// and 0 for the others. By the zoom level of the elevation tiles, they are 200 meters apart at
+    /// zoom 9, every 1000 major, down to 5 meters from zoom 16, every 25 major, and there are none
+    /// below zoom 9.
+    #[serde(rename_all = "kebab-case")]
+    Contour {
+        #[serde(default)]
+        source: Option<String>,
+        filter: Option<Filter>,
+        #[serde(default)]
+        layout: Layout,
+        paint: Option<Paint>,
+    },
     /// Draws raster tiles as they are.
     Raster {
         #[serde(default)]
@@ -177,8 +197,18 @@ impl StyleLayer {
             | StyleLayer::Symbol { source, .. }
             | StyleLayer::Circle { source, .. }
             | StyleLayer::Hillshade { source, .. }
+            | StyleLayer::Contour { source, .. }
             | StyleLayer::Raster { source, .. } => source.as_deref(),
             StyleLayer::FillExtrusion => None,
+        }
+    }
+
+    /// What the layer makes of elevation, if anything.
+    fn drawn(&self) -> Option<Drawn> {
+        match self {
+            StyleLayer::Hillshade { .. } => Some(Drawn::Relief),
+            StyleLayer::Contour { .. } => Some(Drawn::Contours),
+            _ => None,
         }
     }
 }
@@ -227,8 +257,14 @@ enum StyleError {
     Parsing(#[from] color::ParseError),
 }
 
-#[derive(Deserialize, Debug)]
+#[derive(Deserialize, Debug, Clone)]
 pub struct Color(pub Value);
+
+impl From<&str> for Color {
+    fn from(css: &str) -> Self {
+        Self(Value::String(css.to_owned()))
+    }
+}
 
 impl Color {
     pub fn evaluate(&self, context: &Context) -> Color32 {

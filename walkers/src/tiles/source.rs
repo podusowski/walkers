@@ -11,8 +11,8 @@ pub enum SourceData {
     /// enabled. Which one it is, is told by the data itself.
     Encoded(Bytes),
 
-    /// A raster image whose pixels are elevation, packed as `encoding` says. A `hillshade` style
-    /// layer draws it.
+    /// A raster image whose pixels are elevation, packed as `encoding` says.
+    #[cfg(feature = "vector")]
     Elevation { data: Bytes, encoding: DemEncoding },
 }
 
@@ -31,11 +31,24 @@ pub enum TileData {
 /// How elevation is packed into the pixels of a raster image.
 ///
 /// <https://maplibre.org/maplibre-style-spec/sources/#encoding>
+#[cfg(feature = "vector")]
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum DemEncoding {
     /// Mapbox Terrain-RGB.
     Mapbox,
     Terrarium,
+}
+
+#[cfg(feature = "vector")]
+impl DemEncoding {
+    /// Elevation, in meters, packed into a pixel's red, green, blue and alpha.
+    pub fn decode(self, [r, g, b, _]: [u8; 4]) -> f32 {
+        let (r, g, b) = (r as f32, g as f32, b as f32);
+        match self {
+            DemEncoding::Mapbox => (r * 65536.0 + g * 256.0 + b) * 0.1 - 10000.0,
+            DemEncoding::Terrarium => r * 256.0 + g + b / 256.0 - 32768.0,
+        }
+    }
 }
 
 /// Source of tiles' data, such as a tile server or a PMTiles file. It knows nothing about how the
@@ -60,5 +73,18 @@ pub trait TiledSource {
     /// Tiles being loaded right now.
     fn stats(&self) -> Stats {
         Stats::default()
+    }
+}
+
+#[cfg(all(test, feature = "vector"))]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn elevation_is_unpacked_from_either_encoding() {
+        assert_eq!(DemEncoding::Terrarium.decode([128, 0, 0, 255]), 0.0);
+        assert_eq!(DemEncoding::Terrarium.decode([131, 232, 128, 255]), 1000.5);
+        assert_eq!(DemEncoding::Mapbox.decode([1, 134, 160, 255]), 0.0);
+        assert_eq!(DemEncoding::Mapbox.decode([1, 173, 176, 255]), 1000.0);
     }
 }

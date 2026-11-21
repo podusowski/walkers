@@ -2,8 +2,8 @@ use std::path::{Path, PathBuf};
 
 use egui::{Align2, Color32, ComboBox, Image, Key, PointerButton, RichText, Ui, Window};
 use walkers::{
-    HttpOptions, HttpSource, Map, MapMemory, PmTilesSource, Position, Style, StyledSources,
-    lon_lat, sources,
+    HttpOptions, HttpSource, Map, MapMemory, Palette, PmTilesSource, Position, Style,
+    StyledSources, Waymark, lon_lat, sources,
 };
 use walkers_extras::{
     Basemaps, GroupedPlaces, LabeledSymbol, LabeledSymbolGroup, LabeledSymbolGroupStyle,
@@ -42,14 +42,14 @@ fn basemaps(egui_ctx: egui::Context) -> Basemaps {
     basemaps.add("OpenFreeMap (light)", |ctx| {
         http(
             sources::OpenFreeMap,
-            Style::openmaptiles_basemap_light(),
+            Waymark::new(Palette::light()).build(),
             ctx,
         )
     });
     basemaps.add("OpenFreeMap (dark)", |ctx| {
         http(
             sources::OpenFreeMap,
-            Style::openmaptiles_basemap_dark(),
+            Waymark::new(Palette::dark()).build(),
             ctx,
         )
     });
@@ -63,12 +63,12 @@ fn basemaps(egui_ctx: egui::Context) -> Basemaps {
 
         let light = path.to_owned();
         basemaps.add(format!("{name} (light)"), move |ctx| {
-            pmtiles(&light, Style::openmaptiles_basemap_light(), ctx)
+            pmtiles(&light, Waymark::new(Palette::light()).build(), ctx)
         });
 
         let dark = path.to_owned();
         basemaps.add(format!("{name} (dark)"), move |ctx| {
-            pmtiles(&dark, Style::openmaptiles_basemap_dark(), ctx)
+            pmtiles(&dark, Waymark::new(Palette::dark()).build(), ctx)
         });
     }
 

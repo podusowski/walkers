@@ -7,31 +7,26 @@ use std::collections::HashMap;
 use std::f32::consts::PI;
 
 use ecolor::Color32;
-use image::RgbaImage;
 
 use crate::{
-    DemEncoding, TileId,
+    TileId,
     expression::Context,
     style::{Color, Float, Paint},
+    tiles::heights::Heights,
 };
 
 const EARTH_CIRCUMFERENCE: f32 = 40_075_016.686;
 
-/// Shade the elevation `image` of `tile_id` with each of `paints`, the later ones on top, as they
-/// are at `zoom`. Pixels come out premultiplied, row by row.
+/// Shade the `heights` of `tile_id` with each of `paints`, the later ones on top, as they are at
+/// `zoom`. Pixels come out premultiplied, row by row.
 pub(crate) fn render(
-    image: &RgbaImage,
-    encoding: DemEncoding,
+    heights: &Heights,
     paints: &[&Paint],
     tile_id: TileId,
     zoom: u8,
 ) -> Vec<Color32> {
-    let (width, height) = (image.width() as usize, image.height() as usize);
-    let elevations: Vec<f32> = image
-        .pixels()
-        .map(|pixel| elevation(encoding, pixel.0))
-        .collect();
-    let slopes = slopes(&elevations, width, height, tile_id.zoom);
+    let (width, height) = (heights.width(), heights.height());
+    let slopes = slopes(heights.values(), width, height, tile_id.zoom);
     let mut shaded = vec![[0.0; 4]; width * height];
 
     for paint in paints {
@@ -60,15 +55,6 @@ pub(crate) fn render(
             Color32::from_rgba_premultiplied(channel(r), channel(g), channel(b), channel(a))
         })
         .collect()
-}
-
-/// In meters.
-fn elevation(encoding: DemEncoding, [r, g, b, _]: [u8; 4]) -> f32 {
-    let (r, g, b) = (r as f32, g as f32, b as f32);
-    match encoding {
-        DemEncoding::Mapbox => (r * 65536.0 + g * 256.0 + b) * 0.1 - 10000.0,
-        DemEncoding::Terrarium => r * 256.0 + g + b / 256.0 - 32768.0,
-    }
 }
 
 /// How steeply the ground rises east and south of each pixel. The tiles around are not at hand,
@@ -231,15 +217,9 @@ fn over(top: [f32; 4], bottom: [f32; 4]) -> [f32; 4] {
 #[cfg(test)]
 pub(crate) mod tests {
     use super::*;
+    use crate::{DemEncoding, tiles::heights::tests::terrarium};
+    use image::RgbaImage;
     use serde_json::json;
-
-    fn terrarium(meters: f32) -> image::Rgba<u8> {
-        let value = meters + 32768.0;
-        let r = (value / 256.0).floor();
-        let g = (value - r * 256.0).floor();
-        let b = ((value - r * 256.0 - g) * 256.0).floor();
-        image::Rgba([r as u8, g as u8, b as u8, 255])
-    }
 
     const TILE: TileId = TileId {
         x: 2240,
@@ -255,7 +235,8 @@ pub(crate) mod tests {
     }
 
     fn shade(image: &RgbaImage, paint: &Paint) -> Vec<Color32> {
-        render(image, DemEncoding::Terrarium, &[paint], TILE, TILE.zoom)
+        let heights = Heights::from_image(image, DemEncoding::Terrarium);
+        render(&heights, &[paint], TILE, TILE.zoom)
     }
 
     fn middle(pixels: &[Color32]) -> Color32 {
@@ -265,17 +246,6 @@ pub(crate) mod tests {
     /// Brightness of shading which is black and white, given how opaque white is.
     fn brightness(color: Color32) -> f32 {
         color.r() as f32 / color.a().max(1) as f32
-    }
-
-    #[test]
-    fn elevation_is_unpacked_from_either_encoding() {
-        assert_eq!(elevation(DemEncoding::Terrarium, [128, 0, 0, 255]), 0.0);
-        assert_eq!(
-            elevation(DemEncoding::Terrarium, [131, 232, 128, 255]),
-            1000.5
-        );
-        assert_eq!(elevation(DemEncoding::Mapbox, [1, 134, 160, 255]), 0.0);
-        assert_eq!(elevation(DemEncoding::Mapbox, [1, 173, 176, 255]), 1000.0);
     }
 
     #[test]

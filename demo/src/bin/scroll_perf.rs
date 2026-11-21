@@ -10,7 +10,9 @@ use std::collections::VecDeque;
 use std::time::Instant;
 
 use egui::{Align2, Key, Window};
-use walkers::{HttpOptions, HttpTiles, Map, MapMemory, Position, Style, Tiles, lon_lat, sources};
+use walkers::{
+    HttpOptions, HttpTiles, Map, MapMemory, Palette, Position, Tiles, Waymark, lon_lat, sources,
+};
 
 /// Wrocław, which has enough going on to be worth drawing.
 fn start() -> Position {
@@ -84,7 +86,7 @@ impl ScrollPerf {
             Some(path) => (
                 Box::new(walkers::PmTiles::with_style(
                     &path,
-                    Style::openmaptiles_basemap_light(),
+                    Waymark::new(Palette::light()).build(),
                     egui_ctx,
                 )),
                 path,
@@ -93,7 +95,7 @@ impl ScrollPerf {
                 Box::new(HttpTiles::with_options_and_style(
                     sources::OpenFreeMap,
                     HttpOptions::default(),
-                    Style::openmaptiles_basemap_light(),
+                    Waymark::new(Palette::light()).build(),
                     egui_ctx,
                 )),
                 "OpenFreeMap".to_owned(),

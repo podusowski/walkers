@@ -7,14 +7,16 @@ use egui::ColorImage;
 use image::{ImageReader, RgbaImage};
 
 use super::TileError;
-use crate::{DemEncoding, SourceData, TileId, style::Style};
+#[cfg(feature = "vector")]
+use super::heights::Heights;
+use crate::{SourceData, TileId, style::Style};
 
 #[cfg(feature = "vector")]
 use crate::{
     Drawable,
     expression::Context,
     render::{self, Geometry},
-    style::{Filter, Paint, SourceLayer, StyleLayer},
+    style::{Filter, Layout, Paint, SourceLayer, StyleLayer},
     text::Text,
 };
 
@@ -25,11 +27,8 @@ pub(crate) enum Decoded {
     #[cfg_attr(not(feature = "mvt"), allow(dead_code))]
     Features(Vec<FeatureLayer>),
     Image(RgbaImage),
-    #[cfg_attr(not(feature = "vector"), allow(dead_code))]
-    Elevation {
-        image: RgbaImage,
-        encoding: DemEncoding,
-    },
+    #[cfg(feature = "vector")]
+    Elevation(Heights),
 }
 
 /// Features of a layer of a vector tile, in the tile's pixels.
@@ -73,10 +72,10 @@ fn decode(
 ) -> Result<Decoded, TileError> {
     match data {
         SourceData::Encoded(bytes) => decode_encoded(bytes, style, layers, zoom, tile_size),
-        SourceData::Elevation { data, encoding } => Ok(Decoded::Elevation {
-            image: image::load_from_memory(data)?.to_rgba8(),
-            encoding: *encoding,
-        }),
+        #[cfg(feature = "vector")]
+        SourceData::Elevation { data, encoding } => {
+            Ok(Decoded::Elevation(Heights::decode(data, *encoding)?))
+        }
     }
 }
 
@@ -140,6 +139,9 @@ fn apply(
     let mut texts = Vec::new();
     let mut hillshades = Vec::new();
     let mut raster_opacity = None;
+
+    // Traced by the first contour layer, for all of them.
+    let mut contours = None;
 
     // Indices stay those of the whole style, as they decide which labels win.
     for (index, layer) in layers.clone().zip(&style.layers[layers]) {
@@ -206,8 +208,30 @@ fn apply(
             (StyleLayer::Raster { paint, .. }, Decoded::Image(_)) => {
                 raster_opacity.get_or_insert(opacity(paint, zoom));
             }
-            (StyleLayer::Hillshade { paint, .. }, Decoded::Elevation { .. }) => {
+            (StyleLayer::Hillshade { paint, .. }, Decoded::Elevation(_)) => {
                 hillshades.push(paint);
+            }
+            (
+                StyleLayer::Contour {
+                    filter,
+                    layout,
+                    paint,
+                    ..
+                },
+                Decoded::Elevation(heights),
+            ) => {
+                let lines = contours.get_or_insert_with(|| {
+                    super::contours::features(heights, tile_id.zoom, zoom, tile_size)
+                });
+                draw_contours(
+                    lines,
+                    filter.as_ref(),
+                    layout,
+                    paint,
+                    index,
+                    &mut drawables,
+                    &mut texts,
+                );
             }
             // Layers of other kinds of data, which a single source draws every layer of.
             _ => {}
@@ -225,17 +249,61 @@ fn apply(
                 "only a raster style layer draws an image",
             )),
         },
-        Decoded::Elevation { .. } if hillshades.is_empty() => Err(UNSHADED),
-        Decoded::Elevation { image, encoding } => {
-            let size = [image.width() as usize, image.height() as usize];
-            let pixels = render::hillshade::render(&image, encoding, &hillshades, tile_id, zoom);
+        // Hillshade and contour layers are styled apart, so it is never both.
+        Decoded::Elevation(heights) if !hillshades.is_empty() => {
+            let size = [heights.width(), heights.height()];
+            let pixels = render::hillshade::render(&heights, &hillshades, tile_id, zoom);
             Ok(Styled::Image(ColorImage::new(size, pixels)))
+        }
+        Decoded::Elevation(_) if contours.is_some() => Ok(Styled::Vector {
+            drawables: render::merge_runs(drawables),
+            texts,
+        }),
+        Decoded::Elevation(_) => Err(UNDRAWN_ELEVATION),
+    }
+}
+
+/// Contour `lines` which `filter` lets through, drawn and labelled as a contour layer at `index`
+/// says.
+#[cfg(feature = "vector")]
+fn draw_contours(
+    lines: &[(Geometry<f32>, Context)],
+    filter: Option<&Filter>,
+    layout: &Layout,
+    paint: &Option<Paint>,
+    index: usize,
+    drawables: &mut Vec<Drawable>,
+    texts: &mut Vec<Text>,
+) {
+    let default = Paint::default();
+    let line_paint = paint.as_ref().unwrap_or(&default);
+
+    for (geometry, context) in lines
+        .iter()
+        .filter(|(_, context)| filter.is_none_or(|filter| filter.matches(context)))
+    {
+        // Leaving only the labels.
+        let hidden = line_paint
+            .line_opacity
+            .as_ref()
+            .is_some_and(|opacity| opacity.evaluate(context) <= 0.0);
+        if !hidden {
+            warn_on_error(render::line::render(
+                geometry, context, line_paint, drawables,
+            ));
+        }
+
+        if layout.text_field.is_some() {
+            warn_on_error(render::symbol::render(
+                geometry, context, texts, layout, paint, None, index,
+            ));
         }
     }
 }
 
-const UNSHADED: TileError =
-    TileError::Unstyled("elevation is drawn only by a hillshade style layer");
+#[cfg(feature = "vector")]
+const UNDRAWN_ELEVATION: TileError =
+    TileError::Unstyled("elevation is drawn only by hillshade and contour style layers");
 
 /// Without the `vector` feature, a style has no layers, and images are drawn as they are.
 #[cfg(not(feature = "vector"))]
@@ -249,7 +317,6 @@ fn apply(
 ) -> Result<Styled, TileError> {
     match decoded {
         Decoded::Image(image) => Ok(Styled::Image(color_image(&image, 1.0))),
-        Decoded::Elevation { .. } => Err(UNSHADED),
     }
 }
 
@@ -310,7 +377,7 @@ fn warn_on_error(result: Result<(), render::Error>) {
 #[cfg(all(test, feature = "vector"))]
 mod tests {
     use super::*;
-    use crate::render::hillshade::tests::ramp;
+    use crate::{DemEncoding, render::hillshade::tests::ramp};
 
     fn style(layers: serde_json::Value) -> Style {
         serde_json::from_value(serde_json::json!({ "layers": layers })).unwrap()
@@ -323,10 +390,10 @@ mod tests {
     };
 
     fn elevation() -> Decoded {
-        Decoded::Elevation {
-            image: ramp(0.0, 20.0),
-            encoding: DemEncoding::Terrarium,
-        }
+        Decoded::Elevation(Heights::from_image(
+            &ramp(0.0, 20.0),
+            DemEncoding::Terrarium,
+        ))
     }
 
     #[test]
@@ -365,6 +432,100 @@ mod tests {
             .is_err()
         );
         assert!(apply(image(), &Style::default(), 0..1, TILE, TILE.zoom, 256).is_ok());
+    }
+
+    fn elevation_data() -> SourceData {
+        let mut png = Vec::new();
+        ramp(0.0, 20.0)
+            .write_to(&mut std::io::Cursor::new(&mut png), image::ImageFormat::Png)
+            .unwrap();
+        SourceData::Elevation {
+            data: png.into(),
+            encoding: DemEncoding::Terrarium,
+        }
+    }
+
+    const ZOOMED_IN: TileId = TileId {
+        x: 4454,
+        y: 2751,
+        zoom: 13,
+    };
+
+    /// How many lines and labels `layers` draw of elevation rising from 990 to 1310 meters.
+    fn contoured(layers: serde_json::Value) -> Result<(usize, usize), TileError> {
+        let style = style(layers);
+        match apply_style(
+            &elevation_data(),
+            &style,
+            0..style.layers.len(),
+            ZOOMED_IN,
+            ZOOMED_IN.zoom,
+            256,
+        )? {
+            Styled::Vector { drawables, texts } => {
+                let lines = drawables
+                    .iter()
+                    .map(|drawable| match drawable {
+                        Drawable::Lines(lines) => lines.len(),
+                        Drawable::Fill(_) => 0,
+                    })
+                    .sum();
+                Ok((lines, texts.len()))
+            }
+            Styled::Image(_) => panic!("expected lines"),
+        }
+    }
+
+    #[test]
+    fn contour_layers_draw_contour_lines_of_elevation() {
+        let drawn = contoured(serde_json::json!([
+            { "type": "contour", "paint": { "line-color": "red" } }
+        ]));
+        // 1000 to 1300 meters, every 20.
+        assert_eq!(drawn.unwrap(), (16, 0));
+    }
+
+    #[test]
+    fn major_contour_lines_are_told_apart() {
+        let drawn = contoured(serde_json::json!([
+            { "type": "contour", "filter": ["==", ["get", "level"], 1] }
+        ]));
+        // Every 100 meters.
+        assert_eq!(drawn.unwrap(), (4, 0));
+    }
+
+    #[test]
+    fn contour_lines_are_labelled_with_a_text_field() {
+        let drawn = contoured(serde_json::json!([
+            {
+                "type": "contour",
+                "layout": { "text-field": ["to-string", ["get", "ele"]] }
+            }
+        ]));
+        assert_eq!(drawn.unwrap(), (16, 16));
+    }
+
+    #[test]
+    fn contour_lines_which_are_not_opaque_at_all_leave_only_labels() {
+        let drawn = contoured(serde_json::json!([
+            { "type": "contour", "paint": { "line-color": "red" } },
+            {
+                "type": "contour",
+                "filter": ["==", ["get", "level"], 1],
+                "layout": { "text-field": ["to-string", ["get", "ele"]] },
+                "paint": { "line-opacity": 0 }
+            }
+        ]));
+        assert_eq!(drawn.unwrap(), (16, 4));
+    }
+
+    /// Only a contour layer makes lines of elevation, whatever source layer a line layer names.
+    #[test]
+    fn line_layers_draw_nothing_of_elevation() {
+        let drawn = contoured(serde_json::json!([
+            { "type": "line", "source-layer": "contours", "paint": {} }
+        ]));
+        assert!(drawn.is_err());
     }
 
     #[test]

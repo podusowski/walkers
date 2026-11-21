@@ -1,5 +1,7 @@
+#[cfg(feature = "vector")]
+use crate::DemEncoding;
 use crate::{
-    DemEncoding, Stats, StyledSources, TileData, TileId, TilePiece, TiledSource, Tiles,
+    Stats, StyledSources, TileData, TileId, TilePiece, TiledSource, Tiles,
     io::{Fetch, tiles_io::TilesIo},
     sources::Attribution,
     style::Style,
@@ -88,7 +90,8 @@ impl PmTilesSource {
         }
     }
 
-    /// Tiles are elevation, packed as `encoding` says, for a `hillshade` style layer to draw.
+    /// Tiles are elevation, packed as `encoding` says.
+    #[cfg(feature = "vector")]
     pub fn with_elevation(mut self, encoding: DemEncoding) -> Self {
         self.io = self.io.with_elevation(encoding);
         self

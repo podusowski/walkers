@@ -12,7 +12,7 @@ use std::hint::black_box;
 
 use criterion::{Criterion, criterion_group, criterion_main};
 use egui::vec2;
-use walkers::{Style, Text, Tile, place_texts};
+use walkers::{Palette, Text, Tile, Waymark, place_texts};
 
 const OPENMAPTILES_TILE: &[u8] = include_bytes!("wroclaw-14-8967-5477-openmaptiles.mvt");
 const ZOOM: u8 = 14;
@@ -28,7 +28,7 @@ fn context() -> egui::Context {
 
 /// The tile's labels, repeated over `n` × `n` tiles.
 fn labels(n: usize) -> Vec<Text> {
-    let style = Style::openmaptiles_basemap_dark();
+    let style = Waymark::new(Palette::dark()).build();
     let Tile::Vector { texts, .. } =
         Tile::from_mvt(OPENMAPTILES_TILE, &style, ZOOM, TILE_SIZE).unwrap()
     else {

@@ -21,7 +21,7 @@
 use std::hint::black_box;
 
 use criterion::{Criterion, criterion_group, criterion_main};
-use walkers::{Style, Tile};
+use walkers::{Palette, Style, Tile, Waymark};
 
 const TILE: &[u8] = include_bytes!("wroclaw-14-8967-5477.mvt");
 const OPENMAPTILES_TILE: &[u8] = include_bytes!("wroclaw-14-8967-5477-openmaptiles.mvt");
@@ -37,7 +37,7 @@ fn decode_mvt(c: &mut Criterion) {
     });
 
     group.bench_function("openmaptiles light", |b| {
-        let style = Style::openmaptiles_basemap_light();
+        let style = Waymark::new(Palette::light()).build();
         b.iter(|| Tile::from_mvt(black_box(OPENMAPTILES_TILE), &style, ZOOM, TILE_SIZE).unwrap())
     });
 
