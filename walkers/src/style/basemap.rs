@@ -109,7 +109,7 @@ const DARK: Palette = Palette {
     water: "#161e31",
     water_label: "#134164",
     water_label_halo: "#0d1526",
-    station: "#7fb3d9",
+    station: "#98b07a",
     peak: "#b59a6a",
 };
 
@@ -136,7 +136,7 @@ const LIGHT: Palette = Palette {
     water: "#88b2e2",
     water_label: "#2f6690",
     water_label_halo: "#ffffff",
-    station: "#2b6ca3",
+    station: "#3f5934",
     peak: "#6b5330",
 };
 
