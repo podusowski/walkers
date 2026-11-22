@@ -40,6 +40,17 @@ playground and can change or break at any time without an entry here.
   ramps each in their own way, and mark peaks, motorway exits, stations, and tram and bus stops
   with a symbol. Peaks show their height.
 * Fix railway stations missing from Walkers' own basemap styles, and ramps drawn twice.
+* Symbol layers support `icon-image`, `icon-size`, `icon-color`, `icon-halo-color` and
+  `icon-halo-width`, for Walkers' own one-coloured icons, such as `peak` or `bus`, which
+  `lookup_icon_outline` lists. Icons of a sprite are not drawn. An icon and the text of its label
+  are placed together or not at all. `Text` has an `icon`, and `Layout` and `Paint` have fields for them, so ones built
+  without `..Default::default()` have to name them.
+* Walkers' own basemap styles mark peaks, motorway exits, stations, and tram and bus stops with
+  icons rather than emoji, which were drawn only with some fonts, in their own colours — the peak's
+  not at all with egui's.
+* Walkers' own basemap styles mark airports with a plane, named under it, from zoom 10. Only those
+  with an IATA code are marked, not every airfield. Hospitals are marked with a plus from zoom 14,
+  clinics and nursing homes not.
 
 ## 0.65.0
 

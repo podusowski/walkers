@@ -3,6 +3,8 @@
 
 mod canvas;
 mod center;
+#[cfg(feature = "vector")]
+mod icon;
 mod io;
 mod layer;
 mod map;
@@ -50,6 +52,8 @@ pub use egui_backend::wgpu::install_renderer;
 #[cfg(feature = "vector")]
 pub use expression::Context;
 pub use geo_types;
+#[cfg(feature = "vector")]
+pub use icon::{Icon, IconOutline, lookup_icon_outline};
 pub use io::tiles_io::Stats;
 pub use io::{HeaderValue, MaxParallelDownloads, http::HttpOptions};
 pub use layer::Layer;

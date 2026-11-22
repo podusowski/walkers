@@ -84,6 +84,7 @@ struct Palette {
     water_label_halo: &'static str,
     station: &'static str,
     peak: &'static str,
+    hospital: &'static str,
 }
 
 const DARK: Palette = Palette {
@@ -111,6 +112,7 @@ const DARK: Palette = Palette {
     water_label_halo: "#0d1526",
     station: "#98b07a",
     peak: "#b59a6a",
+    hospital: "#c47c7c",
 };
 
 const LIGHT: Palette = Palette {
@@ -138,6 +140,7 @@ const LIGHT: Palette = Palette {
     water_label_halo: "#ffffff",
     station: "#3f5934",
     peak: "#6b5330",
+    hospital: "#8f2f2f",
 };
 
 /// OpenMapTiles spreads land use over three layers.
@@ -163,6 +166,11 @@ const HALO_WIDTH: f64 = 1.0;
 const SMALL_TEXT: f64 = 10.0;
 const TEXT: f64 = 12.0;
 const LARGE_TEXT: f64 = 14.0;
+
+/// `icon-size` of an icon standing for its feature as a label of `TEXT` would, such as a peak.
+const ICON: f64 = 1.0;
+/// `icon-size` of an icon among `SMALL_TEXT` labels, such as a bus stop.
+const SMALL_ICON: f64 = SMALL_TEXT / TEXT;
 
 fn road_width(factor: f64) -> Float {
     exponential_zoom_interpolation(1.6, &ROAD_WIDTH.map(|(zoom, width)| (zoom, width * factor)))
@@ -837,31 +845,15 @@ fn build(palette: &Palette) -> Style {
                 ..Default::default()
             }),
         },
-        // roads_labels_junction_symbol, motorway exits
+        // roads_labels_junction, motorway exits marked with an arrow, named under it
         StyleLayer::Symbol {
             source: Some(SOURCE.into()),
             source_layer: "transportation_name".into(),
             minzoom: None,
             filter: Some(Filter(json!(["==", "subclass", "junction"]))),
             layout: Layout {
-                text_field: Some(json!("⬈")),
-                text_size: Some(Float(json!(TEXT))),
-                ..Default::default()
-            },
-            paint: Some(Paint {
-                text_color: Some(Color(json!(palette.label))),
-                text_halo_color: Some(Color(json!(palette.background))),
-                text_halo_width: Some(Float(json!(HALO_WIDTH))),
-                ..Default::default()
-            }),
-        },
-        // roads_labels_junction, named under the symbol
-        StyleLayer::Symbol {
-            source: Some(SOURCE.into()),
-            source_layer: "transportation_name".into(),
-            minzoom: None,
-            filter: Some(Filter(json!(["==", "subclass", "junction"]))),
-            layout: Layout {
+                icon_image: Some(json!("exit")),
+                icon_size: Some(Float(json!(ICON))),
                 text_field: Some(json!(["get", "name"])),
                 text_size: Some(Float(json!(SMALL_TEXT))),
                 text_anchor: Some(json!("top")),
@@ -869,6 +861,9 @@ fn build(palette: &Palette) -> Style {
                 ..Default::default()
             },
             paint: Some(Paint {
+                icon_color: Some(Color(json!(palette.label))),
+                icon_halo_color: Some(Color(json!(palette.background))),
+                icon_halo_width: Some(Float(json!(HALO_WIDTH))),
                 text_color: Some(Color(json!(palette.label))),
                 text_halo_color: Some(Color(json!(palette.background))),
                 text_halo_width: Some(Float(json!(HALO_WIDTH))),
@@ -893,6 +888,67 @@ fn build(palette: &Palette) -> Style {
             paint: Some(Paint {
                 text_color: Some(Color(json!(palette.label))),
                 text_halo_color: Some(Color(json!(palette.background))),
+                text_halo_width: Some(Float(json!(HALO_WIDTH))),
+                ..Default::default()
+            }),
+        },
+        // hospitals, marked with a plus, named under it
+        StyleLayer::Symbol {
+            source: Some(SOURCE.into()),
+            source_layer: "poi".into(),
+            minzoom: Some(14.0),
+            filter: Some(Filter(json!([
+                "all",
+                ["==", "class", "hospital"],
+                ["==", "subclass", "hospital"]
+            ]))),
+            layout: Layout {
+                icon_image: Some(json!("hospital")),
+                icon_size: Some(Float(json!(ICON))),
+                text_field: Some(json!(["get", "name"])),
+                text_size: Some(Float(json!(TEXT))),
+                text_anchor: Some(json!("top")),
+                text_offset: Some(json!([0, 0.8])),
+                ..Default::default()
+            },
+            paint: Some(Paint {
+                icon_color: Some(Color(json!(palette.hospital))),
+                icon_halo_color: Some(Color(json!(palette.casing))),
+                icon_halo_width: Some(Float(json!(HALO_WIDTH))),
+                text_color: Some(Color(json!(palette.hospital))),
+                text_halo_color: Some(Color(json!(palette.casing))),
+                text_halo_width: Some(Float(json!(HALO_WIDTH))),
+                ..Default::default()
+            }),
+        },
+        // peaks, marked with a mountain, named under it
+        StyleLayer::Symbol {
+            source: Some(SOURCE.into()),
+            source_layer: "mountain_peak".into(),
+            minzoom: None,
+            filter: Some(Filter(json!(["in", "class", "peak", "volcano"]))),
+            layout: Layout {
+                icon_image: Some(json!("peak")),
+                icon_size: Some(Float(json!(ICON))),
+                text_field: Some(json!([
+                    "case",
+                    ["!has", "ele"],
+                    ["get", "name"],
+                    ["!has", "name"],
+                    ["concat", ["get", "ele"], " m"],
+                    ["concat", ["get", "name"], "\n", ["get", "ele"], " m"]
+                ])),
+                text_size: Some(Float(json!(TEXT))),
+                text_anchor: Some(json!("top")),
+                text_offset: Some(json!([0, 0.7])),
+                ..Default::default()
+            },
+            paint: Some(Paint {
+                icon_color: Some(Color(json!(palette.peak))),
+                icon_halo_color: Some(Color(json!(palette.casing))),
+                icon_halo_width: Some(Float(json!(HALO_WIDTH))),
+                text_color: Some(Color(json!(palette.peak))),
+                text_halo_color: Some(Color(json!(palette.casing))),
                 text_halo_width: Some(Float(json!(HALO_WIDTH))),
                 ..Default::default()
             }),
@@ -985,7 +1041,32 @@ fn build(palette: &Palette) -> Style {
                 ..Default::default()
             }),
         },
-        // stations_symbol
+        // airports, marked with a plane, named under it
+        StyleLayer::Symbol {
+            source: Some(SOURCE.into()),
+            source_layer: "aerodrome_label".into(),
+            minzoom: Some(10.0),
+            filter: Some(Filter(json!(["has", "iata"]))),
+            layout: Layout {
+                icon_image: Some(json!("airport")),
+                icon_size: Some(Float(json!(ICON))),
+                text_field: Some(json!(["get", "name"])),
+                text_size: Some(Float(json!(TEXT))),
+                text_anchor: Some(json!("top")),
+                text_offset: Some(json!([0, 0.8])),
+                ..Default::default()
+            },
+            paint: Some(Paint {
+                icon_color: Some(Color(json!(palette.station))),
+                icon_halo_color: Some(Color(json!(palette.casing))),
+                icon_halo_width: Some(Float(json!(HALO_WIDTH))),
+                text_color: Some(Color(json!(palette.station))),
+                text_halo_color: Some(Color(json!(palette.casing))),
+                text_halo_width: Some(Float(json!(HALO_WIDTH))),
+                ..Default::default()
+            }),
+        },
+        // stations, marked with a train, named under it
         StyleLayer::Symbol {
             source: Some(SOURCE.into()),
             source_layer: "poi".into(),
@@ -996,28 +1077,8 @@ fn build(palette: &Palette) -> Style {
                 ["in", "subclass", "station", "halt"]
             ]))),
             layout: Layout {
-                text_field: Some(json!("🚆")),
-                text_size: Some(Float(json!(TEXT))),
-                ..Default::default()
-            },
-            paint: Some(Paint {
-                text_color: Some(Color(json!(palette.station))),
-                text_halo_color: Some(Color(json!(palette.casing))),
-                text_halo_width: Some(Float(json!(HALO_WIDTH))),
-                ..Default::default()
-            }),
-        },
-        // stations, named under the symbol
-        StyleLayer::Symbol {
-            source: Some(SOURCE.into()),
-            source_layer: "poi".into(),
-            minzoom: None,
-            filter: Some(Filter(json!([
-                "all",
-                ["==", "class", "railway"],
-                ["in", "subclass", "station", "halt"]
-            ]))),
-            layout: Layout {
+                icon_image: Some(json!("train")),
+                icon_size: Some(Float(json!(ICON))),
                 text_field: Some(json!(["get", "name"])),
                 text_size: Some(Float(json!(TEXT))),
                 text_anchor: Some(json!("top")),
@@ -1025,13 +1086,16 @@ fn build(palette: &Palette) -> Style {
                 ..Default::default()
             },
             paint: Some(Paint {
+                icon_color: Some(Color(json!(palette.station))),
+                icon_halo_color: Some(Color(json!(palette.casing))),
+                icon_halo_width: Some(Float(json!(HALO_WIDTH))),
                 text_color: Some(Color(json!(palette.station))),
                 text_halo_color: Some(Color(json!(palette.casing))),
                 text_halo_width: Some(Float(json!(HALO_WIDTH))),
                 ..Default::default()
             }),
         },
-        // tram_stops_symbol
+        // tram_stops, marked with a tram, named under it
         StyleLayer::Symbol {
             source: Some(SOURCE.into()),
             source_layer: "poi".into(),
@@ -1042,28 +1106,8 @@ fn build(palette: &Palette) -> Style {
                 ["==", "subclass", "tram_stop"]
             ]))),
             layout: Layout {
-                text_field: Some(json!("🚊")),
-                text_size: Some(Float(json!(SMALL_TEXT))),
-                ..Default::default()
-            },
-            paint: Some(Paint {
-                text_color: Some(Color(json!(palette.station))),
-                text_halo_color: Some(Color(json!(palette.casing))),
-                text_halo_width: Some(Float(json!(HALO_WIDTH))),
-                ..Default::default()
-            }),
-        },
-        // tram_stops, named under the symbol
-        StyleLayer::Symbol {
-            source: Some(SOURCE.into()),
-            source_layer: "poi".into(),
-            minzoom: Some(16.0),
-            filter: Some(Filter(json!([
-                "all",
-                ["==", "class", "railway"],
-                ["==", "subclass", "tram_stop"]
-            ]))),
-            layout: Layout {
+                icon_image: Some(json!("tram")),
+                icon_size: Some(Float(json!(SMALL_ICON))),
                 text_field: Some(json!(["get", "name"])),
                 text_size: Some(Float(json!(SMALL_TEXT))),
                 text_anchor: Some(json!("top")),
@@ -1071,37 +1115,24 @@ fn build(palette: &Palette) -> Style {
                 ..Default::default()
             },
             paint: Some(Paint {
+                icon_color: Some(Color(json!(palette.station))),
+                icon_halo_color: Some(Color(json!(palette.casing))),
+                icon_halo_width: Some(Float(json!(HALO_WIDTH))),
                 text_color: Some(Color(json!(palette.station))),
                 text_halo_color: Some(Color(json!(palette.casing))),
                 text_halo_width: Some(Float(json!(HALO_WIDTH))),
                 ..Default::default()
             }),
         },
-        // bus_stops_symbol
+        // bus_stops, marked with a bus, named under it
         StyleLayer::Symbol {
             source: Some(SOURCE.into()),
             source_layer: "poi".into(),
             minzoom: Some(16.0),
             filter: Some(Filter(json!(["==", "class", "bus"]))),
             layout: Layout {
-                text_field: Some(json!("🚌")),
-                text_size: Some(Float(json!(SMALL_TEXT))),
-                ..Default::default()
-            },
-            paint: Some(Paint {
-                text_color: Some(Color(json!(palette.station))),
-                text_halo_color: Some(Color(json!(palette.casing))),
-                text_halo_width: Some(Float(json!(HALO_WIDTH))),
-                ..Default::default()
-            }),
-        },
-        // bus_stops, named under the symbol
-        StyleLayer::Symbol {
-            source: Some(SOURCE.into()),
-            source_layer: "poi".into(),
-            minzoom: Some(16.0),
-            filter: Some(Filter(json!(["==", "class", "bus"]))),
-            layout: Layout {
+                icon_image: Some(json!("bus")),
+                icon_size: Some(Float(json!(SMALL_ICON))),
                 text_field: Some(json!(["get", "name"])),
                 text_size: Some(Float(json!(SMALL_TEXT))),
                 text_anchor: Some(json!("top")),
@@ -1109,52 +1140,10 @@ fn build(palette: &Palette) -> Style {
                 ..Default::default()
             },
             paint: Some(Paint {
+                icon_color: Some(Color(json!(palette.station))),
+                icon_halo_color: Some(Color(json!(palette.casing))),
+                icon_halo_width: Some(Float(json!(HALO_WIDTH))),
                 text_color: Some(Color(json!(palette.station))),
-                text_halo_color: Some(Color(json!(palette.casing))),
-                text_halo_width: Some(Float(json!(HALO_WIDTH))),
-                ..Default::default()
-            }),
-        },
-        // peaks_symbol, on the peak itself
-        StyleLayer::Symbol {
-            source: Some(SOURCE.into()),
-            source_layer: "mountain_peak".into(),
-            minzoom: None,
-            filter: Some(Filter(json!(["in", "class", "peak", "volcano"]))),
-            layout: Layout {
-                text_field: Some(json!("⛰")),
-                text_size: Some(Float(json!(TEXT))),
-                ..Default::default()
-            },
-            paint: Some(Paint {
-                text_color: Some(Color(json!(palette.peak))),
-                text_halo_color: Some(Color(json!(palette.casing))),
-                text_halo_width: Some(Float(json!(HALO_WIDTH))),
-                ..Default::default()
-            }),
-        },
-        // peaks, named under the symbol
-        StyleLayer::Symbol {
-            source: Some(SOURCE.into()),
-            source_layer: "mountain_peak".into(),
-            minzoom: None,
-            filter: Some(Filter(json!(["in", "class", "peak", "volcano"]))),
-            layout: Layout {
-                text_field: Some(json!([
-                    "case",
-                    ["!has", "ele"],
-                    ["get", "name"],
-                    ["!has", "name"],
-                    ["concat", ["get", "ele"], " m"],
-                    ["concat", ["get", "name"], "\n", ["get", "ele"], " m"]
-                ])),
-                text_size: Some(Float(json!(TEXT))),
-                text_anchor: Some(json!("top")),
-                text_offset: Some(json!([0, 0.7])),
-                ..Default::default()
-            },
-            paint: Some(Paint {
-                text_color: Some(Color(json!(palette.peak))),
                 text_halo_color: Some(Color(json!(palette.casing))),
                 text_halo_width: Some(Float(json!(HALO_WIDTH))),
                 ..Default::default()
@@ -1169,6 +1158,7 @@ fn build(palette: &Palette) -> Style {
 mod tests {
     use super::*;
     use crate::expression::Context;
+    use egui::Color32;
     use serde_json::Value;
     use std::collections::HashMap;
 
@@ -1445,6 +1435,207 @@ mod tests {
                 _ => None,
             })
             .collect()
+    }
+
+    fn both_basemaps() -> [Style; 2] {
+        [
+            Style::openmaptiles_basemap_light(),
+            Style::openmaptiles_basemap_dark(),
+        ]
+    }
+
+    fn symbol_layouts(style: &Style) -> impl Iterator<Item = &Layout> {
+        style.layers.iter().filter_map(|layer| match layer {
+            StyleLayer::Symbol { layout, .. } => Some(layout),
+            _ => None,
+        })
+    }
+
+    #[test]
+    fn every_icon_the_basemaps_name_is_built_in() {
+        for style in both_basemaps() {
+            let names: Vec<_> = symbol_layouts(&style)
+                .filter_map(|layout| layout.icon_image.as_ref())
+                .collect();
+
+            assert!(!names.is_empty());
+            for name in names {
+                assert!(
+                    name.as_str().and_then(crate::lookup_icon_outline).is_some(),
+                    "no icon {name}"
+                );
+            }
+        }
+    }
+
+    /// A symbol written as text, such as ⛰, is drawn only if the app's fonts have it, and egui's
+    /// own did not. Symbols are icons instead.
+    #[test]
+    fn every_literal_text_of_the_basemaps_has_a_glyph_in_eguis_own_fonts() {
+        let ctx = egui::Context::default();
+        let font_id = egui::FontId::proportional(TEXT as f32);
+        let mut output = ctx.run_ui(egui::RawInput::default(), |_| {});
+        output.textures_delta.clear();
+
+        for style in both_basemaps() {
+            for text in
+                symbol_layouts(&style).filter_map(|layout| layout.text_field.as_ref()?.as_str())
+            {
+                for c in text.chars() {
+                    assert!(
+                        ctx.fonts_mut(|fonts| fonts.has_glyph(&font_id, c)),
+                        "{c:?} (U+{:04X}) of {text:?}",
+                        c as u32
+                    );
+                }
+            }
+        }
+    }
+
+    /// What each layer marking a feature of `source_layer` draws for it: its icon and its text,
+    /// and the colour of each.
+    fn marks(
+        style: &Style,
+        source_layer: &str,
+        properties: Value,
+        zoom: u8,
+    ) -> Vec<(Option<&'static str>, Option<String>, Color32, Color32)> {
+        let context = Context::new(
+            "Point".to_owned(),
+            serde_json::from_value(properties).unwrap(),
+            zoom,
+        );
+
+        style
+            .layers
+            .iter()
+            .filter_map(|layer| match layer {
+                StyleLayer::Symbol {
+                    source_layer: layer_source_layer,
+                    minzoom,
+                    filter,
+                    layout,
+                    paint,
+                    ..
+                } if layer_source_layer.matches(source_layer)
+                    && minzoom.is_none_or(|minzoom| f32::from(zoom) >= minzoom)
+                    && filter
+                        .as_ref()
+                        .is_none_or(|filter| filter.matches(&context)) =>
+                {
+                    let paint = paint.as_ref()?;
+                    Some((
+                        layout.icon_image(&context).map(|outline| outline.name()),
+                        layout.text(&context),
+                        paint.icon_color.as_ref()?.evaluate(&context),
+                        paint.text_color.as_ref()?.evaluate(&context),
+                    ))
+                }
+                _ => None,
+            })
+            .collect()
+    }
+
+    #[test]
+    fn a_peak_is_marked_with_a_mountain_in_the_colour_of_its_name() {
+        let marks = marks(
+            &Style::openmaptiles_basemap_light(),
+            "mountain_peak",
+            json!({"class": "peak", "name": "Ślęża", "ele": 718}),
+            12,
+        );
+
+        let [(icon, text, icon_color, text_color)] = marks.as_slice() else {
+            panic!("expected one layer marking the peak, got {marks:?}");
+        };
+        assert_eq!(*icon, Some("peak"));
+        assert_eq!(text.as_deref(), Some("Ślęża\n718 m"));
+        assert_eq!(icon_color, text_color);
+    }
+
+    #[test]
+    fn an_airport_is_marked_with_a_plane_in_the_colour_of_its_name() {
+        let marks = marks(
+            &Style::openmaptiles_basemap_light(),
+            "aerodrome_label",
+            json!({"class": "international", "name": "Port Lotniczy Wrocław", "iata": "WRO"}),
+            10,
+        );
+
+        let [(icon, text, icon_color, text_color)] = marks.as_slice() else {
+            panic!("expected one layer marking the airport, got {marks:?}");
+        };
+        assert_eq!(*icon, Some("airport"));
+        assert_eq!(text.as_deref(), Some("Port Lotniczy Wrocław"));
+        assert_eq!(icon_color, text_color);
+    }
+
+    /// OpenMapTiles has every airfield, gliding clubs' and private strips included. Only the ones
+    /// airlines fly to have an IATA code.
+    #[test]
+    fn an_airfield_without_an_iata_code_is_not_marked() {
+        let marks = marks(
+            &Style::openmaptiles_basemap_light(),
+            "aerodrome_label",
+            json!({"class": "private", "name": "Lotnisko Szymanów"}),
+            12,
+        );
+
+        assert!(marks.is_empty(), "{marks:?}");
+    }
+
+    /// Before then, the airport would only crowd the names of the towns around it.
+    #[test]
+    fn an_airport_is_marked_from_zoom_10() {
+        let airport =
+            json!({"class": "international", "name": "Port Lotniczy Wrocław", "iata": "WRO"});
+        let style = Style::openmaptiles_basemap_light();
+
+        assert!(marks(&style, "aerodrome_label", airport.clone(), 9).is_empty());
+        assert_eq!(marks(&style, "aerodrome_label", airport, 10).len(), 1);
+    }
+
+    #[test]
+    fn a_hospital_is_marked_with_a_plus_in_the_colour_of_its_name() {
+        let marks = marks(
+            &Style::openmaptiles_basemap_light(),
+            "poi",
+            json!({"class": "hospital", "subclass": "hospital", "name": "Szpital Wojewódzki"}),
+            14,
+        );
+
+        let [(icon, text, icon_color, text_color)] = marks.as_slice() else {
+            panic!("expected one layer marking the hospital, got {marks:?}");
+        };
+        assert_eq!(*icon, Some("hospital"));
+        assert_eq!(text.as_deref(), Some("Szpital Wojewódzki"));
+        assert_eq!(icon_color, text_color);
+    }
+
+    /// OpenMapTiles puts clinics and nursing homes in the `hospital` class too, and one marked as
+    /// a hospital would send someone there who needs one.
+    #[test]
+    fn a_clinic_or_nursing_home_is_not_marked_as_a_hospital() {
+        let style = Style::openmaptiles_basemap_light();
+
+        for subclass in ["clinic", "nursing_home"] {
+            let marks = marks(
+                &style,
+                "poi",
+                json!({"class": "hospital", "subclass": subclass, "name": "Przychodnia"}),
+                16,
+            );
+            assert!(marks.is_empty(), "{subclass}: {marks:?}");
+        }
+    }
+
+    #[test]
+    fn a_hospital_is_marked_from_zoom_14() {
+        let hospital = json!({"class": "hospital", "subclass": "hospital", "name": "Szpital"});
+        let style = Style::openmaptiles_basemap_light();
+
+        assert!(marks(&style, "poi", hospital.clone(), 13).is_empty());
+        assert_eq!(marks(&style, "poi", hospital, 14).len(), 1);
     }
 
     /// OpenMapTiles has railway stations as a `railway` with a `station` subclass. The style

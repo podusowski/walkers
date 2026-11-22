@@ -111,6 +111,9 @@ impl From<&[&str]> for SourceLayer {
 /// When there is only one source, every layer draws from it, whatever it names.
 #[derive(Deserialize, Debug)]
 #[serde(tag = "type", rename_all = "kebab-case")]
+// A style holds a few dozen layers, made once, so their size does not matter, while boxing the
+// layout of a symbol would make every style written in Rust say so.
+#[allow(clippy::large_enum_variant)]
 pub enum StyleLayer {
     Background {
         #[serde(default)]
@@ -203,6 +206,12 @@ pub struct Paint {
     pub text_halo_color: Option<Color>,
     /// <https://maplibre.org/maplibre-style-spec/layers/>#text-halo-width
     pub text_halo_width: Option<Float>,
+    /// <https://maplibre.org/maplibre-style-spec/layers/>#icon-color
+    pub icon_color: Option<Color>,
+    /// <https://maplibre.org/maplibre-style-spec/layers/>#icon-halo-color
+    pub icon_halo_color: Option<Color>,
+    /// <https://maplibre.org/maplibre-style-spec/layers/>#icon-halo-width
+    pub icon_halo_width: Option<Float>,
     /// <https://maplibre.org/maplibre-style-spec/layers/>#raster-opacity
     pub raster_opacity: Option<Float>,
     /// <https://maplibre.org/maplibre-style-spec/layers/>#hillshade-illumination-direction
@@ -355,6 +364,12 @@ pub struct Layout {
     pub text_padding: Option<Float>,
     pub text_anchor: Option<Value>,
     pub text_offset: Option<Value>,
+    /// One of Walkers' own icons, by its name, as [`crate::lookup_icon_outline`] has them. Walkers reads no sprites, so an
+    /// icon of a sprite is not drawn, while its text still is.
+    pub icon_image: Option<Value>,
+    /// <https://maplibre.org/maplibre-style-spec/layers/>#icon-size, a factor of
+    /// [`crate::Icon::SIZE`].
+    pub icon_size: Option<Float>,
 }
 
 impl Layout {
@@ -365,6 +380,23 @@ impl Layout {
                 Ok(Value::String(s)) => Some(s),
                 _ => None,
             })
+    }
+
+    pub fn icon_image(&self, context: &Context) -> Option<&'static crate::IconOutline> {
+        let name = match context.evaluate(self.icon_image.as_ref()?) {
+            Ok(Value::String(name)) => name,
+            other => {
+                warn!("Expected icon image to evaluate to a string, got: {other:?}");
+                return None;
+            }
+        };
+
+        let outline = crate::lookup_icon_outline(&name);
+        if outline.is_none() {
+            // Every style made for MapLibre names icons of its sprite, which is no mistake.
+            log::debug!("Walkers has no icon '{name}'.");
+        }
+        outline
     }
 
     pub fn anchor(&self, context: &Context) -> crate::text::Anchor {

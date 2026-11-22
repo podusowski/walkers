@@ -4,8 +4,9 @@ use log::warn;
 
 use crate::{
     expression::Context,
+    icon::{Icon, IconOutline},
     render::{Error, Geometry, Line},
-    style::{Layout, Paint},
+    style::{Color, Float, Layout, Paint},
     text::{Placement, Text},
 };
 
@@ -70,13 +71,19 @@ fn label_points(
     layer: usize,
     texts: &mut Vec<Text>,
 ) {
-    let Some(text) = layout.text(context) else {
+    let icon = layout
+        .icon_image(context)
+        .map(|outline| evaluate_icon(outline, layout, paint, context));
+    let text = layout.text(context);
+
+    if icon.is_none() && text.is_none() {
         return;
-    };
+    }
+    let text = text.unwrap_or_default();
 
     let text_size = evaluate_text_size(layout, context);
     let text_color = evaluate_text_color(paint, context);
-    let (halo_color, halo_width) = evaluate_halo(paint, context);
+    let (halo_color, halo_width) = evaluate_text_halo(paint, context);
     let padding = evaluate_text_padding(layout, context);
     let anchor = layout.anchor(context);
     let offset = layout.offset(context) * text_size;
@@ -88,7 +95,34 @@ fn label_points(
             .with_layer(layer)
             .with_padding(padding)
             .with_anchor(anchor, offset)
+            .with_icon(icon)
     }))
+}
+
+fn evaluate_icon(
+    outline: &'static IconOutline,
+    layout: &Layout,
+    paint: &Option<Paint>,
+    context: &Context,
+) -> Icon {
+    let size = layout
+        .icon_size
+        .as_ref()
+        // Default from MapLibre spec.
+        .map_or(1.0, |size| size.evaluate(context))
+        * Icon::SIZE;
+    let Some(paint) = paint else {
+        // Default from MapLibre spec.
+        return Icon::new(outline, size, Color32::BLACK);
+    };
+    let color = paint
+        .icon_color
+        .as_ref()
+        .map_or(Color32::BLACK, |color| color.evaluate(context));
+    let (halo_color, halo_width) =
+        evaluate_halo(&paint.icon_halo_color, &paint.icon_halo_width, context);
+
+    Icon::new(outline, size, color).with_halo(halo_color, halo_width)
 }
 
 /// Put labels on top of lines.
@@ -107,7 +141,7 @@ fn label_line_strings(
 
     let text_size = evaluate_text_size(layout, context);
     let text_color = evaluate_text_color(paint, context);
-    let (halo_color, halo_width) = evaluate_halo(paint, context);
+    let (halo_color, halo_width) = evaluate_text_halo(paint, context);
     let padding = evaluate_text_padding(layout, context);
 
     for line_string in line_strings {
@@ -166,22 +200,26 @@ fn evaluate_text_size(layout: &Layout, context: &Context) -> f32 {
 }
 
 /// A halo is only drawn where the style asks for one; the spec has no width by default.
-fn evaluate_halo(paint: &Option<Paint>, context: &Context) -> (Color32, f32) {
-    let Some(paint) = paint else {
+fn evaluate_halo(
+    color: &Option<Color>,
+    width: &Option<Float>,
+    context: &Context,
+) -> (Color32, f32) {
+    let Some(color) = color else {
         return (Color32::TRANSPARENT, 0.0);
     };
 
-    let color = match &paint.text_halo_color {
-        Some(color) => color.evaluate(context),
-        None => return (Color32::TRANSPARENT, 0.0),
-    };
+    (
+        color.evaluate(context),
+        width.as_ref().map_or(0.0, |width| width.evaluate(context)),
+    )
+}
 
-    let width = match &paint.text_halo_width {
-        Some(width) => width.evaluate(context),
-        None => 0.0,
-    };
-
-    (color, width)
+fn evaluate_text_halo(paint: &Option<Paint>, context: &Context) -> (Color32, f32) {
+    match paint {
+        Some(paint) => evaluate_halo(&paint.text_halo_color, &paint.text_halo_width, context),
+        None => (Color32::TRANSPARENT, 0.0),
+    }
 }
 
 fn evaluate_text_color(paint: &Option<Paint>, context: &Context) -> Color32 {
@@ -310,6 +348,75 @@ mod tests {
             }
             other => panic!("expected a single label, got {other:?}"),
         }
+    }
+
+    fn point_labels(layout: serde_json::Value, paint: serde_json::Value) -> Vec<Text> {
+        let point = Geometry::Point(geo_types::Point::new(1.0, 2.0));
+        let context = Context::new("Point".to_string(), HashMap::new(), 12);
+        let layout: Layout = serde_json::from_value(layout).unwrap();
+        let paint: Paint = serde_json::from_value(paint).unwrap();
+
+        let mut texts = Vec::new();
+        render(&point, &context, &mut texts, &layout, &Some(paint), None, 0).unwrap();
+        texts
+    }
+
+    /// Such as a peak with neither a name nor a height.
+    #[test]
+    fn a_point_with_an_icon_and_no_text_is_marked() {
+        let texts = point_labels(
+            crate::style::json!({"icon-image": "peak", "icon-size": 2}),
+            crate::style::json!({
+                "icon-color": "#ff0000",
+                "icon-halo-color": "#ffffff",
+                "icon-halo-width": 1.5
+            }),
+        );
+
+        match texts.as_slice() {
+            [text] => {
+                assert_eq!(text.text, "");
+                assert_eq!(
+                    text.icon,
+                    Some(
+                        Icon::new(
+                            crate::lookup_icon_outline("peak").unwrap(),
+                            2.0 * Icon::SIZE,
+                            Color32::RED,
+                        )
+                        .with_halo(Color32::WHITE, 1.5)
+                    )
+                );
+            }
+            other => panic!("expected a single label, got {other:?}"),
+        }
+    }
+
+    /// A style made for MapLibre names the icons of its sprite, which Walkers does not read.
+    #[test]
+    fn an_icon_walkers_does_not_have_leaves_the_text() {
+        let texts = point_labels(
+            crate::style::json!({"icon-image": "mountain_11", "text-field": "Ślęża"}),
+            crate::style::json!({}),
+        );
+
+        match texts.as_slice() {
+            [text] => {
+                assert_eq!(text.text, "Ślęża");
+                assert_eq!(text.icon, None);
+            }
+            other => panic!("expected a single label, got {other:?}"),
+        }
+    }
+
+    #[test]
+    fn an_icon_walkers_does_not_have_and_no_text_is_nothing() {
+        let texts = point_labels(
+            crate::style::json!({"icon-image": "mountain_11"}),
+            crate::style::json!({}),
+        );
+
+        assert!(texts.is_empty(), "{texts:?}");
     }
 
     /// Labels are placed on the geometry, not at the origin.

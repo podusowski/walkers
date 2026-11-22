@@ -35,6 +35,11 @@ serde = { workspace = true, optional = true }
 serde_json = { workspace = true, optional = true }
 thiserror.workspace = true
 
+# Only for the icons, which `vector` draws.
+[build-dependencies]
+lyon_tessellation = { workspace = true, optional = true }
+usvg = { workspace = true, optional = true }
+
 [dev-dependencies]
 approx.workspace = true
 criterion.workspace = true
@@ -76,6 +81,7 @@ vector = [
   "dep:egui-wgpu",
   "dep:serde",
   "dep:serde_json",
+  "dep:usvg",
   "egui/bytemuck"
 ]
 # Decoding Mapbox Vector Tiles, and drawing them.

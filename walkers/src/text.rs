@@ -1,5 +1,8 @@
 use egui::{Color32, Pos2, Rect, Shape, Vec2, vec2};
 use std::collections::HashMap;
+use std::sync::Arc;
+
+use crate::icon::Icon;
 
 /// What the label names, which decides whether it may be said again nearby. Mirrors MapLibre's
 /// `symbol-placement`.
@@ -75,6 +78,9 @@ pub struct Text {
     pub max_width: Option<f32>,
     pub anchor: Anchor,
     pub offset: Vec2,
+    /// Drawn centred on `position`, with the text placed from there as without it. The two are
+    /// placed together, or neither is. With an icon, an empty text is no text at all.
+    pub icon: Option<Icon>,
 }
 
 impl Text {
@@ -100,6 +106,7 @@ impl Text {
             max_width: None,
             anchor: Anchor::Center,
             offset: Vec2::ZERO,
+            icon: None,
         }
     }
 
@@ -137,6 +144,11 @@ impl Text {
     pub fn with_anchor(mut self, anchor: Anchor, offset: Vec2) -> Self {
         self.anchor = anchor;
         self.offset = offset;
+        self
+    }
+
+    pub fn with_icon(mut self, icon: Option<Icon>) -> Self {
+        self.icon = icon;
         self
     }
 }
@@ -280,16 +292,74 @@ impl PlacedTexts {
     }
 }
 
-/// Lay the text out, unless it repeats a nearby one or would land on an area which is already
+/// Lay the label out, unless it repeats a nearby one or would land on an area which is already
 /// taken.
 fn place_text(text: Text, ctx: &egui::Context, placed_texts: &mut PlacedTexts) -> Shape {
-    use egui::epaint::TextShape;
-
     // Before laying it out, which is the expensive part.
     if placed_texts.already_placed_nearby(&text) {
         return Shape::Noop;
     }
 
+    // A label of no text still takes the height of a line, unless it is an icon's.
+    let label = if text.icon.is_some() && text.text.is_empty() {
+        None
+    } else {
+        match lay_out(&text, ctx) {
+            Some(label) => Some(label),
+            None => return Shape::Noop,
+        }
+    };
+
+    if !placed_texts.try_place(&text, area(&text, label.as_ref())) {
+        return Shape::Noop;
+    }
+
+    let Some(icon) = &text.icon else {
+        return label.map_or(Shape::Noop, |label| label.shape(&text));
+    };
+    let mut shapes = icon.shapes(text.position, ctx.pixels_per_point());
+    shapes.extend(label.map(|label| label.shape(&text)));
+    Shape::Vec(shapes)
+}
+
+/// The text of a label, laid out and put where its anchor and offset say.
+struct LaidOut {
+    galley: Arc<egui::Galley>,
+    top_left: Pos2,
+    /// Of the area the text takes, padding included, turned with the label.
+    center: Pos2,
+    size: Vec2,
+}
+
+/// The one area a label takes: its text's, grown to hold its icon, turned with the text.
+fn area(text: &Text, label: Option<&LaidOut>) -> OrientedRect {
+    let Some(icon) = &text.icon else {
+        return label.map_or(
+            OrientedRect::new(text.position, text.angle, Vec2::ZERO),
+            |l| OrientedRect::new(l.center, text.angle, l.size),
+        );
+    };
+
+    // What the label draws, in its own axes. The icon is not turned with the text.
+    let to_label = |p: Pos2| rotated(p.to_vec2(), -text.angle).to_pos2();
+    let half_icon = Vec2::splat(icon.size / 2.0 + text.padding);
+    let mut bounds = Rect::from_points(
+        &[vec2(-1., -1.), vec2(1., -1.), vec2(1., 1.), vec2(-1., 1.)]
+            .map(|corner| to_label(text.position + corner * half_icon)),
+    );
+    if let Some(label) = label {
+        bounds = bounds.union(Rect::from_center_size(to_label(label.center), label.size));
+    }
+
+    OrientedRect::new(
+        rotated(bounds.center().to_vec2(), text.angle).to_pos2(),
+        text.angle,
+        bounds.size(),
+    )
+}
+
+/// `None` if the text is wider than it may be.
+fn lay_out(text: &Text, ctx: &egui::Context) -> Option<LaidOut> {
     // Lines of a label are centred on each other.
     let mut layout_job = egui::text::LayoutJob {
         halign: egui::Align::Center,
@@ -312,7 +382,7 @@ fn place_text(text: Text, ctx: &egui::Context, placed_texts: &mut PlacedTexts) -
         .max_width
         .is_some_and(|max_width| galley.size().x > max_width)
     {
-        return Shape::Noop;
+        return None;
     }
 
     let center =
@@ -320,40 +390,45 @@ fn place_text(text: Text, ctx: &egui::Context, placed_texts: &mut PlacedTexts) -
     // Centred lines put the galley's own origin in their middle, not at its top-left.
     let top_left = OrientedRect::new(center, text.angle, galley.size()).top_left()
         - rotated(galley.rect.min.to_vec2(), text.angle);
-    let area = OrientedRect::new(
+    let size = galley.size() + Vec2::splat(2.0 * text.padding);
+
+    Some(LaidOut {
+        galley,
+        top_left,
         center,
-        text.angle,
-        galley.size() + Vec2::splat(2.0 * text.padding),
-    );
+        size,
+    })
+}
 
-    if !placed_texts.try_place(&text, area) {
-        return Shape::Noop;
+impl LaidOut {
+    fn shape(&self, text: &Text) -> Shape {
+        use egui::epaint::TextShape;
+
+        let on_top = TextShape::new(self.top_left, self.galley.to_owned(), text.text_color)
+            .with_angle(text.angle);
+
+        if text.halo_width <= 0.0 || text.halo_color.a() == 0 {
+            return on_top.into();
+        }
+
+        // Text cannot be stroked, so the halo is the same text stamped around it.
+        let mut shapes: Vec<Shape> = HALO_RING
+            .iter()
+            .map(|offset| {
+                TextShape::new(
+                    self.top_left + *offset * text.halo_width,
+                    self.galley.to_owned(),
+                    text.halo_color,
+                )
+                .with_angle(text.angle)
+                .with_override_text_color(text.halo_color)
+                .into()
+            })
+            .collect();
+
+        shapes.push(on_top.into());
+        Shape::Vec(shapes)
     }
-
-    let on_top =
-        TextShape::new(top_left, galley.to_owned(), text.text_color).with_angle(text.angle);
-
-    if text.halo_width <= 0.0 || text.halo_color.a() == 0 {
-        return on_top.into();
-    }
-
-    // Text cannot be stroked, so the halo is the same text stamped around it.
-    let mut shapes: Vec<Shape> = HALO_RING
-        .iter()
-        .map(|offset| {
-            TextShape::new(
-                top_left + *offset * text.halo_width,
-                galley.to_owned(),
-                text.halo_color,
-            )
-            .with_angle(text.angle)
-            .with_override_text_color(text.halo_color)
-            .into()
-        })
-        .collect();
-
-    shapes.push(on_top.into());
-    Shape::Vec(shapes)
 }
 
 /// `vector` turned by `angle`, in radians.
@@ -510,6 +585,104 @@ mod tests {
         let texts = column("5", MIN_REPEAT_DISTANCE / 2., Placement::Point);
 
         assert_eq!(count_placed(texts, &ctx), 2);
+    }
+
+    fn peak() -> Icon {
+        Icon::new(
+            crate::lookup_icon_outline("peak").unwrap(),
+            14.,
+            Color32::RED,
+        )
+    }
+
+    /// Such as a peak with neither a name nor a height.
+    #[test]
+    fn an_icon_stands_alone_on_its_point() {
+        let ctx = context();
+        let text = Text::new(pos2(100., 100.), String::new(), 12., Color32::BLACK, 0.)
+            .with_icon(Some(peak()));
+
+        let shapes = place_texts(vec![text], &ctx);
+        let [Shape::Vec(shapes)] = shapes.as_slice() else {
+            panic!("expected the icon's shapes, got {shapes:?}");
+        };
+        assert!(shapes.iter().any(|s| matches!(s, Shape::Mesh(_))));
+        assert!(!shapes.iter().any(|s| matches!(s, Shape::Text(_))));
+    }
+
+    #[test]
+    fn an_icon_is_drawn_under_its_text() {
+        let ctx = context();
+        let text = Text::new(pos2(100., 100.), "Ślęża".into(), 12., Color32::BLACK, 0.)
+            .with_anchor(Anchor::Top, vec2(0., 8.))
+            .with_icon(Some(peak()));
+
+        let shapes = place_texts(vec![text], &ctx);
+        let [Shape::Vec(shapes)] = shapes.as_slice() else {
+            panic!("expected the icon's and the text's shapes, got {shapes:?}");
+        };
+        let mesh = shapes.iter().position(|s| matches!(s, Shape::Mesh(_)));
+        let text = shapes.iter().position(|s| matches!(s, Shape::Text(_)));
+        assert!(
+            mesh.is_some() && text.is_some() && mesh < text,
+            "{shapes:?}"
+        );
+    }
+
+    /// A name hanging under no peak, or a peak which nothing names, would both be wrong.
+    #[test]
+    fn an_icon_and_its_text_are_dropped_together() {
+        let ctx = context();
+        // Where the name hangs, under the peak, but clear of the peak itself.
+        let in_the_way = Text::new(pos2(100., 115.), "Sobótka".into(), 12., Color32::BLACK, 0.);
+        let named_peak = Text::new(pos2(100., 100.), "Ślęża".into(), 12., Color32::BLACK, 0.)
+            .with_anchor(Anchor::Top, vec2(0., 8.))
+            .with_icon(Some(peak()));
+
+        assert_eq!(count_placed(vec![in_the_way.clone()], &ctx), 1);
+        assert_eq!(count_placed(vec![named_peak.clone()], &ctx), 1);
+        assert_eq!(count_placed(vec![in_the_way, named_peak], &ctx), 1);
+    }
+
+    /// Hung under its peak with a gap, a name and its peak still take one rectangle, holding
+    /// both and the gap between them.
+    #[test]
+    fn an_icon_and_its_text_take_one_rectangle_round_both() {
+        let ctx = context();
+        let named_peak = Text::new(pos2(100., 100.), "Ślęża".into(), 12., Color32::BLACK, 0.)
+            .with_anchor(Anchor::Top, vec2(0., 20.))
+            .with_icon(Some(peak()));
+        let text_alone = Text {
+            icon: None,
+            ..named_peak.clone()
+        };
+        let (text_top_left, text_size) = placed_top_left(text_alone, &ctx);
+
+        let mut placed_texts = PlacedTexts::default();
+        assert!(!matches!(
+            place_text(named_peak, &ctx, &mut placed_texts),
+            Shape::Noop
+        ));
+
+        let areas: Vec<_> = placed_texts.occupied_areas.iter().collect();
+        let [area] = areas.as_slice() else {
+            panic!("expected one area, got {}", areas.len());
+        };
+        assert_eq!(area.bbox.top(), 100. - 7.);
+        assert_eq!(area.bbox.bottom(), text_top_left.y + text_size.y);
+        assert_eq!(area.bbox.width(), text_size.x.max(14.));
+    }
+
+    #[test]
+    fn an_icon_keeps_other_labels_off_it() {
+        let ctx = context();
+        let icon = Text::new(pos2(100., 100.), String::new(), 12., Color32::BLACK, 0.)
+            .with_icon(Some(peak()));
+        let label = Text::new(pos2(100., 100.), "Ślęża".into(), 12., Color32::BLACK, 0.);
+
+        let shapes = place_texts(vec![icon, label], &ctx);
+        assert!(!matches!(shapes[0], Shape::Noop));
+        assert!(matches!(shapes[1], Shape::Noop));
     }
 
     fn rect(x: f32, y: f32, w: f32, h: f32, angle: f32) -> OrientedRect {
