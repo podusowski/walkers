@@ -67,6 +67,24 @@ pub enum Drawable {
 }
 
 impl Drawable {
+    /// The area it covers, with lines taken as having no width.
+    pub(crate) fn bounds(&self) -> Rect {
+        let mut bounds = Rect::NOTHING;
+        match self {
+            Drawable::Fill(mesh) => {
+                for vertex in &mesh.vertices {
+                    bounds.extend_with(vertex.position);
+                }
+            }
+            Drawable::Lines(lines) => {
+                for point in lines.iter().flat_map(|line| &line.points) {
+                    bounds.extend_with(*point);
+                }
+            }
+        }
+        bounds
+    }
+
     pub fn background(size: f32, color: Color32) -> Self {
         Self::Fill(Mesh::rect(
             Rect::from_min_max(pos2(0., 0.), pos2(size, size)),

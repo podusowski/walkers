@@ -2,8 +2,10 @@
 //!
 //! <https://openmaptiles.org/schema/>
 
+use std::collections::HashMap;
+
 use super::{
-    Color, Dasharray, Filter, Float, Layout, Paint, Style, StyleLayer, Value,
+    Color, Dasharray, Filter, Float, IconFill, Layout, Paint, Style, StyleLayer, Value,
     exponential_zoom_interpolation, json, linear_zoom_interpolation,
 };
 
@@ -1320,31 +1322,14 @@ fn build(palette: &Palette, hillshade: Option<String>, contours: Option<String>)
                 ..Default::default()
             }),
         },
-        // peaks_symbol, on the peak itself
+        // peaks, a symbol on the peak itself, named under it
         StyleLayer::Symbol {
             source: Some(SOURCE.into()),
             source_layer: "mountain_peak".into(),
             minzoom: None,
             filter: Some(Filter(json!(["in", "class", "peak", "volcano"]))),
             layout: Layout {
-                text_field: Some(json!("⛰")),
-                text_size: Some(Float(json!(TEXT))),
-                ..Default::default()
-            },
-            paint: Some(Paint {
-                text_color: Some(palette.peak.clone()),
-                text_halo_color: Some(palette.casing.clone()),
-                text_halo_width: Some(Float(json!(HALO_WIDTH))),
-                ..Default::default()
-            }),
-        },
-        // peaks, named under the symbol
-        StyleLayer::Symbol {
-            source: Some(SOURCE.into()),
-            source_layer: "mountain_peak".into(),
-            minzoom: None,
-            filter: Some(Filter(json!(["in", "class", "peak", "volcano"]))),
-            layout: Layout {
+                icon_image: Some(json!("peak")),
                 text_field: Some(json!([
                     "case",
                     ["!has", "ele"],
@@ -1367,7 +1352,15 @@ fn build(palette: &Palette, hillshade: Option<String>, contours: Option<String>)
         },
     ]);
 
-    Style { layers }
+    let icons = HashMap::from([(
+        "peak".to_string(),
+        vec![IconFill {
+            fill: vec![[0.0, -5.0], [6.0, 5.0], [-6.0, 5.0]],
+            fill_color: palette.peak.clone(),
+        }],
+    )]);
+
+    Style { layers, icons }
 }
 
 #[cfg(test)]

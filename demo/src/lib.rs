@@ -276,5 +276,6 @@ fn hiking_style() -> Style {
                 }),
             },
         ],
+        ..Default::default()
     }
 }

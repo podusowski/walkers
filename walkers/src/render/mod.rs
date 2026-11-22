@@ -12,7 +12,7 @@ use emath::TSTransform;
 pub(crate) use geo_types::{Coord, Geometry, Line};
 use lyon_tessellation::TessellationError;
 
-use crate::{render::drawable::Drawable, text::Text};
+use crate::{render::drawable::Drawable, symbol::Symbol};
 
 #[derive(thiserror::Error, Debug)]
 pub enum Error {
@@ -20,20 +20,27 @@ pub enum Error {
     Tessellation(#[from] TessellationError),
 }
 
-pub(crate) fn transformed_texts<'a>(
-    texts: impl IntoIterator<Item = &'a Text>,
+pub(crate) fn transformed_symbols<'a>(
+    symbols: impl IntoIterator<Item = &'a Symbol>,
     transform: TSTransform,
     zoom: f64,
-) -> Vec<Text> {
-    texts
+) -> Vec<Symbol> {
+    symbols
         .into_iter()
-        .filter(|text| text.min_zoom.is_none_or(|min_zoom| zoom >= min_zoom as f64))
-        .map(|text| Text {
-            position: text.position * transform.scaling + transform.translation,
-            max_width: text
-                .max_width
-                .map(|max_width| max_width * transform.scaling),
-            ..text.to_owned()
+        .filter(|symbol| {
+            symbol
+                .min_zoom
+                .is_none_or(|min_zoom| zoom >= min_zoom as f64)
+        })
+        .map(|symbol| {
+            let mut symbol = symbol.to_owned();
+            symbol.position = symbol.position * transform.scaling + transform.translation;
+            if let Some(text) = &mut symbol.text {
+                text.max_width = text
+                    .max_width
+                    .map(|max_width| max_width * transform.scaling);
+            }
+            symbol
         })
         .collect()
 }

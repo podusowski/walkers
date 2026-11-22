@@ -12,7 +12,7 @@ use std::hint::black_box;
 
 use criterion::{Criterion, criterion_group, criterion_main};
 use egui::vec2;
-use walkers::{Palette, Text, Tile, Waymark, place_texts};
+use walkers::{Palette, Symbol, Tile, Waymark, place_symbols};
 
 const OPENMAPTILES_TILE: &[u8] = include_bytes!("wroclaw-14-8967-5477-openmaptiles.mvt");
 const ZOOM: u8 = 14;
@@ -27,9 +27,9 @@ fn context() -> egui::Context {
 }
 
 /// The tile's labels, repeated over `n` × `n` tiles.
-fn labels(n: usize) -> Vec<Text> {
+fn labels(n: usize) -> Vec<Symbol> {
     let style = Waymark::new(Palette::dark()).build();
-    let Tile::Vector { texts, .. } =
+    let Tile::Vector { symbols, .. } =
         Tile::from_mvt(OPENMAPTILES_TILE, &style, ZOOM, TILE_SIZE).unwrap()
     else {
         panic!("not a vector tile");
@@ -38,9 +38,9 @@ fn labels(n: usize) -> Vec<Text> {
     (0..n * n)
         .flat_map(|k| {
             let offset = vec2((k % n) as f32, (k / n) as f32) * TILE_SIZE as f32;
-            texts.iter().map(move |text| Text {
-                position: text.position + offset,
-                ..text.clone()
+            symbols.iter().map(move |symbol| Symbol {
+                position: symbol.position + offset,
+                ..symbol.clone()
             })
         })
         .collect()
@@ -53,7 +53,7 @@ fn bench_place_texts(c: &mut Criterion) {
     for n in [2, 4] {
         let texts = labels(n);
         group.bench_function(format!("{n}x{n} tiles, {} labels", texts.len()), |b| {
-            b.iter(|| place_texts(black_box(texts.clone()), &ctx))
+            b.iter(|| place_symbols(black_box(texts.clone()), &ctx))
         });
     }
 

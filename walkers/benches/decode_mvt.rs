@@ -42,7 +42,10 @@ fn decode_mvt(c: &mut Criterion) {
     });
 
     group.bench_function("no style", |b| {
-        let style = Style { layers: Vec::new() };
+        let style = Style {
+            layers: Vec::new(),
+            ..Default::default()
+        };
         b.iter(|| Tile::from_mvt(black_box(TILE), &style, ZOOM, TILE_SIZE).unwrap())
     });
 

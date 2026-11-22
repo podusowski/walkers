@@ -1,94 +1,109 @@
+use std::collections::HashMap;
+
 use ecolor::Color32;
 use emath::pos2;
 use log::warn;
+use lyon_path::geom::point;
 
 use crate::{
+    Drawable, Drawables, Mesh,
     expression::Context,
-    render::{Error, Geometry, Line},
-    style::{Layout, Paint},
-    text::{Placement, Text},
+    render::{Geometry, Line, fill::tessellate_polygon},
+    style::{IconFill, Layout, Paint},
+    symbol::{Placement, Symbol, Text},
 };
 
+/// What a symbol layer of `layout` and `paint` puts on the geometry: a text, the icon it names
+/// out of `icons`, or both. Icons are put only on points.
 pub fn render(
     geometry: &Geometry<f32>,
     context: &Context,
-    texts: &mut Vec<Text>,
     layout: &Layout,
     paint: &Option<Paint>,
+    icons: &HashMap<String, Drawables>,
     min_zoom: Option<f32>,
     layer: usize,
-) -> Result<(), Error> {
-    match geometry {
-        Geometry::Point(point) => label_points(
-            std::slice::from_ref(point),
-            context,
-            layout,
-            paint,
-            min_zoom,
-            layer,
-            texts,
-        ),
-        Geometry::MultiPoint(multi_point) => label_points(
-            &multi_point.0,
-            context,
-            layout,
-            paint,
-            min_zoom,
-            layer,
-            texts,
-        ),
-        Geometry::LineString(line_string) => label_line_strings(
-            std::slice::from_ref(line_string),
-            context,
-            layout,
-            paint,
-            min_zoom,
-            layer,
-            texts,
-        ),
-        Geometry::MultiLineString(multi_line_string) => label_line_strings(
-            &multi_line_string.0,
-            context,
-            layout,
-            paint,
-            min_zoom,
-            layer,
-            texts,
-        ),
-        _ => (),
+) -> Vec<Symbol> {
+    let mut symbols = match geometry {
+        Geometry::Point(point) => {
+            label_points(std::slice::from_ref(point), context, layout, paint, icons)
+        }
+        Geometry::MultiPoint(multi_point) => {
+            label_points(&multi_point.0, context, layout, paint, icons)
+        }
+        Geometry::LineString(line_string) => {
+            label_line_strings(std::slice::from_ref(line_string), context, layout, paint)
+        }
+        Geometry::MultiLineString(multi_line_string) => {
+            label_line_strings(&multi_line_string.0, context, layout, paint)
+        }
+        _ => Vec::new(),
+    };
+
+    for symbol in &mut symbols {
+        symbol.min_zoom = min_zoom;
+        symbol.layer = layer;
     }
-    Ok(())
+    symbols
 }
 
-/// Put labels on top of points.
+/// Icons of a style, by name, their colors as at `zoom`. An icon which cannot be tessellated is
+/// left out.
+pub(crate) fn tessellate_icons(
+    icons: &HashMap<String, Vec<IconFill>>,
+    zoom: u8,
+) -> HashMap<String, Drawables> {
+    let context = Context::new("None".to_string(), Default::default(), zoom);
+
+    icons
+        .iter()
+        .filter_map(|(name, fills)| {
+            let mut mesh = Mesh::default();
+            for fill in fills {
+                let points: Vec<_> = fill.fill.iter().map(|[x, y]| point(*x, *y)).collect();
+                match tessellate_polygon(&points, &[], fill.fill_color.evaluate(&context)) {
+                    Ok(fill) => mesh.append(&fill),
+                    Err(err) => {
+                        warn!("Icon '{name}' could not be tessellated: {err}");
+                        return None;
+                    }
+                }
+            }
+            Some((name.clone(), Drawables::new(vec![Drawable::Fill(mesh)])))
+        })
+        .collect()
+}
+
+/// Put labels and icons on top of points.
 fn label_points(
     points: &[geo_types::Point<f32>],
     context: &Context,
     layout: &Layout,
     paint: &Option<Paint>,
-    min_zoom: Option<f32>,
-    layer: usize,
-    texts: &mut Vec<Text>,
-) {
-    let Some(text) = layout.text(context) else {
-        return;
-    };
-
-    let text_size = evaluate_text_size(layout, context);
-    let text_color = evaluate_text_color(paint, context);
-    let (halo_color, halo_width) = evaluate_halo(paint, context);
-    let padding = evaluate_text_padding(layout, context);
-    let anchor = layout.anchor(context);
-    let offset = layout.offset(context) * text_size;
-
-    texts.extend(points.iter().map(|p| {
-        Text::new(pos2(p.x(), p.y()), text.clone(), text_size, text_color, 0.0)
+    icons: &HashMap<String, Drawables>,
+) -> Vec<Symbol> {
+    let text = layout.text(context).map(|text| {
+        let text_size = evaluate_text_size(layout, context);
+        let (halo_color, halo_width) = evaluate_halo(paint, context);
+        Text::new(text, text_size, evaluate_text_color(paint, context), 0.0)
             .with_halo(halo_color, halo_width)
-            .with_min_zoom(min_zoom)
-            .with_layer(layer)
-            .with_padding(padding)
-            .with_anchor(anchor, offset)
-    }))
+            .with_padding(evaluate_text_padding(layout, context))
+            .with_anchor(layout.anchor(context), layout.offset(context) * text_size)
+    });
+    let icon = layout.icon_image(context).and_then(|name| icons.get(&name));
+
+    if text.is_none() && icon.is_none() {
+        return Vec::new();
+    }
+
+    points
+        .iter()
+        .map(|p| Symbol {
+            text: text.clone(),
+            icon: icon.cloned(),
+            ..Symbol::new(pos2(p.x(), p.y()))
+        })
+        .collect()
 }
 
 /// Put labels on top of lines.
@@ -97,12 +112,9 @@ fn label_line_strings(
     context: &Context,
     layout: &Layout,
     paint: &Option<Paint>,
-    min_zoom: Option<f32>,
-    layer: usize,
-    texts: &mut Vec<Text>,
-) {
+) -> Vec<Symbol> {
     let Some(text) = layout.text(context) else {
-        return;
+        return Vec::new();
     };
 
     let text_size = evaluate_text_size(layout, context);
@@ -110,31 +122,25 @@ fn label_line_strings(
     let (halo_color, halo_width) = evaluate_halo(paint, context);
     let padding = evaluate_text_padding(layout, context);
 
-    for line_string in line_strings {
-        let lines: Vec<_> = line_string.lines().collect();
-
-        // Use the longest line to fit the label.
-        if let Some(line) = lines.into_iter().max_by_key(|line| length(line) as u32) {
+    line_strings
+        .iter()
+        .filter_map(|line_string| {
+            // Use the longest line to fit the label.
+            let line = line_string.lines().max_by_key(|line| length(line) as u32)?;
             let mid_point = midpoint(&line.start_point(), &line.end_point());
             let angle = line.slope().atan();
 
-            texts.push(
-                Text::new(
-                    pos2(mid_point.x(), mid_point.y()),
-                    text.clone(),
-                    text_size,
-                    text_color,
-                    angle,
-                )
-                .with_halo(halo_color, halo_width)
-                .with_placement(Placement::Line)
-                .with_max_width(Some(length(&line)))
-                .with_min_zoom(min_zoom)
-                .with_layer(layer)
-                .with_padding(padding),
-            );
-        }
-    }
+            Some(
+                Symbol::new(pos2(mid_point.x(), mid_point.y())).with_text(
+                    Text::new(text.clone(), text_size, text_color, angle)
+                        .with_halo(halo_color, halo_width)
+                        .with_placement(Placement::Line)
+                        .with_max_width(Some(length(&line)))
+                        .with_padding(padding),
+                ),
+            )
+        })
+        .collect()
 }
 
 fn evaluate_text_padding(layout: &Layout, context: &Context) -> f32 {
@@ -206,11 +212,11 @@ fn midpoint(p1: &geo_types::Point<f32>, p2: &geo_types::Point<f32>) -> geo_types
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::render::{geometry_type_to_str, transformed_texts};
-    use crate::text::place_texts;
+    use crate::render::{geometry_type_to_str, transformed_symbols};
+    use crate::symbol::place_symbols;
     use emath::TSTransform;
     use std::collections::HashMap;
-    fn label(geometry: Geometry<f32>) -> Vec<Text> {
+    fn label(geometry: Geometry<f32>) -> Vec<Symbol> {
         let context = Context::new(
             geometry_type_to_str(&geometry).to_string(),
             HashMap::from([("name".to_string(), serde_json::Value::from("Śnieżka"))]),
@@ -222,13 +228,22 @@ mod tests {
             ..Default::default()
         };
 
-        let mut texts = Vec::new();
-        render(&geometry, &context, &mut texts, &layout, &None, None, 0).unwrap();
-        texts
+        render(
+            &geometry,
+            &context,
+            &layout,
+            &None,
+            &HashMap::new(),
+            None,
+            0,
+        )
     }
 
-    fn texts(texts: &[Text]) -> Vec<&str> {
-        texts.iter().map(|text| text.text.as_str()).collect()
+    fn texts(symbols: &[Symbol]) -> Vec<&str> {
+        symbols
+            .iter()
+            .filter_map(|symbol| Some(symbol.text.as_ref()?.text.as_str()))
+            .collect()
     }
 
     /// MVT hands over `MultiPoint`, GeoJSON a plain `Point`, and both need labelling.
@@ -273,14 +288,11 @@ mod tests {
 
         let line_string =
             geo_types::LineString::from(vec![(0.0f32, 0.0f32), (10.0, 0.0), (10.0, 30.0)]);
-        let texts = label(Geometry::LineString(line_string));
+        let symbols = label(Geometry::LineString(line_string));
 
         let placed = |scaling: f32| {
-            let texts = transformed_texts(&texts, TSTransform::from_scaling(scaling), 0.);
-            place_texts(texts, &ctx)
-                .into_iter()
-                .filter(|shape| !matches!(shape, egui::Shape::Noop))
-                .count()
+            let symbols = transformed_symbols(&symbols, TSTransform::from_scaling(scaling), 0.);
+            place_symbols(symbols, &ctx).len()
         };
 
         assert_eq!(placed(1.), 0);
@@ -300,12 +312,15 @@ mod tests {
         }))
         .unwrap();
 
-        let mut texts = Vec::new();
-        render(&point, &context, &mut texts, &layout, &None, None, 0).unwrap();
+        let symbols = render(&point, &context, &layout, &None, &HashMap::new(), None, 0);
 
-        match texts.as_slice() {
-            [text] => {
-                assert_eq!(text.anchor, crate::text::Anchor::Top);
+        match symbols.as_slice() {
+            [
+                Symbol {
+                    text: Some(text), ..
+                },
+            ] => {
+                assert_eq!(text.anchor, crate::symbol::Anchor::Top);
                 assert_eq!(text.offset, emath::vec2(0.0, 15.0));
             }
             other => panic!("expected a single label, got {other:?}"),
@@ -315,10 +330,10 @@ mod tests {
     /// Labels are placed on the geometry, not at the origin.
     #[test]
     fn a_point_label_lands_on_the_point() {
-        let texts = label(Geometry::Point(geo_types::Point::new(1.0, 2.0)));
+        let symbols = label(Geometry::Point(geo_types::Point::new(1.0, 2.0)));
 
-        match texts.as_slice() {
-            [text] => assert_eq!(text.position, pos2(1.0, 2.0)),
+        match symbols.as_slice() {
+            [symbol] => assert_eq!(symbol.position, pos2(1.0, 2.0)),
             other => panic!("expected a single label, got {other:?}"),
         }
     }
