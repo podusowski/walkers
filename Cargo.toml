@@ -80,6 +80,7 @@ tokio = "1.53"
 tokio-test = "0.4.5"
 wasm-bindgen-futures = "0.4.76"
 web-sys = "0.3.103"
+webpki-roots = "1"
 
 # [patch.crates-io]
 # eframe = { git = "https://github.com/emilk/egui.git", branch = "main" }

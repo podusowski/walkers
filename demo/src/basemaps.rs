@@ -20,8 +20,23 @@ fn http_options() -> HttpOptions {
         } else {
             Some(".cache".into())
         },
+        #[cfg(target_os = "android")]
+        tls: Some(bundled_roots()),
         ..Default::default()
     }
+}
+
+/// Checks certificates against the bundled Mozilla roots. The platform's verifier needs the
+/// activity handed to it through JNI first, and Android's rejects certificates without an OCSP
+/// responder as revoked, which Let's Encrypt no longer issues any with.
+#[cfg(target_os = "android")]
+fn bundled_roots() -> rustls::ClientConfig {
+    let roots = rustls::RootCertStore {
+        roots: webpki_roots::TLS_SERVER_ROOTS.to_vec(),
+    };
+    rustls::ClientConfig::builder()
+        .with_root_certificates(roots)
+        .with_no_client_auth()
 }
 
 pub(crate) fn basemaps(egui_ctx: Context) -> Basemaps {
