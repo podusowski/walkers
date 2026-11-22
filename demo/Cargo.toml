@@ -26,6 +26,9 @@ default = []
 mvt = ["walkers/mvt"]
 pmtiles = ["walkers/pmtiles"]
 
+[target.'cfg(target_os = "android")'.dependencies]
+rustls.workspace = true
+webpki-roots.workspace = true
 
 [target.'cfg(target_arch = "wasm32")'.dependencies]
 getrandom.workspace = true
