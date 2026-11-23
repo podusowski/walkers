@@ -1205,6 +1205,8 @@ fn build(palette: &Palette, hillshade: Option<String>, contours: Option<String>)
                 text_size: Some(Float(json!(TEXT))),
                 text_anchor: Some(json!("top")),
                 text_offset: Some(json!([0, 0.7])),
+                // Highest first, and those without an elevation last.
+                symbol_sort_key: Some(Float(json!(["-", ["coalesce", ["get", "ele"], 0]]))),
                 ..Default::default()
             },
             paint: Some(Paint {
@@ -1832,6 +1834,31 @@ mod tests {
                         && filter.as_ref().is_none_or(|filter| filter.matches(&context)))
             })
             .unwrap()
+    }
+
+    /// Where peaks collide, the one kept is the highest, whichever tile it is on.
+    #[test]
+    fn higher_peaks_are_placed_first() {
+        let style = Waymark::new(Palette::light()).build();
+        let sort_key = |properties: Value| {
+            let StyleLayer::Symbol { layout, .. } =
+                &style.layers[symbol_layer(&style, "mountain_peak", properties.clone())]
+            else {
+                unreachable!()
+            };
+            let context = Context::new(
+                "Point".to_owned(),
+                serde_json::from_value::<HashMap<String, Value>>(properties).unwrap(),
+                12,
+            );
+            layout.symbol_sort_key(&context)
+        };
+
+        let sniezka = sort_key(json!({"class": "peak", "name": "Śnieżka", "ele": 1603}));
+        let kravi_hora = sort_key(json!({"class": "peak", "name": "Kraví hora", "ele": 1072}));
+        let unmeasured = sort_key(json!({"class": "peak", "name": "Hromovka"}));
+
+        assert!(sniezka < kravi_hora && kravi_hora < unmeasured);
     }
 
     /// Labels of higher layers are placed first, and a town's name is what tells where the map is.

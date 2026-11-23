@@ -23,6 +23,8 @@ playground and can change or break at any time without an entry here.
 * `Waymark` draws peaks, stations, tram and bus stops, and motorway exits with icons, so they no
   longer depend on which fonts the app has.
 * `Waymark` places the names of settlements and countries before peaks, stations and stops.
+* `symbol` layers support `symbol-sort-key`, which orders the symbols of a layer across all
+  tiles. `Waymark` places higher peaks first.
 * `Color` can be made from a CSS color string, such as `"#ff0000".into()`.
 * `Style::openmaptiles_basemap_light` and `Style::openmaptiles_basemap_dark` are deprecated in favor
   of `Waymark::new(Palette::light()).build()` and `Waymark::new(Palette::dark()).build()`.

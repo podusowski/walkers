@@ -40,9 +40,11 @@ pub fn render(
         _ => Vec::new(),
     };
 
+    let sort_key = layout.symbol_sort_key(context);
     for symbol in &mut symbols {
         symbol.min_zoom = min_zoom;
         symbol.layer = layer;
+        symbol.sort_key = sort_key;
     }
     symbols
 }
