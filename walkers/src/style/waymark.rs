@@ -1115,66 +1115,6 @@ fn build(palette: &Palette, hillshade: Option<String>, contours: Option<String>)
                 ..Default::default()
             }),
         },
-        // places_region
-        StyleLayer::Symbol {
-            source: Some(SOURCE.into()),
-            source_layer: "place".into(),
-            minzoom: None,
-            filter: Some(Filter(json!(["==", "class", "state"]))),
-            layout: Layout {
-                text_field: Some(json!(["get", "name"])),
-                text_size: Some(linear_zoom_interpolation(&[(3.0, 11.0), (7.0, 16.0)])),
-                ..Default::default()
-            },
-            paint: Some(Paint {
-                text_color: Some(palette.label.clone()),
-                text_halo_color: Some(palette.casing.clone()),
-                text_halo_width: Some(Float(json!(HALO_WIDTH))),
-                ..Default::default()
-            }),
-        },
-        // places_locality
-        StyleLayer::Symbol {
-            source: Some(SOURCE.into()),
-            source_layer: "place".into(),
-            minzoom: None,
-            filter: Some(Filter(json!(["in", "class", "city", "town", "village"]))),
-            layout: Layout {
-                text_field: Some(json!(["get", "name"])),
-                text_size: Some(settlement_text_size()),
-                // Keeps villages from packing edge to edge, the curve being Protomaps' own.
-                text_padding: Some(linear_zoom_interpolation(&[
-                    (5.0, 3.0),
-                    (8.0, 7.0),
-                    (12.0, 11.0),
-                ])),
-                ..Default::default()
-            },
-            paint: Some(Paint {
-                text_color: Some(palette.locality_text.clone()),
-                text_halo_color: Some(palette.casing.clone()),
-                text_halo_width: Some(Float(json!(HALO_WIDTH))),
-                ..Default::default()
-            }),
-        },
-        // places_country
-        StyleLayer::Symbol {
-            source: Some(SOURCE.into()),
-            source_layer: "place".into(),
-            minzoom: None,
-            filter: Some(Filter(json!(["==", "class", "country"]))),
-            layout: Layout {
-                text_field: Some(json!(["get", "name:en"])),
-                text_size: Some(Float(json!(18.0))),
-                ..Default::default()
-            },
-            paint: Some(Paint {
-                text_color: Some(palette.label.clone()),
-                text_halo_color: Some(palette.casing.clone()),
-                text_halo_width: Some(Float(json!(HALO_WIDTH))),
-                ..Default::default()
-            }),
-        },
         // stations, named under their symbol
         StyleLayer::Symbol {
             source: Some(SOURCE.into()),
@@ -1269,6 +1209,67 @@ fn build(palette: &Palette, hillshade: Option<String>, contours: Option<String>)
             },
             paint: Some(Paint {
                 text_color: Some(palette.peak.clone()),
+                text_halo_color: Some(palette.casing.clone()),
+                text_halo_width: Some(Float(json!(HALO_WIDTH))),
+                ..Default::default()
+            }),
+        },
+        // Regions, settlements and countries last, so their labels are placed before any other.
+        // places_region
+        StyleLayer::Symbol {
+            source: Some(SOURCE.into()),
+            source_layer: "place".into(),
+            minzoom: None,
+            filter: Some(Filter(json!(["==", "class", "state"]))),
+            layout: Layout {
+                text_field: Some(json!(["get", "name"])),
+                text_size: Some(linear_zoom_interpolation(&[(3.0, 11.0), (7.0, 16.0)])),
+                ..Default::default()
+            },
+            paint: Some(Paint {
+                text_color: Some(palette.label.clone()),
+                text_halo_color: Some(palette.casing.clone()),
+                text_halo_width: Some(Float(json!(HALO_WIDTH))),
+                ..Default::default()
+            }),
+        },
+        // places_locality
+        StyleLayer::Symbol {
+            source: Some(SOURCE.into()),
+            source_layer: "place".into(),
+            minzoom: None,
+            filter: Some(Filter(json!(["in", "class", "city", "town", "village"]))),
+            layout: Layout {
+                text_field: Some(json!(["get", "name"])),
+                text_size: Some(settlement_text_size()),
+                // Keeps villages from packing edge to edge, the curve being Protomaps' own.
+                text_padding: Some(linear_zoom_interpolation(&[
+                    (5.0, 3.0),
+                    (8.0, 7.0),
+                    (12.0, 11.0),
+                ])),
+                ..Default::default()
+            },
+            paint: Some(Paint {
+                text_color: Some(palette.locality_text.clone()),
+                text_halo_color: Some(palette.casing.clone()),
+                text_halo_width: Some(Float(json!(HALO_WIDTH))),
+                ..Default::default()
+            }),
+        },
+        // places_country
+        StyleLayer::Symbol {
+            source: Some(SOURCE.into()),
+            source_layer: "place".into(),
+            minzoom: None,
+            filter: Some(Filter(json!(["==", "class", "country"]))),
+            layout: Layout {
+                text_field: Some(json!(["get", "name:en"])),
+                text_size: Some(Float(json!(18.0))),
+                ..Default::default()
+            },
+            paint: Some(Paint {
+                text_color: Some(palette.label.clone()),
                 text_halo_color: Some(palette.casing.clone()),
                 text_halo_width: Some(Float(json!(HALO_WIDTH))),
                 ..Default::default()
@@ -1812,6 +1813,53 @@ mod tests {
             .into_iter()
             .filter_map(|(text, _)| text)
             .collect()
+    }
+
+    /// Index of the symbol layer which draws a feature of `source`, found the way the renderer
+    /// finds it.
+    fn symbol_layer(style: &Style, source: &str, properties: Value) -> usize {
+        let context = Context::new(
+            "Point".to_owned(),
+            serde_json::from_value::<HashMap<String, Value>>(properties).unwrap(),
+            18,
+        );
+        style
+            .layers
+            .iter()
+            .position(|layer| {
+                matches!(layer, StyleLayer::Symbol { source_layer, filter, .. }
+                    if source_layer.matches(source)
+                        && filter.as_ref().is_none_or(|filter| filter.matches(&context)))
+            })
+            .unwrap()
+    }
+
+    /// Labels of higher layers are placed first, and a town's name is what tells where the map is.
+    #[test]
+    fn settlements_and_countries_win_over_peaks_stations_and_stops() {
+        let style = Waymark::new(Palette::light()).build();
+        let town = symbol_layer(&style, "place", json!({"class": "town", "name": "Karpacz"}));
+        let country = symbol_layer(
+            &style,
+            "place",
+            json!({"class": "country", "name": "Poland"}),
+        );
+
+        for (source, properties) in [
+            ("mountain_peak", json!({"class": "peak", "name": "Śnieżka"})),
+            (
+                "poi",
+                json!({"class": "railway", "subclass": "station", "name": "Karpacz"}),
+            ),
+            (
+                "poi",
+                json!({"class": "railway", "subclass": "tram_stop", "name": "Rynek"}),
+            ),
+            ("poi", json!({"class": "bus", "name": "Rynek"})),
+        ] {
+            let layer = symbol_layer(&style, source, properties.clone());
+            assert!(town > layer && country > layer, "{properties}");
+        }
     }
 
     /// Glyphs drawn as text look different in each font, and some fonts have none of them.
