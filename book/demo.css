@@ -5,3 +5,8 @@ iframe.demo {
     border: 1px solid var(--quote-border);
     border-radius: 4px;
 }
+
+/* Wide enough for code formatted to rustfmt's 100 columns. */
+:root {
+    --content-max-width: 900px;
+}

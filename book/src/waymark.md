@@ -8,7 +8,7 @@ Vector tiles carry the map's geometry and names rather than a picture of them, s
 that decides how they look. A `StyledSources` draws a `Style` from sources it names, here
 OpenFreeMap's tiles fetched by an `HttpSource`. Waymark draws from a source called
 `openmaptiles`, after the [OpenMapTiles](https://openmaptiles.org/schema/) schema those tiles
-follow, and comes in the colors of a `Palette`, light or dark.
+follow, and comes in the colors of a `Palette`, here the dark one.
 
 ```rust,noplayground
 {{#include ../../demos/src/waymark.rs:new}}

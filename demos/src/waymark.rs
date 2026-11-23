@@ -14,12 +14,11 @@ pub struct WaymarkMap {
 impl WaymarkMap {
     pub fn new(cc: &CreationContext<'_>) -> Self {
         let ctx = &cc.egui_ctx;
-        let style = Waymark::new(Palette::light()).build();
-        let openfreemap = HttpSource::new(OpenFreeMap, HttpOptions::default(), ctx.clone());
+        let style = Waymark::new(Palette::dark()).build();
+        let tiles = HttpSource::new(OpenFreeMap, HttpOptions::default(), ctx.clone());
 
         Self {
-            map: StyledSources::new(style, ctx.clone())
-                .with_tiled_source("openmaptiles", openfreemap),
+            map: StyledSources::new(style, ctx.clone()).with_tiled_source("openmaptiles", tiles),
             map_memory: MapMemory::default(),
         }
     }
