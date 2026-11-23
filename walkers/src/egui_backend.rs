@@ -7,6 +7,10 @@ impl Canvas {
     /// Paint everything onto `painter`, each shape on its own, as egui's parallel tessellation
     /// turns a `Shape::Vec` into a single mesh.
     pub(crate) fn paint(self, painter: &egui::Painter) {
+        if self.animating {
+            painter.ctx().request_repaint();
+        }
+
         #[cfg(feature = "vector")]
         let (frame, screen) = (
             painter.ctx().cumulative_pass_nr(),
