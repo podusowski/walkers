@@ -1,0 +1,11 @@
+[book]
+title = "Walkers"
+language = "en"
+src = "src"
+
+[build]
+build-dir = "build"
+
+[output.html]
+additional-css = ["demo.css"]
+git-repository-url = "https://github.com/podusowski/walkers"

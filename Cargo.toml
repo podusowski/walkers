@@ -5,6 +5,7 @@ members = [
     "demo_android/rust",
     "demo_native",
     "demo_web",
+    "demos",
     "hypermocker",
     "walkers",
     "walkers_extras",
