@@ -25,12 +25,11 @@ impl Canvas {
             }
         }
 
-        // Stable, so that within a style layer the tiles nearest the center still go first.
+        // Within a style layer, of symbols with the same sort key, those of the tiles nearest the
+        // center still go first.
         #[cfg(feature = "vector")]
         {
-            let mut symbols = self.symbols;
-            symbols.sort_by_key(|(z_order, _)| *z_order);
-            let symbols = symbols.into_iter().map(|(_, symbol)| symbol).collect();
+            let symbols = crate::symbol::in_placement_order(self.symbols);
             for placed in crate::symbol::place_symbols(symbols, painter.ctx()) {
                 if let Some(icon) = placed.icon {
                     shapes.extend(wgpu::Run::callbacks(icon, screen, frame));

@@ -408,6 +408,8 @@ pub struct Layout {
     pub text_padding: Option<Float>,
     pub text_anchor: Option<Value>,
     pub text_offset: Option<Value>,
+    /// Lower is placed first, among the symbols of the layer.
+    pub symbol_sort_key: Option<Float>,
 }
 
 impl Layout {
@@ -417,6 +419,12 @@ impl Layout {
 
     pub fn icon_image(&self, context: &Context) -> Option<String> {
         evaluate_string(self.icon_image.as_ref()?, context)
+    }
+
+    pub fn symbol_sort_key(&self, context: &Context) -> f32 {
+        self.symbol_sort_key
+            .as_ref()
+            .map_or(0.0, |key| key.evaluate(context))
     }
 
     pub fn anchor(&self, context: &Context) -> crate::symbol::Anchor {

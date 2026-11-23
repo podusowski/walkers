@@ -2,7 +2,7 @@ use egui::{Color32, Pos2, Rect, Shape, Vec2, vec2};
 use emath::TSTransform;
 use std::collections::HashMap;
 
-use crate::Drawables;
+use crate::{Drawables, ZOrder};
 
 /// What the label names, which decides whether it may be said again nearby. Mirrors MapLibre's
 /// `symbol-placement`.
@@ -139,6 +139,9 @@ pub struct Symbol {
 
     /// Index of the style layer it comes from.
     pub layer: usize,
+
+    /// Lower is placed first, among the symbols of the same [`ZOrder`].
+    pub sort_key: f32,
 }
 
 impl Symbol {
@@ -149,6 +152,7 @@ impl Symbol {
             icon: None,
             min_zoom: None,
             layer: 0,
+            sort_key: 0.0,
         }
     }
 
@@ -169,6 +173,11 @@ impl Symbol {
 
     pub fn with_layer(mut self, layer: usize) -> Self {
         self.layer = layer;
+        self
+    }
+
+    pub fn with_sort_key(mut self, sort_key: f32) -> Self {
+        self.sort_key = sort_key;
         self
     }
 }
@@ -458,6 +467,15 @@ fn rotated(vector: Vec2, angle: f32) -> Vec2 {
 
 /// Lay out the symbols in order, dropping the ones whose text repeats a nearby one, or which
 /// would land on top of an already placed one.
+/// `symbols` in the order they are placed in: by their [`ZOrder`], then by their sort key. Those
+/// equal in both keep their order.
+pub(crate) fn in_placement_order(mut symbols: Vec<(ZOrder, Symbol)>) -> Vec<Symbol> {
+    symbols.sort_by(|(a_order, a), (b_order, b)| {
+        a_order.cmp(b_order).then(a.sort_key.total_cmp(&b.sort_key))
+    });
+    symbols.into_iter().map(|(_, symbol)| symbol).collect()
+}
+
 pub fn place_symbols(symbols: Vec<Symbol>, ctx: &egui::Context) -> Vec<Placed> {
     let mut placed_symbols = PlacedSymbols::default();
 
@@ -566,6 +584,33 @@ mod tests {
 
     fn count_placed(symbols: Vec<Symbol>, ctx: &egui::Context) -> usize {
         place_symbols(symbols, ctx).len()
+    }
+
+    #[test]
+    fn symbols_go_by_z_order_then_by_their_sort_key() {
+        let named = |name: &str, sort_key: f32| {
+            Symbol::new(pos2(0., 0.))
+                .with_text(label(name))
+                .with_sort_key(sort_key)
+        };
+        let below = ZOrder::new(0).combine(1);
+        let above = ZOrder::new(0).combine(2);
+
+        let symbols = in_placement_order(vec![
+            (below, named("village", 0.)),
+            (above, named("Kraví hora", -1072.)),
+            (above, named("Sněžka", -1603.)),
+            (above, named("unnamed", 0.)),
+            (above, named("Luční hora", -1556.)),
+        ]);
+
+        assert_eq!(
+            symbols
+                .into_iter()
+                .map(|symbol| symbol.text.unwrap().text)
+                .collect::<Vec<_>>(),
+            ["Sněžka", "Luční hora", "Kraví hora", "unnamed", "village"]
+        );
     }
 
     #[test]
