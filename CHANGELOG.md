@@ -25,6 +25,9 @@ playground and can change or break at any time without an entry here.
 * `Waymark` places the names of settlements and countries before peaks, stations and stops.
 * `symbol` layers support `symbol-sort-key`, which orders the symbols of a layer across all
   tiles. `Waymark` places higher peaks first.
+* `Waymark` draws railways so that they show from afar: as wide as motorways up to zoom 12, with
+  their edges standing out from the background, and their ties farther apart below zoom 14.
+* Expressions support `step`.
 * `Color` can be made from a CSS color string, such as `"#ff0000".into()`.
 * `Style::openmaptiles_basemap_light` and `Style::openmaptiles_basemap_dark` are deprecated in favor
   of `Waymark::new(Palette::light()).build()` and `Waymark::new(Palette::dark()).build()`.

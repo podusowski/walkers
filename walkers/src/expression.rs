@@ -217,6 +217,22 @@ impl Context {
                             .into_iter()
                             .fold(f64::NEG_INFINITY, f64::max),
                     ),
+                    "step" => {
+                        let (input, rest) = first_and_rest(arguments)?;
+                        let input = self.evaluate(input)?;
+                        let (mut output, stops) = first_and_rest(rest)?;
+
+                        // Stops are pairs of [input, output], in increasing order of input.
+                        for stop in stops.chunks(2) {
+                            match stop {
+                                [threshold, stop_output] if lte(threshold, &input) => {
+                                    output = stop_output;
+                                }
+                                _ => break,
+                            }
+                        }
+                        self.evaluate(output)
+                    }
                     "interpolate" => {
                         let (interpolation_type, args) = first_and_rest(arguments)?;
                         let base = interpolation_base(interpolation_type);
@@ -830,6 +846,36 @@ mod tests {
                 .unwrap(),
             json!(100)
         );
+    }
+
+    /// https://maplibre.org/maplibre-style-spec/expressions/#step
+    #[test]
+    fn step_gives_the_output_of_the_last_stop_not_above_the_input() {
+        let at_zoom = |zoom| Context::new("Point".to_string(), HashMap::new(), zoom);
+        let step = json!(["step", ["zoom"], "far", 4, "mid", 14, "close"]);
+
+        for (zoom, expected) in [
+            (0, "far"),
+            (3, "far"),
+            (4, "mid"),
+            (13, "mid"),
+            (14, "close"),
+        ] {
+            assert_eq!(
+                at_zoom(zoom).evaluate(&step).unwrap(),
+                json!(expected),
+                "{zoom}"
+            );
+        }
+
+        let dashes = json!([
+            "step",
+            ["zoom"],
+            ["literal", [8, 8]],
+            14,
+            ["literal", [4, 2]]
+        ]);
+        assert_eq!(at_zoom(12).evaluate(&dashes).unwrap(), json!([8, 8]));
     }
 
     #[test]

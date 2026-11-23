@@ -190,7 +190,7 @@ impl Palette {
             background: "#000000".into(),
             rail_tie: "#6d6d6d".into(),
             tram: "#2d2d2d".into(),
-            rail: "#000000".into(),
+            rail: "#3c3c3c".into(),
             forest: "#061009".into(),
             urban_green: "#000c00".into(),
             pier: "#0a0a0a".into(),
@@ -226,7 +226,7 @@ impl Palette {
             background: "#f2f2f0".into(),
             rail_tie: "#000000".into(),
             tram: "#000000".into(),
-            rail: "#ffffff".into(),
+            rail: "#c4c4c4".into(),
             forest: "#86a180".into(),
             urban_green: "#e2f0df".into(),
             pier: "#8c8c8c".into(),
@@ -288,6 +288,19 @@ const LARGE_TEXT: f64 = 14.0;
 
 fn road_width(factor: f64) -> Float {
     exponential_zoom_interpolation(1.6, &ROAD_WIDTH.map(|(zoom, width)| (zoom, width * factor)))
+}
+
+/// Width of a railway inside its casing. Up to zoom 12, it is a third of a motorway, which its
+/// casing, a pixel wide each side of a line thinner than that, makes as wide as one.
+fn rail_width() -> Float {
+    let stops = ROAD_WIDTH.map(|(zoom, width)| {
+        if zoom <= 12.0 {
+            (zoom, width * MOTORWAY_FACTOR / 3.0)
+        } else {
+            (zoom, width * RAIL_FACTOR)
+        }
+    });
+    exponential_zoom_interpolation(1.6, &stops)
 }
 
 /// Width of a casing: its line, with a pixel either side. That is never wider than the line, so
@@ -845,7 +858,7 @@ fn build(palette: &Palette, hillshade: Option<String>, contours: Option<String>)
             filter: Some(Filter(json!(["==", "class", "rail"]))),
             paint: Paint {
                 line_color: Some(palette.rail.clone()),
-                line_width: Some(casing_width(road_width(RAIL_FACTOR).0)),
+                line_width: Some(casing_width(rail_width().0)),
                 ..Default::default()
             },
         },
@@ -857,8 +870,15 @@ fn build(palette: &Palette, hillshade: Option<String>, contours: Option<String>)
             paint: Paint {
                 //line_opacity: Some(Float(json!(0.5))),
                 line_color: Some(palette.rail_tie.clone()),
-                line_dasharray: Some(Dasharray(json!([4, 2]))),
-                line_width: Some(road_width(RAIL_FACTOR)),
+                // Far apart while the railway is thinner than a pixel, to show as ties at all.
+                line_dasharray: Some(Dasharray(json!([
+                    "step",
+                    ["zoom"],
+                    ["literal", [8, 8]],
+                    14,
+                    ["literal", [4, 2]]
+                ]))),
+                line_width: Some(rail_width()),
                 ..Default::default()
             },
         },
@@ -881,13 +901,6 @@ fn build(palette: &Palette, hillshade: Option<String>, contours: Option<String>)
             paint: Paint {
                 line_color: Some(palette.label.clone()),
                 line_width: Some(Float(json!(2))),
-                line_dasharray: Some(Dasharray(json!([
-                    "step",
-                    ["zoom"],
-                    ["literal", [2, 0]],
-                    4,
-                    ["literal", [2, 1]]
-                ]))),
                 ..Default::default()
             },
         },
@@ -1653,6 +1666,45 @@ mod tests {
                 "{class}: {widths:?}"
             );
         }
+    }
+
+    /// Railways show among roads from afar, and close up are as they were, wide enough for their
+    /// ties to show.
+    #[test]
+    fn a_railway_is_as_wide_as_a_motorway_from_afar() {
+        let style = Waymark::new(Palette::light()).build();
+        let widest = |class: &str, zoom| {
+            line_widths(&style, "transportation", json!({ "class": class }), zoom)
+                .into_iter()
+                .fold(0.0, f32::max)
+        };
+
+        for zoom in [6, 9, 12] {
+            let (rail, motorway) = (widest("rail", zoom), widest("motorway", zoom));
+            assert!(
+                (rail - motorway).abs() < 0.01,
+                "zoom {zoom}: {rail} {motorway}"
+            );
+        }
+        for (zoom, width) in [(15, 3.0), (18, 7.5)] {
+            let rail = widest("rail", zoom);
+            assert!((rail - width).abs() < 0.01, "zoom {zoom}: {rail}");
+        }
+    }
+
+    /// Ties under a pixel wide only show as ties when far apart.
+    #[test]
+    fn railway_ties_are_far_apart_from_afar() {
+        let style = Waymark::new(Palette::light()).build();
+        let ties = |zoom| {
+            dashes(&style, "transportation", json!({"class": "rail"}), zoom)
+                .into_iter()
+                .find(|dashes| !dashes.is_empty())
+                .unwrap()
+        };
+
+        assert_eq!(ties(12), [8.0, 8.0]);
+        assert_eq!(ties(16), [4.0, 2.0]);
     }
 
     /// The casing is drawn under the road, so only what is wider than the road shows. It used to
