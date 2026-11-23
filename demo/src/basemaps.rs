@@ -85,6 +85,7 @@ fn add_raster_basemaps(basemaps: &mut Basemaps) {
     basemaps.add("OpenStreetMapWithGeoportal", |ctx| {
         let style = Style {
             layers: vec![raster_layer("osm", 1.0), raster_layer("geoportal", 0.25)],
+            ..Default::default()
         };
         StyledSources::new(style, ctx.to_owned())
             .with_tiled_source("osm", http(OpenStreetMap, ctx))

@@ -6,6 +6,7 @@ use egui::Color32;
 use log::warn;
 use serde::Deserialize;
 pub use serde_json::{Value, json};
+use std::collections::HashMap;
 use thiserror::Error;
 
 use crate::{expression::Context, styled_sources::Drawn};
@@ -21,6 +22,10 @@ use crate::{expression::Context, styled_sources::Drawn};
 #[derive(Deserialize)]
 pub struct Style {
     pub layers: Vec<StyleLayer>,
+
+    /// Icons, by name, each drawn as its polygons filled one over another.
+    #[serde(default)]
+    pub icons: HashMap<String, Vec<IconFill>>,
 }
 
 /// Draws raster tiles as they are, and nothing else.
@@ -31,6 +36,7 @@ impl Default for Style {
                 source: None,
                 paint: Paint::default(),
             }],
+            icons: HashMap::new(),
         }
     }
 }
@@ -383,9 +389,20 @@ impl Filter {
     }
 }
 
+/// A polygon of an icon, filled with one color.
+#[derive(Deserialize, Debug, Clone)]
+#[serde(rename_all = "kebab-case")]
+pub struct IconFill {
+    /// Corners of the polygon, in points from where the icon stands, with y pointing down.
+    pub fill: Vec<[f32; 2]>,
+    pub fill_color: Color,
+}
+
 #[derive(Deserialize, Debug, Default)]
 #[serde(rename_all = "kebab-case")]
 pub struct Layout {
+    /// Name of the style's icon to draw on points.
+    pub icon_image: Option<Value>,
     pub text_field: Option<Value>,
     pub text_size: Option<Float>,
     pub text_padding: Option<Float>,
@@ -395,24 +412,25 @@ pub struct Layout {
 
 impl Layout {
     pub fn text(&self, context: &Context) -> Option<String> {
-        self.text_field
-            .as_ref()
-            .and_then(|value| match context.evaluate(value) {
-                Ok(Value::String(s)) => Some(s),
-                _ => None,
-            })
+        evaluate_string(self.text_field.as_ref()?, context)
     }
 
-    pub fn anchor(&self, context: &Context) -> crate::text::Anchor {
+    pub fn icon_image(&self, context: &Context) -> Option<String> {
+        evaluate_string(self.icon_image.as_ref()?, context)
+    }
+
+    pub fn anchor(&self, context: &Context) -> crate::symbol::Anchor {
         let Some(anchor) = &self.text_anchor else {
             return Default::default();
         };
 
         match context.evaluate(anchor) {
-            Ok(Value::String(name)) => crate::text::Anchor::from_name(&name).unwrap_or_else(|| {
-                warn!("Unknown text anchor '{name}'.");
-                Default::default()
-            }),
+            Ok(Value::String(name)) => {
+                crate::symbol::Anchor::from_name(&name).unwrap_or_else(|| {
+                    warn!("Unknown text anchor '{name}'.");
+                    Default::default()
+                })
+            }
             other => {
                 warn!("Expected text anchor to evaluate to a string, got: {other:?}");
                 Default::default()
@@ -449,6 +467,13 @@ impl Layout {
                 egui::Vec2::ZERO
             }
         }
+    }
+}
+
+fn evaluate_string(value: &Value, context: &Context) -> Option<String> {
+    match context.evaluate(value) {
+        Ok(Value::String(s)) => Some(s),
+        _ => None,
     }
 }
 

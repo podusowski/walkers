@@ -17,8 +17,10 @@ use crate::{
     expression::Context,
     render::{self, Geometry},
     style::{Filter, Layout, Paint, SourceLayer, StyleLayer},
-    text::Text,
+    symbol::Symbol,
 };
+#[cfg(feature = "vector")]
+use std::collections::HashMap;
 
 /// A tile's data, decoded.
 pub(crate) enum Decoded {
@@ -43,7 +45,7 @@ pub(crate) enum Styled {
     #[cfg(feature = "vector")]
     Vector {
         drawables: Vec<Drawable>,
-        texts: Vec<Text>,
+        symbols: Vec<Symbol>,
     },
     Image(ColorImage),
 }
@@ -136,12 +138,16 @@ fn apply(
     tile_size: u32,
 ) -> Result<Styled, TileError> {
     let mut drawables = Vec::new();
-    let mut texts = Vec::new();
+    let mut symbols = Vec::new();
     let mut hillshades = Vec::new();
     let mut raster_opacity = None;
 
     // Traced by the first contour layer, for all of them.
     let mut contours = None;
+
+    // Tessellated for the first symbol layer drawing an icon, for all of them.
+    let mut icons = None;
+    let no_icons = HashMap::new();
 
     // Indices stay those of the whole style, as they decide which labels win.
     for (index, layer) in layers.clone().zip(&style.layers[layers]) {
@@ -196,9 +202,16 @@ fn apply(
                 },
                 Decoded::Features(features),
             ) => {
+                let icons = match layout.icon_image {
+                    Some(_) => &*icons.get_or_insert_with(|| {
+                        render::symbol::tessellate_icons(&style.icons, zoom)
+                    }),
+                    None => &no_icons,
+                };
+
                 for (geometry, context) in matching(features, source_layer, filter.as_ref()) {
-                    warn_on_error(render::symbol::render(
-                        geometry, context, &mut texts, layout, paint, *minzoom, index,
+                    symbols.extend(render::symbol::render(
+                        geometry, context, layout, paint, icons, *minzoom, index,
                     ));
                 }
             }
@@ -230,7 +243,7 @@ fn apply(
                     paint,
                     index,
                     &mut drawables,
-                    &mut texts,
+                    &mut symbols,
                 );
             }
             // Layers of other kinds of data, which a single source draws every layer of.
@@ -241,7 +254,7 @@ fn apply(
     match decoded {
         Decoded::Features(_) => Ok(Styled::Vector {
             drawables: render::merge_runs(drawables),
-            texts,
+            symbols,
         }),
         Decoded::Image(image) => match raster_opacity {
             Some(opacity) => Ok(Styled::Image(color_image(&image, opacity))),
@@ -257,7 +270,7 @@ fn apply(
         }
         Decoded::Elevation(_) if contours.is_some() => Ok(Styled::Vector {
             drawables: render::merge_runs(drawables),
-            texts,
+            symbols,
         }),
         Decoded::Elevation(_) => Err(UNDRAWN_ELEVATION),
     }
@@ -273,7 +286,7 @@ fn draw_contours(
     paint: &Option<Paint>,
     index: usize,
     drawables: &mut Vec<Drawable>,
-    texts: &mut Vec<Text>,
+    symbols: &mut Vec<Symbol>,
 ) {
     let default = Paint::default();
     let line_paint = paint.as_ref().unwrap_or(&default);
@@ -294,8 +307,14 @@ fn draw_contours(
         }
 
         if layout.text_field.is_some() {
-            warn_on_error(render::symbol::render(
-                geometry, context, texts, layout, paint, None, index,
+            symbols.extend(render::symbol::render(
+                geometry,
+                context,
+                layout,
+                paint,
+                &HashMap::new(),
+                None,
+                index,
             ));
         }
     }
@@ -423,7 +442,10 @@ mod tests {
         assert!(
             apply(
                 image(),
-                &Style { layers: Vec::new() },
+                &Style {
+                    layers: Vec::new(),
+                    ..Default::default()
+                },
                 0..0,
                 TILE,
                 TILE.zoom,
@@ -462,7 +484,7 @@ mod tests {
             ZOOMED_IN.zoom,
             256,
         )? {
-            Styled::Vector { drawables, texts } => {
+            Styled::Vector { drawables, symbols } => {
                 let lines = drawables
                     .iter()
                     .map(|drawable| match drawable {
@@ -470,7 +492,7 @@ mod tests {
                         Drawable::Fill(_) => 0,
                     })
                     .sum();
-                Ok((lines, texts.len()))
+                Ok((lines, symbols.len()))
             }
             Styled::Image(_) => panic!("expected lines"),
         }
@@ -545,5 +567,86 @@ mod tests {
             panic!("expected an image");
         };
         assert!(image.pixels.iter().all(|pixel| pixel.a() == 64));
+    }
+
+    /// A point of the `mountain_peak` layer, put through a symbol layer of `layout`, in a style
+    /// with a `peak` icon.
+    fn symbols_drawn(layout: serde_json::Value) -> Vec<Symbol> {
+        let style: Style = serde_json::from_value(serde_json::json!({
+            "icons": {
+                "peak": [{ "fill": [[0, -5], [5, 5], [-5, 5]], "fill-color": "#ff0000" }]
+            },
+            "layers": [{
+                "type": "symbol",
+                "source-layer": "mountain_peak",
+                "layout": layout
+            }]
+        }))
+        .unwrap();
+
+        let features = Decoded::Features(vec![FeatureLayer {
+            name: "mountain_peak".into(),
+            features: vec![(
+                Geometry::Point(geo_types::Point::new(10., 20.)),
+                Context::new("Point".into(), Default::default(), 12),
+            )],
+        }]);
+
+        match apply(features, &style, 0..1, TILE, 12, 256) {
+            Ok(Styled::Vector { symbols, .. }) => symbols,
+            _ => panic!("expected drawables"),
+        }
+    }
+
+    #[test]
+    fn symbol_layers_put_the_icons_they_name_on_points() {
+        let symbols = symbols_drawn(serde_json::json!({ "icon-image": "peak" }));
+
+        match symbols.as_slice() {
+            [
+                Symbol {
+                    text: None,
+                    icon: Some(icon),
+                    position,
+                    ..
+                },
+            ] => {
+                assert_eq!(*position, emath::pos2(10., 20.));
+                match icon.drawables.as_slice() {
+                    [Drawable::Fill(mesh)] => {
+                        assert_eq!(mesh.indices.len(), 3);
+                        assert!(
+                            mesh.vertices
+                                .iter()
+                                .all(|vertex| vertex.color == ecolor::Color32::RED)
+                        );
+                    }
+                    other => panic!("expected a single fill, got {other:?}"),
+                }
+            }
+            other => panic!("expected a single icon, got {other:?}"),
+        }
+    }
+
+    #[test]
+    fn an_icon_and_a_text_of_a_layer_make_one_symbol() {
+        let symbols = symbols_drawn(serde_json::json!({
+            "icon-image": "peak",
+            "text-field": "Śnieżka"
+        }));
+
+        assert!(matches!(
+            symbols.as_slice(),
+            [Symbol {
+                text: Some(_),
+                icon: Some(_),
+                ..
+            }]
+        ));
+    }
+
+    #[test]
+    fn an_icon_the_style_does_not_have_is_not_drawn() {
+        assert!(symbols_drawn(serde_json::json!({ "icon-image": "volcano" })).is_empty());
     }
 }

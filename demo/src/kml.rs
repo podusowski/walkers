@@ -14,6 +14,7 @@ pub fn kampinos_national_park() -> KmlLayer {
                 ..Default::default()
             },
         }],
+        ..Default::default()
     };
 
     KmlLayer::from_string(include_str!("../assets/kampinos-national-park.kml"), style)
@@ -32,6 +33,7 @@ pub fn high_speed_rail_poland() -> KmlLayer {
                 ..Default::default()
             },
         }],
+        ..Default::default()
     };
 
     KmlLayer::from_string(include_str!("../assets/high-speed-rail-poland.kml"), style)
@@ -46,6 +48,7 @@ pub fn outgym_umea_layer() -> KmlLayer {
             source_layer: "".into(),
             filter: None,
         }],
+        ..Default::default()
     };
 
     KmlLayer::from_string(include_str!("../assets/utegym-umea.kml"), style)

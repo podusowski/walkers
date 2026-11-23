@@ -17,6 +17,11 @@ playground and can change or break at any time without an entry here.
   as `Palette::light()` or `Palette::dark()`, optionally with relief and contour lines from a
   source of elevation.
 * `Waymark` draws unpaved roads dashed.
+* New `Style::icons`, polygons filled in one color each, which a symbol layer puts on points by
+  its `icon-image`. A `Style` written as a struct literal now needs `icons`, or
+  `..Default::default()`.
+* `Waymark` draws peaks, stations, tram and bus stops, and motorway exits with icons, so they no
+  longer depend on which fonts the app has.
 * `Color` can be made from a CSS color string, such as `"#ff0000".into()`.
 * `Style::openmaptiles_basemap_light` and `Style::openmaptiles_basemap_dark` are deprecated in favor
   of `Waymark::new(Palette::light()).build()` and `Waymark::new(Palette::dark()).build()`.

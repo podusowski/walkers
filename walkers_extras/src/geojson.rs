@@ -91,12 +91,16 @@ impl GeoJsonLayer {
 
                     for (geometry, context) in self.features(map_bounds, filter.as_ref(), zoom) {
                         let projected = project_geometry(geometry, projector);
-                        let mut texts = Vec::new();
-                        let _ = render_symbol(
-                            &projected, &context, &mut texts, layout, paint, *minzoom, index,
-                        );
-                        for text in texts {
-                            canvas.add_text(z_order.combine(index), text);
+                        for symbol in render_symbol(
+                            &projected,
+                            &context,
+                            layout,
+                            paint,
+                            &Default::default(),
+                            *minzoom,
+                            index,
+                        ) {
+                            canvas.add_symbol(z_order.combine(index), symbol);
                         }
                     }
                 }

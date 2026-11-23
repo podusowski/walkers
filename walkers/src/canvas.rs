@@ -7,7 +7,7 @@ use std::sync::Arc;
 use crate::ZOrder;
 use crate::tiles::RasterImage;
 #[cfg(feature = "vector")]
-use crate::{Drawable, Text};
+use crate::{Drawable, Symbol, Text};
 
 /// Everything the map's layers draw in a frame, with labels on top. It does not know how to
 /// paint itself, that is up to a backend, such as egui's.
@@ -16,7 +16,7 @@ pub struct Canvas {
     pub(crate) items: Vec<Item>,
 
     #[cfg(feature = "vector")]
-    pub(crate) texts: Vec<(ZOrder, Text)>,
+    pub(crate) symbols: Vec<(ZOrder, Symbol)>,
 
     /// Of the layer being drawn.
     pub(crate) z_order: ZOrder,
@@ -47,7 +47,7 @@ pub(crate) struct RasterPiece {
 /// Drawables to be put on the [`Canvas`], and how. Cheap to clone, and drawing the same ones
 /// again does not upload them to the GPU again.
 #[cfg(feature = "vector")]
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct Drawables {
     /// Behind an `Arc`, because that is what the renderer tells uploaded drawables by.
     pub(crate) drawables: Arc<Vec<Drawable>>,
@@ -89,6 +89,15 @@ impl Drawables {
         self.transparency = transparency;
         self
     }
+
+    /// The area they cover, in their own coordinates.
+    pub(crate) fn bounds(&self) -> Rect {
+        self.drawables
+            .iter()
+            .fold(Rect::NOTHING, |bounds, drawable| {
+                bounds.union(drawable.bounds())
+            })
+    }
 }
 
 impl Canvas {
@@ -96,7 +105,7 @@ impl Canvas {
         Self {
             items: Vec::new(),
             #[cfg(feature = "vector")]
-            texts: Vec::new(),
+            symbols: Vec::new(),
             z_order: ZOrder::default(),
             transparency: 1.0,
         }
@@ -107,15 +116,23 @@ impl Canvas {
         self.z_order
     }
 
-    /// `text` is in screen coordinates.
+    /// `symbol` is in screen coordinates.
     #[cfg(feature = "vector")]
-    pub fn add_text(&mut self, z_order: ZOrder, text: Text) {
-        let text = Text {
-            text_color: text.text_color.gamma_multiply(self.transparency),
-            halo_color: text.halo_color.gamma_multiply(self.transparency),
-            ..text
+    pub fn add_symbol(&mut self, z_order: ZOrder, symbol: Symbol) {
+        let transparency = self.transparency;
+        let symbol = Symbol {
+            text: symbol.text.map(|text| Text {
+                text_color: text.text_color.gamma_multiply(transparency),
+                halo_color: text.halo_color.gamma_multiply(transparency),
+                ..text
+            }),
+            icon: symbol.icon.map(|icon| {
+                let transparency = icon.transparency * transparency;
+                icon.with_transparency(transparency)
+            }),
+            ..symbol
         };
-        self.texts.push((z_order, text));
+        self.symbols.push((z_order, symbol));
     }
 
     #[cfg(feature = "vector")]
@@ -152,6 +169,33 @@ mod tests {
         match canvas.items.as_slice() {
             [Item::Drawables(drawables)] => assert_eq!(drawables.transparency, 0.25),
             _ => panic!("expected a single run of drawables"),
+        }
+    }
+
+    #[test]
+    fn transparency_of_the_layer_is_applied_to_the_symbols_own() {
+        let mut canvas = Canvas {
+            transparency: 0.5,
+            ..Canvas::new()
+        };
+        let symbol = Symbol::new(emath::pos2(0., 0.))
+            .with_text(Text::new("Śnieżka".into(), 12., ecolor::Color32::WHITE, 0.))
+            .with_icon(Drawables::new(Vec::new()).with_transparency(0.5));
+
+        canvas.add_symbol(ZOrder::default(), symbol);
+
+        match canvas.symbols.as_slice() {
+            [(_, symbol)] => {
+                assert_eq!(
+                    symbol.text.as_ref().map(|text| text.text_color),
+                    Some(ecolor::Color32::WHITE.gamma_multiply(0.5))
+                );
+                assert_eq!(
+                    symbol.icon.as_ref().map(|icon| icon.transparency),
+                    Some(0.25)
+                );
+            }
+            _ => panic!("expected a single symbol"),
         }
     }
 }

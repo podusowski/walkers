@@ -12,7 +12,7 @@ mod plugin;
 #[cfg(feature = "vector")]
 mod style;
 #[cfg(feature = "vector")]
-mod text;
+mod symbol;
 
 #[cfg(not(feature = "vector"))]
 mod style {
@@ -78,12 +78,12 @@ pub use style::Style;
 pub use style::waymark::{Palette, Waymark};
 #[cfg(feature = "vector")]
 pub use style::{
-    Color, Dasharray, Filter, Float, Layout, Paint, SourceLayer, StyleLayer, Value,
+    Color, Dasharray, Filter, Float, IconFill, Layout, Paint, SourceLayer, StyleLayer, Value,
     exponential_zoom_interpolation, json, linear_zoom_interpolation,
 };
 pub use styled_sources::StyledSources;
 #[cfg(feature = "vector")]
-pub use text::{Anchor, Placement, Text, place_texts};
+pub use symbol::{Anchor, Placed, Placement, Symbol, Text, place_symbols};
 pub use tiles::http::{HttpSource, HttpTiles};
 #[cfg(feature = "pmtiles")]
 pub use tiles::pmtiles::{PmTiles, PmTilesSource};

@@ -28,10 +28,15 @@ impl Canvas {
         // Stable, so that within a style layer the tiles nearest the center still go first.
         #[cfg(feature = "vector")]
         {
-            let mut texts = self.texts;
-            texts.sort_by_key(|(z_order, _)| *z_order);
-            let texts = texts.into_iter().map(|(_, text)| text).collect();
-            shapes.extend(crate::text::place_texts(texts, painter.ctx()));
+            let mut symbols = self.symbols;
+            symbols.sort_by_key(|(z_order, _)| *z_order);
+            let symbols = symbols.into_iter().map(|(_, symbol)| symbol).collect();
+            for placed in crate::symbol::place_symbols(symbols, painter.ctx()) {
+                if let Some(icon) = placed.icon {
+                    shapes.extend(wgpu::Run::callbacks(icon, screen, frame));
+                }
+                shapes.extend(placed.text);
+            }
         }
 
         painter.extend(shapes);

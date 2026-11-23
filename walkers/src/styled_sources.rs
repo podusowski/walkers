@@ -207,7 +207,10 @@ mod tests {
     }
 
     fn style(layers: Vec<StyleLayer>) -> Style {
-        Style { layers }
+        Style {
+            layers,
+            ..Default::default()
+        }
     }
 
     #[test]

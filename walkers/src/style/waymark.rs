@@ -2,8 +2,10 @@
 //!
 //! <https://openmaptiles.org/schema/>
 
+use std::collections::HashMap;
+
 use super::{
-    Color, Dasharray, Filter, Float, Layout, Paint, Style, StyleLayer, Value,
+    Color, Dasharray, Filter, Float, IconFill, Layout, Paint, Style, StyleLayer, Value,
     exponential_zoom_interpolation, json, linear_zoom_interpolation,
 };
 
@@ -1042,35 +1044,18 @@ fn build(palette: &Palette, hillshade: Option<String>, contours: Option<String>)
                 ..Default::default()
             }),
         },
-        // roads_labels_junction_symbol, motorway exits
+        // roads_labels_junction, motorway exits, named under their symbol
         StyleLayer::Symbol {
             source: Some(SOURCE.into()),
             source_layer: "transportation_name".into(),
             minzoom: None,
             filter: Some(Filter(json!(["==", "subclass", "junction"]))),
             layout: Layout {
-                text_field: Some(json!("⬈")),
-                text_size: Some(Float(json!(TEXT))),
-                ..Default::default()
-            },
-            paint: Some(Paint {
-                text_color: Some(palette.label.clone()),
-                text_halo_color: Some(palette.background.clone()),
-                text_halo_width: Some(Float(json!(HALO_WIDTH))),
-                ..Default::default()
-            }),
-        },
-        // roads_labels_junction, named under the symbol
-        StyleLayer::Symbol {
-            source: Some(SOURCE.into()),
-            source_layer: "transportation_name".into(),
-            minzoom: None,
-            filter: Some(Filter(json!(["==", "subclass", "junction"]))),
-            layout: Layout {
+                icon_image: Some(json!("junction")),
                 text_field: Some(json!(["get", "name"])),
                 text_size: Some(Float(json!(SMALL_TEXT))),
                 text_anchor: Some(json!("top")),
-                text_offset: Some(json!([0, 0.8])),
+                text_offset: Some(json!([0, 1.0])),
                 ..Default::default()
             },
             paint: Some(Paint {
@@ -1190,7 +1175,7 @@ fn build(palette: &Palette, hillshade: Option<String>, contours: Option<String>)
                 ..Default::default()
             }),
         },
-        // stations_symbol
+        // stations, named under their symbol
         StyleLayer::Symbol {
             source: Some(SOURCE.into()),
             source_layer: "poi".into(),
@@ -1201,32 +1186,11 @@ fn build(palette: &Palette, hillshade: Option<String>, contours: Option<String>)
                 ["in", "subclass", "station", "halt"]
             ]))),
             layout: Layout {
-                text_field: Some(json!("🚆")),
-                text_size: Some(Float(json!(TEXT))),
-                ..Default::default()
-            },
-            paint: Some(Paint {
-                text_color: Some(palette.station.clone()),
-                text_halo_color: Some(palette.casing.clone()),
-                text_halo_width: Some(Float(json!(HALO_WIDTH))),
-                ..Default::default()
-            }),
-        },
-        // stations, named under the symbol
-        StyleLayer::Symbol {
-            source: Some(SOURCE.into()),
-            source_layer: "poi".into(),
-            minzoom: None,
-            filter: Some(Filter(json!([
-                "all",
-                ["==", "class", "railway"],
-                ["in", "subclass", "station", "halt"]
-            ]))),
-            layout: Layout {
+                icon_image: Some(json!("station")),
                 text_field: Some(json!(["get", "name"])),
                 text_size: Some(Float(json!(TEXT))),
                 text_anchor: Some(json!("top")),
-                text_offset: Some(json!([0, 0.8])),
+                text_offset: Some(json!([0, 1.0])),
                 ..Default::default()
             },
             paint: Some(Paint {
@@ -1236,7 +1200,7 @@ fn build(palette: &Palette, hillshade: Option<String>, contours: Option<String>)
                 ..Default::default()
             }),
         },
-        // tram_stops_symbol
+        // tram_stops, named under their symbol
         StyleLayer::Symbol {
             source: Some(SOURCE.into()),
             source_layer: "poi".into(),
@@ -1247,32 +1211,11 @@ fn build(palette: &Palette, hillshade: Option<String>, contours: Option<String>)
                 ["==", "subclass", "tram_stop"]
             ]))),
             layout: Layout {
-                text_field: Some(json!("🚊")),
-                text_size: Some(Float(json!(SMALL_TEXT))),
-                ..Default::default()
-            },
-            paint: Some(Paint {
-                text_color: Some(palette.station.clone()),
-                text_halo_color: Some(palette.casing.clone()),
-                text_halo_width: Some(Float(json!(HALO_WIDTH))),
-                ..Default::default()
-            }),
-        },
-        // tram_stops, named under the symbol
-        StyleLayer::Symbol {
-            source: Some(SOURCE.into()),
-            source_layer: "poi".into(),
-            minzoom: Some(16.0),
-            filter: Some(Filter(json!([
-                "all",
-                ["==", "class", "railway"],
-                ["==", "subclass", "tram_stop"]
-            ]))),
-            layout: Layout {
+                icon_image: Some(json!("tram_stop")),
                 text_field: Some(json!(["get", "name"])),
                 text_size: Some(Float(json!(SMALL_TEXT))),
                 text_anchor: Some(json!("top")),
-                text_offset: Some(json!([0, 0.8])),
+                text_offset: Some(json!([0, 1.0])),
                 ..Default::default()
             },
             paint: Some(Paint {
@@ -1282,35 +1225,18 @@ fn build(palette: &Palette, hillshade: Option<String>, contours: Option<String>)
                 ..Default::default()
             }),
         },
-        // bus_stops_symbol
+        // bus_stops, named under their symbol
         StyleLayer::Symbol {
             source: Some(SOURCE.into()),
             source_layer: "poi".into(),
             minzoom: Some(16.0),
             filter: Some(Filter(json!(["==", "class", "bus"]))),
             layout: Layout {
-                text_field: Some(json!("🚌")),
-                text_size: Some(Float(json!(SMALL_TEXT))),
-                ..Default::default()
-            },
-            paint: Some(Paint {
-                text_color: Some(palette.station.clone()),
-                text_halo_color: Some(palette.casing.clone()),
-                text_halo_width: Some(Float(json!(HALO_WIDTH))),
-                ..Default::default()
-            }),
-        },
-        // bus_stops, named under the symbol
-        StyleLayer::Symbol {
-            source: Some(SOURCE.into()),
-            source_layer: "poi".into(),
-            minzoom: Some(16.0),
-            filter: Some(Filter(json!(["==", "class", "bus"]))),
-            layout: Layout {
+                icon_image: Some(json!("bus_stop")),
                 text_field: Some(json!(["get", "name"])),
                 text_size: Some(Float(json!(SMALL_TEXT))),
                 text_anchor: Some(json!("top")),
-                text_offset: Some(json!([0, 0.8])),
+                text_offset: Some(json!([0, 1.0])),
                 ..Default::default()
             },
             paint: Some(Paint {
@@ -1320,31 +1246,14 @@ fn build(palette: &Palette, hillshade: Option<String>, contours: Option<String>)
                 ..Default::default()
             }),
         },
-        // peaks_symbol, on the peak itself
+        // peaks, a symbol on the peak itself, named under it
         StyleLayer::Symbol {
             source: Some(SOURCE.into()),
             source_layer: "mountain_peak".into(),
             minzoom: None,
             filter: Some(Filter(json!(["in", "class", "peak", "volcano"]))),
             layout: Layout {
-                text_field: Some(json!("⛰")),
-                text_size: Some(Float(json!(TEXT))),
-                ..Default::default()
-            },
-            paint: Some(Paint {
-                text_color: Some(palette.peak.clone()),
-                text_halo_color: Some(palette.casing.clone()),
-                text_halo_width: Some(Float(json!(HALO_WIDTH))),
-                ..Default::default()
-            }),
-        },
-        // peaks, named under the symbol
-        StyleLayer::Symbol {
-            source: Some(SOURCE.into()),
-            source_layer: "mountain_peak".into(),
-            minzoom: None,
-            filter: Some(Filter(json!(["in", "class", "peak", "volcano"]))),
-            layout: Layout {
+                icon_image: Some(json!("peak")),
                 text_field: Some(json!([
                     "case",
                     ["!has", "ele"],
@@ -1367,7 +1276,178 @@ fn build(palette: &Palette, hillshade: Option<String>, contours: Option<String>)
         },
     ]);
 
-    Style { layers }
+    let icons = HashMap::from([
+        (
+            "peak".to_string(),
+            vec![IconFill {
+                fill: vec![[0.0, -5.0], [6.0, 5.0], [-6.0, 5.0]],
+                fill_color: palette.peak.clone(),
+            }],
+        ),
+        (
+            "station".to_string(),
+            badge(8.5, train(), &palette.station, &palette.background),
+        ),
+        (
+            "tram_stop".to_string(),
+            badge(7.0, tram(), &palette.station, &palette.background),
+        ),
+        (
+            "bus_stop".to_string(),
+            badge(7.0, bus(), &palette.station, &palette.background),
+        ),
+        (
+            "junction".to_string(),
+            badge(7.0, arrow(), &palette.label, &palette.background),
+        ),
+    ]);
+
+    Style { layers, icons }
+}
+
+/// Shapes drawn in a badge's ink, and holes then cut out of them in the badge's color, all within
+/// 5 points of the middle.
+struct Pictogram {
+    ink: Vec<Vec<[f32; 2]>>,
+    holes: Vec<Vec<[f32; 2]>>,
+}
+
+/// `pictogram` in `ink` on a rounded square of `color` reaching `half` from where the icon stands
+/// to each side, outlined in `ink`.
+fn badge(half: f32, pictogram: Pictogram, color: &Color, ink: &Color) -> Vec<IconFill> {
+    let outline = HALO_WIDTH as f32;
+    let radius = half * 0.35;
+    let scale = (half - 1.5) / 5.0;
+    let fill = |fill: Vec<[f32; 2]>, color: &Color| IconFill {
+        fill,
+        fill_color: color.clone(),
+    };
+    let scaled = |polygon: Vec<[f32; 2]>| {
+        polygon
+            .into_iter()
+            .map(|[x, y]| [x * scale, y * scale])
+            .collect()
+    };
+
+    [
+        fill(
+            rounded_rect(
+                [-half - outline, -half - outline],
+                [half + outline, half + outline],
+                radius + outline,
+            ),
+            ink,
+        ),
+        fill(rounded_rect([-half, -half], [half, half], radius), color),
+    ]
+    .into_iter()
+    .chain(
+        pictogram
+            .ink
+            .into_iter()
+            .map(|part| fill(scaled(part), ink)),
+    )
+    .chain(
+        pictogram
+            .holes
+            .into_iter()
+            .map(|hole| fill(scaled(hole), color)),
+    )
+    .collect()
+}
+
+/// Front of a train.
+fn train() -> Pictogram {
+    Pictogram {
+        ink: vec![
+            rounded_rect([-3.5, -5.0], [3.5, 2.5], 1.8),
+            vec![[-2.0, 2.5], [-0.8, 2.5], [-2.2, 5.0], [-3.4, 5.0]],
+            vec![[2.0, 2.5], [0.8, 2.5], [2.2, 5.0], [3.4, 5.0]],
+        ],
+        holes: vec![
+            rect([-2.4, -3.8], [2.4, -1.0]),
+            rect([-2.4, 0.3], [-1.2, 1.3]),
+            rect([1.2, 0.3], [2.4, 1.3]),
+        ],
+    }
+}
+
+/// Front of a tram, with its pantograph.
+fn tram() -> Pictogram {
+    Pictogram {
+        ink: vec![
+            rect([-2.2, -5.2], [2.2, -4.2]),
+            rect([-0.5, -4.5], [0.5, -3.0]),
+            rounded_rect([-3.0, -3.2], [3.0, 3.0], 1.2),
+            rect([-2.6, 3.0], [-1.2, 4.6]),
+            rect([1.2, 3.0], [2.6, 4.6]),
+        ],
+        holes: vec![
+            rect([-2.0, -2.2], [2.0, 0.2]),
+            rect([-2.0, 1.2], [-1.0, 2.0]),
+            rect([1.0, 1.2], [2.0, 2.0]),
+        ],
+    }
+}
+
+/// Front of a bus.
+fn bus() -> Pictogram {
+    Pictogram {
+        ink: vec![
+            rounded_rect([-3.6, -4.6], [3.6, 3.0], 1.0),
+            rect([-3.2, 3.0], [-1.6, 4.6]),
+            rect([1.6, 3.0], [3.2, 4.6]),
+        ],
+        holes: vec![
+            rect([-2.6, -3.6], [2.6, -0.4]),
+            rect([-2.6, 1.0], [-1.4, 2.0]),
+            rect([1.4, 1.0], [2.6, 2.0]),
+        ],
+    }
+}
+
+/// Arrow pointing up and right.
+fn arrow() -> Pictogram {
+    // Half the width of the shaft, along each axis.
+    let side = 0.8;
+    let (tail, end) = ([-4.0, 4.0], [1.5, -1.5]);
+    Pictogram {
+        ink: vec![
+            vec![[4.5, -4.5], [4.5, 1.5], [-1.5, -4.5]],
+            vec![
+                [tail[0] - side, tail[1] - side],
+                [tail[0] + side, tail[1] + side],
+                [end[0] + side, end[1] + side],
+                [end[0] - side, end[1] - side],
+            ],
+        ],
+        holes: vec![],
+    }
+}
+
+/// Rectangle from corner `a` to corner `b`.
+fn rect([x0, y0]: [f32; 2], [x1, y1]: [f32; 2]) -> Vec<[f32; 2]> {
+    vec![[x0, y0], [x1, y0], [x1, y1], [x0, y1]]
+}
+
+/// Rectangle from corner `a` to corner `b`, with its corners rounded to `radius`.
+fn rounded_rect([x0, y0]: [f32; 2], [x1, y1]: [f32; 2], radius: f32) -> Vec<[f32; 2]> {
+    const STEPS: usize = 4;
+    let corners = [
+        ([x1 - radius, y0 + radius], -90.0_f32),
+        ([x1 - radius, y1 - radius], 0.0),
+        ([x0 + radius, y1 - radius], 90.0),
+        ([x0 + radius, y0 + radius], 180.0),
+    ];
+    corners
+        .into_iter()
+        .flat_map(|([x, y], start)| {
+            (0..=STEPS).map(move |step| {
+                let angle = (start + 90.0 * step as f32 / STEPS as f32).to_radians();
+                [x + radius * angle.cos(), y + radius * angle.sin()]
+            })
+        })
+        .collect()
 }
 
 #[cfg(test)]
@@ -1689,9 +1769,14 @@ mod tests {
         }
     }
 
-    /// Texts which the style's label layers give a feature of `source`, at `zoom`, found the way
-    /// the renderer finds them.
-    fn labels(style: &Style, source: &str, properties: Value, zoom: u8) -> Vec<String> {
+    /// Text and icon which each of the style's symbol layers gives a feature of `source`, at
+    /// `zoom`, found the way the renderer finds them.
+    fn symbols(
+        style: &Style,
+        source: &str,
+        properties: Value,
+        zoom: u8,
+    ) -> Vec<(Option<String>, Option<String>)> {
         let context = Context::new(
             "Point".to_owned(),
             serde_json::from_value::<HashMap<String, Value>>(properties).unwrap(),
@@ -1714,11 +1799,62 @@ mod tests {
                         .as_ref()
                         .is_none_or(|filter| filter.matches(&context)) =>
                 {
-                    layout.text(&context)
+                    Some((layout.text(&context), layout.icon_image(&context)))
                 }
                 _ => None,
             })
             .collect()
+    }
+
+    /// Texts which the style's symbol layers give a feature of `source`, at `zoom`.
+    fn labels(style: &Style, source: &str, properties: Value, zoom: u8) -> Vec<String> {
+        symbols(style, source, properties, zoom)
+            .into_iter()
+            .filter_map(|(text, _)| text)
+            .collect()
+    }
+
+    /// Glyphs drawn as text look different in each font, and some fonts have none of them.
+    #[test]
+    fn symbols_are_icons_of_the_style_named_by_one_layer() {
+        let style = Waymark::new(Palette::light()).build();
+        let features = [
+            (
+                "poi",
+                json!({"class": "railway", "subclass": "station", "name": "Wrocław Główny"}),
+                "station",
+            ),
+            (
+                "poi",
+                json!({"class": "railway", "subclass": "halt", "name": "Wrocław Psie Pole"}),
+                "station",
+            ),
+            (
+                "poi",
+                json!({"class": "railway", "subclass": "tram_stop", "name": "Rynek"}),
+                "tram_stop",
+            ),
+            ("poi", json!({"class": "bus", "name": "Rynek"}), "bus_stop"),
+            (
+                "transportation_name",
+                json!({"class": "motorway", "subclass": "junction", "name": "Wrocław Lotnisko"}),
+                "junction",
+            ),
+            (
+                "mountain_peak",
+                json!({"class": "peak", "name": "Śnieżka", "ele": 1603}),
+                "peak",
+            ),
+        ];
+
+        for (source, properties, icon) in features {
+            let symbols = symbols(&style, source, properties.clone(), 17);
+            assert!(
+                matches!(&symbols[..], [(Some(_), Some(found))] if found == icon),
+                "{properties}: {symbols:?}"
+            );
+            assert!(style.icons.contains_key(icon), "{icon}");
+        }
     }
 
     /// OpenMapTiles has railway stations as a `railway` with a `station` subclass. The style

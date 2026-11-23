@@ -154,7 +154,7 @@ pub enum Tile {
         /// one address while the GPU holds buffers for it.
         drawables: std::sync::Arc<Vec<crate::render::drawable::Drawable>>,
 
-        texts: Vec<crate::text::Text>,
+        symbols: Vec<crate::symbol::Symbol>,
     },
 }
 
@@ -196,9 +196,9 @@ impl Tile {
             zoom,
             tile_size,
         )? {
-            Styled::Vector { drawables, texts } => Ok(Self::Vector {
+            Styled::Vector { drawables, symbols } => Ok(Self::Vector {
                 drawables: std::sync::Arc::new(drawables),
-                texts,
+                symbols,
             }),
             Styled::Image(_) => Err(TileError::Unstyled("not a vector tile")),
         }
@@ -208,9 +208,9 @@ impl Tile {
         match styled {
             Styled::Image(image) => Self::from_color_image(image, ctx),
             #[cfg(feature = "vector")]
-            Styled::Vector { drawables, texts } => Self::Vector {
+            Styled::Vector { drawables, symbols } => Self::Vector {
                 drawables: std::sync::Arc::new(drawables),
-                texts,
+                symbols,
             },
         }
     }
@@ -242,7 +242,7 @@ impl Tile {
             #[cfg(feature = "vector")]
             Tile::Vector {
                 drawables,
-                texts: from_tile,
+                symbols: from_tile,
             } => {
                 // Renderer needs to work on the full tile, before it was clipped with `uv`...
                 let full_rect = full_rect_of_clipped_tile(rect, uv);
@@ -270,14 +270,14 @@ impl Tile {
                 let given = piece.intersect(near_map);
 
                 let z_order = canvas.z_order();
-                for text in render::transformed_texts(
+                for symbol in render::transformed_symbols(
                     from_tile
                         .iter()
-                        .filter(|text| contains_up_to_max(given, text.position)),
+                        .filter(|symbol| contains_up_to_max(given, symbol.position)),
                     transform,
                     zoom - grid::zoom_offset(tile_size) as f64,
                 ) {
-                    canvas.add_text(z_order.combine(text.layer), text);
+                    canvas.add_symbol(z_order.combine(symbol.layer), symbol);
                 }
             }
         }
@@ -663,19 +663,20 @@ mod tests {
     impl Tiles for LabelAtBothEdges {
         fn at(&mut self, _tile_id: TileId) -> Option<TilePiece> {
             let label = |x: f32| {
-                crate::text::Text::new(
-                    pos2(x, TILE_SIZE as f32 / 2.),
-                    "Szczepankowice".to_string(),
-                    12.,
-                    egui::Color32::BLACK,
-                    0.,
+                crate::symbol::Symbol::new(pos2(x, TILE_SIZE as f32 / 2.)).with_text(
+                    crate::symbol::Text::new(
+                        "Szczepankowice".to_string(),
+                        12.,
+                        egui::Color32::BLACK,
+                        0.,
+                    ),
                 )
             };
 
             Some(TilePiece::new(
                 Tile::Vector {
                     drawables: std::sync::Arc::new(Vec::new()),
-                    texts: vec![label(0.), label(TILE_SIZE as f32)],
+                    symbols: vec![label(0.), label(TILE_SIZE as f32)],
                 },
                 Rect::from_min_max(pos2(0., 0.), pos2(1., 1.)),
             ))
@@ -708,11 +709,11 @@ mod tests {
             &mut LabelAtBothEdges,
         );
 
-        let gathered = canvas.texts.len();
+        let gathered = canvas.symbols.len();
         let positions: std::collections::HashSet<_> = canvas
-            .texts
+            .symbols
             .iter()
-            .map(|(_, text)| (text.position.x as i32, text.position.y as i32))
+            .map(|(_, symbol)| (symbol.position.x as i32, symbol.position.y as i32))
             .collect();
 
         assert!(gathered > 0);
@@ -733,26 +734,26 @@ mod tests {
     impl Tiles for PiecesOfOneTile {
         fn at(&mut self, tile_id: TileId) -> Option<TilePiece> {
             const SPACING: u32 = 8;
-            let texts = (0..TILE_SIZE / SPACING)
+            let symbols = (0..TILE_SIZE / SPACING)
                 .flat_map(|x| (0..TILE_SIZE / SPACING).map(move |y| (x, y)))
                 .map(|(x, y)| {
-                    crate::text::Text::new(
-                        pos2(
-                            (x * SPACING + SPACING / 2) as f32,
-                            (y * SPACING + SPACING / 2) as f32,
-                        ),
+                    crate::symbol::Symbol::new(pos2(
+                        (x * SPACING + SPACING / 2) as f32,
+                        (y * SPACING + SPACING / 2) as f32,
+                    ))
+                    .with_text(crate::symbol::Text::new(
                         format!("{x}, {y}"),
                         12.,
                         egui::Color32::BLACK,
                         0.,
-                    )
+                    ))
                 })
                 .collect();
 
             Some(TilePiece::new(
                 Tile::Vector {
                     drawables: std::sync::Arc::new(Vec::new()),
-                    texts,
+                    symbols,
                 },
                 interpolate_from_lower_zoom(tile_id, tile_id.zoom - 3).1,
             ))
@@ -775,12 +776,16 @@ mod tests {
     /// Labels which [`draw_tiles`] gathers from [`PiecesOfOneTile`], and the projector it
     /// drew with.
     #[cfg(feature = "vector")]
-    fn labels_of_pieces() -> (Vec<crate::text::Text>, Projector<'static>) {
+    fn labels_of_pieces() -> (Vec<crate::symbol::Symbol>, Projector<'static>) {
         let projector = projector_at(TILE_SIZE as f32 * 2., 16.);
         let mut canvas = Canvas::new();
         draw_tiles(&mut canvas, &projector, &mut PiecesOfOneTile);
 
-        let texts = canvas.texts.into_iter().map(|(_, text)| text).collect();
+        let texts = canvas
+            .symbols
+            .into_iter()
+            .map(|(_, symbol)| symbol)
+            .collect();
         (texts, projector)
     }
 
@@ -814,12 +819,12 @@ mod tests {
         let near = map_rect.expand(map_rect.width());
 
         assert!(!texts.is_empty());
-        for text in texts {
+        for symbol in texts {
             assert!(
-                near.contains(text.position),
-                "{} at {:?}",
-                text.text,
-                text.position
+                near.contains(symbol.position),
+                "{:?} at {:?}",
+                symbol.text.map(|text| text.text),
+                symbol.position
             );
         }
     }
