@@ -8,7 +8,7 @@ use egui_wgpu::wgpu::{
     ShaderModuleDescriptor, ShaderSource, ShaderStages, TextureFormat,
     util::{BufferInitDescriptor, DeviceExt as _},
 };
-use emath::{Rect, TSTransform};
+use emath::{Pos2, Rect, TSTransform, Vec2};
 
 use crate::{Drawable, Line};
 
@@ -42,8 +42,9 @@ struct LineVertex {
     /// How far to push it sideways once it is on the screen.
     extrude: [f32; 2],
 
-    /// Which side of the line it is, -1 or 1, so that the edges can be softened.
-    side: f32,
+    /// How far from the middle of the line it is, on the screen, positive on the left. Pushed
+    /// out to a miter, a vertex is further away than this, so it is not just `extrude`'s length.
+    offset: f32,
 
     color: [u8; 4],
 
@@ -78,41 +79,116 @@ fn dasharray_of(line: &Line) -> [f32; 4] {
     packed
 }
 
-/// Turn a run of lines into triangles. Segments are independent - no joins, no caps - which
-/// shows at corners of thick lines and is the first thing to improve here.
+/// How far the point of a bend may reach, in half widths of the line, before it is cut off.
+const MITER_LIMIT: f32 = 2.;
+
+/// How the ends of two segments meeting at a bend are pushed out, on the left and on the right.
+struct Join {
+    before: [Vec2; 2],
+    after: [Vec2; 2],
+
+    /// The side whose point is cut off, leaving a wedge between the two segments to fill.
+    cut: Option<usize>,
+}
+
+/// Where a segment going `from` one direction meets one going `to` the next, both of them
+/// unit vectors. Each end is pushed out `half` the line's width.
+fn join(from: Vec2, to: Vec2, half: f32, shortest: f32) -> Join {
+    let (from_left, to_left) = (from.rot90() * half, to.rot90() * half);
+    let separate = Join {
+        before: [from_left, -from_left],
+        after: [to_left, -to_left],
+        cut: None,
+    };
+
+    let bisector = (from.rot90() + to.rot90()).normalized();
+    let cos = bisector.dot(from.rot90());
+
+    // Doubling back, or reaching past a whole segment, the inside of the bend would fold over
+    // and the segments would cross. Overlapping there is the lesser evil.
+    if cos.is_nan() || cos <= 0. || half * (1. / (cos * cos) - 1.).sqrt() > shortest {
+        return separate;
+    }
+
+    let miter = bisector * half / cos;
+    if 1. / cos <= MITER_LIMIT {
+        return Join {
+            before: [miter, -miter],
+            after: [miter, -miter],
+            cut: None,
+        };
+    }
+
+    // The inside is the side the line turns towards, and the outside is cut off.
+    if from.rot90().dot(to) > 0. {
+        Join {
+            before: [miter, -from_left],
+            after: [miter, -to_left],
+            cut: Some(1),
+        }
+    } else {
+        Join {
+            before: [from_left, -miter],
+            after: [to_left, -miter],
+            cut: Some(0),
+        }
+    }
+}
+
+/// Turn a run of lines into triangles. Segments meet along the bisector of each bend, so that
+/// a translucent line is not drawn twice over there, and sharp bends are cut off. Ends are
+/// square, without caps.
 fn line_vertices(run: &[Line]) -> (Vec<LineVertex>, Vec<u32>) {
     let mut vertices = Vec::new();
     let mut indices = Vec::new();
 
     for line in run {
         let dasharray = dasharray_of(line);
+
+        // Half a pixel wider than asked for, on each side, so that the fragment shader has
+        // somewhere to fade out. What the line is really meant to be is worked back out from
+        // this in the shader.
+        let half = line.width / 2. + FEATHER;
+
+        let mut points = line.points.clone();
+        points.dedup();
+        let segments: Vec<(Pos2, Pos2, f32)> = points
+            .windows(2)
+            .map(|pair| (pair[0], pair[1], (pair[1] - pair[0]).length()))
+            .collect();
+        let joins: Vec<Join> = segments
+            .windows(2)
+            .map(|pair| {
+                let [(from, bend, before), (_, to, after)] = [pair[0], pair[1]];
+                join(
+                    (bend - from) / before,
+                    (to - bend) / after,
+                    half,
+                    before.min(after),
+                )
+            })
+            .collect();
+
         let mut travelled = 0.;
-
-        for pair in line.points.windows(2) {
-            let (from, to) = (pair[0], pair[1]);
-            let along = to - from;
-
-            let length = along.length();
-            if length == 0. {
-                continue;
-            }
-
-            // Half a pixel wider than asked for, on each side, so that the fragment shader
-            // has somewhere to fade out. What the line is really meant to be is worked back
-            // out from this in the shader.
-            let across = emath::vec2(-along.y, along.x) / length * (line.width / 2. + FEATHER);
+        for (index, &(from, to, length)) in segments.iter().enumerate() {
+            let left = ((to - from) / length).rot90() * half;
+            let square = [left, -left];
+            let start = index
+                .checked_sub(1)
+                .map_or(square, |previous| joins[previous].after);
+            let end = joins.get(index).map_or(square, |join| join.before);
             let corner = vertices.len() as u32;
 
-            for (position, along, side) in [
-                (from, travelled, 1.),
-                (from, travelled, -1.),
-                (to, travelled + length, 1.),
-                (to, travelled + length, -1.),
+            for (position, along, extrude, offset) in [
+                (from, travelled, start[0], half),
+                (from, travelled, start[1], -half),
+                (to, travelled + length, end[0], half),
+                (to, travelled + length, end[1], -half),
             ] {
                 vertices.push(LineVertex {
                     position: [position.x, position.y],
-                    extrude: [across.x * side, across.y * side],
-                    side,
+                    extrude: [extrude.x, extrude.y],
+                    offset,
                     color: line.color.to_array(),
                     along,
                     dasharray,
@@ -127,6 +203,21 @@ fn line_vertices(run: &[Line]) -> (Vec<LineVertex>, Vec<u32>) {
                 corner + 1,
                 corner + 3,
             ]);
+
+            // The wedge between the end of the previous segment and the start of this one,
+            // where the outside of the bend is cut off.
+            if let Some(cut) = index
+                .checked_sub(1)
+                .and_then(|previous| joins[previous].cut)
+            {
+                let previous = corner - 4;
+                let inside = 1 - cut as u32;
+                indices.extend([
+                    previous + 2 + inside,
+                    previous + 2 + cut as u32,
+                    corner + cut as u32,
+                ]);
+            }
 
             travelled += length;
         }
@@ -608,6 +699,70 @@ mod tests {
 
         assert_eq!(vertices.len(), 4);
         assert_eq!(indices.len(), 6);
+    }
+
+    /// How many of the line's triangles cover `point`, with the map drawn at its own size.
+    fn layers_at(vertices: &[LineVertex], indices: &[u32], point: emath::Pos2) -> usize {
+        let on_screen = |index: u32| {
+            let vertex = &vertices[index as usize];
+            emath::pos2(
+                vertex.position[0] + vertex.extrude[0],
+                vertex.position[1] + vertex.extrude[1],
+            )
+        };
+        let cross = |a: emath::Pos2, b: emath::Pos2, c: emath::Pos2| {
+            (b - a).x * (c - a).y - (b - a).y * (c - a).x
+        };
+
+        indices
+            .chunks(3)
+            .filter(|triangle| {
+                let [a, b, c] = [0, 1, 2].map(|corner| on_screen(triangle[corner]));
+                let sides = [cross(a, b, point), cross(b, c, point), cross(c, a, point)];
+                sides.iter().all(|side| *side > 0.) || sides.iter().all(|side| *side < 0.)
+            })
+            .count()
+    }
+
+    /// A translucent line drawn twice over at its bends shows knots there, and one with a
+    /// notch cut out of the outside of each bend looks frayed.
+    #[test]
+    fn a_bend_is_covered_once_without_gaps() {
+        // Right angles, and a sharp turn which is cut off at the outside.
+        for points in [
+            vec![pos2(0., 0.), pos2(20., 0.), pos2(20., 20.)],
+            vec![pos2(0., 0.), pos2(20., 0.), pos2(20., -20.)],
+            vec![pos2(0., 0.), pos2(20., 0.), pos2(2., 6.)],
+        ] {
+            let (vertices, indices) = line_vertices(&[Line {
+                points: points.clone(),
+                width: 4.,
+                color: Color32::WHITE,
+                dasharray: Vec::new(),
+            }]);
+
+            // A grid offset from whole numbers, so that no point lies on an edge.
+            for x in -10..=30 {
+                for y in -30..=30 {
+                    let point = pos2(x as f32 + 0.13, y as f32 + 0.37);
+                    assert!(
+                        layers_at(&vertices, &indices, point) <= 1,
+                        "{points:?}: {point:?} covered more than once"
+                    );
+                }
+            }
+
+            // Just past the bend, outwards, which is covered even where its point is cut off.
+            let [before, bend, after] = [points[0], points[1], points[2]];
+            let outward =
+                -((before - bend).normalized() + (after - bend).normalized()).normalized();
+            let point = bend + outward * 0.3;
+            assert_eq!(
+                layers_at(&vertices, &indices, point),
+                1,
+                "{points:?}: {point:?} at the outside of the bend"
+            );
+        }
     }
 
     /// A line which doubles back on itself has nothing to be pushed out from.

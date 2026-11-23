@@ -83,7 +83,7 @@ struct LineOut {
 fn vs_line(
     @location(0) position: vec2<f32>,
     @location(1) extrude: vec2<f32>,
-    @location(2) side: f32,
+    @location(2) offset: f32,
     @location(3) color: vec4<f32>,
     @location(4) along: f32,
     @location(5) dasharray: vec4<f32>,
@@ -100,11 +100,9 @@ fn vs_line(
         0.0,
         1.0,
     );
-    let drawn_half = length(extrude);
-
     out.color = color * settings.transparency;
-    out.distance = side * drawn_half;
-    out.half_width = drawn_half - 0.5;
+    out.distance = offset;
+    out.half_width = abs(offset) - 0.5;
     out.along = along * settings.scale.x;
     out.dasharray = dasharray;
     return out;
