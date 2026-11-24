@@ -1,93 +1,20 @@
-use std::path::{Path, PathBuf};
+use std::path::PathBuf;
 
 use egui::{Align2, Color32, ComboBox, Image, Key, PointerButton, RichText, Ui, Window};
-use walkers::{
-    HttpOptions, HttpSource, Map, MapMemory, Palette, PmTilesSource, Position, Style,
-    StyledSources, Waymark, lon_lat, sources,
-};
+use walkers::{Map, MapMemory, Position, lon_lat, sources};
 use walkers_extras::{
     Basemaps, GroupedPlaces, LabeledSymbol, LabeledSymbolGroup, LabeledSymbolGroupStyle,
-    LabeledSymbolStyle, Symbol, pmtiles_files,
+    LabeledSymbolStyle, Symbol,
 };
 
-use crate::journal::{self, Journal, Place};
+use crate::{
+    basemaps::basemaps,
+    journal::{self, Journal, Place},
+};
 
 /// Where the map is centered when the app starts, until the journal has a say in it.
 fn home() -> Position {
     lon_lat(17.032094, 51.110090)
-}
-
-/// Tiles are cached between runs, so that the tile server is not hit more than needed.
-fn http_options() -> HttpOptions {
-    HttpOptions {
-        cache: cache_dir(),
-        ..Default::default()
-    }
-}
-
-fn cache_dir() -> Option<PathBuf> {
-    let base = std::env::var_os("XDG_CACHE_HOME")
-        .map(PathBuf::from)
-        .or_else(|| std::env::home_dir().map(|home| home.join(".cache")))?;
-    Some(base.join("wanderers").join("tiles"))
-}
-
-/// Maps the places can be drawn on top of. PMTiles only show up when there is a file for them.
-fn basemaps(egui_ctx: egui::Context) -> Basemaps {
-    let mut basemaps = Basemaps::new(egui_ctx);
-
-    basemaps.add("OpenStreetMap", |ctx| {
-        http(sources::OpenStreetMap, Style::default(), ctx)
-    });
-    basemaps.add("OpenFreeMap (light)", |ctx| {
-        http(
-            sources::OpenFreeMap,
-            Waymark::new(Palette::light()).build(),
-            ctx,
-        )
-    });
-    basemaps.add("OpenFreeMap (dark)", |ctx| {
-        http(
-            sources::OpenFreeMap,
-            Waymark::new(Palette::dark()).build(),
-            ctx,
-        )
-    });
-    basemaps.add("Geoportal", |ctx| {
-        http(sources::Geoportal, Style::default(), ctx)
-    });
-
-    // See `just openfreemap-dolnoslaskie` in `walkers` for one way of getting a file.
-    for path in pmtiles_files(Path::new(".")) {
-        let name = path.file_stem().unwrap_or_default().to_string_lossy();
-
-        let light = path.to_owned();
-        basemaps.add(format!("{name} (light)"), move |ctx| {
-            pmtiles(&light, Waymark::new(Palette::light()).build(), ctx)
-        });
-
-        let dark = path.to_owned();
-        basemaps.add(format!("{name} (dark)"), move |ctx| {
-            pmtiles(&dark, Waymark::new(Palette::dark()).build(), ctx)
-        });
-    }
-
-    basemaps
-}
-
-/// A tile server's tiles drawn with `style`, or as they are when it has no layers.
-fn http(
-    source: impl sources::TileUrls + Send + Sync + 'static,
-    style: Style,
-    egui_ctx: &egui::Context,
-) -> StyledSources {
-    let source = HttpSource::new(source, http_options(), egui_ctx.to_owned());
-    StyledSources::new(style, egui_ctx.to_owned()).with_tiled_source("", source)
-}
-
-fn pmtiles(path: &Path, style: Style, egui_ctx: &egui::Context) -> StyledSources {
-    let source = PmTilesSource::new(path, egui_ctx.to_owned());
-    StyledSources::new(style, egui_ctx.to_owned()).with_tiled_source("", source)
 }
 
 /// A place clicked on the map, waiting to be named and added to the journal.
@@ -360,38 +287,4 @@ fn acknowledge(ui: &Ui, attributions: Vec<sources::Attribution>) {
                 });
             }
         });
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    /// Vector maps come in both shades, and each is its own entry in the picker.
-    #[test]
-    fn every_shade_of_a_vector_basemap_is_offered_separately() {
-        let basemaps = basemaps(egui::Context::default());
-        let names: Vec<_> = basemaps.names().collect();
-
-        assert!(names.contains(&"OpenFreeMap (light)"));
-        assert!(names.contains(&"OpenFreeMap (dark)"));
-
-        // Raster ones have nothing to shade, so they stay single.
-        assert_eq!(
-            names
-                .iter()
-                .filter(|name| **name == "OpenStreetMap")
-                .count(),
-            1
-        );
-    }
-
-    /// Two entries which look the same in the picker would be indistinguishable to click.
-    #[test]
-    fn basemap_names_are_unique() {
-        let basemaps = basemaps(egui::Context::default());
-        let names: Vec<_> = basemaps.names().collect();
-        let unique: std::collections::HashSet<_> = names.iter().collect();
-
-        assert_eq!(names.len(), unique.len(), "duplicate names in {names:?}");
-    }
 }
