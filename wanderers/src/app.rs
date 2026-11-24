@@ -1,93 +1,23 @@
-use std::path::{Path, PathBuf};
+use std::path::PathBuf;
 
-use egui::{Align2, Color32, ComboBox, Image, Key, PointerButton, RichText, Ui, Window};
-use walkers::{
-    HttpOptions, HttpSource, Map, MapMemory, Palette, PmTilesSource, Position, Style,
-    StyledSources, Waymark, lon_lat, sources,
+use egui::{
+    Align2, Color32, DragPanButtons, Image, Key, PointerButton, RichText, ScrollArea, Sense,
+    Stroke, StrokeKind, Ui, Window, vec2,
 };
+use walkers::{Map, MapMemory, Position, lon_lat, sources};
 use walkers_extras::{
-    Basemaps, GroupedPlaces, LabeledSymbol, LabeledSymbolGroup, LabeledSymbolGroupStyle,
-    LabeledSymbolStyle, Symbol, pmtiles_files,
+    GroupedPlaces, LabeledSymbol, LabeledSymbolGroup, LabeledSymbolGroupStyle, LabeledSymbolStyle,
+    Symbol,
 };
 
-use crate::journal::{self, Journal, Place};
+use crate::{
+    basemaps::{Basemaps, basemaps},
+    journal::{self, Journal, Place},
+};
 
 /// Where the map is centered when the app starts, until the journal has a say in it.
 fn home() -> Position {
     lon_lat(17.032094, 51.110090)
-}
-
-/// Tiles are cached between runs, so that the tile server is not hit more than needed.
-fn http_options() -> HttpOptions {
-    HttpOptions {
-        cache: cache_dir(),
-        ..Default::default()
-    }
-}
-
-fn cache_dir() -> Option<PathBuf> {
-    let base = std::env::var_os("XDG_CACHE_HOME")
-        .map(PathBuf::from)
-        .or_else(|| std::env::home_dir().map(|home| home.join(".cache")))?;
-    Some(base.join("wanderers").join("tiles"))
-}
-
-/// Maps the places can be drawn on top of. PMTiles only show up when there is a file for them.
-fn basemaps(egui_ctx: egui::Context) -> Basemaps {
-    let mut basemaps = Basemaps::new(egui_ctx);
-
-    basemaps.add("OpenStreetMap", |ctx| {
-        http(sources::OpenStreetMap, Style::default(), ctx)
-    });
-    basemaps.add("OpenFreeMap (light)", |ctx| {
-        http(
-            sources::OpenFreeMap,
-            Waymark::new(Palette::light()).build(),
-            ctx,
-        )
-    });
-    basemaps.add("OpenFreeMap (dark)", |ctx| {
-        http(
-            sources::OpenFreeMap,
-            Waymark::new(Palette::dark()).build(),
-            ctx,
-        )
-    });
-    basemaps.add("Geoportal", |ctx| {
-        http(sources::Geoportal, Style::default(), ctx)
-    });
-
-    // See `just openfreemap-dolnoslaskie` in `walkers` for one way of getting a file.
-    for path in pmtiles_files(Path::new(".")) {
-        let name = path.file_stem().unwrap_or_default().to_string_lossy();
-
-        let light = path.to_owned();
-        basemaps.add(format!("{name} (light)"), move |ctx| {
-            pmtiles(&light, Waymark::new(Palette::light()).build(), ctx)
-        });
-
-        let dark = path.to_owned();
-        basemaps.add(format!("{name} (dark)"), move |ctx| {
-            pmtiles(&dark, Waymark::new(Palette::dark()).build(), ctx)
-        });
-    }
-
-    basemaps
-}
-
-/// A tile server's tiles drawn with `style`, or as they are when it has no layers.
-fn http(
-    source: impl sources::TileUrls + Send + Sync + 'static,
-    style: Style,
-    egui_ctx: &egui::Context,
-) -> StyledSources {
-    let source = HttpSource::new(source, http_options(), egui_ctx.to_owned());
-    StyledSources::new(style, egui_ctx.to_owned()).with_tiled_source("", source)
-}
-
-fn pmtiles(path: &Path, style: Style, egui_ctx: &egui::Context) -> StyledSources {
-    let source = PmTilesSource::new(path, egui_ctx.to_owned());
-    StyledSources::new(style, egui_ctx.to_owned()).with_tiled_source("", source)
 }
 
 /// A place clicked on the map, waiting to be named and added to the journal.
@@ -104,8 +34,6 @@ enum Outcome {
 }
 
 pub struct Wanderers {
-    /// Only the selected one is kept around. Switching back and forth costs a rebuild, but the
-    /// tiles themselves are cached on disk, so it is not a re-download.
     basemaps: Basemaps,
     map_memory: MapMemory,
     journal: Result<Journal, journal::Error>,
@@ -144,8 +72,11 @@ impl eframe::App for Wanderers {
     fn ui(&mut self, ui: &mut Ui, _frame: &mut eframe::Frame) {
         let pending = self.new_place.as_ref().map(|new_place| new_place.position);
 
-        let map = Map::new(None, &mut self.map_memory, home()).zoom_with_ctrl(false);
-        let mut map = self.basemaps.add_to(map);
+        let mut map = Map::new(None, &mut self.map_memory, home()).zoom_with_ctrl(false);
+
+        if let Some(basemap) = self.basemaps.selected_mut() {
+            map = map.with_layer(basemap, 1.0);
+        }
 
         if let Ok(journal) = &self.journal {
             map = map.with_plugin(places(&journal.places));
@@ -196,7 +127,7 @@ impl eframe::App for Wanderers {
             }
         }
 
-        basemap(ui, &mut self.basemaps);
+        basemap(ui, &mut self.basemaps, &self.map_memory);
         zoom(ui, &mut self.map_memory);
         go_home(ui, &mut self.map_memory);
         acknowledge(ui, self.basemaps.attributions());
@@ -273,26 +204,66 @@ fn places(places: &[journal::Place]) -> impl walkers::Plugin {
     )
 }
 
-/// Lets one swap the map the places are drawn on.
-fn basemap(ui: &Ui, basemaps: &mut Basemaps) {
-    let mut chosen = basemaps.selected().to_owned();
+/// Size of a basemap's preview in the picker.
+const PREVIEW: egui::Vec2 = vec2(200., 120.);
+
+/// Lets one swap the map the places are drawn on, picking from previews of each, showing the same
+/// place as the map.
+fn basemap(ui: &Ui, basemaps: &mut Basemaps, map_memory: &MapMemory) {
+    let mut chosen = None;
 
     Window::new("Basemap")
-        .collapsible(false)
         .resizable(false)
-        .title_bar(false)
+        .default_width(PREVIEW.x)
         .anchor(Align2::RIGHT_TOP, [-10., 10.])
         .show(ui.ctx(), |ui| {
-            ComboBox::from_id_salt("basemap")
-                .selected_text(&chosen)
-                .show_ui(ui, |ui| {
-                    for name in basemaps.names() {
-                        ui.selectable_value(&mut chosen, name.to_owned(), name);
+            ScrollArea::vertical()
+                .min_scrolled_height(ui.ctx().content_rect().height() - 100.)
+                .show(ui, |ui| {
+                    for index in 0..basemaps.len() {
+                        ui.label(basemaps.name(index));
+
+                        // Built only once scrolled into view, so that the others do not start
+                        // loading tiles nobody looks at.
+                        let (rect, _) = ui.allocate_exact_size(PREVIEW, Sense::hover());
+                        if !ui.is_rect_visible(rect) {
+                            continue;
+                        }
+
+                        let selected = index == basemaps.selected();
+                        let Some(basemap) = basemaps.get_mut(index) else {
+                            continue;
+                        };
+
+                        // A copy, so that the preview follows the map, but cannot move it.
+                        let mut memory = map_memory.clone();
+                        let preview = Map::new(None, &mut memory, home())
+                            .with_layer(basemap, 1.0)
+                            .zoom_gesture(false)
+                            .panning(false)
+                            .double_click_to_zoom(false)
+                            .double_click_to_zoom_out(false)
+                            .drag_pan_buttons(DragPanButtons::empty());
+
+                        if ui.put(rect, preview).clicked() {
+                            chosen = Some(index);
+                        }
+
+                        if selected {
+                            ui.painter().rect_stroke(
+                                rect,
+                                0.,
+                                Stroke::new(2., ui.visuals().selection.stroke.color),
+                                StrokeKind::Outside,
+                            );
+                        }
                     }
                 });
         });
 
-    basemaps.select(&chosen);
+    if let Some(index) = chosen {
+        basemaps.select(index);
+    }
 }
 
 /// Buttons to zoom in and out, for when there is no scroll wheel around.
@@ -360,38 +331,4 @@ fn acknowledge(ui: &Ui, attributions: Vec<sources::Attribution>) {
                 });
             }
         });
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    /// Vector maps come in both shades, and each is its own entry in the picker.
-    #[test]
-    fn every_shade_of_a_vector_basemap_is_offered_separately() {
-        let basemaps = basemaps(egui::Context::default());
-        let names: Vec<_> = basemaps.names().collect();
-
-        assert!(names.contains(&"OpenFreeMap (light)"));
-        assert!(names.contains(&"OpenFreeMap (dark)"));
-
-        // Raster ones have nothing to shade, so they stay single.
-        assert_eq!(
-            names
-                .iter()
-                .filter(|name| **name == "OpenStreetMap")
-                .count(),
-            1
-        );
-    }
-
-    /// Two entries which look the same in the picker would be indistinguishable to click.
-    #[test]
-    fn basemap_names_are_unique() {
-        let basemaps = basemaps(egui::Context::default());
-        let names: Vec<_> = basemaps.names().collect();
-        let unique: std::collections::HashSet<_> = names.iter().collect();
-
-        assert_eq!(names.len(), unique.len(), "duplicate names in {names:?}");
-    }
 }

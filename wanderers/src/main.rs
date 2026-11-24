@@ -1,4 +1,5 @@
 mod app;
+mod basemaps;
 mod journal;
 mod style;
 
