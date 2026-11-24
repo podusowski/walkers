@@ -9,3 +9,5 @@ build-dir = "build"
 [output.html]
 additional-css = ["demo.css"]
 git-repository-url = "https://github.com/podusowski/walkers"
+# Where GitHub Pages serves the book, for links on its 404 page to work.
+site-url = "/walkers/"
