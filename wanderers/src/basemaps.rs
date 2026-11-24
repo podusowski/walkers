@@ -110,11 +110,51 @@ fn cache_dir() -> Option<PathBuf> {
     Some(base.join("wanderers").join("tiles"))
 }
 
-/// Maps the places can be drawn on top of. PMTiles only show up when there is a file for them, and
-/// Mapbox only when an access token was given at compile time.
+/// Maps the places can be drawn on top of, Walkers' own styles first, and OpenFreeMap in
+/// Waymark's dark colors with relief selected. PMTiles only show up when there is a file for them,
+/// and Mapbox only when an access token was given at compile time.
 pub fn basemaps(egui_ctx: egui::Context) -> Basemaps {
     let mut basemaps = Basemaps::new(egui_ctx);
 
+    basemaps.add("OpenFreeMap with relief (dark)", |ctx| {
+        relief(Palette::dark(), ctx)
+    });
+    basemaps.add("OpenFreeMap with relief (light)", |ctx| {
+        relief(Palette::light(), ctx)
+    });
+    basemaps.add("OpenFreeMap (dark)", |ctx| {
+        http(
+            sources::OpenFreeMap,
+            Waymark::new(Palette::dark()).build(),
+            ctx,
+        )
+    });
+    basemaps.add("OpenFreeMap (light)", |ctx| {
+        http(
+            sources::OpenFreeMap,
+            Waymark::new(Palette::light()).build(),
+            ctx,
+        )
+    });
+    basemaps.add("OpenFreeMap over Geoportal", openfreemap_over_geoportal);
+
+    // See `just openfreemap-dolnoslaskie` and `just protomaps-dolnoslaskie` in `walkers` for
+    // ways of getting a file. A file follows one schema, so only some of these draw anything:
+    // Waymark and OpenFreeMap's style draw OpenMapTiles, and Protomaps' styles draw Protomaps.
+    let files = pmtiles_files(Path::new("."));
+
+    add_pmtiles_basemaps(
+        &mut basemaps,
+        &files,
+        &[
+            ("dark", || Waymark::new(Palette::dark()).build()),
+            ("light", || Waymark::new(Palette::light()).build()),
+        ],
+    );
+
+    basemaps.add("OpenFreeMap (bright)", |ctx| {
+        http(sources::OpenFreeMap, Style::openfreemap_bright(), ctx)
+    });
     basemaps.add("OpenStreetMap", |ctx| {
         http(sources::OpenStreetMap, Style::default(), ctx)
     });
@@ -129,59 +169,26 @@ pub fn basemaps(egui_ctx: egui::Context) -> Basemaps {
     basemaps.add("Geoportal", |ctx| {
         http(sources::Geoportal, Style::default(), ctx)
     });
-    basemaps.add("OpenFreeMap (light)", |ctx| {
-        http(
-            sources::OpenFreeMap,
-            Waymark::new(Palette::light()).build(),
-            ctx,
-        )
-    });
-    basemaps.add("OpenFreeMap (dark)", |ctx| {
-        http(
-            sources::OpenFreeMap,
-            Waymark::new(Palette::dark()).build(),
-            ctx,
-        )
-    });
-    basemaps.add("OpenFreeMap (bright)", |ctx| {
-        http(sources::OpenFreeMap, Style::openfreemap_bright(), ctx)
-    });
-    basemaps.add("OpenFreeMap with relief (light)", |ctx| {
-        relief(Palette::light(), ctx)
-    });
-    basemaps.add("OpenFreeMap with relief (dark)", |ctx| {
-        relief(Palette::dark(), ctx)
-    });
-    basemaps.add("OpenFreeMap over Geoportal", openfreemap_over_geoportal);
 
     add_mapbox_basemaps(&mut basemaps);
 
-    // See `just openfreemap-dolnoslaskie` and `just protomaps-dolnoslaskie` in `walkers` for
-    // ways of getting a file. A file follows one schema, so only some of these draw anything:
-    // Waymark and OpenFreeMap's style draw OpenMapTiles, and Protomaps' styles draw Protomaps.
-    let styles = [
-        (
-            "light",
-            (|| Waymark::new(Palette::light()).build()) as fn() -> Style,
-        ),
-        ("dark", || Waymark::new(Palette::dark()).build()),
-        ("bright", Style::openfreemap_bright),
-        ("Protomaps dark", Style::protomaps_dark),
-        ("Protomaps dark vis", Style::protomaps_dark_vis),
-        ("Protomaps light", Style::protomaps_light),
-    ];
+    add_pmtiles_basemaps(
+        &mut basemaps,
+        &files,
+        &[
+            ("bright", Style::openfreemap_bright),
+            ("Protomaps dark", Style::protomaps_dark),
+            ("Protomaps dark vis", Style::protomaps_dark_vis),
+            ("Protomaps light", Style::protomaps_light),
+        ],
+    );
 
-    for path in pmtiles_files(Path::new(".")) {
-        let name = path.file_stem().unwrap_or_default().to_string_lossy();
-
-        for (shade, style) in styles {
-            let path = path.to_owned();
-            basemaps.add(format!("{name} ({shade})"), move |ctx| {
-                pmtiles(&path, style(), ctx)
-            });
-        }
-
-        let path = path.to_owned();
+    for path in files {
+        let name = path
+            .file_stem()
+            .unwrap_or_default()
+            .to_string_lossy()
+            .into_owned();
         basemaps.add(
             format!("{name} with Geoportal (Protomaps dark)"),
             move |ctx| pmtiles_with_geoportal(&path, ctx),
@@ -189,6 +196,23 @@ pub fn basemaps(egui_ctx: egui::Context) -> Basemaps {
     }
 
     basemaps
+}
+
+/// A style's name, and how to build it.
+type NamedStyle<'a> = (&'a str, fn() -> Style);
+
+/// Each of `files` in each of `styles`, named after the file and the style.
+fn add_pmtiles_basemaps(basemaps: &mut Basemaps, files: &[PathBuf], styles: &[NamedStyle]) {
+    for path in files {
+        let name = path.file_stem().unwrap_or_default().to_string_lossy();
+
+        for &(shade, style) in styles {
+            let path = path.to_owned();
+            basemaps.add(format!("{name} ({shade})"), move |ctx| {
+                pmtiles(&path, style(), ctx)
+            });
+        }
+    }
 }
 
 /// A tile server's tiles drawn with `style`, or as they are when it has no layers.
@@ -331,6 +355,15 @@ mod tests {
                 .filter(|name| **name == "OpenStreetMap")
                 .count(),
             1
+        );
+    }
+
+    #[test]
+    fn dark_relief_is_selected_at_first() {
+        let basemaps = basemaps(egui::Context::default());
+        assert_eq!(
+            basemaps.name(basemaps.selected()),
+            "OpenFreeMap with relief (dark)"
         );
     }
 
