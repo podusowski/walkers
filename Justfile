@@ -15,6 +15,11 @@ check-vector:
     cargo check -p walkers --features vector
 
 [group('develop')]
+check-demos:
+    cargo check -p demos
+    cargo check -p demos --target wasm32-unknown-unknown
+
+[group('develop')]
 check-demo:
     cargo check -p demo_native
     # The perf binaries are behind `required-features`, so a plain check skips them.
@@ -25,7 +30,7 @@ check-wanderers:
     cargo check -p wanderers
 
 [group('develop')]
-check: check-lean check-all-features check-vector check-demo check-wanderers
+check: check-lean check-all-features check-vector check-demos check-demo check-wanderers
 
 [group('develop')]
 lints:
@@ -43,6 +48,20 @@ typos:
 bench:
     cargo bench -p walkers --features mvt --bench decode_mvt
     cargo bench -p walkers --features mvt --bench place_texts
+
+# Build the book into `book/build`, with the demos its chapters embed.
+[group('book')]
+book:
+    env -C demos trunk build --release --public-url ./ --dist ../book/src/demos
+    mdbook build book
+
+# Serve the book at http://localhost:3000, rebuilding it and the demos on changes.
+[group('book')]
+book-serve:
+    #!/usr/bin/env sh
+    trap 'kill 0' EXIT
+    env -C demos trunk watch --release --public-url ./ --dist ../book/src/demos &
+    mdbook serve book
 
 [group('publish')]
 publish *args:

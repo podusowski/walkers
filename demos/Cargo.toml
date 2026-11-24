@@ -1,0 +1,19 @@
+[package]
+name = "demos"
+description = "Small apps showing one feature of Walkers each, embedded in the book."
+version.workspace = true
+edition.workspace = true
+publish = false
+
+[dependencies]
+walkers = { workspace = true, features = ["mvt"] }
+eframe.workspace = true
+egui.workspace = true
+
+[target.'cfg(not(target_arch = "wasm32"))'.dependencies]
+env_logger.workspace = true
+
+[target.'cfg(target_arch = "wasm32")'.dependencies]
+log.workspace = true
+wasm-bindgen-futures.workspace = true
+web-sys.workspace = true

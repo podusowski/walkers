@@ -1202,6 +1202,19 @@ dependencies = [
 ]
 
 [[package]]
+name = "demos"
+version = "0.66.0"
+dependencies = [
+ "eframe",
+ "egui",
+ "env_logger",
+ "log",
+ "walkers",
+ "wasm-bindgen-futures",
+ "web-sys",
+]
+
+[[package]]
 name = "deranged"
 version = "0.5.8"
 source = "registry+https://github.com/rust-lang/crates.io-index"

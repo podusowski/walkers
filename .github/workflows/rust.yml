@@ -30,6 +30,7 @@ jobs:
       - uses: extractions/setup-just@v3
       - run: just check-all-features
       - run: just check-vector
+      - run: just check-demos
       - run: just check-demo
 
   wasm:
@@ -43,6 +44,10 @@ jobs:
       - run: cargo install trunk@0.21.14 --locked
       - name: Build Demo Web
         run: env -C demo_web trunk build
+      - run: cargo install mdbook@0.5.4 --locked
+      - uses: extractions/setup-just@v3
+      - name: Build the book
+        run: just book
 
   android:
     runs-on: ubuntu-latest

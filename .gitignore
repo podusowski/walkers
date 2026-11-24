@@ -3,6 +3,9 @@
 /demo_native/target
 /demo_web/target
 /demo_web/dist
+# Built by Trunk, for mdBook to copy into the book. Here rather than in `book/.gitignore`, which
+# `mdbook serve` reads alone, so that it rebuilds the book when the demos change.
+/book/src/demos
 /demo_android/java/.gradle
 /demo_android/java/local.properties
 /demo_android/java/.idea
