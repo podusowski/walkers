@@ -2,11 +2,98 @@
 
 use std::path::{Path, PathBuf};
 
+use walkers::sources::Attribution;
 use walkers::{
     DemEncoding, Float, HttpOptions, HttpSource, Paint, Palette, PmTilesSource, Style, StyleLayer,
     StyledSources, Waymark, json, sources,
 };
-use walkers_extras::{Basemaps, pmtiles_files};
+use walkers_extras::pmtiles_files;
+
+type Build = Box<dyn Fn(&egui::Context) -> StyledSources>;
+
+/// Basemaps to choose from, each a style drawn from its sources. Each is built when first needed,
+/// and kept from then on.
+pub struct Basemaps {
+    egui_ctx: egui::Context,
+    available: Vec<Basemap>,
+    selected: usize,
+}
+
+struct Basemap {
+    name: String,
+    build: Build,
+
+    /// `None` until first needed.
+    built: Option<StyledSources>,
+}
+
+impl Basemaps {
+    fn new(egui_ctx: egui::Context) -> Self {
+        Self {
+            egui_ctx,
+            available: Vec::new(),
+            selected: 0,
+        }
+    }
+
+    /// The first one added is selected.
+    fn add(
+        &mut self,
+        name: impl Into<String>,
+        build: impl Fn(&egui::Context) -> StyledSources + 'static,
+    ) {
+        self.available.push(Basemap {
+            name: name.into(),
+            build: Box::new(build),
+            built: None,
+        });
+    }
+
+    pub fn len(&self) -> usize {
+        self.available.len()
+    }
+
+    /// Of the one at `index`. Empty if there is none.
+    pub fn name(&self, index: usize) -> &str {
+        self.available
+            .get(index)
+            .map_or("", |basemap| &basemap.name)
+    }
+
+    /// Index of the selected one.
+    pub fn selected(&self) -> usize {
+        self.selected
+    }
+
+    pub fn select(&mut self, index: usize) {
+        if index < self.available.len() {
+            self.selected = index;
+        }
+    }
+
+    /// The one at `index`, built if it was not yet.
+    pub fn get_mut(&mut self, index: usize) -> Option<&mut StyledSources> {
+        let basemap = self.available.get_mut(index)?;
+        Some(
+            basemap
+                .built
+                .get_or_insert_with(|| (basemap.build)(&self.egui_ctx)),
+        )
+    }
+
+    pub fn selected_mut(&mut self) -> Option<&mut StyledSources> {
+        self.get_mut(self.selected)
+    }
+
+    /// Of the selected one. Empty until it is first built.
+    pub fn attributions(&self) -> Vec<Attribution> {
+        self.available
+            .get(self.selected)
+            .and_then(|basemap| basemap.built.as_ref())
+            .map(StyledSources::attributions)
+            .unwrap_or_default()
+    }
+}
 
 /// Tiles are cached between runs, so that the tile server is not hit more than needed.
 fn http_options() -> HttpOptions {
@@ -230,7 +317,9 @@ mod tests {
     #[test]
     fn every_shade_of_a_vector_basemap_is_offered_separately() {
         let basemaps = basemaps(egui::Context::default());
-        let names: Vec<_> = basemaps.names().collect();
+        let names: Vec<_> = (0..basemaps.len())
+            .map(|index| basemaps.name(index))
+            .collect();
 
         assert!(names.contains(&"OpenFreeMap (light)"));
         assert!(names.contains(&"OpenFreeMap (dark)"));
@@ -249,7 +338,9 @@ mod tests {
     #[test]
     fn basemap_names_are_unique() {
         let basemaps = basemaps(egui::Context::default());
-        let names: Vec<_> = basemaps.names().collect();
+        let names: Vec<_> = (0..basemaps.len())
+            .map(|index| basemaps.name(index))
+            .collect();
         let unique: std::collections::HashSet<_> = names.iter().collect();
 
         assert_eq!(names.len(), unique.len(), "duplicate names in {names:?}");

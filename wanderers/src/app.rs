@@ -1,14 +1,17 @@
 use std::path::PathBuf;
 
-use egui::{Align2, Color32, ComboBox, Image, Key, PointerButton, RichText, Ui, Window};
+use egui::{
+    Align2, Color32, DragPanButtons, Image, Key, PointerButton, RichText, ScrollArea, Sense,
+    Stroke, StrokeKind, Ui, Window, vec2,
+};
 use walkers::{Map, MapMemory, Position, lon_lat, sources};
 use walkers_extras::{
-    Basemaps, GroupedPlaces, LabeledSymbol, LabeledSymbolGroup, LabeledSymbolGroupStyle,
-    LabeledSymbolStyle, Symbol,
+    GroupedPlaces, LabeledSymbol, LabeledSymbolGroup, LabeledSymbolGroupStyle, LabeledSymbolStyle,
+    Symbol,
 };
 
 use crate::{
-    basemaps::basemaps,
+    basemaps::{Basemaps, basemaps},
     journal::{self, Journal, Place},
 };
 
@@ -31,8 +34,6 @@ enum Outcome {
 }
 
 pub struct Wanderers {
-    /// Only the selected one is kept around. Switching back and forth costs a rebuild, but the
-    /// tiles themselves are cached on disk, so it is not a re-download.
     basemaps: Basemaps,
     map_memory: MapMemory,
     journal: Result<Journal, journal::Error>,
@@ -71,8 +72,11 @@ impl eframe::App for Wanderers {
     fn ui(&mut self, ui: &mut Ui, _frame: &mut eframe::Frame) {
         let pending = self.new_place.as_ref().map(|new_place| new_place.position);
 
-        let map = Map::new(None, &mut self.map_memory, home()).zoom_with_ctrl(false);
-        let mut map = self.basemaps.add_to(map);
+        let mut map = Map::new(None, &mut self.map_memory, home()).zoom_with_ctrl(false);
+
+        if let Some(basemap) = self.basemaps.selected_mut() {
+            map = map.with_layer(basemap, 1.0);
+        }
 
         if let Ok(journal) = &self.journal {
             map = map.with_plugin(places(&journal.places));
@@ -123,7 +127,7 @@ impl eframe::App for Wanderers {
             }
         }
 
-        basemap(ui, &mut self.basemaps);
+        basemap(ui, &mut self.basemaps, &self.map_memory);
         zoom(ui, &mut self.map_memory);
         go_home(ui, &mut self.map_memory);
         acknowledge(ui, self.basemaps.attributions());
@@ -200,26 +204,66 @@ fn places(places: &[journal::Place]) -> impl walkers::Plugin {
     )
 }
 
-/// Lets one swap the map the places are drawn on.
-fn basemap(ui: &Ui, basemaps: &mut Basemaps) {
-    let mut chosen = basemaps.selected().to_owned();
+/// Size of a basemap's preview in the picker.
+const PREVIEW: egui::Vec2 = vec2(200., 120.);
+
+/// Lets one swap the map the places are drawn on, picking from previews of each, showing the same
+/// place as the map.
+fn basemap(ui: &Ui, basemaps: &mut Basemaps, map_memory: &MapMemory) {
+    let mut chosen = None;
 
     Window::new("Basemap")
-        .collapsible(false)
         .resizable(false)
-        .title_bar(false)
+        .default_width(PREVIEW.x)
         .anchor(Align2::RIGHT_TOP, [-10., 10.])
         .show(ui.ctx(), |ui| {
-            ComboBox::from_id_salt("basemap")
-                .selected_text(&chosen)
-                .show_ui(ui, |ui| {
-                    for name in basemaps.names() {
-                        ui.selectable_value(&mut chosen, name.to_owned(), name);
+            ScrollArea::vertical()
+                .min_scrolled_height(ui.ctx().content_rect().height() - 100.)
+                .show(ui, |ui| {
+                    for index in 0..basemaps.len() {
+                        ui.label(basemaps.name(index));
+
+                        // Built only once scrolled into view, so that the others do not start
+                        // loading tiles nobody looks at.
+                        let (rect, _) = ui.allocate_exact_size(PREVIEW, Sense::hover());
+                        if !ui.is_rect_visible(rect) {
+                            continue;
+                        }
+
+                        let selected = index == basemaps.selected();
+                        let Some(basemap) = basemaps.get_mut(index) else {
+                            continue;
+                        };
+
+                        // A copy, so that the preview follows the map, but cannot move it.
+                        let mut memory = map_memory.clone();
+                        let preview = Map::new(None, &mut memory, home())
+                            .with_layer(basemap, 1.0)
+                            .zoom_gesture(false)
+                            .panning(false)
+                            .double_click_to_zoom(false)
+                            .double_click_to_zoom_out(false)
+                            .drag_pan_buttons(DragPanButtons::empty());
+
+                        if ui.put(rect, preview).clicked() {
+                            chosen = Some(index);
+                        }
+
+                        if selected {
+                            ui.painter().rect_stroke(
+                                rect,
+                                0.,
+                                Stroke::new(2., ui.visuals().selection.stroke.color),
+                                StrokeKind::Outside,
+                            );
+                        }
                     }
                 });
         });
 
-    basemaps.select(&chosen);
+    if let Some(index) = chosen {
+        basemaps.select(index);
+    }
 }
 
 /// Buttons to zoom in and out, for when there is no scroll wheel around.
