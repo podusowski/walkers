@@ -6,7 +6,8 @@
 
 Walkers is a slippy maps widget for [egui](https://github.com/emilk/egui), 
 similar to very popular [Leaflet](https://leafletjs.com/), but written in Rust.
-It compiles to native applications as well as WASM. See the **[online demo here](https://podusowski.github.io/walkers/)**.
+It compiles to native applications as well as WASM. See **[the book](https://podusowski.github.io/walkers/)**,
+with demos running right in the browser.
 
 ![Screenshot](https://raw.githubusercontent.com/podusowski/walkers/main/screenshot.png)
 
@@ -66,7 +67,21 @@ impl App for MyApp {
 }
 ```
 
-You can see a more complete example [here](https://github.com/podusowski/walkers/blob/main/demo/src/lib.rs).
+## The book
+
+[The book](https://podusowski.github.io/walkers/) goes through Walkers one feature at a time, each
+with a small demo running in the page, followed by its code. To build and serve it locally, with
+[Trunk](https://trunkrs.dev/) and [mdBook](https://rust-lang.github.io/mdBook/) installed:
+
+```sh
+just book-serve
+```
+
+Each demo runs natively too:
+
+```sh
+cargo run -p demos -- raster
+```
 
 ## Running the demo
 
