@@ -213,8 +213,7 @@ impl<'a, 'b, 'c> Map<'a, 'b, 'c> {
 impl Map<'_, '_, '_> {
     /// Handle user inputs and recalculate everything accordingly. Returns whether something changed.
     fn handle_gestures(&mut self, ui: &mut Ui, response: &Response) -> bool {
-        let (zoom_delta, zoom_delta_from_scroll) = self.zoom_delta(ui, response);
-        let mut scroll_used = false;
+        let zoom_delta = self.zoom_delta(ui, response);
 
         // Zooming and dragging need to be exclusive, otherwise the map will get dragged when
         // pinch gesture is used.
@@ -257,8 +256,6 @@ impl Map<'_, '_, '_> {
                 );
             }
 
-            scroll_used |= zoom_delta_from_scroll;
-
             true
         } else {
             self.memory.center_mode.handle_gestures(
@@ -271,13 +268,11 @@ impl Map<'_, '_, '_> {
             )
         };
 
-        // Only enable panning with mouse_wheel if we are zooming with ctrl. But always allow touch devices to pan
-        let panning_enabled =
-            self.options.panning && (ui.input(|i| i.any_touches()) || self.options.zoom_with_ctrl);
-
-        if ui.ui_contains_pointer() && panning_enabled {
-            // Panning by scrolling, e.g. two-finger drag on a touchpad:
-            let scroll_delta = ui.input(|i| i.smooth_scroll_delta);
+        if ui.ui_contains_pointer() && self.options.panning {
+            // Panning by scrolling, e.g. two-finger drag on a touchpad. Taking the delta consumes
+            // it, so that it's not acted upon again by a container the map is nested in, such as
+            // a `ScrollArea`.
+            let scroll_delta = ui.input_mut(|i| std::mem::take(&mut i.smooth_scroll_delta));
             if scroll_delta != Vec2::ZERO {
                 self.memory.center_mode = Center::Exact(shifted(
                     self.projection,
@@ -285,22 +280,15 @@ impl Map<'_, '_, '_> {
                     scroll_delta,
                     self.memory.zoom(),
                 ));
-                scroll_used = true;
             }
-        }
-
-        // Mark the scroll as consumed, so that it's not acted upon again by a container the map is
-        // nested in, such as a `ScrollArea`.
-        if scroll_used {
-            ui.input_mut(|i| i.smooth_scroll_delta = Vec2::ZERO);
         }
 
         changed
     }
 
-    /// Calculate the zoom delta based on the input. Additionally, returns whether it was derived
-    /// from the scroll delta, which then needs to be consumed.
-    fn zoom_delta(&self, ui: &mut Ui, response: &Response) -> (f64, bool) {
+    /// Calculate the zoom delta based on the input. When zooming without <kbd>ctrl</kbd>, the
+    /// scroll delta over the map is consumed and turned into zoom.
+    fn zoom_delta(&self, ui: &mut Ui, response: &Response) -> f64 {
         let mut zoom_delta = ui.input(|input| input.zoom_delta()) as f64;
 
         if self.options.double_click_to_zoom
@@ -317,23 +305,18 @@ impl Map<'_, '_, '_> {
             zoom_delta = 0.0;
         }
 
-        if !self.options.zoom_with_ctrl && zoom_delta == 1.0 {
-            // We only use the raw scroll values, if we are zooming without ctrl,
-            // and zoom_delta is not already over/under 1.0 (eg. a ctrl + scroll event or a pinch zoom)
-            // These values seem to correspond to the same values as one would get in `zoom_delta()`
-            zoom_delta = 1f64
-                + ui.input(|input| {
-                    input.smooth_scroll_delta.y
-                        * input
-                            .stable_dt
-                            .clamp(input.predicted_dt * 0.5, input.predicted_dt * 2.0)
-                }) as f64
-                    / 4.0;
+        if !self.options.zoom_with_ctrl
+            && self.options.zoom_gesture_enabled
+            && ui.ui_contains_pointer()
+        {
+            // The same as egui does with ctrl + scroll. With ctrl held, the scroll delta is
+            // already zero here.
+            let speed = ui.options(|options| options.input_options.scroll_zoom_speed);
+            let scroll = ui.input_mut(|input| std::mem::take(&mut input.smooth_scroll_delta));
+            zoom_delta *= ((speed * (scroll.x + scroll.y)) as f64).exp();
+        }
 
-            return (zoom_delta, true);
-        };
-
-        (zoom_delta, false)
+        zoom_delta
     }
 
     /// Get the real position at the map's center.
@@ -434,5 +417,68 @@ mod tests {
             .filter(|clipped| matches!(clipped.shape, Shape::Mesh(_)))
             .count();
         assert!(meshes > 4, "only {meshes} tiles were painted");
+    }
+
+    /// Turn the mouse wheel by one notch over the map's center, wait until the smoothed scroll
+    /// settles, and return by how much the zoom changed.
+    fn zoom_change_after_wheel_notch(
+        zoom_with_ctrl: bool,
+        modifiers: egui::Modifiers,
+        frame_time: f32,
+    ) -> f64 {
+        let ctx = Context::default();
+        let mut memory = MapMemory::default();
+        let start = memory.zoom();
+        let screen = Rect::from_min_size(pos2(0., 0.), vec2(1024., 768.));
+
+        let mut frames = vec![
+            vec![egui::Event::PointerMoved(screen.center())],
+            vec![egui::Event::MouseWheel {
+                unit: egui::MouseWheelUnit::Line,
+                delta: vec2(0., 1.),
+                phase: egui::TouchPhase::Move,
+                source: egui::MouseWheelSource::Unknown,
+                modifiers,
+            }],
+        ];
+        frames.extend((0..(2. / frame_time) as usize).map(|_| Vec::new()));
+
+        for (frame, events) in frames.into_iter().enumerate() {
+            let input = RawInput {
+                screen_rect: Some(screen),
+                time: Some(frame as f64 * frame_time as f64),
+                predicted_dt: frame_time,
+                events,
+                ..Default::default()
+            };
+
+            let mut output = ctx.run_ui(input, |ui| {
+                ui.add(
+                    Map::new(None, &mut memory, lon_lat(21.00027, 52.26470))
+                        .zoom_with_ctrl(zoom_with_ctrl),
+                );
+            });
+            output.textures_delta.clear();
+        }
+
+        memory.zoom() - start
+    }
+
+    #[test]
+    fn zooming_without_ctrl_does_not_depend_on_frame_rate() {
+        let slow = zoom_change_after_wheel_notch(false, egui::Modifiers::NONE, 1. / 30.);
+        let fast = zoom_change_after_wheel_notch(false, egui::Modifiers::NONE, 1. / 240.);
+
+        assert!(slow > 0.);
+        approx::assert_relative_eq!(slow, fast, max_relative = 0.1);
+    }
+
+    #[test]
+    fn zooming_without_ctrl_is_as_fast_as_zooming_with_ctrl() {
+        let without_ctrl = zoom_change_after_wheel_notch(false, egui::Modifiers::NONE, 1. / 60.);
+        let with_ctrl = zoom_change_after_wheel_notch(true, egui::Modifiers::COMMAND, 1. / 60.);
+
+        assert!(with_ctrl > 0.);
+        approx::assert_relative_eq!(without_ctrl, with_ctrl, max_relative = 0.05);
     }
 }
