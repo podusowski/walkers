@@ -33,6 +33,8 @@ playground and can change or break at any time without an entry here.
   of `Waymark::new(Palette::light()).build()` and `Waymark::new(Palette::dark()).build()`.
 * Elevation needs the `vector` feature, as only style layers draw it: `SourceData::Elevation`,
   `DemEncoding`, `with_elevation` and `Mapterhorn` are not there without it.
+* With `zoom_with_ctrl(false)`, the mouse wheel zooms as fast as it does with <kbd>ctrl</kbd>,
+  no matter the frame rate. It used to zoom many times slower on fast displays.
 
 ## 0.66.0
 
