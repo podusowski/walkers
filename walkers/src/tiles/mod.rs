@@ -255,10 +255,6 @@ impl Tile {
                         .with_clip_rect(rect),
                 );
 
-                // Labels are anchored at their middle, so one anchored this far outside the map
-                // may still hang into it.
-                const LABEL_MARGIN: f32 = 256.;
-
                 // Each piece of a tile carries all of its labels. Only those in the piece, and near
                 // enough the map to be seen, are given, so that the other pieces do not repeat
                 // them, and placing labels does not take longer the further the map is zoomed in.
@@ -283,6 +279,11 @@ impl Tile {
         }
     }
 }
+
+/// Labels are anchored at their middle, so one anchored this far outside the map may still hang
+/// into it.
+#[cfg(feature = "vector")]
+pub(crate) const LABEL_MARGIN: f32 = 256.;
 
 /// Raster image, as the [`Canvas`] holds it. For now it is egui's texture, already uploaded.
 #[derive(Clone)]

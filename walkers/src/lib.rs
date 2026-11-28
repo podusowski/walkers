@@ -44,6 +44,8 @@ mod render;
 pub mod sources;
 mod styled_sources;
 mod tiles;
+#[cfg(feature = "vector")]
+mod untiled;
 mod z_order;
 mod zoom;
 
@@ -88,7 +90,7 @@ pub use tiles::http::{HttpSource, HttpTiles};
 #[cfg(feature = "pmtiles")]
 pub use tiles::pmtiles::{PmTiles, PmTilesSource};
 #[cfg(feature = "vector")]
-pub use tiles::source::DemEncoding;
+pub use tiles::source::{DemEncoding, Feature, FeatureLayer, MemorySource, Source};
 pub use tiles::source::{SourceData, TileData, TiledSource};
 pub use tiles::{Tile, TileId, TilePiece, Tiles};
 pub use z_order::ZOrder;

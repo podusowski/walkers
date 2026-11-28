@@ -27,15 +27,16 @@ pub(crate) enum Decoded {
     /// Features, grouped in named layers. Only MVTs have them, for now.
     #[cfg(feature = "vector")]
     #[cfg_attr(not(feature = "mvt"), allow(dead_code))]
-    Features(Vec<FeatureLayer>),
+    Features(Vec<DecodedLayer>),
     Image(RgbaImage),
     #[cfg(feature = "vector")]
     Elevation(Heights),
 }
 
-/// Features of a layer of a vector tile, in the tile's pixels.
+/// Features of a layer, in the pixels they are styled in: a vector tile's, or the map's for
+/// untiled data.
 #[cfg(feature = "vector")]
-pub(crate) struct FeatureLayer {
+pub(crate) struct DecodedLayer {
     pub name: String,
     pub features: Vec<(Geometry<f32>, Context)>,
 }
@@ -78,6 +79,35 @@ fn decode(
         SourceData::Elevation { data, encoding } => {
             Ok(Decoded::Elevation(Heights::decode(data, *encoding)?))
         }
+        #[cfg(feature = "vector")]
+        SourceData::Features(_) => Err(TileError::Unstyled(
+            "features in longitude and latitude come only from an untiled source",
+        )),
+    }
+}
+
+/// What `layers` of the style make of the `features` of an untiled source, in the map's pixels,
+/// at `zoom`. A background fills `extent` pixels from the map's top left corner.
+#[cfg(feature = "vector")]
+pub(crate) fn apply_style_to_features(
+    features: Vec<DecodedLayer>,
+    style: &Style,
+    layers: Range<usize>,
+    zoom: u8,
+    extent: u32,
+) -> (Vec<Drawable>, Vec<Symbol>) {
+    // The tile is read only by layers of elevation, which features never are.
+    let tile_id = TileId { x: 0, y: 0, zoom };
+    match apply(
+        Decoded::Features(features),
+        style,
+        layers,
+        tile_id,
+        zoom,
+        extent,
+    ) {
+        Ok(Styled::Vector { drawables, symbols }) => (drawables, symbols),
+        _ => Default::default(),
     }
 }
 
@@ -116,9 +146,9 @@ fn decode_encoded(
     }
 }
 
-/// Whether any of `layers` draws features of the vector tile layer named `name`.
-#[cfg(feature = "mvt")]
-fn draws_from(style: &Style, layers: Range<usize>, name: &str) -> bool {
+/// Whether any of `layers` draws features of the layer named `name`.
+#[cfg(feature = "vector")]
+pub(crate) fn draws_from(style: &Style, layers: Range<usize>, name: &str) -> bool {
     style.layers[layers].iter().any(|layer| match layer {
         StyleLayer::Fill { source_layer, .. }
         | StyleLayer::Line { source_layer, .. }
@@ -375,7 +405,7 @@ fn background(paint: &Paint, zoom: u8, tile_size: u32) -> Drawable {
 /// Features of the layers `source_layer` names, which `filter` lets through.
 #[cfg(feature = "vector")]
 fn matching<'a>(
-    layers: &'a [FeatureLayer],
+    layers: &'a [DecodedLayer],
     source_layer: &'a SourceLayer,
     filter: Option<&'a Filter>,
 ) -> impl Iterator<Item = &'a (Geometry<f32>, Context)> {
@@ -584,7 +614,7 @@ mod tests {
         }))
         .unwrap();
 
-        let features = Decoded::Features(vec![FeatureLayer {
+        let features = Decoded::Features(vec![DecodedLayer {
             name: "mountain_peak".into(),
             features: vec![(
                 Geometry::Point(geo_types::Point::new(10., 20.)),

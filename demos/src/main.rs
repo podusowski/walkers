@@ -1,5 +1,6 @@
 //! Runs the demo named by the first argument natively, or by the URL's hash in the browser.
 
+mod features;
 mod raster;
 mod waymark;
 
@@ -11,6 +12,7 @@ type New = fn(&CreationContext<'_>) -> Box<dyn App>;
 const DEMOS: &[(&str, New)] = &[
     ("raster", |cc| Box::new(raster::RasterMap::new(cc))),
     ("waymark", |cc| Box::new(waymark::WaymarkMap::new(cc))),
+    ("features", |cc| Box::new(features::FeaturesMap::new(cc))),
 ];
 
 /// The demo called `name`, or `None` if there is no such demo.

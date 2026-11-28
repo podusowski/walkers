@@ -8,7 +8,7 @@ use serde_json::{Number, Value as JsonValue};
 
 use geo::MapCoordsInPlace;
 
-use super::apply_style::FeatureLayer;
+use super::apply_style::DecodedLayer;
 use crate::{
     expression::Context,
     render::{self, Coord},
@@ -37,7 +37,7 @@ pub fn decode(
     needed: impl Fn(&str) -> bool,
     zoom: u8,
     tile_size: u32,
-) -> Result<Vec<FeatureLayer>, Error> {
+) -> Result<Vec<DecodedLayer>, Error> {
     let reader = Reader::new(data.to_vec())?;
     let into_pixels = tile_size as f32 / ONLY_SUPPORTED_EXTENT as f32;
 
@@ -74,7 +74,7 @@ pub fn decode(
                     })
                     .collect()
             };
-            FeatureLayer {
+            DecodedLayer {
                 name: layer.name,
                 features,
             }

@@ -60,7 +60,6 @@ pub(crate) fn merge_runs(drawables: Vec<Drawable>) -> Vec<Drawable> {
     merged
 }
 
-#[cfg(any(feature = "mvt", test))]
 pub(crate) fn geometry_type_to_str(geometry: &Geometry<f32>) -> &'static str {
     match geometry {
         Geometry::Point(_) | Geometry::MultiPoint(_) => "Point",

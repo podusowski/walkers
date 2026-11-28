@@ -2,6 +2,8 @@ use std::{ops::Range, sync::Arc};
 
 use egui::Context;
 
+#[cfg(feature = "vector")]
+use crate::untiled::Untiled;
 use crate::{
     Canvas, Layer, Projector, Stats, Style, TilePiece, TiledSource,
     sources::Attribution,
@@ -28,7 +30,14 @@ pub struct StyledSources {
     egui_ctx: Context,
 }
 
-type NamedSource = (String, Box<dyn TiledSource>);
+type NamedSource = (String, Kind);
+
+/// Each kind of source is drawn its own way.
+enum Kind {
+    Tiled(Box<dyn TiledSource>),
+    #[cfg(feature = "vector")]
+    Untiled(Untiled),
+}
 
 /// Consecutive layers of the style drawing from the same source, as the index of the source and
 /// the layers. They are styled and drawn together.
@@ -52,7 +61,21 @@ impl StyledSources {
         name: impl Into<String>,
         source: impl TiledSource + 'static,
     ) -> Self {
-        self.sources.push((name.into(), Box::new(source)));
+        self.sources
+            .push((name.into(), Kind::Tiled(Box::new(source))));
+        self.consecutive_layers = None;
+        self
+    }
+
+    /// Add a source of untiled data, which the style's layers can name to draw from it.
+    #[cfg(feature = "vector")]
+    pub fn with_source(
+        mut self,
+        name: impl Into<String>,
+        source: impl crate::Source + 'static,
+    ) -> Self {
+        let source = Untiled::new(Box::new(source));
+        self.sources.push((name.into(), Kind::Untiled(source)));
         self.consecutive_layers = None;
         self
     }
@@ -65,11 +88,15 @@ impl StyledSources {
         self.consecutive_layers = None;
     }
 
-    /// Attributions of every source, in the order they were added.
+    /// Attributions of every source which has one, in the order they were added.
     pub fn attributions(&self) -> Vec<Attribution> {
         self.sources
             .iter()
-            .map(|(_, source)| source.attribution())
+            .filter_map(|(_, source)| match source {
+                Kind::Tiled(source) => Some(source.attribution()),
+                #[cfg(feature = "vector")]
+                Kind::Untiled(source) => source.attribution(),
+            })
             .collect()
     }
 
@@ -78,7 +105,11 @@ impl StyledSources {
         let fetched: usize = self
             .sources
             .iter()
-            .map(|(_, source)| source.stats().in_progress)
+            .map(|(_, source)| match source {
+                Kind::Tiled(source) => source.stats().in_progress,
+                #[cfg(feature = "vector")]
+                Kind::Untiled(_) => 0,
+            })
             .sum();
 
         Stats {
@@ -94,7 +125,9 @@ impl StyledSources {
             styling,
             ..
         } = self;
-        let (_, source) = sources.first_mut()?;
+        let Some((_, Kind::Tiled(source))) = sources.first_mut() else {
+            return None;
+        };
         styling.at(0, source.as_mut(), 0..style.layer_sources().len(), tile_id)
     }
 }
@@ -113,11 +146,17 @@ impl Layer for &mut StyledSources {
 
         // One after another, so that a layer of one source can go between layers of another.
         for (index, layers) in consecutive_layers.iter() {
-            let source = sources[*index].1.as_mut();
-            let tile_size = source.tile_size();
-            draw_tiles_with(canvas, projector, tile_size, |tile_id| {
-                styling.at(*index, source, layers.clone(), tile_id)
-            });
+            match &mut sources[*index].1 {
+                Kind::Tiled(source) => {
+                    let source = source.as_mut();
+                    let tile_size = source.tile_size();
+                    draw_tiles_with(canvas, projector, tile_size, |tile_id| {
+                        styling.at(*index, source, layers.clone(), tile_id)
+                    });
+                }
+                #[cfg(feature = "vector")]
+                Kind::Untiled(source) => source.draw(canvas, projector, style, layers.clone()),
+            }
         }
     }
 }
@@ -385,33 +424,48 @@ mod tests {
         }
     }
 
-    /// Raster tiles drawn at zoom 0, where the whole world is one tile, so each group of layers
-    /// draws exactly one. Waits for them, as they are styled in the background.
-    fn draw_rasters(styled: &mut StyledSources, count: usize) -> Vec<crate::canvas::RasterPiece> {
-        let mut memory = crate::MapMemory::default();
-        memory.set_zoom(0.).unwrap();
-        let projector = Projector::new(
+    /// The map at `zoom`, 256 pixels wide, centered at `center`.
+    fn projector_of(memory: &crate::MapMemory, center: crate::Position) -> Projector<'_> {
+        Projector::new(
             emath::Rect::from_min_size(emath::Pos2::ZERO, emath::Vec2::splat(256.)),
             &crate::MercatorProjection,
-            &memory,
-            crate::lon_lat(0., 0.),
-        );
+            memory,
+            center,
+        )
+    }
 
+    fn memory_at(zoom: f64) -> crate::MapMemory {
+        let mut memory = crate::MapMemory::default();
+        memory.set_zoom(zoom).unwrap();
+        memory
+    }
+
+    /// What `styled` puts on the canvas once it has `count` items, as tiles are styled in the
+    /// background.
+    fn draw_until(styled: &mut StyledSources, projector: &Projector, count: usize) -> Canvas {
         let deadline = std::time::Instant::now() + std::time::Duration::from_secs(5);
-        let drawn = loop {
+        loop {
             let mut canvas = Canvas::new();
-            (&mut *styled).draw(&mut canvas, &projector);
+            (&mut *styled).draw(&mut canvas, projector);
             if canvas.items.len() == count {
-                break canvas.items;
+                break canvas;
             }
             assert!(
                 std::time::Instant::now() < deadline,
                 "tiles never got styled"
             );
             std::thread::sleep(std::time::Duration::from_millis(10));
-        };
+        }
+    }
 
-        drawn
+    /// Raster tiles drawn at zoom 0, where the whole world is one tile, so each group of layers
+    /// draws exactly one.
+    fn draw_rasters(styled: &mut StyledSources, count: usize) -> Vec<crate::canvas::RasterPiece> {
+        let memory = memory_at(0.);
+        let projector = projector_of(&memory, crate::lon_lat(0., 0.));
+
+        draw_until(styled, &projector, count)
+            .items
             .into_iter()
             .map(|item| match item {
                 crate::canvas::Item::Raster(piece) => piece,
@@ -454,5 +508,247 @@ mod tests {
             .map(|piece| piece.image.0.size()[0])
             .collect();
         assert_eq!(sizes, [1, 16]);
+    }
+
+    fn line(source: &str, source_layer: &str) -> StyleLayer {
+        serde_json::from_value(serde_json::json!({
+            "type": "line",
+            "source": source,
+            "source-layer": source_layer,
+            "paint": { "line-width": ["get", "width"] },
+        }))
+        .unwrap()
+    }
+
+    fn road(from: crate::Position, to: crate::Position, width: f64) -> crate::Feature {
+        crate::Feature::new(geo_types::LineString::from(vec![from.0, to.0]))
+            .with_property("width", width)
+    }
+
+    /// Lines drawn on the canvas, in screen coordinates, as their points and widths.
+    fn lines_on(canvas: &Canvas) -> Vec<(Vec<emath::Pos2>, f32)> {
+        canvas
+            .items
+            .iter()
+            .flat_map(|item| match item {
+                crate::canvas::Item::Drawables(drawables) => drawables
+                    .drawables
+                    .iter()
+                    .flat_map(|drawable| match drawable {
+                        crate::Drawable::Lines(lines) => lines
+                            .iter()
+                            .map(|line| {
+                                let points = line
+                                    .points
+                                    .iter()
+                                    .map(|point| drawables.transform * *point)
+                                    .collect();
+                                (points, line.width)
+                            })
+                            .collect(),
+                        crate::Drawable::Fill(_) => Vec::new(),
+                    })
+                    .collect::<Vec<_>>(),
+                crate::canvas::Item::Raster(_) => Vec::new(),
+            })
+            .collect()
+    }
+
+    fn assert_near(actual: &[emath::Pos2], expected: &[emath::Pos2]) {
+        assert_eq!(actual.len(), expected.len(), "{actual:?}");
+        for (actual, expected) in actual.iter().zip(expected) {
+            assert!(
+                actual.distance(*expected) < 0.01,
+                "{actual:?} is not {expected:?}"
+            );
+        }
+    }
+
+    /// The equator, from 90° west to 90° east, is the middle half of the map's middle row at
+    /// zoom 0.
+    #[test]
+    fn features_of_an_untiled_source_are_drawn_where_they_are_on_the_map() {
+        let source = crate::MemorySource::new(vec![crate::FeatureLayer::new(
+            "roads",
+            vec![road(crate::lon_lat(-90., 0.), crate::lon_lat(90., 0.), 3.)],
+        )]);
+        let mut styled = StyledSources::new(style(vec![line("app", "roads")]), Context::default())
+            .with_source("app", source);
+
+        let memory = memory_at(0.);
+        let canvas = draw_until(
+            &mut styled,
+            &projector_of(&memory, crate::lon_lat(0., 0.)),
+            1,
+        );
+
+        let lines = lines_on(&canvas);
+        assert_eq!(lines.len(), 1);
+        assert_near(
+            &lines[0].0,
+            &[emath::pos2(64., 128.), emath::pos2(192., 128.)],
+        );
+        assert_eq!(lines[0].1, 3.);
+    }
+
+    #[test]
+    fn layers_of_an_untiled_source_go_between_those_of_tiled_ones() {
+        let source = crate::MemorySource::new(vec![crate::FeatureLayer::new(
+            "roads",
+            vec![road(crate::lon_lat(-90., 0.), crate::lon_lat(90., 0.), 3.)],
+        )]);
+        let mut styled = StyledSources::new(
+            style(vec![raster("a"), line("app", "roads"), raster("a")]),
+            Context::default(),
+        )
+        .with_tiled_source("a", Fixed::new(1))
+        .with_source("app", source);
+
+        let memory = memory_at(0.);
+        let canvas = draw_until(
+            &mut styled,
+            &projector_of(&memory, crate::lon_lat(0., 0.)),
+            3,
+        );
+
+        let kinds: Vec<&str> = canvas
+            .items
+            .iter()
+            .map(|item| match item {
+                crate::canvas::Item::Raster(_) => "raster",
+                crate::canvas::Item::Drawables(_) => "drawables",
+            })
+            .collect();
+        assert_eq!(kinds, ["raster", "drawables", "raster"]);
+    }
+
+    #[test]
+    fn an_untiled_source_is_drawn_anew_when_its_features_change() {
+        let source = crate::MemorySource::new(vec![crate::FeatureLayer::new(
+            "roads",
+            vec![road(crate::lon_lat(-90., 0.), crate::lon_lat(90., 0.), 3.)],
+        )]);
+        let mut styled = StyledSources::new(style(vec![line("app", "roads")]), Context::default())
+            .with_source("app", source.clone());
+        let memory = memory_at(0.);
+        let projector = projector_of(&memory, crate::lon_lat(0., 0.));
+        draw_until(&mut styled, &projector, 1);
+
+        source.set(vec![crate::FeatureLayer::new(
+            "roads",
+            vec![road(crate::lon_lat(0., 0.), crate::lon_lat(90., 0.), 5.)],
+        )]);
+
+        let lines = lines_on(&draw_until(&mut styled, &projector, 1));
+        assert_eq!(lines.len(), 1);
+        assert_near(
+            &lines[0].0,
+            &[emath::pos2(128., 128.), emath::pos2(192., 128.)],
+        );
+        assert_eq!(lines[0].1, 5.);
+    }
+
+    /// Features are looked up by where they are, which must not change the order they are drawn
+    /// in, each over the ones before it.
+    #[test]
+    fn features_of_an_untiled_source_are_drawn_in_their_order() {
+        let roads = (1..=50)
+            .map(|width| {
+                let lat = (width as f64 * 7.3) % 60. - 30.;
+                road(
+                    crate::lon_lat(-90., lat),
+                    crate::lon_lat(90., -lat),
+                    width as f64,
+                )
+            })
+            .collect();
+        let source = crate::MemorySource::new(vec![crate::FeatureLayer::new("roads", roads)]);
+        let mut styled = StyledSources::new(style(vec![line("app", "roads")]), Context::default())
+            .with_source("app", source);
+
+        let memory = memory_at(0.);
+        let canvas = draw_until(
+            &mut styled,
+            &projector_of(&memory, crate::lon_lat(0., 0.)),
+            1,
+        );
+
+        let widths: Vec<f32> = lines_on(&canvas).iter().map(|(_, width)| *width).collect();
+        assert_eq!(
+            widths,
+            (1..=50).map(|width| width as f32).collect::<Vec<_>>()
+        );
+    }
+
+    #[test]
+    fn features_off_the_map_are_left_out() {
+        let source = crate::MemorySource::new(vec![crate::FeatureLayer::new(
+            "roads",
+            vec![
+                road(crate::lon_lat(17.0, 51.1), crate::lon_lat(17.1, 51.1), 1.),
+                road(crate::lon_lat(-74.0, 40.7), crate::lon_lat(-73.9, 40.7), 2.),
+            ],
+        )]);
+        let mut styled = StyledSources::new(style(vec![line("app", "roads")]), Context::default())
+            .with_source("app", source);
+
+        let memory = memory_at(10.);
+        let canvas = draw_until(
+            &mut styled,
+            &projector_of(&memory, crate::lon_lat(17.05, 51.1)),
+            1,
+        );
+
+        let widths: Vec<f32> = lines_on(&canvas).iter().map(|(_, width)| *width).collect();
+        assert_eq!(widths, [1.]);
+    }
+
+    /// Labels of an untiled source are placed among the basemap's, by their style layer.
+    #[test]
+    fn labels_of_an_untiled_source_are_placed_by_their_style_layer() {
+        let label = serde_json::from_value(serde_json::json!({
+            "type": "symbol",
+            "source": "app",
+            "source-layer": "places",
+            "layout": { "text-field": ["get", "name"] },
+        }))
+        .unwrap();
+        let source = crate::MemorySource::new(vec![crate::FeatureLayer::new(
+            "places",
+            vec![
+                crate::Feature::new(geo_types::Point::new(0., 0.))
+                    .with_property("name", "Null Island"),
+            ],
+        )]);
+        let mut styled = StyledSources::new(style(vec![raster("a"), label]), Context::default())
+            .with_tiled_source("a", Fixed::new(1))
+            .with_source("app", source);
+
+        let memory = memory_at(0.);
+        let canvas = draw_until(
+            &mut styled,
+            &projector_of(&memory, crate::lon_lat(0., 0.)),
+            1,
+        );
+
+        let labels: Vec<_> = canvas
+            .symbols
+            .iter()
+            .map(|(z_order, symbol)| {
+                (
+                    *z_order,
+                    symbol.text.as_ref().map(|text| text.text.clone()),
+                    symbol.position,
+                )
+            })
+            .collect();
+        assert_eq!(
+            labels,
+            [(
+                crate::ZOrder::default().combine(1),
+                Some("Null Island".to_string()),
+                emath::pos2(128., 128.)
+            )]
+        );
     }
 }

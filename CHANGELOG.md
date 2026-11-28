@@ -35,6 +35,11 @@ playground and can change or break at any time without an entry here.
   `DemEncoding`, `with_elevation` and `Mapterhorn` are not there without it.
 * With `zoom_with_ctrl(false)`, the mouse wheel zooms as fast as it does with <kbd>ctrl</kbd>,
   no matter the frame rate. It used to zoom many times slower on fast displays.
+* New `Source`, for data which does not come in tiles, added to a `StyledSources` with
+  `with_source`. Its features are styled every frame, between the layers of the other sources,
+  and their labels are placed together with theirs.
+* New `MemorySource`, an app's own `Feature`s in longitude and latitude, grouped in
+  `FeatureLayer`s, and drawn anew whenever they are replaced. Clones share them.
 
 ## 0.66.0
 
