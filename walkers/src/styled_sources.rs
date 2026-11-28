@@ -115,7 +115,8 @@ impl Layer for &mut StyledSources {
         for (index, layers) in consecutive_layers.iter() {
             let source = sources[*index].1.as_mut();
             let tile_size = source.tile_size();
-            draw_tiles_with(canvas, projector, tile_size, |tile_id| {
+            let opaque = style.covers(layers.clone());
+            draw_tiles_with(canvas, projector, tile_size, opaque, |tile_id| {
                 styling.at(*index, source, layers.clone(), tile_id)
             });
         }

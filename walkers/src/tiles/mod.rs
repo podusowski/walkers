@@ -223,6 +223,7 @@ impl Tile {
     /// Draw the tile on the given `rect`. The `uv` parameter defines which part of the tile
     /// should be drawn on the `rect`. `zoom` is the map's, and `map_rect` is where on the screen
     /// the map is.
+    #[allow(clippy::too_many_arguments)]
     fn draw(
         &self,
         canvas: &mut Canvas,
@@ -231,9 +232,10 @@ impl Tile {
         tile_size: u32,
         zoom: f64,
         map_rect: Rect,
+        with_symbols: bool,
     ) {
         #[cfg(not(feature = "vector"))]
-        let _ = (tile_size, zoom, map_rect);
+        let _ = (tile_size, zoom, map_rect, with_symbols);
 
         match self {
             Tile::Raster(texture_handle) => {
@@ -254,6 +256,10 @@ impl Tile {
                         .with_transform(transform)
                         .with_clip_rect(rect),
                 );
+
+                if !with_symbols {
+                    return;
+                }
 
                 // Labels are anchored at their middle, so one anchored this far outside the map
                 // may still hang into it.
@@ -284,6 +290,90 @@ impl Tile {
     }
 }
 
+/// How long a tile takes to fade in once it is first shown, in seconds.
+const FADE_IN: f64 = 0.3;
+
+/// What a tile's data is told apart by, the same for all clones of it.
+#[derive(Clone, Copy, PartialEq, Eq, Hash)]
+enum Identity {
+    Texture(egui::TextureId),
+    #[cfg(feature = "vector")]
+    Drawables(usize),
+}
+
+/// When a tile's data was first shown, and last.
+struct Shown {
+    since: f64,
+    last: f64,
+
+    /// Drawables are told apart by their address, which a tile loaded later may get once these
+    /// are gone. Textures are numbered anew instead.
+    #[cfg(feature = "vector")]
+    drawables: Option<std::sync::Weak<Vec<crate::render::drawable::Drawable>>>,
+}
+
+impl Shown {
+    fn is_of_live_data(&self) -> bool {
+        #[cfg(feature = "vector")]
+        if let Some(drawables) = &self.drawables {
+            return drawables.strong_count() > 0;
+        }
+        true
+    }
+}
+
+/// Tiles' data which has been shown, whether as itself or standing in for a deeper tile, so
+/// that it fades in only the first time, and not when it is shown again from a cache.
+struct Fades {
+    shown: std::collections::HashMap<Identity, Shown>,
+    pruned_at: f64,
+}
+
+static FADES: std::sync::Mutex<Option<Fades>> = std::sync::Mutex::new(None);
+
+/// How far `tile` has faded in by `now`, from 0 to 1, counting from when it was first shown.
+fn faded_in(tile: &Tile, now: f64) -> f32 {
+    let Ok(mut fades) = FADES.lock() else {
+        return 1.0;
+    };
+    let fades = fades.get_or_insert_with(|| Fades {
+        shown: Default::default(),
+        pruned_at: now,
+    });
+
+    // What is gone, or has not been shown for long, is let go of.
+    if now - fades.pruned_at > 1.0 {
+        fades
+            .shown
+            .retain(|_, shown| shown.is_of_live_data() && now - shown.last < 600.0);
+        fades.pruned_at = now;
+    }
+
+    let identity = match tile {
+        Tile::Raster(texture) => Identity::Texture(texture.id()),
+        #[cfg(feature = "vector")]
+        Tile::Vector { drawables, .. } => {
+            Identity::Drawables(std::sync::Arc::as_ptr(drawables) as usize)
+        }
+    };
+    let first_shown = || Shown {
+        since: now,
+        last: now,
+        #[cfg(feature = "vector")]
+        drawables: match tile {
+            Tile::Vector { drawables, .. } => Some(std::sync::Arc::downgrade(drawables)),
+            Tile::Raster(_) => None,
+        },
+    };
+
+    let entry = fades.shown.entry(identity).or_insert_with(first_shown);
+    if !entry.is_of_live_data() {
+        *entry = first_shown();
+    }
+    entry.last = now;
+    ((now - entry.since) / FADE_IN).clamp(0.0, 1.0) as f32
+}
+
 /// Raster image, as the [`Canvas`] holds it. For now it is egui's texture, already uploaded.
 #[derive(Clone)]
 pub(crate) struct RasterImage(pub TextureHandle);
@@ -306,14 +396,18 @@ pub(crate) fn draw_tiles<T: Tiles + ?Sized>(
     tiles: &mut T,
 ) {
     let tile_size = tiles.tile_size();
-    draw_tiles_with(canvas, projector, tile_size, |tile_id| tiles.at(tile_id));
+    draw_tiles_with(canvas, projector, tile_size, true, |tile_id| {
+        tiles.at(tile_id)
+    });
 }
 
-/// Draw the tiles `at` gives, which are `tile_size` pixels each.
+/// Draw the tiles `at` gives, which are `tile_size` pixels each, and `opaque` unless they let
+/// what is under them show, like relief does.
 pub(crate) fn draw_tiles_with(
     canvas: &mut Canvas,
     projector: &Projector,
     tile_size: u32,
+    opaque: bool,
     mut at: impl FnMut(TileId) -> Option<TilePiece>,
 ) {
     let mut meshes = Default::default();
@@ -323,6 +417,7 @@ pub(crate) fn draw_tiles_with(
             map_center_projected_position: projector.map_center_projected_position(),
             zoom: projector.zoom(),
             tile_size,
+            opaque,
         },
         tile_id_at(
             projector.map_center_projected_position(),
@@ -341,6 +436,7 @@ struct Spread {
     map_center_projected_position: Pixels,
     zoom: f64,
     tile_size: u32,
+    opaque: bool,
 }
 
 /// Use simple [flood fill algorithm](https://en.wikipedia.org/wiki/Flood_fill) to draw tiles on the map.
@@ -356,6 +452,7 @@ fn flood_fill_tiles(
         map_center_projected_position,
         zoom,
         tile_size,
+        opaque,
     } = *spread;
     // The tile's zoom level can differ from the map's: it is rounded to an integer, adjusted
     // for sources with tiles larger than 256px, and clamped at 0. Scale the tile so that it
@@ -369,14 +466,44 @@ fn flood_fill_tiles(
         && meshes.insert(tile_id)
     {
         if let Some(tile) = at(tile_id) {
-            tile.tile.draw(
-                canvas,
-                rect(tile_screen_position, corrected_tile_size),
-                tile.uv,
-                tile_size,
-                zoom,
-                map_rect,
-            )
+            let tile_rect = rect(tile_screen_position, corrected_tile_size);
+            let faded_in = faded_in(&tile.tile, canvas.time);
+
+            // Only a tile drawn as itself fades in. One standing in for a deeper tile is shown
+            // as it is, and counts as shown, so that it does not fade in again once the map is
+            // zoomed out to it.
+            let own = tile.uv == Rect::from_min_max(pos2(0., 0.), pos2(1., 1.));
+            if own && faded_in < 1.0 {
+                canvas.animating = true;
+
+                // What stood in for the tile until now stays underneath while it fades in. An
+                // opaque tile covers it. One letting what is under it show would add up with
+                // it, so it fades out instead.
+                let transparency = canvas.transparency;
+                if !opaque {
+                    canvas.transparency *= 1.0 - faded_in;
+                }
+                if let Some(lower) = tile_id.zoom.checked_sub(1) {
+                    let (stand_in_id, within) = interpolate_from_lower_zoom(tile_id, lower);
+                    if let Some(stand_in) = at(stand_in_id) {
+                        let uv = Rect::from_min_size(
+                            stand_in.uv.min + within.min.to_vec2() * stand_in.uv.size(),
+                            within.size() * stand_in.uv.size(),
+                        );
+                        stand_in
+                            .tile
+                            .draw(canvas, tile_rect, uv, tile_size, zoom, map_rect, false);
+                    }
+                }
+
+                canvas.transparency = transparency * faded_in;
+                tile.tile
+                    .draw(canvas, tile_rect, tile.uv, tile_size, zoom, map_rect, true);
+                canvas.transparency = transparency;
+            } else {
+                tile.tile
+                    .draw(canvas, tile_rect, tile.uv, tile_size, zoom, map_rect, true);
+            }
         }
 
         for next_tile_id in [

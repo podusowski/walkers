@@ -187,6 +187,7 @@ impl<'a, 'b, 'c> Map<'a, 'b, 'c> {
         );
         let painter = ui.painter().with_clip_rect(rect);
         let mut canvas = Canvas::new();
+        canvas.time = ui.input(|input| input.time);
 
         for (index, mut entry) in self.layers.into_iter().enumerate() {
             canvas.z_order = ZOrder::new(index);

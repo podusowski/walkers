@@ -23,6 +23,12 @@ pub struct Canvas {
 
     /// Of the layer being drawn, applied to everything it adds.
     pub(crate) transparency: f32,
+
+    /// egui's, in seconds, for what fades in.
+    pub(crate) time: f64,
+
+    /// Something is still fading in, so another frame is wanted.
+    pub(crate) animating: bool,
 }
 
 /// Something put on the [`Canvas`], with the transparency of the layer it came from already
@@ -108,6 +114,8 @@ impl Canvas {
             symbols: Vec::new(),
             z_order: ZOrder::default(),
             transparency: 1.0,
+            time: 0.0,
+            animating: false,
         }
     }
 

@@ -50,6 +50,13 @@ impl Style {
             .iter()
             .map(|layer| (layer.source(), layer.drawn()))
     }
+
+    /// Whether those layers cover everything under them, having a background.
+    pub(crate) fn covers(&self, layers: std::ops::Range<usize>) -> bool {
+        self.layers[layers]
+            .iter()
+            .any(|layer| matches!(layer, StyleLayer::Background { .. }))
+    }
 }
 
 /// Which layer, or layers, of a vector tile a style layer draws from.

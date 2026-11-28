@@ -5,6 +5,7 @@ playground and can change or break at any time without an entry here.
 
 ## Unreleased
 
+* Tiles fade in when they are first shown, rather than popping in.
 * New `contour` style layer, which traces elevation into contour lines, labelled where it has a
   `text-field`. Each line has `ele` and `level` (1 for major lines) to style it by. A tile is not
   traced more than 5 zoom levels past its own, as where a much shallower one stands in for those

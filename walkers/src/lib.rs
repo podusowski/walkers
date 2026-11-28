@@ -28,6 +28,11 @@ mod style {
         {
             std::iter::empty()
         }
+
+        /// It has no layers to cover anything.
+        pub(crate) fn covers(&self, _layers: std::ops::Range<usize>) -> bool {
+            false
+        }
     }
 }
 
