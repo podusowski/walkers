@@ -1,7 +1,7 @@
 use ecolor::Color32;
 use emath::pos2;
 
-use geo_types::LineString;
+use geo_types::{LineString, Polygon};
 
 use crate::{
     expression::Context,
@@ -62,12 +62,33 @@ fn render_inner(
                 push_line(line_string, width, color, dasharray, drawables);
             }
         }
+        Geometry::Polygon(polygon) => {
+            push_rings(polygon, width, color, dasharray, drawables);
+        }
+        Geometry::MultiPolygon(multi_polygon) => {
+            for polygon in multi_polygon {
+                push_rings(polygon, width, color, dasharray, drawables);
+            }
+        }
         Geometry::GeometryCollection(collection) => {
             for geometry in collection {
                 render_inner(geometry, width, color, dasharray, drawables);
             }
         }
         _ => (),
+    }
+}
+
+/// The outline of a polygon: its exterior, and the edges of its holes.
+fn push_rings(
+    polygon: &Polygon<f32>,
+    width: f32,
+    color: Color32,
+    dasharray: Option<&[f32]>,
+    drawables: &mut Vec<Drawable>,
+) {
+    for ring in std::iter::once(polygon.exterior()).chain(polygon.interiors()) {
+        push_line(ring, width, color, dasharray, drawables);
     }
 }
 
@@ -89,4 +110,58 @@ fn push_line(
             .map(|value| value * width)
             .collect(),
     }]))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::render::geometry_type_to_str;
+    use geo_types::MultiPolygon;
+    use std::collections::HashMap;
+
+    fn lines(geometry: Geometry<f32>) -> Vec<Line> {
+        let context = Context::new(
+            geometry_type_to_str(&geometry).to_string(),
+            HashMap::new(),
+            12,
+        );
+
+        let mut drawables = Vec::new();
+        render(&geometry, &context, &Paint::default(), &mut drawables).unwrap();
+        drawables
+            .into_iter()
+            .flat_map(|drawable| match drawable {
+                Drawable::Lines(lines) => lines,
+                Drawable::Fill(_) => panic!("a line layer filled something"),
+            })
+            .collect()
+    }
+
+    fn square(from: f32, to: f32) -> LineString<f32> {
+        LineString::from(vec![
+            (from, from),
+            (to, from),
+            (to, to),
+            (from, to),
+            (from, from),
+        ])
+    }
+
+    #[test]
+    fn polygons_are_outlined_along_every_ring() {
+        let polygon = Polygon::new(square(0., 10.), vec![square(2., 4.), square(6., 8.)]);
+
+        let outlined = lines(Geometry::Polygon(polygon.clone()));
+        assert_eq!(outlined.len(), 3);
+        assert_eq!(outlined[0].points.len(), 5);
+
+        assert_eq!(
+            lines(Geometry::MultiPolygon(MultiPolygon::new(vec![
+                polygon.clone(),
+                polygon
+            ])))
+            .len(),
+            6
+        );
+    }
 }
