@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+
+<head>
+    <title>Walkers demos</title>
+    
+<script type="module">
+import init, * as bindings from './demos-c1e4ffe8e9ae5af9.js';
+const wasm = await init({ module_or_path: './demos-c1e4ffe8e9ae5af9_bg.wasm' });
+
+
+window.wasmBindings = bindings;
+
+
+dispatchEvent(new CustomEvent("TrunkApplicationStarted", {detail: {wasm}}));
+
+</script>
+
+    <style>
+        html,
+        body {
+            overflow: hidden;
+            margin: 0;
+            padding: 0;
+            height: 100%;
+            width: 100%;
+        }
+
+        canvas {
+            display: block;
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+        }
+    </style>
+<link rel="modulepreload" href="./demos-c1e4ffe8e9ae5af9.js" crossorigin="anonymous" integrity="sha384-5rrNLBJO2+ESPkBJtkmX6VrMMuWHfcimjQFnGY1vP70DBiWTbD8D1WNfWAL+bEf9"><link rel="preload" href="./demos-c1e4ffe8e9ae5af9_bg.wasm" crossorigin="anonymous" integrity="sha384-Ub3znMK9Ot8fUf9RE7roFdilqM2ZpHtubUx4OY2r9iQOrWyq1vRuNKC5eLcAlw68" as="fetch" type="application/wasm"></head>
+
+<body>
+    <canvas id="the_canvas_id"></canvas>
+</body>
+
+</html>
