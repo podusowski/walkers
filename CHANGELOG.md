@@ -35,6 +35,8 @@ playground and can change or break at any time without an entry here.
   `DemEncoding`, `with_elevation` and `Mapterhorn` are not there without it.
 * With `zoom_with_ctrl(false)`, the mouse wheel zooms as fast as it does with <kbd>ctrl</kbd>,
   no matter the frame rate. It used to zoom many times slower on fast displays.
+* `line` layers draw the outlines of polygons, around the outside and every hole. They used to
+  skip polygons.
 
 ## 0.66.0
 

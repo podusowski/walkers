@@ -535,7 +535,11 @@ fn build(palette: &Palette, hillshade: Option<String>, contours: Option<String>)
         StyleLayer::Line {
             source: Some(SOURCE.into()),
             source_layer: "transportation".into(),
-            filter: Some(Filter(json!(["==", "subclass", "runway"]))),
+            filter: Some(Filter(json!([
+                "all",
+                ["==", "$type", "LineString"],
+                ["==", "subclass", "runway"]
+            ]))),
             paint: Paint {
                 line_color: Some(palette.muted.clone()),
                 line_width: Some(linear_zoom_interpolation(&[
@@ -550,7 +554,11 @@ fn build(palette: &Palette, hillshade: Option<String>, contours: Option<String>)
         StyleLayer::Line {
             source: Some(SOURCE.into()),
             source_layer: "transportation".into(),
-            filter: Some(Filter(json!(["==", "subclass", "taxiway"]))),
+            filter: Some(Filter(json!([
+                "all",
+                ["==", "$type", "LineString"],
+                ["==", "subclass", "taxiway"]
+            ]))),
             paint: Paint {
                 line_color: Some(palette.muted.clone()),
                 line_width: Some(linear_zoom_interpolation(&[
@@ -645,6 +653,7 @@ fn build(palette: &Palette, hillshade: Option<String>, contours: Option<String>)
             source_layer: "transportation".into(),
             filter: Some(Filter(json!([
                 "all",
+                ["==", "$type", "LineString"],
                 ["==", "brunnel", "tunnel"],
                 ["in", "class", "path", "track"]
             ]))),
@@ -661,6 +670,7 @@ fn build(palette: &Palette, hillshade: Option<String>, contours: Option<String>)
             source_layer: "transportation".into(),
             filter: Some(Filter(json!([
                 "all",
+                ["==", "$type", "LineString"],
                 ["==", "brunnel", "tunnel"],
                 ["in", "class", "minor", "tertiary", "service"],
                 service_road_shown.clone()
@@ -678,6 +688,7 @@ fn build(palette: &Palette, hillshade: Option<String>, contours: Option<String>)
             source_layer: "transportation".into(),
             filter: Some(Filter(json!([
                 "all",
+                ["==", "$type", "LineString"],
                 ["==", "brunnel", "tunnel"],
                 ["in", "class", "primary", "secondary"]
             ]))),
@@ -694,6 +705,7 @@ fn build(palette: &Palette, hillshade: Option<String>, contours: Option<String>)
             source_layer: "transportation".into(),
             filter: Some(Filter(json!([
                 "all",
+                ["==", "$type", "LineString"],
                 ["==", "brunnel", "tunnel"],
                 ["in", "class", "motorway", "trunk"]
             ]))),
@@ -710,6 +722,7 @@ fn build(palette: &Palette, hillshade: Option<String>, contours: Option<String>)
             source_layer: "transportation".into(),
             filter: Some(Filter(json!([
                 "all",
+                ["==", "$type", "LineString"],
                 ["==", "brunnel", "tunnel"],
                 ["in", "class", "path", "track"]
             ]))),
@@ -721,6 +734,7 @@ fn build(palette: &Palette, hillshade: Option<String>, contours: Option<String>)
             source_layer: "transportation".into(),
             filter: Some(Filter(json!([
                 "all",
+                ["==", "$type", "LineString"],
                 ["==", "brunnel", "tunnel"],
                 ["in", "class", "minor", "tertiary", "service"],
                 service_road_shown.clone()
@@ -737,6 +751,7 @@ fn build(palette: &Palette, hillshade: Option<String>, contours: Option<String>)
             source_layer: "transportation".into(),
             filter: Some(Filter(json!([
                 "all",
+                ["==", "$type", "LineString"],
                 ["==", "brunnel", "tunnel"],
                 ["in", "class", "primary", "secondary"]
             ]))),
@@ -752,6 +767,7 @@ fn build(palette: &Palette, hillshade: Option<String>, contours: Option<String>)
             source_layer: "transportation".into(),
             filter: Some(Filter(json!([
                 "all",
+                ["==", "$type", "LineString"],
                 ["==", "brunnel", "tunnel"],
                 ["in", "class", "motorway", "trunk"]
             ]))),
@@ -776,7 +792,11 @@ fn build(palette: &Palette, hillshade: Option<String>, contours: Option<String>)
         StyleLayer::Line {
             source: Some(SOURCE.into()),
             source_layer: "transportation".into(),
-            filter: Some(Filter(json!(["==", "subclass", "pier"]))),
+            filter: Some(Filter(json!([
+                "all",
+                ["==", "$type", "LineString"],
+                ["==", "subclass", "pier"]
+            ]))),
             paint: Paint {
                 line_color: Some(palette.pier.clone()),
                 line_width: Some(linear_zoom_interpolation(&[
@@ -793,6 +813,7 @@ fn build(palette: &Palette, hillshade: Option<String>, contours: Option<String>)
             source_layer: "transportation".into(),
             filter: Some(Filter(json!([
                 "all",
+                ["==", "$type", "LineString"],
                 ["!=", "brunnel", "tunnel"],
                 ["!=", "brunnel", "bridge"],
                 ["in", "class", "path", "track"],
@@ -806,6 +827,7 @@ fn build(palette: &Palette, hillshade: Option<String>, contours: Option<String>)
             source_layer: "transportation".into(),
             filter: Some(Filter(json!([
                 "all",
+                ["==", "$type", "LineString"],
                 ["!=", "brunnel", "tunnel"],
                 ["!=", "brunnel", "bridge"],
                 ["in", "class", "minor", "tertiary", "service"],
@@ -824,6 +846,7 @@ fn build(palette: &Palette, hillshade: Option<String>, contours: Option<String>)
             source_layer: "transportation".into(),
             filter: Some(Filter(json!([
                 "all",
+                ["==", "$type", "LineString"],
                 ["!=", "brunnel", "tunnel"],
                 ["!=", "brunnel", "bridge"],
                 ["in", "class", "primary", "secondary"]
@@ -841,6 +864,7 @@ fn build(palette: &Palette, hillshade: Option<String>, contours: Option<String>)
             source_layer: "transportation".into(),
             filter: Some(Filter(json!([
                 "all",
+                ["==", "$type", "LineString"],
                 ["!=", "brunnel", "tunnel"],
                 ["!=", "brunnel", "bridge"],
                 ["in", "class", "motorway", "trunk"]
@@ -855,7 +879,11 @@ fn build(palette: &Palette, hillshade: Option<String>, contours: Option<String>)
         StyleLayer::Line {
             source: Some(SOURCE.into()),
             source_layer: "transportation".into(),
-            filter: Some(Filter(json!(["==", "class", "rail"]))),
+            filter: Some(Filter(json!([
+                "all",
+                ["==", "$type", "LineString"],
+                ["==", "class", "rail"]
+            ]))),
             paint: Paint {
                 line_color: Some(palette.rail.clone()),
                 line_width: Some(casing_width(rail_width().0)),
@@ -866,7 +894,11 @@ fn build(palette: &Palette, hillshade: Option<String>, contours: Option<String>)
         StyleLayer::Line {
             source: Some(SOURCE.into()),
             source_layer: "transportation".into(),
-            filter: Some(Filter(json!(["==", "class", "rail"]))),
+            filter: Some(Filter(json!([
+                "all",
+                ["==", "$type", "LineString"],
+                ["==", "class", "rail"]
+            ]))),
             paint: Paint {
                 //line_opacity: Some(Float(json!(0.5))),
                 line_color: Some(palette.rail_tie.clone()),
@@ -886,7 +918,11 @@ fn build(palette: &Palette, hillshade: Option<String>, contours: Option<String>)
         StyleLayer::Line {
             source: Some(SOURCE.into()),
             source_layer: "transportation".into(),
-            filter: Some(Filter(json!(["==", "class", "transit"]))),
+            filter: Some(Filter(json!([
+                "all",
+                ["==", "$type", "LineString"],
+                ["==", "class", "transit"]
+            ]))),
             paint: Paint {
                 line_color: Some(palette.tram.clone()),
                 line_width: Some(road_width(TRAM_FACTOR)),
@@ -910,6 +946,7 @@ fn build(palette: &Palette, hillshade: Option<String>, contours: Option<String>)
             source_layer: "transportation".into(),
             filter: Some(Filter(json!([
                 "all",
+                ["==", "$type", "LineString"],
                 ["==", "brunnel", "bridge"],
                 ["in", "class", "path", "track"]
             ]))),
@@ -921,6 +958,7 @@ fn build(palette: &Palette, hillshade: Option<String>, contours: Option<String>)
             source_layer: "transportation".into(),
             filter: Some(Filter(json!([
                 "all",
+                ["==", "$type", "LineString"],
                 ["==", "brunnel", "bridge"],
                 ["in", "class", "minor", "tertiary", "service"],
                 service_road_shown.clone()
@@ -938,6 +976,7 @@ fn build(palette: &Palette, hillshade: Option<String>, contours: Option<String>)
             source_layer: "transportation".into(),
             filter: Some(Filter(json!([
                 "all",
+                ["==", "$type", "LineString"],
                 ["==", "brunnel", "bridge"],
                 ["in", "class", "primary", "secondary"]
             ]))),
@@ -954,6 +993,7 @@ fn build(palette: &Palette, hillshade: Option<String>, contours: Option<String>)
             source_layer: "transportation".into(),
             filter: Some(Filter(json!([
                 "all",
+                ["==", "$type", "LineString"],
                 ["==", "brunnel", "bridge"],
                 ["in", "class", "motorway", "trunk"]
             ]))),
@@ -1624,6 +1664,41 @@ mod tests {
                 _ => None,
             })
             .collect()
+    }
+
+    /// OpenMapTiles has areas in `transportation` too: pedestrian squares, bridges and piers.
+    /// Outlined as roads, a square came out ringed with a path's dashes.
+    #[test]
+    fn roads_are_not_drawn_around_areas() {
+        let style = Waymark::new(Palette::light()).build();
+        let classes = ROAD_CLASSES.iter().chain(&["bridge", "pier"]);
+
+        for (class, brunnel) in classes
+            .flat_map(|class| ["tunnel", "bridge", "ford", ""].map(|brunnel| (class, brunnel)))
+        {
+            let properties = serde_json::from_value::<HashMap<String, Value>>(json!({
+                "class": class,
+                "subclass": class,
+                "brunnel": brunnel,
+            }))
+            .unwrap();
+            let area = Context::new("Polygon".to_owned(), properties, 16);
+
+            for layer in &style.layers {
+                if let StyleLayer::Line {
+                    source_layer,
+                    filter,
+                    ..
+                } = layer
+                    && source_layer.matches("transportation")
+                {
+                    assert!(
+                        filter.as_ref().is_some_and(|filter| !filter.matches(&area)),
+                        "{class} {brunnel} area drawn by {filter:?}"
+                    );
+                }
+            }
+        }
     }
 
     /// A tunnel is drawn as a dashed casing with the road over it, whatever the road. Motorway

@@ -156,10 +156,19 @@ fn line_vertices(run: &[Line]) -> (Vec<LineVertex>, Vec<u32>) {
             .windows(2)
             .map(|pair| (pair[0], pair[1], (pair[1] - pair[0]).length()))
             .collect();
-        let joins: Vec<Join> = segments
-            .windows(2)
-            .map(|pair| {
-                let [(from, bend, before), (_, to, after)] = [pair[0], pair[1]];
+        // An outline ends where it starts, so its last segment bends into its first.
+        let closed = segments.len() > 2 && points.first() == points.last();
+        let bends = if closed {
+            segments.len()
+        } else {
+            segments.len().saturating_sub(1)
+        };
+
+        // The bend after each segment, but the last one of a line which is not closed.
+        let joins: Vec<Join> = (0..bends)
+            .map(|index| {
+                let (from, bend, before) = segments[index];
+                let (_, to, after) = segments[(index + 1) % segments.len()];
                 join(
                     (bend - from) / before,
                     (to - bend) / after,
@@ -168,14 +177,18 @@ fn line_vertices(run: &[Line]) -> (Vec<LineVertex>, Vec<u32>) {
                 )
             })
             .collect();
+        let first_corner = vertices.len() as u32;
 
         let mut travelled = 0.;
         for (index, &(from, to, length)) in segments.iter().enumerate() {
             let left = ((to - from) / length).rot90() * half;
             let square = [left, -left];
-            let start = index
-                .checked_sub(1)
-                .map_or(square, |previous| joins[previous].after);
+            let previous_join = match index.checked_sub(1) {
+                Some(previous) => joins.get(previous),
+                None if closed => joins.last(),
+                None => None,
+            };
+            let start = previous_join.map_or(square, |join| join.after);
             let end = joins.get(index).map_or(square, |join| join.before);
             let corner = vertices.len() as u32;
 
@@ -220,6 +233,17 @@ fn line_vertices(run: &[Line]) -> (Vec<LineVertex>, Vec<u32>) {
             }
 
             travelled += length;
+        }
+
+        // The wedge where a closed line's last segment meets its first.
+        if closed && let Some(cut) = joins.last().and_then(|join| join.cut) {
+            let previous = vertices.len() as u32 - 4;
+            let inside = 1 - cut as u32;
+            indices.extend([
+                previous + 2 + inside,
+                previous + 2 + cut as u32,
+                first_corner + cut as u32,
+            ]);
         }
     }
 
@@ -762,6 +786,39 @@ mod tests {
                 1,
                 "{points:?}: {point:?} at the outside of the bend"
             );
+        }
+    }
+
+    /// An outline ends where it starts, and that corner is a bend like any other.
+    #[test]
+    fn a_closed_line_is_joined_where_it_starts() {
+        let (vertices, indices) = line_vertices(&[Line {
+            points: vec![
+                pos2(0., 0.),
+                pos2(20., 0.),
+                pos2(20., 20.),
+                pos2(0., 20.),
+                pos2(0., 0.),
+            ],
+            width: 4.,
+            color: Color32::WHITE,
+            dasharray: Vec::new(),
+        }]);
+
+        for x in -10..=30 {
+            for y in -10..=30 {
+                let point = pos2(x as f32 + 0.13, y as f32 + 0.37);
+                assert!(
+                    layers_at(&vertices, &indices, point) <= 1,
+                    "{point:?} covered more than once"
+                );
+            }
+        }
+
+        // Just outside the corner the line starts and ends at, on either side of where its
+        // first and last segments meet.
+        for point in [pos2(-1.3, -0.4), pos2(-0.4, -1.3)] {
+            assert_eq!(layers_at(&vertices, &indices, point), 1, "{point:?}");
         }
     }
 
